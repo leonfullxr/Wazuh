@@ -1,0 +1,45 @@
+<decoder name="netiq_cef">
+    <!-- Se identifica el programa o prefijo del mensaje -->
+    <prematch>^IdentityManager:</prematch>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent>    
+    <regex>^(\w+): (\w+:0)\|(\w+)\|(\w+) (\w+)\|(\d.\d.\d.\d+)\|(\d+)\|(\w+) (\w+)\|(\d)\|(\.+) msg=(\.+) </regex>
+    <order>program, cef_version, vendor, product, module, version, signature, resource, event_name, severity, extension, msg</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Description:(\.+);</regex>
+    <order>description</order>
+</decoder>
+
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Original Requester:(\.+);</regex>
+    <order>req_original</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Request Date:(\S+);</regex>
+    <order>req_date</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Requested by (\.+);</regex>
+    <order>req_by</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Target DN: (\.+);</regex>
+    <order>target_dn</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Source DN:(\.+);</regex>
+    <order>source_dn</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Request Category: (\.+);</regex>
+    <order>req_category</order>
+</decoder>
