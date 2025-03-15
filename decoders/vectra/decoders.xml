@@ -1,0 +1,163 @@
+<decoder name="custom-vectra">
+  <prematch>vectra_cef_campaigns|Vectra|vectra_cef|vectra</prematch>
+</decoder>
+<!-- =============================================== Type 1 Log =============================================== -->
+<!--
+Mar 13 11:12:56 U00000000000000 vectra_cef -: CEF:0|Vectra Networks|X Series|000000|hidden_https_tunnel_cnc|Hidden HTTPS Tunnel|5.0|externalId=000000 cat=COMMAND & CONTROL dvc=0.000.000.000 dvchost=example.com shost=example.com src=0.000.000.000 flexNumber1Label=threat flexNumber1=50 flexNumber2Label=certainty flexNumber2=50 cs4Label=Vectra Event URL cs4=https://example.com/detections/000000?detail_id\\\\=00000000 cs5Label=triaged cs5=False dst=0.000.000.000 dhost=www.example.com proto=tcp dpt=443 out=0000 in=0000 start=0000000000000 end=0000000000000
+-->
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>CEF:(\d+)\|(\.+)\|(\.+)\|(\d+)\|(\S+)\|(\.+)\|(\d.\d)\|externalId=(\d+)</regex>
+  <order>cef_version, device_vendor, device_product, device_version, device_event_class_id, name, severity, externalId</order>
+</decoder>
+<!-- =============================================== Type 2 Log =============================================== -->
+<!--
+Mar 13 11:20:13 U00000000000000 vectra_cef_campaigns -: CEF:0|Vectra Networks|X Series|000000|campaigns|0.000.000.000-000|2| externalId=0000000 cat=CAMPAIGNS act=ADD dvc=0.000.000.000 dvchost=example.com shost=example.com src=0.000.000.000 suid=0000000 cs4Label=VectraEventURL cs4=https://example.com/campaigns/0000000 dhost= dst=0.000.000.000 duid=external rt=000000000.0 reason=External Remote Access cs6Label=VectraDetectionID cs6=000000
+-->
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>CEF:(\d+)\|(\.+)\|(\.+)\|(\d+)\|(\S+)\|(\d+.\d+.\d+.\d+-\d+)\|(\d)\| externalId=(\d+)</regex>
+  <order>cef_version, device_vendor, device_product, device_version, device_event_class_id, name, severity, externalId</order>
+</decoder>
+<!-- =============================================== Children =============================================== -->
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cat=(\.*) \S+=</regex>
+  <order>cat</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>act=(\S+)</regex>
+  <order>act</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>dvc=(\d+.\d+.\d+.\d+)</regex>
+  <order>dvc</order>
+</decoder>
+
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>dvchost=(\S+)</regex>
+  <order>dvchost</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>shost=(\S+)</regex>
+  <order>shost</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>src=(\d+.\d+.\d+.\d+)</regex>
+  <order>src</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>flexNumber1Label=(\S+)</regex>
+  <order>flexNumber1Label</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>flexNumber1=(\d+)</regex>
+  <order>flexNumber1</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>flexNumber2Label=(\S+)</regex>
+  <order>flexNumber2Label</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>flexNumber2=(\d+)</regex>
+  <order>flexNumber2</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cs4Label=(\S+)</regex>
+  <order>cs4Label</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cs4=(\S+)</regex>
+  <order>cs4</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cs5Label=(\S+)</regex>
+  <order>cs5Label</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cs5=(\S+)</regex>
+  <order>cs5</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>dst=(\d+.\d+.\d+.\d+)</regex>
+  <order>dst</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>dhost=(\S*)</regex>
+  <order>dhost</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>proto=(\S+)</regex>
+  <order>proto</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>dpt=(\d+)</regex>
+  <order>dpt</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>out=(\d+)</regex>
+  <order>out</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>in=(\d+)</regex>
+  <order>in</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>start=(\d+)</regex>
+  <order>start</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>end=(\d+)</regex>
+  <order>end</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>suid=(\d+)</regex>
+  <order>suid</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>duid=(\S+)</regex>
+  <order>duid</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>rt=(\d+.\d*)</regex>
+  <order>rt</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>reason=(\.*) \S+=</regex>
+  <order>reason</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cs6Label=(\S+) </regex>
+  <order>cs6Label</order>
+</decoder>
+<decoder name="custom-vectra-header">
+  <parent>custom-vectra</parent>
+  <regex>cs6=(\d+)</regex>
+  <order>cs6</order>
+</decoder>
