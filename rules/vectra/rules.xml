@@ -1,51 +1,50 @@
-<group name="vectra,threat">
-  <rule id="200001" level="10">
+<group name="vectra_rules">
+  <rule id="200000" level="1">
     <decoded_as>custom-vectra</decoded_as>
+    <description>Grouping of vectra rules</description>
+  </rule>
+
+  <rule id="200001" level="10">
+    <if_sid>200000</if_sid>
     <field name="device_event_class_id">hidden_https_tunnel_cnc</field>
     <description>Vectra: Hidden HTTPS Tunnel CNC detected</description>
   </rule>
-</group>
-<group name="vectra,campaign">
+
   <rule id="200002" level="8">
-    <decoded_as>custom-vectra</decoded_as>
+    <if_sid>200000</if_sid>
     <field name="device_event_class_id">campaigns</field>
     <!--<field name="severity">2</field>-->
     <description>Vectra: Campaign event detected</description>
   </rule>
-</group>
-<group name="vectra,network">
-  <rule id="200008" level="7">
-    <decoded_as>custom-vectra</decoded_as>
+
+  <rule id="200003" level="7">
+    <if_sid>200000</if_sid>
     <field name="proto">TCP</field>
     <field name="dpt">443</field>
     <description>Vectra: HTTPS traffic detected</description>
   </rule>
-</group>
-<group name="vectra,network">
-  <rule id="200003" level="8">
-    <decoded_as>custom-vectra</decoded_as>
+  
+  <rule id="200004" level="7">
+    <if_sid>200000</if_sid>
     <field name="proto">UDP</field>
     <field name="dpt">53</field>
     <description>Vectra: Suspicious UDP DNS traffic detected</description>
   </rule>
-</group>
-<group name="vectra,traffic">
+  
   <rule id="200005" level="6">
-    <decoded_as>custom-vectra</decoded_as>
+    <if_sid>200000</if_sid>
     <field name="out">\d+</field>
     <description>Vectra: Outbound traffic detected</description>
   </rule>
-</group>
-<group name="vectra,traffic">
+  
   <rule id="200006" level="6">
-    <decoded_as>custom-vectra</decoded_as>
+    <if_sid>200000</if_sid>
     <field name="in">\d+</field>
     <description>Vectra: Inboud traffic detected</description>
   </rule>
-</group>
-<group name="vectra,device">
+  
   <rule id="200007" level="6">
-    <decoded_as>custom-vectra</decoded_as>
+    <if_sid>200000</if_sid>
     <match>dvchost=unknown</match>
     <description>Vectra: Device host is unknown</description>
   </rule>
