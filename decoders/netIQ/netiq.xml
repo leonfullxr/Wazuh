@@ -1,18 +1,28 @@
 <decoder name="netiq_cef">
-    <!-- Se identifica el programa o prefijo del mensaje -->
-    <prematch>^IdentityManager:</prematch>
+    <prematch>^IdentityManager:|IdentityManager</prematch>
+</decoder>
+
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent>    
+    <regex>^(\w+): (\w+:0)\|(\w+)\|(\w+) (\w+)\|(\d.\d.\d.\d+)\|(\w+)\|(\.+)\|(\d)\|(\.+) msg=</regex>
+    <order>program, cef_version, vendor, product, module, version, signature, event_name, severity, extension</order>
 </decoder>
 <decoder name="netiq_cef_header">
     <parent>netiq_cef</parent>    
-    <regex>^(\w+): (\w+:0)\|(\w+)\|(\w+) (\w+)\|(\d.\d.\d.\d+)\|(\d+)\|(\w+) (\w+)\|(\d)\|(\.+) msg=(\.+) </regex>
-    <order>program, cef_version, vendor, product, module, version, signature, resource, event_name, severity, extension, msg</order>
+    <regex>^(\w+): (\w+:0)\|(\w+)\|(\w+) (\w+)\|(\d.\d.\d.\d+)\|(\S+)\|(\.+)\|(\d)\|(\.+)  \S+=</regex>
+    <order>program, cef_version, vendor, product, module, version, signature, event_name, severity, extension</order>
+</decoder>
+
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>msg=(\S+)</regex>
+    <order>msg</order>
 </decoder>
 <decoder name="netiq_cef_header">
     <parent>netiq_cef</parent> 
     <regex>Description:(\.+);</regex>
     <order>description</order>
 </decoder>
-
 <decoder name="netiq_cef_header">
     <parent>netiq_cef</parent> 
     <regex>Original Requester:(\.+);</regex>
@@ -42,4 +52,134 @@
     <parent>netiq_cef</parent> 
     <regex>Request Category: (\.+);</regex>
     <order>req_category</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Request Status: (\.+);</regex>
+    <order>req_status</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Original Request Status: (\.+);</regex>
+    <order>original_req_status</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>Correlation ID: (\.+) \S+=</regex>
+    <order>correlation_id</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs5Label=(\S+) </regex>
+    <order>cs5Label</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>fname=(\.+) \S+=</regex>
+    <order>fname</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>rt=(\d+) </regex>
+    <order>rt</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs3=(\.+) \S+=</regex>
+    <order>cs3</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs5=(\.+) \S+=</regex>
+    <order>cs5</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs4=(\S+)</regex>
+    <order>cs4</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs6={(\.+)}|cs6=(\.+) \S+=</regex>
+    <order>cs6</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>dpriv=(\S+) \S+=</regex>
+    <order>dpriv</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs1Label=(\.+) \S+=</regex>
+    <order>cs1Label</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs4Label=(\.+) \S+=</regex>
+    <order>cs4Label</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>dtz=(\S+)</regex>
+    <order>dtz</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>spriv=(\.+) \S+=</regex>
+    <order>spriv</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs6Label=(\.+) \S+=</regex>
+    <order>cs6Label</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>dvc=(\d+.\d+.\d+.\d+)</regex>
+    <order>dvc</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>act=(\.+) \S+=</regex>
+    <order>act</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cs3Label=(\.+) \S+=</regex>
+    <order>cs3Label</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>dvchost=(\S+)</regex>
+    <order>dvchost</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>cat=(\.+) \S+=</regex>
+    <order>cat</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>duser=(\.+) \S+=</regex>
+    <order>duser</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>fileType=(\S+)</regex>
+    <order>fileType</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>command=(\.+) \S+=</regex>
+    <order>command</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>outcome=(\S+)</regex>
+    <order>outcome</order>
+</decoder>
+<decoder name="netiq_cef_header">
+    <parent>netiq_cef</parent> 
+    <regex>dproc=(\.+) \S+=</regex>
+    <order>dproc</order>
 </decoder>
