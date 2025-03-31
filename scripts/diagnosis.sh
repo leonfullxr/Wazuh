@@ -129,7 +129,7 @@ current_timestamp() {
 write_output_manager() {
   local filename="$1"
   local content="$2"
-  echo -e "$content" > "${MANAGER_OUTPUT}/${filename}"
+  printf "%s" "$content" > "${MANAGER_OUTPUT}/${filename}"
   log_info "Wrote manager output: ${filename}"
 }
 
@@ -157,7 +157,7 @@ write_output_agents() {
 write_output() {
   local filename="$1"
   local content="$2"
-  if echo -e "$content" > "${OUTPUT_PATH}/${filename}"; then
+  if printf "%s" "$content" > "${OUTPUT_PATH}/${filename}"; then
     log_info "Successfully wrote content to ${filename}"
   else
     log_error "Error writing content to ${filename}"
@@ -179,7 +179,7 @@ authenticate_api() {
 wazuh_version_check() {
   log_info "Performing Wazuh Version Check via API"
   local version_output
-  version_output=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/manager/version/check?pretty=true" -H "Authorization: Bearer $TOKEN")
+  version_output=$(curl -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/manager/version/check?pretty=true" -H "Authorization: Bearer $TOKEN")
   write_output_manager "wazuh_version_check.json" "$version_output"
 }
 
@@ -191,9 +191,8 @@ wazuh_agent_status_check() {
   write_output_manager "wazuh_agent_status_check.json" "$agent_status_output"
 }
 
-
-# === Dummy Implementations of Wazuh Functions ===
 # === Cluster Function ===
+# TODO: add API calls to every node in the cluster
 get_cluster_healthcheck() {
   log_info "Obtaining cluster healthcheck via API"
   
@@ -221,6 +220,7 @@ get_cluster_healthcheck() {
 }
 
 # === Indexer Function ===
+# TODO: if the cluster health is red --> do something?
 get_indexer_healthcheck() {
   log_info "Obtaining Indexer healthcheck via API"
   local indices
@@ -250,22 +250,17 @@ get_indexer_healthcheck() {
 get_manager_configuration() {
   local manager_configuration
   manager_configuration=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/manager/configuration?pretty=true" -H "Authorization: Bearer $TOKEN")
-  # TODO: Fix invalid escape sequences: double any backslash not followed by a valid JSON escape character
-  local fixed_configuration
-  fixed_configuration=$(echo "$manager_configuration" | sed -E 's/\\([^"\\/bfnrtu])/\\\\\1/g')
-  write_output_manager "get_manager_configuration.json" "$fixed_configuration"
+  write_output_manager "get_manager_configuration.json" "$manager_configuration"
 }
 
 # === get_manager_healthcheck Function ===
 get_manager_healthcheck() {
   log_info "Obtaining manager healthcheck via API"
-
   local manager_info
   local manager_status
   local manager_api_config
   local manager_version_check
 
-  # TODO: check for cluster healthcheck instead of the manager one
   manager_info=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/manager/info?pretty=true" -H "Authorization: Bearer $TOKEN")
   manager_status=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/manager/status?pretty=true" -H "Authorization: Bearer $TOKEN")
   manager_api_config=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/manager/api/config?pretty=true" -H "Authorization: Bearer $TOKEN")
@@ -281,7 +276,6 @@ get_manager_healthcheck() {
   write_output_manager "get_manager_healthcheck.json" "$combined_json"
 }
 
-# TODO: verify that the structure is correct
 get_agent_info() {
   log_info "Obtaining agent information via API"
 
