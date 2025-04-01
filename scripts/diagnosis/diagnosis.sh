@@ -30,7 +30,15 @@ INDEXER_HOST=localhost
 INDEXER_PORT=9200
 
 # TODO:
-# Sacar info de todos los nodos Wazuh server, configuracion y logs
+# Modo HC:
+# Mismas variables que sacarme toda la info. Y vamos a validar lo siguiente:
+
+# Version muy antigua/migraciones. Si la version de Wazuh server es es menor que 4.5
+# Falta de espacio en disco.. Si el disk space consumidol es mayor than 85% in Wazuh server nodes and Wazuh Indexer nodes
+# Cluster indexer red. Si el cluster/health is red or yellow.
+# Servicios caidos. Si las APIs de Wazuh server and Wazuh Indexer,no responden 200 OK.
+# Environment is not ready for upgrade.
+
 
 # === Check Functions ===
 # --- Check Root User ---
@@ -214,11 +222,22 @@ get_cluster_healthcheck() {
   combined_json+="\"cluster_status\": $status, "
   combined_json+="\"cluster_nodes\": $nodes"
   combined_json+="}"
+
+  # TODO: Add API calls to every node in the cluster
+  # GET /cluster/node_id/status?pretty=true
+
+  # GET /cluster/node_id/configuration?pretty=true
+
+  # GET /cluster/node_id/logs/summary?pretty=true
+
+  # GET /cluster/node_id/daemons/stats?daemons_list=wazuh-analysisd,wazuh-remoted
   
   write_output_cluster "get_cluster_healthcheck.json" "$combined_json"
 }
 
 # === Indexer Function ===
+# TODO: The indexer used is given from the user, but it would be nice to check
+#       if the indexer is available for the API, if not, check other indexers until fail.
 get_indexer_healthcheck() {
   log_info "Obtaining Indexer healthcheck via API"
   local indices
