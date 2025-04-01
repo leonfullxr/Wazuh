@@ -24,14 +24,13 @@ WAZUH_HOST=localhost
 WAZUH_PORT=55000
 
 # Indexer API defaults
-INDEXER_API_USER="admin"
-INDEXER_API_PASSWORD="admin"
-INDEXER_HOST="localhost"
+INDEXER_API_USER=admin
+INDEXER_API_PASSWORD=admin
+INDEXER_HOST=localhost
 INDEXER_PORT=9200
 
 # TODO:
 # Sacar info de todos los nodos Wazuh server, configuracion y logs
-# lsof /var/ossec/logs/alerts/alerts.json
 
 # === Check Functions ===
 # --- Check Root User ---
@@ -220,7 +219,6 @@ get_cluster_healthcheck() {
 }
 
 # === Indexer Function ===
-# TODO: if the cluster health is red --> do something?
 get_indexer_healthcheck() {
   log_info "Obtaining Indexer healthcheck via API"
   local indices
@@ -228,12 +226,22 @@ get_indexer_healthcheck() {
   local allocation_explain
   local cluster_settings
   local nodes_stats
+  local health_status
 
   indices=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/indices?format=json")
-  cluster_health=$(curl -k -u  $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
-  allocation_explain=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/allocation/explain?pretty=true")
+  cluster_health=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
+  
+  # Extract the "status" value from the cluster health JSON
+  health_status=$(echo "$cluster_health" | grep -o '"status" *: *"[^"]*"' | sed 's/.*: *"//; s/"//')
+  
+  if [ "$health_status" = "yellow" ] || [ "$health_status" = "red" ]; then
+    allocation_explain=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/allocation/explain?pretty=true")
+  else
+    allocation_explain="{}"
+  fi
+
   cluster_settings=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/settings?pretty=true")
-  nodes_stats=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/stats/nodes?pretty=true")
+  nodes_stats=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/stats?pretty=true")
 
   local combined_json="{"
   combined_json+="\"indices\": $indices, "
@@ -242,7 +250,7 @@ get_indexer_healthcheck() {
   combined_json+="\"cluster_settings\": $cluster_settings, "
   combined_json+="\"nodes_stats\": $nodes_stats"
   combined_json+="}"
-
+  
   write_output_indexer "get_indexer_healthcheck.json" "$combined_json"
 }
 
@@ -309,6 +317,8 @@ wazuh_manager_status_info() {
   {
     echo -e "\n=== Wazuh Manager Status and Version ==="
     echo "Wazuh Manager Service Status:"; systemctl status wazuh-manager -l
+    echo -e "\n=== Wazuh Alerts File Lsof ==="
+    echo "Alerts file lsof:"; lsof /var/ossec/logs/alerts/alerts.json
     echo -e "\n=== Wazuh Alerts and Cold Storage Retention Policy ==="
     echo "Empty alert files (if any):"; find /var/ossec/logs/alerts/ -type f -empty
     echo -e "\nSize of alerts folder:"; du -h /var/ossec/logs/alerts/
@@ -355,6 +365,7 @@ wazuh_manager_status_info() {
 }
 
 # === File Retrieval Functions (remain in base OUTPUT_PATH) ===
+# TODO: ask if needed, or add more files
 get_wazuh_logs() {
   log_info "Retrieving Wazuh logs..."
   for log_file in ossec.log api.log cluster.log; do
