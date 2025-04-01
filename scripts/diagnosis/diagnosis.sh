@@ -29,17 +29,6 @@ INDEXER_API_PASSWORD=admin
 INDEXER_HOST=localhost
 INDEXER_PORT=9200
 
-# TODO:
-# Modo HC:
-# Mismas variables que sacarme toda la info. Y vamos a validar lo siguiente:
-
-# Version muy antigua/migraciones. Si la version de Wazuh server es es menor que 4.5
-# Falta de espacio en disco.. Si el disk space consumidol es mayor than 85% in Wazuh server nodes and Wazuh Indexer nodes
-# Cluster indexer red. Si el cluster/health is red or yellow.
-# Servicios caidos. Si las APIs de Wazuh server and Wazuh Indexer,no responden 200 OK.
-# Environment is not ready for upgrade.
-
-
 # === Check Functions ===
 # --- Check Root User ---
 if [ "$(id -u)" -ne 0 ]; then
