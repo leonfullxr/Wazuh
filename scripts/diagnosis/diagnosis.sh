@@ -550,16 +550,19 @@ trap force_thread_stop SIGINT
 
 # === Compress Report Function ===
 compress_report() {
-  log_info "Generating ZIP file with the report..."
-  local zip_file="/tmp/wazuh_diagnostic_report.zip"
-  (cd "$OUTPUT_PATH" && zip -r "$zip_file" .) && log_info "Generated ZIP report in ${zip_file}" || log_error "Error generating ZIP report"
+  log_info "Compressing the report..."
+  if command -v zip >/dev/null 2>&1; then
+    local zip_file="/tmp/wazuh_diagnostic_report.zip"
+    (cd "$OUTPUT_PATH" && zip -r "$zip_file" .) && log_info "Generated ZIP report in ${zip_file}" || log_error "Error generating ZIP report"
+  else
+    local tar_file="/tmp/wazuh_diagnostic_report.tar.gz"
+    (cd "$OUTPUT_PATH" && tar -czf "$tar_file" .) && log_info "Generated TAR.GZ report in ${tar_file}" || log_error "Error generating TAR.GZ report"
+  fi
   rm -rf "$OUTPUT_PATH"
 }
 
 # === Main Function ===
 main() {
-  
-
   if [ "$1" = "--healthcheck" ]; then
     echo -e "${YELLOW}Running healthcheck mode...${NC}"
     healthcheck_mode
