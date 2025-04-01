@@ -17,6 +17,11 @@ MULTIGROUPS_PATH="${WAZUH_PATH}/var/multigroups"
 
 CLUSTER_ENABLED=false
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'  # No Color
+
 # Manager API defaults
 WAZUH_API_USER=wazuh
 WAZUH_API_PASSWORD=wazuh
@@ -234,8 +239,6 @@ get_cluster_healthcheck() {
 }
 
 # === Indexer Function ===
-# TODO: The indexer used is given from the user, but it would be nice to check
-#       if the indexer is available for the API, if not, check other indexers until fail.
 get_indexer_healthcheck() {
   log_info "Obtaining Indexer healthcheck via API"
   local indices
@@ -442,7 +445,7 @@ healthcheck_mode() {
   current_version=$(echo "$version_output" | grep -o '"api_version" *: *"[^"]*"' | sed 's/.*: *"//; s/"//')
   current_version=${current_version#v}  # Remove leading "v"
   if compare_versions "$current_version" "4.5.0"; then
-    messages+="Wazuh version ($current_version) is too old. Upgrade requires at least version 4.5.0.\n"
+    messages+="${RED}Wazuh version ($current_version) is too old. Upgrade requires at least version 4.5.0.${NC}\n"
     fail=1
   fi
 
@@ -450,7 +453,7 @@ healthcheck_mode() {
   local disk_usage
   disk_usage=$(df / | tail -n1 | awk '{print $5}' | tr -d '%')
   if [ "$disk_usage" -gt 85 ]; then
-    messages+="Disk usage on / is ${disk_usage}%, which exceeds the 85% threshold.\n"
+    messages+="${RED}Disk usage on / is ${disk_usage}%, which exceeds the 85% threshold.${NC}\n"
     fail=1
   fi
 
@@ -459,7 +462,7 @@ healthcheck_mode() {
   indexer_health=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
   idx_status=$(echo "$indexer_health" | grep -o '"status" *: *"[^"]*"' | sed 's/.*: *"//; s/"//')
   if [ "$idx_status" = "yellow" ] || [ "$idx_status" = "red" ]; then
-    messages+="Indexer cluster health is $idx_status.\n"
+    messages+="${RED}Indexer cluster health is $idx_status.${NC}\n"
     fail=1
   fi
 
@@ -467,20 +470,21 @@ healthcheck_mode() {
   local mgr_http_code idx_http_code
   mgr_http_code=$(curl -s -o /dev/null -w "%{http_code}" -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/?pretty=true" -H "Authorization: Bearer $TOKEN")
   if [ "$mgr_http_code" -ne 200 ]; then
-    messages+="Wazuh Manager API did not return 200 OK (got $mgr_http_code).\n"
+    messages+="${RED}Wazuh Manager API did not return 200 OK (got $mgr_http_code).${NC}\n"
     fail=1
   fi
 
   idx_http_code=$(curl -s -o /dev/null -w "%{http_code}" -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
   if [ "$idx_http_code" -ne 200 ]; then
-    messages+="Indexer API did not return 200 OK (got $idx_http_code).\n"
+    messages+="${RED}Indexer API did not return 200 OK (got $idx_http_code).${NC}\n"
     fail=1
   fi
 
   if [ "$fail" -eq 1 ]; then
-    echo -e "Environment is not ready for upgrade:\n$messages"
+    echo -e "${RED}Environment is not ready for upgrade:${NC}"
+    echo -e "$messages"
   else
-    echo "Environment ready for upgrade"
+    echo -e "${GREEN}Environment ready for upgrade${NC}"
   fi
 }
 
@@ -502,38 +506,50 @@ compress_report() {
 # === Main Function ===
 main() {
   if [ "$1" = "--healthcheck" ]; then
-    echo "Running healthcheck mode..."
+    echo -e "${YELLOW}Running healthcheck mode...${NC}"
     healthcheck_mode
     exit 0
   fi
 
-  # (Default mode) Execute full diagnosis as before.
-  echo "Running full diagnosis..."
-  # Authenticate and get API token
+  echo -e "${YELLOW}========================================${NC}"
+  echo -e "${GREEN}Starting full diagnosis mode...${NC}"
+  echo -e "${YELLOW}========================================${NC}"
+
+  echo -e "${GREEN}-- Authenticating to Wazuh API --${NC}"
   authenticate_api
 
-  # Manager API Checks and Output (stored in manager directory)
+  echo -e "${GREEN}-- Running Manager API Checks --${NC}"
+  echo -e "${YELLOW}   Performing Wazuh Version Check...${NC}"
   wazuh_version_check
+  echo -e "${YELLOW}   Performing Wazuh Agent Status Check...${NC}"
   wazuh_agent_status_check
+  echo -e "${YELLOW}   Retrieving Manager Configuration...${NC}"
   get_manager_configuration
+  echo -e "${YELLOW}   Retrieving Manager Healthcheck...${NC}"
   get_manager_healthcheck
+
+  echo -e "${GREEN}-- Retrieving Hardware Information and Manager Status --${NC}"
   get_hardware_info
   wazuh_manager_status_info
 
-  # Healthcheck Functions
+  echo -e "${GREEN}-- Running Cluster API Checks --${NC}"
   get_cluster_healthcheck
+
+  echo -e "${GREEN}-- Running Indexer API Checks --${NC}"
   get_indexer_healthcheck
 
-  # Agent Information
+  echo -e "${GREEN}-- Retrieving Agent Information --${NC}"
   get_agent_info
 
-  # File Retrieval
+  echo -e "${GREEN}-- Retrieving Additional Files (Logs, State Files, Groups) --${NC}"
   get_wazuh_logs
   get_wazuh_state_files
   get_wazuh_groups_info
 
-  # Compress the report
+  echo -e "${GREEN}-- Compressing the report into a ZIP file --${NC}"
   compress_report
+
+  echo -e "${YELLOW}Full diagnosis completed.${NC}"
 }
 
 # === Script Execution ===
