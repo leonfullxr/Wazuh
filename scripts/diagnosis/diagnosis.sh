@@ -17,6 +17,7 @@ MULTIGROUPS_PATH="${WAZUH_PATH}/var/multigroups"
 
 CLUSTER_ENABLED=false
 
+# https://gist.github.com/JBlond/2fea43a3049b38287e5e9cefc87b2124
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -549,7 +550,7 @@ main() {
   echo -e "${GREEN}-- Compressing the report into a ZIP file --${NC}"
   compress_report
 
-  echo -e "${YELLOW}Full diagnosis completed.${NC}"
+  echo -e "${GREEN}Full diagnosis completed.${NC}"
 }
 
 # === Script Execution ===
