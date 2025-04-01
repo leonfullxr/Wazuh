@@ -203,7 +203,7 @@ wazuh_agent_status_check() {
 }
 
 # === Cluster Function ===
-# TODO: add API calls to every node in the cluster
+# TODO: check API calls to every node in the cluster
 get_cluster_healthcheck() {
   log_info "Obtaining cluster healthcheck via API"
   
@@ -225,16 +225,36 @@ get_cluster_healthcheck() {
   combined_json+="\"cluster_local_config\": $local_config, "
   combined_json+="\"cluster_status\": $status, "
   combined_json+="\"cluster_nodes\": $nodes"
+
+  # --- Get per-node information (skip the master node) ---
+  local node_checks="{"
+  local first_node=1
+  # Skip header line and loop through each node line from cluster_control -l
+  while read -r node type version address; do
+    if [ "$type" != "master" ]; then
+      if [ $first_node -eq 0 ]; then
+        node_checks+=", "
+      fi
+      first_node=0
+      # For each node, perform API calls using the node name as the identifier:
+      local node_status node_config node_logs node_daemons
+      node_status=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/cluster/${node}/status?pretty=true" -H "Authorization: Bearer $TOKEN")
+      node_config=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/cluster/${node}/configuration?pretty=true" -H "Authorization: Bearer $TOKEN")
+      node_logs=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/cluster/${node}/logs/summary?pretty=true" -H "Authorization: Bearer $TOKEN")
+      node_daemons=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/cluster/${node}/daemons/stats?daemons_list=wazuh-analysisd,wazuh-remoted&pretty=true" -H "Authorization: Bearer $TOKEN")
+      
+      node_checks+="\"$node\": {"
+      node_checks+="\"status\": $node_status, "
+      node_checks+="\"configuration\": $node_config, "
+      node_checks+="\"logs_summary\": $node_logs, "
+      node_checks+="\"daemons_stats\": $node_daemons"
+      node_checks+="}"
+    fi
+  done < <(/var/ossec/bin/cluster_control -l | tail -n +2)
+  node_checks+="}"
+
+  combined_json+=", \"node_checks\": $node_checks"
   combined_json+="}"
-
-  # TODO: Add API calls to every node in the cluster
-  # GET /cluster/node_id/status?pretty=true
-
-  # GET /cluster/node_id/configuration?pretty=true
-
-  # GET /cluster/node_id/logs/summary?pretty=true
-
-  # GET /cluster/node_id/daemons/stats?daemons_list=wazuh-analysisd,wazuh-remoted
   
   write_output_cluster "get_cluster_healthcheck.json" "$combined_json"
 }
