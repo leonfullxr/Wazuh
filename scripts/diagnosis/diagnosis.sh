@@ -132,6 +132,15 @@ current_timestamp() {
   date "+%Y-%m-%d %H:%M:%S"
 }
 
+compare_versions() {
+  # Returns 0 if $1 < $2, 1 otherwise.
+  if [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$1" ] && [ "$1" != "$2" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # === Write Output Functions for Each Directory ===
 write_output_manager() {
   local filename="$1"
@@ -430,6 +439,62 @@ get_wazuh_groups_info() {
   log_info "Parsed groups information to JSON file"
 }
 
+# --- Healthcheck Mode ---
+healthcheck_mode() {
+  local fail=0
+  local messages=""
+
+  # Authenticate Manager and Indexer APIs
+  authenticate_api
+
+  # 1. Check version: if version is prior to 4.5.0 -> fail
+  local version_output current_version
+  version_output=$(curl -s -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/?pretty=true" -H "Authorization: Bearer $TOKEN")
+  current_version=$(echo "$version_output" | grep -o '"api_version" *: *"[^"]*"' | sed 's/.*: *"//; s/"//')
+  current_version=${current_version#v}  # Remove leading "v"
+  if compare_versions "$current_version" "4.5.0"; then
+    messages+="Wazuh version ($current_version) is too old. Upgrade requires at least version 4.5.0.\n"
+    fail=1
+  fi
+
+  # 2. Check disk space: if / is >85% used -> fail
+  local disk_usage
+  disk_usage=$(df / | tail -n1 | awk '{print $5}' | tr -d '%')
+  if [ "$disk_usage" -gt 85 ]; then
+    messages+="Disk usage on / is ${disk_usage}%, which exceeds the 85% threshold.\n"
+    fail=1
+  fi
+
+  # 3. Check Indexer health: if _cluster/health status is yellow or red -> fail
+  local indexer_health idx_status
+  indexer_health=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
+  idx_status=$(echo "$indexer_health" | grep -o '"status" *: *"[^"]*"' | sed 's/.*: *"//; s/"//')
+  if [ "$idx_status" = "yellow" ] || [ "$idx_status" = "red" ]; then
+    messages+="Indexer cluster health is $idx_status.\n"
+    fail=1
+  fi
+
+  # 4. Check services: verify that the Manager and Indexer APIs respond with 200 OK.
+  local mgr_http_code idx_http_code
+  mgr_http_code=$(curl -s -o /dev/null -w "%{http_code}" -k -X GET "https://${WAZUH_HOST}:${WAZUH_PORT}/?pretty=true" -H "Authorization: Bearer $TOKEN")
+  if [ "$mgr_http_code" -ne 200 ]; then
+    messages+="Wazuh Manager API did not return 200 OK (got $mgr_http_code).\n"
+    fail=1
+  fi
+
+  idx_http_code=$(curl -s -o /dev/null -w "%{http_code}" -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
+  if [ "$idx_http_code" -ne 200 ]; then
+    messages+="Indexer API did not return 200 OK (got $idx_http_code).\n"
+    fail=1
+  fi
+
+  if [ "$fail" -eq 1 ]; then
+    echo -e "Environment is not ready for upgrade:\n$messages"
+  else
+    echo "Environment ready for upgrade"
+  fi
+}
+
 # === Signal Handling ===
 force_thread_stop() {
   log_warning "Interrupt received. Exiting gracefully..."
@@ -447,6 +512,14 @@ compress_report() {
 
 # === Main Function ===
 main() {
+  if [ "$1" = "--healthcheck" ]; then
+    echo "Running healthcheck mode..."
+    healthcheck_mode
+    exit 0
+  fi
+
+  # (Default mode) Execute full diagnosis as before.
+  echo "Running full diagnosis..."
   # Authenticate and get API token
   authenticate_api
 
@@ -475,4 +548,4 @@ main() {
 }
 
 # === Script Execution ===
-main
+main "$@"
