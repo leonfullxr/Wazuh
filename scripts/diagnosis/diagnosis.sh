@@ -524,8 +524,40 @@ compress_report() {
   rm -rf "$OUTPUT_PATH"
 }
 
+print_help() {
+  cat <<EOF
+Wazuh Diagnosis Script
+
+This script collects diagnostic information from a Wazuh environment, including:
+  - Manager API details (version, configuration, health, logs, etc.)
+  - Indexer API details (cluster health, indices, settings, etc.)
+  - Cluster node information via cluster_control
+  - Agent status and system hardware information
+
+Usage:
+  bash diagnosis.sh [--healthcheck] [--help]
+
+Options:
+  --healthcheck    Run a limited upgrade readiness check. This mode verifies:
+                     * Wazuh version (must be >= 4.5.0)
+                     * Disk usage on / (must be below 85%)
+                     * Indexer cluster health (must be green)
+                     * That both Manager and Indexer APIs return HTTP 200.
+                   If any of these checks fail, the environment is deemed not ready for upgrade.
+
+  --help           Display this help message.
+
+If no option is provided, the script runs the full diagnosis and outputs detailed results.
+EOF
+}
+
 # === Main Function ===
 main() {
+  if [ "$1" = "--help" ]; then
+    print_help
+    exit 0
+  fi
+
   if [ "$1" = "--healthcheck" ]; then
     echo -e "${YELLOW}Running healthcheck mode...${NC}"
     healthcheck_mode
