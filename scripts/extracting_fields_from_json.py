@@ -80,7 +80,7 @@ if isinstance(initiated_by, dict) and "user" in initiated_by:
     user_obj = initiated_by["user"]
     alert_data["InitiatedBy_user_id"] = user_obj.get("id", "")
     alert_data["InitiatedBy_user_displayName"] = user_obj.get("displayName", "")
-    alert_data["InitiatedBy_userPrincipalName"] = user_obj.get("userPrincipalName", "")
+    alert_data["InitiatedBy_user_PrincipalName"] = user_obj.get("userPrincipalName", "")
     alert_data["InitiatedBy_user_ipAddress"] = user_obj.get("ipAddress", "")
 else:
     logging.error("InitiatedBy does not contain a user object.")
