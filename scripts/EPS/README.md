@@ -1,27 +1,35 @@
-Para realizar el cálculo de los EPS, adjunto el siguiente zip que contiene un script epscount.zip que deberá ser ejecutado de acuerdo a lo que describo a continuación:
+# EPS Calculation Script for Wazuh-Manager
+# Description
+To perform the EPS calculation, I attach the following zip file containing the epscount.zip script, which must be executed as described below:
 
-- Descargar el script en el servidor donde está instalado Wazuh-Manager y moverlo al directorio:
+- Download the script to the server where Wazuh-Manager is installed and move it to the directory:
+    
 
 `/var/ossec/logs/archives mv epschat_log.sh /var/ossec/logs/archives`
 
-- Editar el archivo `ossec.conf` en el servidor donde está instalado Wazuh-Manager, modificando el contenido de la etiqueta `<logall>` a “yes”:
+- Edit the `ossec.conf` file on the server where Wazuh-Manager is installed by modifying the contents of the `<logall>` tag to ‘yes’:
+    
 
-`nano /var/ossec/etc/ossec.conf <logall>yes</logall>`
+`nano /var/ossec/etc/ossec. conf <logall>yes</logall>`
 
-- Reiniciar Wazuh-Manager para aplicar los cambios:
+- Restart Wazuh-Manager to apply the changes:
+    
 
 `systemctl restart wazuh-manager`
 
-- Posicionado en la carpeta `archives`, otorgar permisos de ejecución al script:
+- Place it in the `archives` folder, give it permission to run the script:
+    
 
-`cd /var/ossec/logs/archives/ chmod +x epschat_log.sh`
+`cd /var/ossec/logs/archives/ chmod +x epschat_log. sh`
 
-- Ejecutar el script agregando como sufijo el nombre del archivo que contiene los logs, en este caso `archives.log`_**:**_
+- Run the script by suffixing it with the name of the file containing the logs, in this case `archives.log`_**:**_
+    
 
-`./epschat_log.sh.sh archives.log`
+`./epschat_log.sh.sh.sh archives.log`
 
-- Con eso se obtendrán los EPS en tiempo real a medida que los eventos que lleguen a Wazuh se escriban en `archives.log`:
+- This will provide real-time EPS as events coming into Wazuh are logged in `archives. log`:
+    
+- Remember to disable `<logall>`, restoring its value to the original `no` to avoid overloading the memory of the server on which Wazuh-Manager is installed:
+    
 
-- Por favor, recuerda deshabilitar `<logall>`, volviendo su valor al “no” original para evitar sobrecargar el almacenamiento del servidor donde está instalado Wazuh-Manager:
-
-`nano /var/ossec/etc/ossec.conf <logall>no</logall>`
+`nano /var/ossec/etc/ossec.conf <logall>no</logall>`.
