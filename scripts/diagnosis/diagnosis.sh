@@ -516,8 +516,15 @@ healthcheck_mode() {
     messages+="${RED}Disk usage on / is ${disk_usage}%, which exceeds the 85% threshold.${NC}\n"
     fail=1
   fi
-  # Indexer disk usage
-
+  # Check Indexer disk usage: iterate over all nodes from the allocation API
+  local allocation_output over_threshold
+  allocation_output=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/allocation/?format=json&v")
+  # Use jq to build an array of disk.percent (converting to number), then count any value >=85
+  over_threshold=$(echo "$allocation_output" | jq '[.[] | select(.["disk.percent"] != null) | (.["disk.percent"] | tonumber)] | map(select(. >= 85)) | length')
+  if [ "$over_threshold" -gt 0 ]; then
+    messages+="${RED}One or more Indexer nodes have disk usage >= 85% (via allocation API).${NC}\n"
+    fail=1
+  fi
 
   # 3. Check Indexer health: if _cluster/health status is yellow or red -> fail
   local indexer_health idx_status
