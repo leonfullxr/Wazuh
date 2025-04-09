@@ -300,6 +300,7 @@ get_indexer_healthcheck() {
   local cluster_settings
   local nodes_stats
   local health_status
+  local hardware_info
 
   indices=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/indices?format=json")
   cluster_health=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
@@ -315,13 +316,15 @@ get_indexer_healthcheck() {
 
   cluster_settings=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/settings?pretty=true")
   nodes_stats=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/stats?pretty=true")
+  hardware_info=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/nodes?v&")
 
   local combined_json="{"
   combined_json+="\"indices\": $indices, "
   combined_json+="\"cluster_health\": $cluster_health, "
   combined_json+="\"allocation_explain\": $allocation_explain, "
   combined_json+="\"cluster_settings\": $cluster_settings, "
-  combined_json+="\"nodes_stats\": $nodes_stats"
+  combined_json+="\"nodes_stats\": $nodes_stats",
+  combined_json+="\"hardware_info\": $hardware_info"
   combined_json+="}"
   
   write_output_indexer "get_indexer_healthcheck.json" "$combined_json"
