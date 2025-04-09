@@ -517,6 +517,7 @@ healthcheck_mode() {
     fail=1
   fi
   # Check Indexer disk usage: iterate over all nodes from the allocation API
+  # TODO: maybe add information about the node name?
   local allocation_output over_threshold
   allocation_output=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/allocation/?format=json&v")
   # Use jq to build an array of disk.percent (converting to number), then count any value >=85
