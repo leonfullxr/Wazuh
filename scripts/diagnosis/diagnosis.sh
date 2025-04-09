@@ -299,32 +299,34 @@ get_indexer_healthcheck() {
   local allocation_explain
   local cluster_settings
   local nodes_stats
+  local nodes_info
   local health_status
-  local hardware_info
 
-  indices=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/indices?format=json")
-  cluster_health=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
+  indices=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/indices?format=json")
+  cluster_health=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/health?pretty=true")
   
   # Extract the "status" value from the cluster health JSON
   health_status=$(echo "$cluster_health" | grep -o '"status" *: *"[^"]*"' | sed 's/.*: *"//; s/"//')
-  
   if [ "$health_status" = "yellow" ] || [ "$health_status" = "red" ]; then
-    allocation_explain=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/allocation/explain?pretty=true")
+    allocation_explain=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/allocation/explain?pretty=true")
   else
     allocation_explain="{}"
   fi
 
-  cluster_settings=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/settings?pretty=true")
-  nodes_stats=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/stats?pretty=true")
-  hardware_info=$(curl -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/nodes?v&")
+  cluster_settings=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/settings?pretty=true")
+  nodes_stats=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/stats?pretty=true")
+  
+  # New API call: get nodes info (tabular) and convert to a JSON string using jq
+  nodes_info=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/nodes?format=json&v")
+
 
   local combined_json="{"
   combined_json+="\"indices\": $indices, "
   combined_json+="\"cluster_health\": $cluster_health, "
   combined_json+="\"allocation_explain\": $allocation_explain, "
   combined_json+="\"cluster_settings\": $cluster_settings, "
-  combined_json+="\"nodes_stats\": $nodes_stats",
-  combined_json+="\"hardware_info\": $hardware_info"
+  combined_json+="\"nodes_stats\": $nodes_stats, "
+  combined_json+="\"nodes_info\": $nodes_info"
   combined_json+="}"
   
   write_output_indexer "get_indexer_healthcheck.json" "$combined_json"
