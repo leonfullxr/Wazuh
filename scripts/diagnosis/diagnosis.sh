@@ -300,6 +300,7 @@ get_indexer_healthcheck() {
   local cluster_settings
   local nodes_stats
   local nodes_info
+  local nodes_allocation
   local health_status
 
   indices=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/indices?format=json")
@@ -315,8 +316,7 @@ get_indexer_healthcheck() {
 
   cluster_settings=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/settings?pretty=true")
   nodes_stats=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cluster/stats?pretty=true")
-  
-  # New API call: get nodes info (tabular) and convert to a JSON string using jq
+  nodes_allocation=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/allocation/?format=json&v")
   nodes_info=$(curl -s -k -u $INDEXER_API_USER:$INDEXER_API_PASSWORD "https://${INDEXER_HOST}:${INDEXER_PORT}/_cat/nodes?format=json&v")
 
 
@@ -326,6 +326,7 @@ get_indexer_healthcheck() {
   combined_json+="\"allocation_explain\": $allocation_explain, "
   combined_json+="\"cluster_settings\": $cluster_settings, "
   combined_json+="\"nodes_stats\": $nodes_stats, "
+  combined_json+="\"nodes_allocation\": $nodes_allocation, "
   combined_json+="\"nodes_info\": $nodes_info"
   combined_json+="}"
   
@@ -508,12 +509,15 @@ healthcheck_mode() {
   fi
 
   # 2. Check disk space: if / is >85% used -> fail
+  # Manager disk usage
   local disk_usage
   disk_usage=$(df / | tail -n1 | awk '{print $5}' | tr -d '%')
   if [ "$disk_usage" -gt 85 ]; then
     messages+="${RED}Disk usage on / is ${disk_usage}%, which exceeds the 85% threshold.${NC}\n"
     fail=1
   fi
+  # Indexer disk usage
+
 
   # 3. Check Indexer health: if _cluster/health status is yellow or red -> fail
   local indexer_health idx_status
