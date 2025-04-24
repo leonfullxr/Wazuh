@@ -2,8 +2,7 @@
 
 A lightweight Security Operations Center lab using Docker, Wazuh, Nginx (reverse-proxy & load-balancer) and two Apache web servers.
 
-
-## 🚀 Architecture
+## Architecture
 
 - **Nginx**: reverse proxy & least-connections load balancing  
 - **2× Apache**: backend web servers (you can swap these for DVWA, etc.)  
@@ -13,7 +12,8 @@ All containers communicate over a custom Docker bridge network (`webnet`).
 
 ## 📂 File summary
 
-File | Purpose
+Folder/File | Description
+------------|------------------------------------------------
 docker-compose.yml | Defines services, volumes, network (webnet).
 apache/Dockerfile | Builds Apache containers from httpd:2.4.
 apache/html/index.html | Sample home page (swap in DVWA or your app).
