@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  apache1:
+    build: ./apache
+    container_name: apache1
+    restart: always
+    networks:
+      - webnet
+    volumes:
+      - apache1_data:/usr/local/apache2/htdocs
+      - apache1_logs:/usr/local/apache2/logs
+      - apache1_config:/usr/local/apache2/conf
+
+  apache2:
+    build: ./apache
+    container_name: apache2
+    restart: always
+    networks:
+      - webnet
+    volumes:
+      - apache2_data:/usr/local/apache2/htdocs
+      - apache2_logs:/usr/local/apache2/logs
+      - apache2_config:/usr/local/apache2/conf
+
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    restart: always
+    depends_on:
+      - apache1
+      - apache2
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - webnet
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+      # point these to your local cert paths:
+      - ./nginx/ssl/nginx-selfsigned.crt:/etc/nginx/ssl/nginx-selfsigned.crt:ro
+      - ./nginx/ssl/nginx-selfsigned.key:/etc/nginx/ssl/nginx-selfsigned.key:ro
+
+networks:
+  webnet:
+
+volumes:
+  apache1_data:
+  apache1_logs:
+  apache1_config:
+  apache2_data:
+  apache2_logs:
+  apache2_config:
+  nginx_logs:
