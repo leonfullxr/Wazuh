@@ -7,7 +7,6 @@ from socket import socket, AF_UNIX, SOCK_DGRAM
 from datetime import datetime
 import logging
 
-
 """
 Config to add to the manager:
 
@@ -17,7 +16,6 @@ Config to add to the manager:
       <alert_format>json</alert_format>
       <options>JSON</options>
   </integration>
-
 """
 
 """
@@ -26,18 +24,15 @@ Full JSON event example:
 """
 
 """
-Value I want to extract
+Value I want to extract from InitiatedBy:
 {"InitiatedBy":"{\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"displayName\":\"Test User\",\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\",\"roles\":[]}}"}
+
+And also from TargetResources, extract:
+- userPrincipalName (e.g., "targetuser@example.test")
+- The newValue of the "Group.DisplayName" property (e.g., "\"test-group\"")
 """
 
-"""
-Output from the script:
-2025-04-04T10:26:58,900 root INFO SWIFT log has been sent to the analysis queue.
-2025-04-04T10:26:58,900 root DEBUG Prepared SWIFT message: SWIFT:{"TenantId": "5ac64f95-784a-4cb8-a5d3-ac30ad3aaf7f", "SourceSystem": "Azure AD", "TimeGenerated": "2025-03-27T14:49:42.9293064Z", "ResourceId": "/tenants/4f95594c-a630-4b9d-b5c1-cc628e2b07e5/providers/Microsoft.aadiam", "OperationName": "Add member to group", "OperationVersion": "1.0", "Category": "GroupManagement", "ResultSignature": "None", "DurationMs": "0", "CorrelationId": "dbcb74c9-7b30-4cc2-8202-c98f3bfdf469", "Resource": "Microsoft.aadiam", "ResourceGroup": "Microsoft.aadiam", "Level": "4", "AdditionalDetails": [{"key": "User-Agent", "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}], "Id": "Directory_dbcb74c9-7b30-4cc2-8202-c98f3bfdf469_PSDW5_66032801", "InitiatedBy": "{\"user\":{\"id\":\"0f0b85e6-fe8a-4097-bc16-1c1f6fd1e615\",\"displayName\":null,\"userPrincipalName\":\"argrdgrdg@agregaerga.onmicrosoft.com\",\"ipAddress\":\"186.144.92.225\",\"roles\":[]}}", "LoggedByService": "Core Directory", "Result": "success", "TargetResources": [{"id": "0960048c-4887-42d6-aefd-d5559295f11b", "displayName": null, "type": "User", "userPrincipalName": "aqergerg@aregerg.test.com", "modifiedProperties": [{"displayName": "Group.ObjectID", "oldValue": null, "newValue": "\"23453245-2345-2345-2345-234523454352\""}, {"displayName": "Group.DisplayName", "oldValue": null, "newValue": "\"sase-jwproject-prd\""}, {"displayName": "Group.WellKnownObjectName", "oldValue": null, "newValue": null}], "administrativeUnits": []}, {"id": "234524-9d48-23454235-23454-234523452345", "displayName": null, "type": "Group", "modifiedProperties": [], "administrativeUnits": [], "groupType": "unknownFutureValue"}], "AADTenantId": "4f95594c-a630-4b9d-b5c1-cc628e2b07e5", "ActivityDisplayName": "Add member to group", "ActivityDateTime": "2025-04-02T15:32:32.9293064Z", "AADOperationType": "Assign", "Type": "AuditLogs", "azure_tag": "azure-log-analytics", "log_analytics_tag": "AZ-Audit-Logss", "InitiatedBy_user_id": "0f0b85e6-fe8a-4097-bc16-1c1f6fd1e615", "InitiatedBy_user_displayName": null, "InitiatedBy_user_userPrincipalName": "argrdgrdg@agregaerga.onmicrosoft.com", "InitiatedBy_user_ipAddress": "186.144.92.225"}
-"""
-
-#configuration
-
+# configuration for logging
 logging.basicConfig(filename='/var/ossec/logs/swift_extractor.log',
                     filemode='a',
                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
@@ -50,20 +45,22 @@ SOCKET_ADDR     = f'{pwd}/queue/sockets/queue'
 try:
     # Reading configuration parameters
     alert_file = open(sys.argv[1])
-
 except Exception as e:
     logging.error("Failed to read config parameters: %s", str(e))
+    sys.exit(1)
 
 try:
     # Read the alert file
     alert_json = json.loads(alert_file.read())
     alert_file.close()
 except Exception as e:
-    logging.error("Failed to read the alert file: %s", str(e)) 
+    logging.error("Failed to read the alert file: %s", str(e))
+    sys.exit(1)
 
-# Assume alert_json is already parsed and we’re working with alert_json["data"]
+# We assume alert_json has a key "data" which holds our alert info.
 alert_data = alert_json["data"]
 
+# ---- Extraction from InitiatedBy ----
 # Extract the InitiatedBy field (as a string) and then parse it.
 initiated_by_str = alert_data.get("InitiatedBy", "")
 if initiated_by_str:
@@ -78,20 +75,53 @@ else:
 # If the parsed InitiatedBy contains a 'user' object, extract its fields:
 if isinstance(initiated_by, dict) and "user" in initiated_by:
     user_obj = initiated_by["user"]
-    alert_data["InitiatedBy_user_id"] = user_obj.get("id", "")
-    alert_data["InitiatedBy_user_displayName"] = user_obj.get("displayName", "")
     alert_data["InitiatedBy_user_PrincipalName"] = user_obj.get("userPrincipalName", "")
     alert_data["InitiatedBy_user_ipAddress"] = user_obj.get("ipAddress", "")
 else:
     logging.error("InitiatedBy does not contain a user object.")
 
-# (Optional) If you want to preserve the original InitiatedBy as a string:
+# (Optional) Preserve the original InitiatedBy string if needed:
 # alert_data["InitiatedBy_original"] = initiated_by_str
+
+target_resources_field = alert_data.get("TargetResources", "")
+
+# Determine if we need to parse or use it directly.
+if isinstance(target_resources_field, list):
+    target_resources = target_resources_field
+elif isinstance(target_resources_field, str):
+    try:
+        # Convert the string representation of the list into a Python list.
+        target_resources = json.loads(target_resources_field)
+    except Exception as e:
+        logging.error("Failed parsing TargetResources: %s", str(e))
+        target_resources = []
+else:
+    logging.error("Unexpected data type for TargetResources: %s", type(target_resources_field))
+    target_resources = []
+
+if target_resources:
+    # For this example, extract data from the first target resource
+    first_target = target_resources[0]
+    
+    # Extract the userPrincipalName from the target resource
+    alert_data["TargetResources_userPrincipalName"] = first_target.get("userPrincipalName", "")
+    
+    # Now, loop through modifiedProperties to get the "Group.DisplayName" value.
+    group_display_name = ""
+    modified_properties = first_target.get("modifiedProperties", [])
+    for prop in modified_properties:
+        if prop.get("displayName") == "Group.DisplayName":
+            group_display_name = prop.get("newValue", "")
+            break
+    alert_data["TargetResources_GroupDisplayName"] = group_display_name
+else:
+    logging.error("TargetResources field is empty or not a valid list.")
+
 
 # Convert the modified alert data back to a JSON string.
 output_json = json.dumps(alert_data)
 
-# Sending SWIFT log to the Analysis daemon queue
+# ---- Sending SWIFT log to the Analysis daemon queue ----
 try:
     sock = socket(AF_UNIX, SOCK_DGRAM)
     sock.connect(SOCKET_ADDR)
