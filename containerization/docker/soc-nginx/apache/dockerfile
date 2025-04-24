@@ -1,0 +1,7 @@
+FROM httpd:2.4
+
+# Copy any custom Apache configuration (optional)
+# COPY conf/ /usr/local/apache2/conf/
+
+# Copy your site content
+COPY html/ /usr/local/apache2/htdocs/
