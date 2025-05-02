@@ -30,6 +30,7 @@ Value I want to extract from InitiatedBy:
 And also from TargetResources, extract:
 - userPrincipalName (e.g., "targetuser@example.test")
 - The newValue of the "Group.DisplayName" property (e.g., "\"test-group\"")
+- The oldValue of the "Group.DisplayName" property (e.g., null)
 """
 
 # configuration for logging
@@ -43,14 +44,12 @@ pwd             = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 SOCKET_ADDR     = f'{pwd}/queue/sockets/queue'
 
 try:
-    # Reading configuration parameters
     alert_file = open(sys.argv[1])
 except Exception as e:
     logging.error("Failed to read config parameters: %s", str(e))
     sys.exit(1)
 
 try:
-    # Read the alert file
     alert_json = json.loads(alert_file.read())
     alert_file.close()
 except Exception as e:
@@ -80,9 +79,6 @@ if isinstance(initiated_by, dict) and "user" in initiated_by:
 else:
     logging.error("InitiatedBy does not contain a user object.")
 
-# (Optional) Preserve the original InitiatedBy string if needed:
-# alert_data["InitiatedBy_original"] = initiated_by_str
-
 target_resources_field = alert_data.get("TargetResources", "")
 
 # Determine if we need to parse or use it directly.
@@ -108,10 +104,12 @@ if target_resources:
     
     # Now, loop through modifiedProperties to get the "Group.DisplayName" value.
     group_display_name = ""
+    group_display_name_old_value = ""
     modified_properties = first_target.get("modifiedProperties", [])
     for prop in modified_properties:
         if prop.get("displayName") == "Group.DisplayName":
             group_display_name = prop.get("newValue", "")
+            group_display_name_old_value = prop.get("oldValue", "")
             break
     alert_data["TargetResources_GroupDisplayName"] = group_display_name
 else:
