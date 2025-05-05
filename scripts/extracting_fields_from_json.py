@@ -25,7 +25,7 @@ Full JSON event example:
 
 """
 Value I want to extract from InitiatedBy:
-{"InitiatedBy":"{\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"displayName\":\"Test User\",\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\",\"roles\":[]}}"}
+{"InitiatedBy":"{\"user\":{\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\"}}"}
 
 And also from TargetResources, extract:
 - userPrincipalName (e.g., "targetuser@example.test")
@@ -103,15 +103,16 @@ if target_resources:
     alert_data["TargetResources_userPrincipalName"] = first_target.get("userPrincipalName", "")
     
     # Now, loop through modifiedProperties to get the "Group.DisplayName" value.
-    group_display_name = ""
+    group_display_name_new_value = ""
     group_display_name_old_value = ""
     modified_properties = first_target.get("modifiedProperties", [])
     for prop in modified_properties:
         if prop.get("displayName") == "Group.DisplayName":
-            group_display_name = prop.get("newValue", "")
+            group_display_name_new_value = prop.get("newValue", "")
             group_display_name_old_value = prop.get("oldValue", "")
             break
-    alert_data["TargetResources_GroupDisplayName"] = group_display_name
+    alert_data["TargetResources_GroupDisplayName_newValue"] = group_display_name_new_value
+    alert_data["TargetResources_GroupDisplayName_oldValue"] = group_display_name_old_value
 else:
     logging.error("TargetResources field is empty or not a valid list.")
 
