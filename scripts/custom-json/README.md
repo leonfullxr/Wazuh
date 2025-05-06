@@ -1,6 +1,4 @@
-# custom-swift_log_extractor README
-
-## Overview
+# Overview
 
 `custom-swift_log_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts.
 
@@ -14,7 +12,7 @@ Note: this script has been modified based on Azure Graph logs. The fields can be
    Place the file in `/var/ossec/integrations/`:  
    ```bash
    cp custom-swift_log_extractor.py /var/ossec/integrations/
-````
+   ```
 
 2. **Set ownership & permissions**
 
