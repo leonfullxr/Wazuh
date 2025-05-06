@@ -1,7 +1,3 @@
-Thought for 4 seconds
-
-
-````markdown
 # custom-swift_log_extractor README
 
 ## Overview
