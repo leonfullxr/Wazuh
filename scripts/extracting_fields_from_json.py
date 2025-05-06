@@ -128,7 +128,7 @@ try:
     sock.send(message.encode())
     sock.close()
     logging.info("SWIFT log has been sent to the analysis queue.")
-    logging.debug("Prepared SWIFT message: %s", message)
+    #logging.debug("Prepared SWIFT message: %s", message)
 except Exception as error:
     logging.error("Error sending message: %s", str(error))
     print("An exception occurred", error)
