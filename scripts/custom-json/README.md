@@ -2,44 +2,16 @@
 
 ## Overview
 
-`custom-swift_log_extractor.py` is a Python3 script designed to run on a Wazuh manager. It listens for specific JSON-formatted Azure alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts and in your SIEM.
+`custom-swift_log_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts.
 
----
+The idea is to have a wodle that executes this script when a custom rule gets triggered, and then the content of the custom rule gets ingested into the script for its extraction.
 
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)  
-2. [Installation](#installation)  
-3. [Configuration](#configuration)  
-   - [1. Add integration to `ossec.conf`](#1-add-integration-to-ossecconf)  
-   - [2. Place and secure the script](#2-place-and-secure-the-script)  
-   - [3. Create custom rules](#3-create-custom-rules)  
-4. [Script Details & Workflow](#script-details--workflow)  
-   - [Logging setup](#logging-setup)  
-   - [Reading the alert payload](#reading-the-alert-payload)  
-   - [Extracting `InitiatedBy` fields](#extracting-initiatedby-fields)  
-   - [Extracting `TargetResources` fields](#extracting-targetresources-fields)  
-   - [Forwarding to analysisd](#forwarding-to-analysisd)  
-5. [Usage](#usage)  
-6. [Troubleshooting](#troubleshooting)  
-7. [Implications & Notes](#implications--notes)  
-
----
-
-## Prerequisites
-
-- **Wazuh manager** with version supporting JSON integrations  
-- **Python 3** installed on the manager  
-- Write permissions under `/var/ossec/` for root or `wazuh` user  
-- A rule ID (e.g., `113006`) reserved for triggering this integration  
-- A UNIX datagram socket directory: `…/queue/sockets/queue`  
-
----
+Note: this script has been modified based on Azure Graph logs. The fields can be modifief accordingly to specific client/log requirements.
 
 ## Installation
 
 1. **Copy the script**  
-   Place the file in `/var/ossec/integrations/` (or your preferred integrations directory):  
+   Place the file in `/var/ossec/integrations/`:  
    ```bash
    cp custom-swift_log_extractor.py /var/ossec/integrations/
 ````
@@ -57,11 +29,9 @@
    systemctl restart wazuh-manager
    ```
 
----
-
 ## Configuration
 
-### 1. Add integration to `ossec.conf`
+### 1. Add the integration wodle to `ossec.conf`
 
 In the `<integrations>` block of `/var/ossec/etc/ossec.conf`, add:
 
@@ -76,14 +46,7 @@ In the `<integrations>` block of `/var/ossec/etc/ossec.conf`, add:
 
 > **Note:** Ensure that `<name>` matches the script filename exactly.
 
-### 2. Place and secure the script
-
-As above in Installation, confirm:
-
-* Script path matches `<name>` in `ossec.conf`.
-* Permissions allow Wazuh to execute the script.
-
-### 3. Create custom rules
+### 2. Create custom rules
 
 Create or edit a rules file, e.g. `/var/ossec/ruleset/local_rules.xml`:
 
@@ -92,8 +55,8 @@ Create or edit a rules file, e.g. `/var/ossec/ruleset/local_rules.xml`:
   <!-- Trigger rule: catches incoming Azure log and runs the script -->
   <rule id="113006" level="3">
     <if_sid>87801</if_sid>                      <!-- Base Azure Log Analytics rule -->
-    <field name="InitiatedBy">userPrincipalName</field>
-    <field name="InitiatedBy">ipAddress</field>
+    <field name="InitiatedBy">userPrincipalName</field> <!-- added for more precision -->
+    <field name="InitiatedBy">ipAddress</field>  <!-- added for more precision -->
     <options>no_full_log</options>
     <description>Run JSON extractor to enrich Azure alert</description>
   </rule>
@@ -115,8 +78,6 @@ Create or edit a rules file, e.g. `/var/ossec/ruleset/local_rules.xml`:
 ```
 
 Adjust rule IDs and `<if_sid>` values to suit your environment and avoid conflicts with other Azure rules (e.g., 87802, 87803…).
-
----
 
 ## Script Details & Workflow
 
@@ -179,48 +140,6 @@ logging.info("SWIFT log has been sent to the analysis queue.")
 * Prepends `"SWIFT:"` to the enriched JSON.
 * Any send errors are logged and printed.
 
----
-
-## Usage
-
-1. **Generate or receive** an Azure alert matching rule 87801 (or your base rule).
-2. Wazuh rule 113006 fires, calls the extractor script.
-3. Script enriches JSON, sends to `analysisd`.
-4. Wazuh processes it as a new alert (rule 113007), now containing your extra fields.
-5. Downstream tools (Filebeat, SIEM) will see the enriched JSON.
-
----
-
-## Troubleshooting
-
-* **No alerts with enriched fields**
-
-  * Confirm `<integration><name>` matches script filename exactly.
-  * Check `/var/ossec/logs/swift_extractor.log` for parse/send errors.
-  * Verify your rule IDs and `if_sid` references in local rules.
-
-* **Permission errors**
-
-  * Ensure script is owned by `root:wazuh` with mode `750`.
-  * Ensure `/var/ossec/queue/sockets/queue` is writable by Wazuh.
-
-* **Duplicate naming**
-
-  * The integration name in `ossec.conf` must match the actual Python script name.
-
----
-
 ## Implications & Notes
-
-* **No impact on normal ingestion**
-
-  * The script only runs for alerts matching your custom rule (e.g., 113006).
-  * It “duplicates” the alert as an enriched version (rule 113007) without altering the original.
-
-* **Performance**
-
-  * Execution is per-alert. Ensure you scope the rule tightly to avoid high script invocation.
-
-* **Adaptability**
-
-  * To extract additional fields, extend the JSON parsing logic in the script before forwarding.
+* The script only runs for alerts matching your custom rule (e.g., 113006).
+* It “duplicates” the alert as an enriched version (rule 113007). This would be the only downside...
