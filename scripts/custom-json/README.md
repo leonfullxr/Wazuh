@@ -1,6 +1,6 @@
 # Overview
 
-`custom-swift_log_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts.
+`custom-swift_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts.
 
 The idea is to have a wodle that executes this script when a custom rule gets triggered, and then the content of the custom rule gets ingested into the script for its extraction.
 
@@ -11,14 +11,14 @@ Note: this script has been modified based on Azure Graph logs. The fields can be
 1. **Copy the script**  
    Place the file in `/var/ossec/integrations/`:  
    ```bash
-   cp custom-swift_log_extractor.py /var/ossec/integrations/
+   cp custom-swift_extractor.py /var/ossec/integrations/
    ```
 
 2. **Set ownership & permissions**
 
    ```bash
-   chown root:wazuh /var/ossec/integrations/custom-swift_log_extractor.py
-   chmod 750 /var/ossec/integrations/custom-swift_log_extractor.py
+   chown root:wazuh /var/ossec/integrations/custom-swift_extractor.py
+   chmod 750 /var/ossec/integrations/custom-swift_extractor.py
    ```
 
 3. **Restart Wazuh manager**
@@ -35,7 +35,7 @@ In the `<integrations>` block of `/var/ossec/etc/ossec.conf`, add:
 
 ```xml
 <integration>
-    <name>custom-swift_log_extractor.py</name>
+    <name>custom-swift_extractor.py</name>
     <rule_id>113006</rule_id>           <!-- Your trigger rule ID -->
     <alert_format>json</alert_format>
     <options>JSON</options>
