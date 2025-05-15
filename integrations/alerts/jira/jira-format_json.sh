@@ -37,6 +37,9 @@ base_name=$(basename "$input_file" .json)
 
 # Construct the output filename
 output_file="converted_${base_name}.json"
+# This is for the FIM module to detect changes and generate the alerts
+touch "$output_file"
+sleep 120
 
 # Use jq to read the JSON file and extract each object, redirecting the output to the output file
 jq -c '.records[]' "$input_file" > "$output_file"
