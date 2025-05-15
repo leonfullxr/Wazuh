@@ -56,6 +56,18 @@ Formated json log:
 
 ```
 
+# Alerts
+To replicate this in lab, I have done the following to generate the alerts and what the process should look like:
+
+In the `ossec.conf` file, I have added the following:
+```xml
+  <localfile>
+    <log_format>json</log_format>
+    <location>/tmp/jira_json/converted_jira-audit-log_*T*.json</location>
+  </localfile>
+```
+
+
 # Usage
 
 ```bash
