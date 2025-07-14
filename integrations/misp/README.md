@@ -508,12 +508,16 @@ systemctl restart wazuh-manager
 <details>
 <summary>Click to expand integration script configuration steps</summary>
 
-- Place [this Python script](https://github.com/leonfullxr/Wazuh/pull/4/commits/1073bb19dce7b296ba491531283e952020c1e7bc) at `/var/ossec/integrations/custom-misp.py`
+- Place [this Python script](https://github.com/leonfullxr/Wazuh/pull/4/commits/1073bb19dce7b296ba491531283e952020c1e7bc) at `/var/ossec/integrations/custom-misp`
 
 - Make sure to set the permissions:
 ```bash
+chmod +x /var/ossec/integrations/custom-misp*
+mkdir -p /var/log/wazuh-misp
+chown wazuh:wazuh /var/log/wazuh-misp
+chmod 750 /var/log/wazuh-misp
 cd /var/ossec/integrations/
-sudo chown root:wazuh custom-misp.py && sudo chmod 750 custom-misp.py
+sudo chown root:wazuh custom-misp && sudo chmod 750 custom-misp
 ```
 
 - Make sure wazuh is already alerting for the desired sysmon events. You will likely need to create a custom rule if it isn't already alerting.
@@ -542,7 +546,7 @@ sudo chown root:wazuh custom-misp.py && sudo chmod 750 custom-misp.py
 - Edit the Wazuh manager's `/var/ossec/etc/ossec.conf` file to add the integration block:
 ```xml
 <integration>
-  <name>custom-misp.py</name>
+  <name>custom-misp</name>
   <group>sysmon_event1,sysmon_event3,sysmon_event6,sysmon_event7,sysmon_event_15,sysmon_event_22,syscheck</group>
   <hook_url>https://YOUR_MISP_IP/attributes/restSearch/</hook_url>
   <api_key>YOUR_API_KEY</api_key>
