@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # 1) Base box
+  # Replace the FreeBSD 13 box with the FreeBSD 14 one.
+  config.vm.box = "generic/freebsd14"
+
+  # 2) Host‐only / private network
+  # This creates VirtualBox adapter 2 as a host‐only interface at 192.168.56.185.
+  # That allows connectivity between host and guest on that subnet.
+  config.vm.network "private_network", ip: "192.168.56.185"
+
+  # 3) NAT interface (adapter 1) is enabled by default in VirtualBox
+  #    to give the VM outbound internet access. No extra config needed.
+
+  # 4) Customize VM memory (optional)
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "freebsd14_vm"
+    vb.memory = "2048"        # adjust as needed
+    vb.cpus   = 2             # adjust as needed
+  end
+
+  # 5) Disable synced_folder if not needed, or adjust as required.
+  #    (By default, Vagrant shares the project directory to /vagrant.)
+  # config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # 6) If you need to run shell provisioning (e.g., installing pkg or configuring rc.conf),
+  #    you can uncomment and customize the following:
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   pkg update -f
+  #   pkg install -y bash sudo vim
+  #   sysrc sshd_enable="YES"
+  #   service sshd start
+  # SHELL
+end
