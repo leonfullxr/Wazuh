@@ -11,8 +11,8 @@ import logging
 Config to add to the manager:
 
   <integration>
-      <name>extracting_fields_from_json.py</name>
-      <rule_id>159633</rule_id> <-- Rule ID to trigger the script, arbitrary in this case -->
+      <name>custom-swift_extractor.py</name>
+      <rule_id>113006</rule_id> <-- Rule ID to trigger the script, arbitrary in this case -->
       <alert_format>json</alert_format>
       <options>JSON</options>
   </integration>
@@ -20,16 +20,20 @@ Config to add to the manager:
 
 """
 Full JSON event example:
-{"TenantId":"00000000-0000-0000-0000-000000000000","SourceSystem":"TestSystem","TimeGenerated":"2025-03-27T14:49:42.9293064Z","ResourceId":"/tenants/00000000-0000-0000-0000-000000000000/providers/Microsoft.TestProvider","OperationName":"Test Operation","OperationVersion":"1.0","Category":"TestCategory","ResultType":"Success","ResultSignature":"TestSignature","ResultDescription":"Test operation completed successfully","DurationMs":123,"CorrelationId":"11111111-1111-1111-1111-111111111111","Resource":"TestResource","ResourceGroup":"TestResourceGroup","ResourceProvider":"TestProvider","Identity":"TestIdentity","Level":"4","Location":"TestLocation","AdditionalDetails":"[{\"key\":\"User-Agent\",\"value\":\"TestAgent/1.0\"}]","Id":"TestDirectory_11111111-1111-1111-1111-111111111111_TestInstance_12345678","InitiatedBy":"{\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"displayName\":\"Test User\",\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\",\"roles\":[]}}","LoggedByService":"TestService","Result":"success","ResultReason":"TestReason","TargetResources":"[{\"id\":\"11111111-1111-1111-1111-111111111111\",\"displayName\":\"Test Target User\",\"type\":\"User\",\"userPrincipalName\":\"targetuser@example.test\",\"modifiedProperties\":[{\"displayName\":\"Group.ObjectID\",\"oldValue\":null,\"newValue\":\"\\\"00000000-0000-0000-0000-000000000000\\\"\"},{\"displayName\":\"Group.DisplayName\",\"oldValue\":null,\"newValue\":\"\\\"test-group\\\"\"},{\"displayName\":\"Group.WellKnownObjectName\",\"oldValue\":null,\"newValue\":null}],\"administrativeUnits\":[]},{\"id\":\"22222222-2222-2222-2222-222222222222\",\"displayName\":\"Test Group\",\"type\":\"Group\",\"modifiedProperties\":[],\"administrativeUnits\":[],\"groupType\":\"TestGroupType\"}]","AADTenantId":"00000000-0000-0000-0000-000000000000","ActivityDisplayName":"Test Activity","ActivityDateTime":"2025-04-02T15:32:32.9293064Z","AADOperationType":"TestOperationType","Type":"TestLogType","azure_tag":"test-tag","log_analytics_tag":"Test-Log-Analytics","InitiatedBy_user_id":"00000000-0000-0000-0000-000000000000","InitiatedBy_user_displayName":"Test User","InitiatedBy_user_userPrincipalName":"testadmin@example.com","InitiatedBy_user_ipAddress":"0.0.0.0"}
+{"TenantId":"00000000-0000-0000-0000-000000000000","SourceSystem":"TestSystem","TimeGenerated":"2025-03-27T14:49:42.9293064Z","ResourceId":"/tenants/00000000-0000-0000-0000-000000000000/providers/Microsoft.TestProvider","OperationName":"Test Operation","OperationVersion":"1.0","Category":"TestCategory","ResultType":"Success","ResultSignature":"TestSignature","ResultDescription":"Test operation completed successfully","DurationMs":123,"CorrelationId":"11111111-1111-1111-1111-111111111111","Resource":"TestResource","ResourceGroup":"TestResourceGroup","ResourceProvider":"TestProvider","Identity":"TestIdentity","Level":"4","Location":"TestLocation","AdditionalDetails":"[{\"key\":\"User-Agent\",\"value\":\"TestAgent/1.0\"}]","Id":"TestDirectory_11111111-1111-1111-1111-111111111111_TestInstance_12345678","InitiatedBy":"{\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"displayName\":\"Test User\",\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\",\"roles\":[]}}","LoggedByService":"TestService","Result":"success","ResultReason":"TestReason","TargetResources":"[{\"id\":\"11111111-1111-1111-1111-111111111111\",\"displayName\":\"Test Target User\",\"type\":\"User\",\"userPrincipalName\":\"targetuser@example.test\",\"modifiedProperties\":[{\"displayName\":\"Group.ObjectID\",\"oldValue\":null,\"newValue\":\"\\\"00000000-0000-0000-0000-000000000000\\\"\"},{\"displayName\":\"Group.DisplayName\",\"oldValue\":null,\"newValue\":\"\\\"test-group\\\"\"},{\"displayName\":\"Group.WellKnownObjectName\",\"oldValue\":null,\"newValue\":null}],\"administrativeUnits\":[]},{\"id\":\"22222222-2222-2222-2222-222222222222\",\"displayName\":\"Test Group\",\"type\":\"Group\",\"modifiedProperties\":[],\"administrativeUnits\":[],\"groupType\":\"TestGroupType\"}]","AADTenantId":"00000000-0000-0000-0000-000000000000","ActivityDisplayName":"Test Activity","ActivityDateTime":"2025-04-02T15:32:32.9293064Z","AADOperationType":"TestOperationType","Type":"TestLogType","azure_tag":"test-tag","log_analytics_tag":"Test-Log-Analytics"}
 """
 
 """
 Value I want to extract from InitiatedBy:
-{"InitiatedBy":"{\"user\":{\"id\":\"00000000-0000-0000-0000-000000000000\",\"displayName\":\"Test User\",\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\",\"roles\":[]}}"}
+{"InitiatedBy":"{\"user\":{\"userPrincipalName\":\"testuser@example.com\",\"ipAddress\":\"0.0.0.0\"}}"}
 
 And also from TargetResources, extract:
 - userPrincipalName (e.g., "targetuser@example.test")
 - The newValue of the "Group.DisplayName" property (e.g., "\"test-group\"")
+- The oldValue of the "Group.DisplayName" property (e.g., null)
+
+The script adds the following details at the end of the previous JSON log:
+"InitiatedBy_user_id":"00000000-0000-0000-0000-000000000000","InitiatedBy_user_displayName":"Test User","InitiatedBy_user_userPrincipalName":"testadmin@example.com","InitiatedBy_user_ipAddress":"0.0.0.0"
 """
 
 # configuration for logging
@@ -43,14 +47,12 @@ pwd             = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 SOCKET_ADDR     = f'{pwd}/queue/sockets/queue'
 
 try:
-    # Reading configuration parameters
     alert_file = open(sys.argv[1])
 except Exception as e:
     logging.error("Failed to read config parameters: %s", str(e))
     sys.exit(1)
 
 try:
-    # Read the alert file
     alert_json = json.loads(alert_file.read())
     alert_file.close()
 except Exception as e:
@@ -80,9 +82,6 @@ if isinstance(initiated_by, dict) and "user" in initiated_by:
 else:
     logging.error("InitiatedBy does not contain a user object.")
 
-# (Optional) Preserve the original InitiatedBy string if needed:
-# alert_data["InitiatedBy_original"] = initiated_by_str
-
 target_resources_field = alert_data.get("TargetResources", "")
 
 # Determine if we need to parse or use it directly.
@@ -107,13 +106,16 @@ if target_resources:
     alert_data["TargetResources_userPrincipalName"] = first_target.get("userPrincipalName", "")
     
     # Now, loop through modifiedProperties to get the "Group.DisplayName" value.
-    group_display_name = ""
+    group_display_name_new_value = ""
+    group_display_name_old_value = ""
     modified_properties = first_target.get("modifiedProperties", [])
     for prop in modified_properties:
         if prop.get("displayName") == "Group.DisplayName":
-            group_display_name = prop.get("newValue", "")
+            group_display_name_new_value = prop.get("newValue", "")
+            group_display_name_old_value = prop.get("oldValue", "")
             break
-    alert_data["TargetResources_GroupDisplayName"] = group_display_name
+    alert_data["TargetResources_GroupDisplayName_newValue"] = group_display_name_new_value
+    alert_data["TargetResources_GroupDisplayName_oldValue"] = group_display_name_old_value
 else:
     logging.error("TargetResources field is empty or not a valid list.")
 
@@ -129,7 +131,7 @@ try:
     sock.send(message.encode())
     sock.close()
     logging.info("SWIFT log has been sent to the analysis queue.")
-    logging.debug("Prepared SWIFT message: %s", message)
+    #logging.debug("Prepared SWIFT message: %s", message)
 except Exception as error:
     logging.error("Error sending message: %s", str(error))
     print("An exception occurred", error)
