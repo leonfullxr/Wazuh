@@ -26,6 +26,8 @@
 
 This project provides a detailed guide and necessary scripts to integrate MISP (Malware Information Sharing Platform) with Wazuh, a security monitoring solution. By combining these tools, security teams can automatically check Sysmon events against MISP's threat intelligence database, enabling real-time detection of known threats and indicators of compromise (IoCs).
 
+It also implements a local queuing mechanism to buffer alerts when the MISP API is unreachable, and writes detailed logs to `/var/log/wazuh-misp/custom-misp.log` for auditing and troubleshooting.
+
 ![workflow](images/workflow.png)
 
 ## Prerequisites
@@ -36,6 +38,7 @@ Before starting the integration, ensure you have the following:
 - VMware or another virtualization platform (if using a VM)
 - Docker installed (We’ll show how to install it if it’s not already installed)
 - Python 3 and `pip3` installed (for the integration script)
+- Python `requests` library installed (`pip3 install requests`)
 
 ## Installation and Configuration
 
@@ -472,25 +475,25 @@ Restart-Service -Name wazuh
 </group>
 
 <group name="misp,">
-<rule id="100620" level="10">
-<decoded_as>json</decoded_as>
-<field name="integration">misp</field>
-<description>MISP Events</description>
-<options>no_full_log</options>
-</rule>
-<rule id="100621" level="5">
-<if_sid>100620</if_sid>
-<field name="misp.error">\.+</field>
-<description>MISP - Error connecting to API</description>
-<options>no_full_log</options>
-<group>misp_error,</group>
-</rule>
-<rule id="100622" level="12">
-<field name="misp.category">\.+</field>
-<description>MISP - IoC found in Threat Intel - Category: $(misp.category), Attribute: $(misp.value)</description>
-<options>no_full_log</options>
-<group>misp_alert,</group>
-</rule>
+    <rule id="100620" level="10">
+        <decoded_as>json</decoded_as>
+        <field name="integration">misp</field>
+        <description>MISP Events</description>
+        <options>no_full_log</options>
+    </rule>
+    <rule id="100621" level="5">
+        <if_sid>100620</if_sid>
+        <field name="misp.error">\.+</field>
+        <description>MISP - Error connecting to API</description>
+        <options>no_full_log</options>
+        <group>misp_error,</group>
+    </rule>
+    <rule id="100622" level="12">
+        <field name="misp.category">\.+</field>
+        <description>MISP - IoC found in Threat Intel - Category: $(misp.category), Attribute: $(misp.value)</description>
+        <options>no_full_log</options>
+        <group>misp_alert,</group>
+    </rule>
 </group>
 ```
 - Restart the Wazuh manager:

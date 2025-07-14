@@ -3,7 +3,7 @@
 #
 # ossec.conf configuration structure
 #  <integration>
-#      <name>custom-misp</name>
+#      <name>custom-misp</name> <!-- This file should be named custom-misp
 #      <group>sysmon_event1,sysmon_event3,sysmon_event6,sysmon_event7,sysmon_event_15,sysmon_event_22,syscheck</group
 #      <hook_url>https://misp.com/attributes/restSearch/</hook_url>
 #      <api_key>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</api_key
