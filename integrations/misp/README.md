@@ -26,6 +26,8 @@
 
 This project provides a detailed guide and necessary scripts to integrate MISP (Malware Information Sharing Platform) with Wazuh, a security monitoring solution. By combining these tools, security teams can automatically check Sysmon events against MISP's threat intelligence database, enabling real-time detection of known threats and indicators of compromise (IoCs).
 
+It also implements a local queuing mechanism to buffer alerts when the MISP API is unreachable, and writes detailed logs to `/var/log/wazuh-misp/custom-misp.log` for auditing and troubleshooting.
+
 ![workflow](images/workflow.png)
 
 ## Prerequisites
@@ -36,6 +38,7 @@ Before starting the integration, ensure you have the following:
 - VMware or another virtualization platform (if using a VM)
 - Docker installed (We’ll show how to install it if it’s not already installed)
 - Python 3 and `pip3` installed (for the integration script)
+- Python `requests` library installed (`pip3 install requests`)
 
 ## Installation and Configuration
 
@@ -472,25 +475,25 @@ Restart-Service -Name wazuh
 </group>
 
 <group name="misp,">
-<rule id="100620" level="10">
-<decoded_as>json</decoded_as>
-<field name="integration">misp</field>
-<description>MISP Events</description>
-<options>no_full_log</options>
-</rule>
-<rule id="100621" level="5">
-<if_sid>100620</if_sid>
-<field name="misp.error">\.+</field>
-<description>MISP - Error connecting to API</description>
-<options>no_full_log</options>
-<group>misp_error,</group>
-</rule>
-<rule id="100622" level="12">
-<field name="misp.category">\.+</field>
-<description>MISP - IoC found in Threat Intel - Category: $(misp.category), Attribute: $(misp.value)</description>
-<options>no_full_log</options>
-<group>misp_alert,</group>
-</rule>
+    <rule id="100620" level="10">
+        <decoded_as>json</decoded_as>
+        <field name="integration">misp</field>
+        <description>MISP Events</description>
+        <options>no_full_log</options>
+    </rule>
+    <rule id="100621" level="5">
+        <if_sid>100620</if_sid>
+        <field name="misp.error">\.+</field>
+        <description>MISP - Error connecting to API</description>
+        <options>no_full_log</options>
+        <group>misp_error,</group>
+    </rule>
+    <rule id="100622" level="12">
+        <field name="misp.category">\.+</field>
+        <description>MISP - IoC found in Threat Intel - Category: $(misp.category), Attribute: $(misp.value)</description>
+        <options>no_full_log</options>
+        <group>misp_alert,</group>
+    </rule>
 </group>
 ```
 - Restart the Wazuh manager:
@@ -508,12 +511,16 @@ systemctl restart wazuh-manager
 <details>
 <summary>Click to expand integration script configuration steps</summary>
 
-- Place [this Python script](https://github.com/leonfullxr/Wazuh/pull/4/commits/1073bb19dce7b296ba491531283e952020c1e7bc) at `/var/ossec/integrations/custom-misp.py`
+- Place [this Python script](https://github.com/leonfullxr/Wazuh/pull/4/commits/1073bb19dce7b296ba491531283e952020c1e7bc) at `/var/ossec/integrations/custom-misp`
 
 - Make sure to set the permissions:
 ```bash
+chmod +x /var/ossec/integrations/custom-misp*
+mkdir -p /var/log/wazuh-misp
+chown wazuh:wazuh /var/log/wazuh-misp
+chmod 750 /var/log/wazuh-misp
 cd /var/ossec/integrations/
-sudo chown root:wazuh custom-misp.py && sudo chmod 750 custom-misp.py
+sudo chown root:wazuh custom-misp && sudo chmod 750 custom-misp
 ```
 
 - Make sure wazuh is already alerting for the desired sysmon events. You will likely need to create a custom rule if it isn't already alerting.
@@ -542,7 +549,7 @@ sudo chown root:wazuh custom-misp.py && sudo chmod 750 custom-misp.py
 - Edit the Wazuh manager's `/var/ossec/etc/ossec.conf` file to add the integration block:
 ```xml
 <integration>
-  <name>custom-misp.py</name>
+  <name>custom-misp</name>
   <group>sysmon_event1,sysmon_event3,sysmon_event6,sysmon_event7,sysmon_event_15,sysmon_event_22,syscheck</group>
   <hook_url>https://YOUR_MISP_IP/attributes/restSearch/</hook_url>
   <api_key>YOUR_API_KEY</api_key>

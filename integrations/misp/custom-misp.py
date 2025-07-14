@@ -1,248 +1,266 @@
 #!/var/ossec/framework/python/bin/python3
 ## MISP API Integration
 #
+# ossec.conf configuration structure
+#  <integration>
+#      <name>custom-misp</name> <!-- This file should be named custom-misp
+#      <group>sysmon_event1,sysmon_event3,sysmon_event6,sysmon_event7,sysmon_event_15,sysmon_event_22,syscheck</group
+#      <hook_url>https://misp.com/attributes/restSearch/</hook_url>
+#      <api_key>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</api_key
+#      <alert_format>json</alert_format>
+#  </integration>
 import sys
 import os
-from socket import socket, AF_UNIX, SOCK_DGRAM
-from datetime import date, datetime, timedelta
-import time
-import requests
-from requests.exceptions import ConnectionError
 import json
+import logging
+from socket import socket, AF_UNIX, SOCK_DGRAM
+from datetime import datetime
 import ipaddress
-import hashlib
 import re
+
+# === Error codes ===
+ERR_NO_REQUEST_MODULE = 1
+ERR_BAD_ARGUMENTS     = 2
+ERR_FILE_NOT_FOUND    = 6
+ERR_INVALID_JSON      = 7
+
+# === Ensure requests is available ===
+try:
+    import requests
+    from requests.exceptions import ConnectionError, RequestException
+except ImportError as e:
+    print("ERROR: requests module not found, please install it.")  # in case logging isn't set up yet
+    sys.exit(ERR_NO_REQUEST_MODULE)
+
+# === Logging setup ===
+LOG_DIR = "/var/log/wazuh-misp"
+LOG_FILE = os.path.join(LOG_DIR, "custom-misp.log")
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+    logging.basicConfig(
+        filename=LOG_FILE,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        level=logging.INFO,
+    )
+except Exception as e:
+    print(f"Logging setup failed: {e}")
+    sys.exit(1)
+    
+# === Queue configuration ===
+QUEUE_FILE = os.path.join(LOG_DIR, "misp_queue.json")
+QUEUE_TMP = QUEUE_FILE + ".inprocess"
+# === Wazuh socket path ===
+SOCKET_PATH = "/var/ossec/queue/sockets/queue"
 
 pwd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 socket_addr = "{0}/queue/sockets/queue".format(pwd)
 
-def send_event(msg, agent=None):
-    if not agent or agent["id"] == "000":
-        string = "1:misp:{0}".format(json.dumps(msg))
-    else:
-        string = "1:[{0}] ({1}) {2}->misp:{3}".format(
-            agent["id"],
-            agent["name"],
-            agent["ip"] if "ip" in agent else "any",
-            json.dumps(msg),
-        )
-    sock = socket(AF_UNIX, SOCK_DGRAM)
-    sock.connect(socket_addr)
-    sock.send(string.encode())
-    sock.close()
+# === Read script arguments ===
+if len(sys.argv) < 4:
+    logging.error("Usage: custom-misp.py <alert_file> <misp_api_key> <misp_base_url>")
+    sys.exit(ERR_BAD_ARGUMENTS)
 
+alert_file_path = sys.argv[1]
+MISP_API_KEY     = sys.argv[2]
+MISP_BASE_URL    = sys.argv[3].rstrip("/")  # ensure no trailing slash
 
-false = False
-# Read configuration parameters
-alert_file = open(sys.argv[1])
-# Read the alert file
-alert = json.loads(alert_file.read())
-alert_file.close()
-# New Alert Output if MISP Alert or Error calling the API
-alert_output = {}
-# MISP Server Base URL
-misp_base_url = sys.argv[3]
-# MISP Server API AUTH KEY
-misp_api_auth_key = sys.argv[2]
-# API - HTTP Headers
-misp_apicall_headers = {
+MISP_HEADERS = {
     "Content-Type": "application/json",
-    "Authorization": f"{misp_api_auth_key}",
+    "Authorization": MISP_API_KEY,
     "Accept": "application/json",
 }
-## Extract Sysmon for Windows/Sysmon for Linux and Sysmon Event ID
-event_source = alert["rule"]["groups"][0]
-event_type = alert["rule"]["groups"][2]
-## Regex Pattern used based on SHA256 lenght (64 characters)
-regex_file_hash = re.compile("\w{64}")
-if event_source == "windows":
-    if event_type == "sysmon_event1":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
-    elif (
-        event_type == "sysmon_event3"
-        and alert["data"]["win"]["eventdata"]["destinationIsIpv6"] == "false"
-    ):
-        try:
-            dst_ip = alert["data"]["win"]["eventdata"]["destinationIp"]
-            if ipaddress.ip_address(dst_ip).is_global:
-                wazuh_event_param = dst_ip
-            else:
-                sys.exit()
-        except IndexError:
-            sys.exit()
-    elif (
-        event_type == "sysmon_event3"
-        and alert_output["data"]["win"]["eventdata"]["destinationIsIpv6"] == "true"
-    ):
-        sys.exit()
-    elif event_type == "sysmon_event6":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
-    elif event_type == "sysmon_event7":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
-    elif event_type == "sysmon_event_15":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
-    elif event_type == "sysmon_event_22":
-        try:
-            wazuh_event_param = alert["data"]["win"]["eventdata"]["queryName"]
-        except IndexError:
-            sys.exit()
-    elif event_type == "sysmon_event_23":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
-    elif event_type == "sysmon_event_24":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
-    elif event_type == "sysmon_event_25":
-        try:
-            wazuh_event_param = regex_file_hash.search(
-                alert["data"]["win"]["eventdata"]["hashes"]
-            ).group(0)
-        except IndexError:
-            sys.exit()
+VERIFY_SSL = False
+
+# Pre-compile the SHA256 regex
+regex_file_hash = re.compile(r"\w{64}")
+
+def send_event(msg, agent=None):
+    """Send JSON alert back into Wazuh via UNIX socket."""
+    if not agent or agent.get("id") == "000":
+        payload = f"1:misp:{json.dumps(msg)}"
     else:
-        sys.exit()
-    misp_search_value = "value:" f"{wazuh_event_param}"
-    misp_search_url = "".join([misp_base_url, misp_search_value])
-    try:
-        misp_api_response = requests.get(
-            misp_search_url, headers=misp_apicall_headers, verify=False
+        payload = (
+            f"1:[{agent['id']}] ({agent['name']}) "
+            f"{agent.get('ip','any')}->misp:{json.dumps(msg)}"
         )
-    except ConnectionError:
-        alert_output["misp"] = {}
-        alert_output["integration"] = "misp"
-        alert_output["misp"]["error"] = "Connection Error to MISP API"
-        send_event(alert_output, alert["agent"])
-    else:
-        misp_api_response = misp_api_response.json()
-        # Check if response includes Attributes (IoCs)
-        if misp_api_response["response"]["Attribute"]:
-            # Generate Alert Output from MISP Response
-            alert_output["misp"] = {}
-            alert_output["integration"] = "misp"
-            alert_output["misp"]["source"] = {}
-            alert_output["misp"]["event_id"] = misp_api_response["response"][
-                "Attribute"
-            ][0]["event_id"]
-            alert_output["misp"]["category"] = misp_api_response["response"][
-                "Attribute"
-            ][0]["category"]
-            alert_output["misp"]["value"] = misp_api_response["response"]["Attribute"][
-                0
-            ]["value"]
-            alert_output["misp"]["type"] = misp_api_response["response"]["Attribute"][
-                0
-            ]["type"]
-            alert_output["misp"]["source"]["description"] = alert["rule"]["description"]
-            send_event(alert_output, alert["agent"])
-elif event_source == "linux":
-    if (
-        event_type == "sysmon_event3"
-        and alert["data"]["eventdata"]["destinationIsIpv6"] == "false"
-    ):
+    try:
+        sock = socket(AF_UNIX, SOCK_DGRAM)
+        sock.connect(SOCKET_PATH)
+        sock.send(payload.encode())
+        sock.close()
+    except Exception as e:
+        logging.error(f"Failed to send event to Wazuh: {e}")
+
+def queue_event(alert):
+    """Append this alert JSON to the local queue for later retry."""
+    try:
+        os.makedirs(os.path.dirname(QUEUE_FILE), exist_ok=True)
+        with open(QUEUE_FILE, "a") as f:
+            f.write(json.dumps(alert) + "\n")
+        logging.warning("Alert queued due to MISP API error.")
+    except Exception as e:
+        logging.error(f"Failed to queue alert: {e}")
+
+def process_queue():
+    """On startup, re-process any alerts left in the queue."""
+    if not os.path.exists(QUEUE_FILE):
+        return
+
+    try:
+        os.rename(QUEUE_FILE, QUEUE_TMP)
+    except Exception as e:
+        logging.error(f"Failed to rotate queue file: {e}")
+        return
+
+    failed = []
+    with open(QUEUE_TMP, "r") as f:
+        for line in f:
+            try:
+                queued_alert = json.loads(line)
+                send_to_misp(queued_alert)
+            except Exception as e:
+                logging.error(f"Queue reprocess error: {e}")
+                failed.append(line)
+
+    if failed:
         try:
-            dst_ip = alert["data"]["eventdata"]["DestinationIp"]
-            if ipaddress.ip_address(dst_ip).is_global:
-                wazuh_event_param = dst_ip
-                misp_search_value = "value:" f"{wazuh_event_param}"
-                misp_search_url = "".join([misp_base_url, misp_search_value])
-                try:
-                    misp_api_response = requests.get(
-                        misp_search_url, headers=misp_apicall_headers, verify=False
-                    )
-                except ConnectionError:
-                    alert_output["misp"] = {}
-                    alert_output["integration"] = "misp"
-                    alert_output["misp"]["error"] = "Connection Error to MISP API"
-                    send_event(alert_output, alert["agent"])
+            with open(QUEUE_FILE, "w") as f:
+                f.writelines(failed)
+        except Exception as e:
+            logging.error(f"Failed to restore failed queue: {e}")
+
+    try:
+        os.remove(QUEUE_TMP)
+    except Exception as e:
+        logging.error(f"Failed to remove temp queue file: {e}")
+
+def send_to_misp(alert):
+    """
+    Core logic: extract indicator, query MISP, handle failures,
+    and send enriched events back to Wazuh.
+    """
+    agent = alert.get("agent", {})
+    alert_output = {}
+
+    # 1) Determine source & type
+    try:
+        groups       = alert["rule"]["groups"]
+        event_source = groups[0]
+        event_type   = groups[2]
+    except Exception as e:
+        logging.error(f"Missing or malformed rule groups: {e}")
+        return
+
+    # 2) Extract the relevant indicator
+    try:
+        if event_source == "windows":
+            data = alert["data"]["win"]["eventdata"]
+            if event_type == "sysmon_event1":
+                param = regex_file_hash.search(data["hashes"]).group(0)
+            elif event_type == "sysmon_event3" and data["destinationIsIpv6"] == "false":
+                ip = data["destinationIp"]
+                if ipaddress.ip_address(ip).is_global:
+                    param = ip
                 else:
-                    misp_api_response = misp_api_response.json()
-                    # Check if response includes Attributes (IoCs)
-                    if misp_api_response["response"]["Attribute"]:
-                        # Generate Alert Output from MISP Response
-                        alert_output["misp"] = {}
-                        alert_output["integration"] = "misp"
-                        alert_output["misp"]["event_id"] = misp_api_response[
-                            "response"
-                        ]["Attribute"][0]["event_id"]
-                        alert_output["misp"]["category"] = misp_api_response[
-                            "response"
-                        ]["Attribute"][0]["category"]
-                        alert_output["misp"]["value"] = misp_api_response["response"][
-                            "Attribute"
-                        ][0]["value"]
-                        alert_output["misp"]["type"] = misp_api_response["response"][
-                            "Attribute"
-                        ][0]["type"]
-                        send_event(alert_output, alert["agent"])
+                    return
+            elif event_type in (
+                "sysmon_event6", "sysmon_event7",
+                "sysmon_event_15", "sysmon_event_23",
+                "sysmon_event_24", "sysmon_event_25"
+            ):
+                param = regex_file_hash.search(data["hashes"]).group(0)
+            elif event_type == "sysmon_event_22":
+                param = data["queryName"]
             else:
-                sys.exit()
-        except IndexError:
-            sys.exit()
-    else:
-        sys.exit()
-elif event_source == "ossec" and event_type == "syscheck_entry_added":
+                return
+
+        elif event_source == "linux":
+            data = alert["data"]["eventdata"]
+            if event_type == "sysmon_event3" and data["destinationIsIpv6"] == "false":
+                ip = data["DestinationIp"]
+                if ipaddress.ip_address(ip).is_global:
+                    param = ip
+                else:
+                    return
+            else:
+                return
+
+        elif event_source == "ossec" and event_type == "syscheck_entry_added":
+            param = alert["syscheck"]["sha256_after"]
+        else:
+            return
+
+    except Exception as e:
+        logging.error(f"Error extracting parameter: {e}")
+        return
+
+    # 3) Query MISP
+    misp_search_url = f"{MISP_BASE_URL}/value:{param}"
     try:
-        wazuh_event_param = alert["syscheck"]["sha256_after"]
-    except IndexError:
-        sys.exit()
-    misp_search_value = "value:" f"{wazuh_event_param}"
-    misp_search_url = "".join([misp_base_url, misp_search_value])
-    try:
-        misp_api_response = requests.get(
-            misp_search_url, headers=misp_apicall_headers, verify=false
+        resp = requests.get(
+            misp_search_url,
+            headers=MISP_HEADERS,
+            verify=VERIFY_SSL,
+            timeout=10
         )
-    except ConnectionError:
-        alert_output["misp"] = {}
+        resp.raise_for_status()
+    except (ConnectionError, RequestException) as e:
+        logging.error(f"MISP connection error: {e}")
+        queue_event(alert)
+        send_event({
+            "misp": {"error": f"Connection to MISP API failed: {e}"},
+            "integration": "misp"
+        }, agent)
+        return
+
+    # 4) Parse response
+    try:
+        result = resp.json()
+    except json.JSONDecodeError as e:
+        logging.error(f"Invalid JSON from MISP: {e}")
+        sys.exit(ERR_INVALID_JSON)
+
+    attrs = result.get("response", {}).get("Attribute", [])
+    if attrs:
+        entry = attrs[0]
+        alert_output["misp"] = {
+            "event_id": entry.get("event_id"),
+            "category": entry.get("category"),
+            "value":    entry.get("value"),
+            "type":     entry.get("type"),
+            "source":   {"description": alert["rule"].get("description", "")}
+        }
         alert_output["integration"] = "misp"
-        alert_output["misp"]["error"] = "Connection Error to MISP API"
-        send_event(alert_output, alert["agent"])
+        send_event(alert_output, agent)
+        logging.info(f"MISP match sent for indicator: {param}")
     else:
-        misp_api_response = misp_api_response.json()
-        # Check if response includes Attributes (IoCs)
-        if misp_api_response["response"]["Attribute"]:
-            # Generate Alert Output from MISP Response
-            alert_output["misp"] = {}
-            alert_output["integration"] = "misp"
-            alert_output["misp"]["event_id"] = misp_api_response["response"][
-                "Attribute"
-            ][0]["event_id"]
-            alert_output["misp"]["category"] = misp_api_response["response"][
-                "Attribute"
-            ][0]["category"]
-            alert_output["misp"]["value"] = misp_api_response["response"]["Attribute"][
-                0
-            ]["value"]
-            alert_output["misp"]["type"] = misp_api_response["response"]["Attribute"][
-                0
-            ]["type"]
-            send_event(alert_output, alert["agent"])
-else:
-    sys.exit()
+        logging.info(f"No MISP match for indicator: {param}")
+
+if __name__ == "__main__":
+    # Retry any queued alerts first
+    process_queue()
+
+    # Then load and process this one
+    try:
+        with open(alert_file_path, "r") as f:
+            alert = json.load(f)
+    except FileNotFoundError as e:
+        logging.error(f"Alert file not found: {e}")
+        sys.exit(ERR_FILE_NOT_FOUND)
+    except json.JSONDecodeError as e:
+        logging.error(f"Invalid JSON in alert file: {e}")
+        sys.exit(ERR_INVALID_JSON)
+
+    try:
+        send_to_misp(alert)
+    except Exception as e:
+        logging.error(f"Unexpected error during processing: {e}")
+        # Final fallback notification
+        try:
+            send_event({
+                "misp": {"error": f"MISP processing error: {e}"},
+                "integration": "misp"
+            }, alert.get("agent", {}))
+        except Exception:
+            logging.error("Fallback send_event also failed.")
+
