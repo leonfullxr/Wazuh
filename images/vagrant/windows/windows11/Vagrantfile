@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # 1) Base box
+  config.vm.box         = "gusztavvargadr/windows-11"
+  config.vm.box_version = "2506.0.0"
+
+  # 2) Use WinRM for communication
+  config.vm.communicator = "winrm"
+
+  # 3) Host-only / private network (adapter 2)
+  #    VM-to-VM and host-to-VM on 192.168.56.205
+  config.vm.network "private_network", ip: "192.168.56.205"
+
+  # 4) NAT (adapter 1) remains for internet access (no extra lines needed)
+
+  # 5) VirtualBox provider settings
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "win11_vm"
+    vb.memory = "2048"  # adjust as needed
+    vb.cpus   = 2       # adjust as needed
+  end
+
+  # 6) (Optional) Disable default synced_folder if unwanted
+  # config.vm.synced_folder ".", "C:/vagrant", disabled: true
+
+  # 7) (Optional) Provisioning example (PowerShell)
+  # config.vm.provision "shell", inline: <<-POWERSHELL
+  #   # e.g., enable OpenSSH, configure firewall, install software, etc.
+  #   Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+  #   Start-Service sshd
+  #   Set-Service -Name sshd -StartupType 'Automatic'
+  #   New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH SSH Server' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+  # POWERSHELL
+end
