@@ -1,0 +1,32 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # 1) Base box
+  config.vm.box        = "generic/rhel9"
+  config.vm.box_version = "4.3.12"
+
+  # 2) Host‐only / private network
+  # Adapter 2 → 192.168.56.190 for VM-to-Host/VM-to-VM communication
+  config.vm.network "private_network", ip: "192.168.56.190"
+
+  # 3) NAT interface (adapter 1) is enabled by default in VirtualBox
+  #    to give the VM outbound internet access. No extra config needed.
+
+  # 4) Customize VM resources (optional)
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "rhel9_vm"
+    vb.memory = "2048"    # adjust as needed
+    vb.cpus   = 2         # adjust as needed
+  end
+
+  # 5) (Optional) Disable shared folders if you don't need them
+  # config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # 6) (Optional) Shell provisioning example:
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   # Enable and start sshd on RHEL 9
+  #   sudo dnf install -y openssh-server
+  #   sudo systemctl enable --now sshd
+  # SHELL
+end
