@@ -1,0 +1,33 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # 1) Base box
+  config.vm.box         = "StefanScherer/windows_2019"
+  config.vm.box_version = "2021.05.15"
+
+  # 2) Communicator for Windows
+  config.vm.communicator = "winrm"
+
+  # 3) Host-only / private network (adapter 2)
+  #    Gives the VM an IP on 192.168.56.0/24 for inter-VM and host-to-VM access.
+  config.vm.network "private_network", ip: "192.168.56.200"
+
+  # 4) NAT (adapter 1) is enabled by default for internet access—no config needed.
+
+  # 5) VirtualBox-specific settings
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "win2019_vm"
+    vb.memory = "2048"   # adjust as needed
+    vb.cpus   = 2        # adjust as needed
+  end
+
+  # 6) Optional: disable the default synced folder
+  # config.vm.synced_folder ".", "C:/vagrant", disabled: true
+
+  # 7) Optional: provision with PowerShell commands
+  # config.vm.provision "shell", inline: <<-POWERSHELL
+  #   # Example: enable WinRM over HTTPS, set firewall rules, etc.
+  #   # Install IIS, configure roles, etc.
+  # POWERSHELL
+end
