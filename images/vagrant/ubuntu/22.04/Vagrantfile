@@ -1,0 +1,32 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # 1) Base box: Ubuntu 22.04 (Jammy Jellyfish)
+  config.vm.box = "generic/ubuntu2204"
+  # (Optional) Pin to a specific version:
+  # config.vm.box_version = "3.1.5"
+
+  # 2) Host‐only / private network (adapter 2)
+  #    Gives the VM an IP on 192.168.56.135 for inter-VM and host-to-VM access.
+  config.vm.network "private_network", ip: "192.168.56.135"
+
+  # 3) NAT (adapter 1) is enabled by default in VirtualBox for Internet access.
+
+  # 4) VirtualBox provider settings
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "ubuntu2204_vm"
+    vb.memory = "2048"   # adjust as needed
+    vb.cpus   = 2        # adjust as needed
+  end
+
+  # 5) (Optional) Disable the default synced folder
+  # config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  # 6) (Optional) Shell provisioning example:
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   sudo apt-get update
+  #   sudo apt-get install -y openssh-server
+  #   sudo systemctl enable --now ssh
+  # SHELL
+end
