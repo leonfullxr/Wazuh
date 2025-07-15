@@ -1,0 +1,20 @@
+Vagrant.configure("2") do |config|
+  # 1) Base box
+  config.vm.box         = "generic/freebsd13"
+  config.vm.box_version = "4.3.12"
+
+  # 2) Leave the default NAT adapter alone (Internet + SSH via 127.0.0.1:2222)
+
+  # 3) Add a host-only network on 192.168.56.180
+  config.vm.network "private_network", ip: "192.168.56.180"
+
+  # 4) (Optional) If you want to customize rc.conf further, you can
+  #    but you can also just rely on Vagrant’s built-in FreeBSD support.
+  #    For instance, to enable the SSH daemon in the guest:
+  config.vm.provision "shell", inline: <<-SHELL
+    sysrc sshd_enable="YES"
+    service netif restart
+    service routing restart
+  SHELL
+end
+
