@@ -10,9 +10,8 @@ Here’s a sample of how to configure your Wazuh managers:
 <!-- Integration with Splunk -->
 <integration>
   <name>custom-splunk</name>
-  <hook_url>https://<WEBHOOK></hook_url>
-  <api_key>-KEY-</api_key>
-  <group>syscheck</group>
+  <hook_url>https://hooks.splunk.com:port/rest/container/</hook_url>
+  <api_key>Splunk:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</api_key>
   <alert_format>json</alert_format>
 </integration>
 ```
