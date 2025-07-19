@@ -137,6 +137,8 @@ def process_queue(hook_url: str, token: str, logger: logging.Logger):
             container = json.loads(line)
             if not send_payload(hook_url, token, container, logger):
                 failed.append(line)
+            else:
+                logger.info('Successfully sent queued event %s', container.get('name', 'unknown'))
         except Exception as e:
             logger.error('Queue replay error: %s', e)
             failed.append(line)
