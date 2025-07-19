@@ -1,46 +1,20 @@
 #!/var/ossec/framework/python/bin/python3
 
-# Copyright (C) 2025, Wazuh Inc.
-#
-# This program is free software; you can redistribute it
-# and/or modify it under the terms of the GNU General Public
-# License (version 2) as published by the FSF - Free Software
-# Foundation.
-
-# ossec.conf configuration structure
-#  <integration>
-#      <name>custom-splunk</name>
-#      <hook_url>https://hooks.splunk.com:port/rest/container/</hook_url>
-#      <api_key>Splunk:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</api_key
-#      <alert_format>json</alert_format>
-#  </integration>
-"""
-RAW ARGV: [
-  '/var/ossec/integrations/custom-splunk.py',    # 0: your script
-  '/tmp/custom-splunk-…alert',                  # 1: the Wazuh-generated alert file
-  'Splunk:XXXXXXXXXXXXXX',                      # 2: the api_key from ossec.conf
-  'https://test.com:6666/rest/container',       # 3: the hook_url from ossec.conf
-  '',                                            # 4: empty “alert_format” (no <alert_format> tag set)
-  '',                                            # 5: empty “options”      (no <options> tag set)
-  '10',                                          # 6: your <level> filter (you must have set <level>10</level>)
-  '3',                                           # 7: another filter (e.g. <rule_id>3</rule_id> or <group>3</group>)
-  '> /dev/null 2>&1'                             # 8: the shell redirection string!
-]
-"""
-
 import sys
 import os
 import json
 import logging
 import time
-from logging.handlers import TimedRotatingFileHandler
 from argparse import ArgumentParser
 from pathlib import Path
 from urllib.parse import urlparse
-from logging.handlers import TimedRotatingFileHandler
-from logging import FileHandler
 
-# ### Exit codes ###############################################################
+# === Constants ===
+CONTENT_TYPE = "application/json"
+TIMEOUT_CONNECT = 5.0
+TIMEOUT_READ = 30.0
+DEBUG = False
+
 ERR_NO_REQUEST_MODULE = 1
 ERR_BAD_ARGUMENTS     = 2
 ERR_FILE_NOT_FOUND    = 6
@@ -50,6 +24,7 @@ ERR_INVALID_JSON      = 7
 CONTENT_TYPE = "application/json"
 TIMEOUT_CONNECT = 5.0  # seconds
 TIMEOUT_READ = 30.0    # seconds
+TOKEN_PREFIX = "Splunk:"
 DEBUG = False # Set to true for debugging 
 
 # ### HTTP library ###############################################################
@@ -65,7 +40,8 @@ warnings.filterwarnings('ignore', category=InsecureRequestWarning)
 # ### Configuration ###############################################################
 LOG_DIR      = Path("/var/log/custom-splunk")
 LOG_FILE     = LOG_DIR / "custom-splunk.log"
-TOKEN_PREFIX = "Splunk:"
+QUEUE_FILE = LOG_DIR / "splunk_queue.json"
+QUEUE_TMP = LOG_DIR / "splunk_queue.json.inprocess"
 
 # ### Logging Setup ###############################################################
 def setup_logging() -> logging.Logger:
@@ -110,7 +86,27 @@ def load_event(path: Path, logger: logging.Logger) -> dict:
     except Exception as e:
         logger.error("Cannot read event file '%s': %s", path, e)
         sys.exit(ERR_FILE_NOT_FOUND)
-        
+
+def build_container_payload(event: dict) -> dict:
+    """
+    Construct the SOAR container JSON payload from a Wazuh event.
+    """
+    level = event.get("rule", {}).get("level", 0)
+    severity = "high" if level >= 15 else "medium"
+    return {
+        "name": f"Custom Wazuh alert - {event.get('rule', {}).get('description', 'wazuh_event')}",
+        "description": json.dumps(event),
+        "severity": severity,
+        "artifacts": [
+            {
+                "label": "event",
+                "name": "wazuh",
+                "cef": event,
+                "type": "custom_wazuh"
+            }
+        ]
+    }
+
 def send_payload(hook_url: str, token: str, container: dict, logger) -> None:
     """
     Send the JSON payload to Splunk SOAR and handle errors.
@@ -136,29 +132,49 @@ def send_payload(hook_url: str, token: str, container: dict, logger) -> None:
         sys.exit(resp.status)
 
     logger.info("Webhook POST succeeded: %s", body)
-      
-# ### Container Payload ###############################################################
-def build_container_payload(event: dict) -> dict:
-    """
-    Construct the SOAR container JSON payload from a Wazuh event.
-    """
-    level = event.get("rule", {}).get("level", 0)
-    severity = "high" if level >= 15 else "medium"
-    return {
-        "name": f"Custom Wazuh alert - {event.get('rule', {}).get('description', 'wazuh_event')}",
-        "description": json.dumps(event),
-        "severity": severity,
-        "artifacts": [
-            {
-                "label": "event",
-                "name": "wazuh",
-                "cef": event,
-                "type": "custom_wazuh"
-            }
-        ]
-    }
 
-# ### Main Flow ###############################################################
+def queue_event(container: dict):
+    try:
+        with open(QUEUE_FILE, "a") as f:
+            f.write(json.dumps(container) + "\n")
+        logging.warning("Event queued due to webhook failure.")
+    except Exception as e:
+        logging.error(f"Failed to queue event: {e}")
+
+def process_queue(hook_url: str, token: str):
+    if not QUEUE_FILE.exists():
+        return
+
+    try:
+        os.rename(QUEUE_FILE, QUEUE_TMP)
+    except Exception as e:
+        logging.error(f"Could not rotate queue file: {e}")
+        return
+
+    failed = []
+    with open(QUEUE_TMP, "r") as f:
+        for line in f:
+            try:
+                container = json.loads(line)
+                if not send_payload(hook_url, token, container):
+                    failed.append(line)
+            except Exception as e:
+                logging.error(f"Queue replay failed: {e}")
+                failed.append(line)
+
+    if failed:
+        try:
+            with open(QUEUE_FILE, "a") as f:
+                f.writelines(failed)
+        except Exception as e:
+            logging.error(f"Could not restore failed events: {e}")
+
+    try:
+        os.remove(QUEUE_TMP)
+    except Exception as e:
+        logging.error(f"Failed to remove temp queue: {e}")
+
+# === Main ===
 def main():
     # 1) Set up logging first
     logger = setup_logging()
@@ -178,6 +194,7 @@ def main():
 
     args, extras = p.parse_known_args()
 
+
     # 3) Bump to DEBUG if requested
     if args.debug:
         logger.setLevel(logging.DEBUG)
@@ -193,13 +210,16 @@ def main():
     token = validate_token(args.api_token, logger)
     validate_url(args.hook_url, logger)
     event = load_event(args.event_file, logger)
+  
+    # Retry previously failed events first
+    process_queue(args.hook_url, token)
 
-    # 6) Build the Splunk SOAR payload
+    # Build payload for this alert
     container = build_container_payload(event)
 
-    # 7) Send it off
-    send_payload(args.hook_url, token, container, logger)
-    return 0
+    # Send or queue if it fails
+    if not send_payload(args.hook_url, token, container, logger):
+        queue_event(container)
 
 if __name__ == "__main__":
     sys.exit(main())
