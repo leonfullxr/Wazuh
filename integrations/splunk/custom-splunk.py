@@ -191,17 +191,22 @@ def main():
         if extras:
             logger.info("Ignoring extra args: %r", extras)
 
-    token = validate_token(args.api_token, logger)
-    validate_url(args.hook_url, logger)
-    event = load_event(args.event_file, logger)
+    try:
+        token = validate_token(args.api_token, logger)
+        validate_url(args.hook_url, logger)
+        event = load_event(args.event_file, logger)
 
-    # Retry queued events
-    process_queue(args.hook_url, token, logger)
+        # Retry queued events
+        process_queue(args.hook_url, token, logger)
 
-    # Send current event
-    payload = build_container_payload(event)
-    if not send_payload(args.hook_url, token, payload, logger):
-        queue_event(payload, logger)
+        # Send current event
+        payload = build_container_payload(event)
+        if not send_payload(args.hook_url, token, payload, logger):
+            queue_event(payload, logger)
+        return 0
+    except Exception as e:
+        logger.error("An error occurred: %s", e)
+        return 1
 
 if __name__ == '__main__':
     sys.exit(main())
