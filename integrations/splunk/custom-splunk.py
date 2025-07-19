@@ -68,7 +68,7 @@ def load_event(path: Path, logger: logging.Logger) -> dict:
         logger.error("Event file not found: %s", path)
         sys.exit(ERR_FILE_NOT_FOUND)
     try:
-        return json.loads(path.read_text(encoding='latin-1'))
+        return json.loads(path.read_text(encoding='utf-8'))
     except json.JSONDecodeError as e:
         logger.error("Malformed JSON in '%s': %s", path, e)
         sys.exit(ERR_INVALID_JSON)
