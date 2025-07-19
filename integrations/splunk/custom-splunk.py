@@ -32,10 +32,13 @@ import sys
 import os
 import json
 import logging
+import time
 from logging.handlers import TimedRotatingFileHandler
 from argparse import ArgumentParser
 from pathlib import Path
 from urllib.parse import urlparse
+from logging.handlers import TimedRotatingFileHandler
+from logging import FileHandler
 
 # ### Exit codes ###############################################################
 ERR_NO_REQUEST_MODULE = 1
@@ -62,28 +65,17 @@ warnings.filterwarnings('ignore', category=InsecureRequestWarning)
 # ### Configuration ###############################################################
 LOG_DIR      = Path("/var/log/custom-splunk")
 LOG_FILE     = LOG_DIR / "custom-splunk.log"
-LOG_ROTATE   = {
-    "when":       "midnight",
-    "interval":   1,
-    "backupCount": 0,  # keep all rotated logs
-}
 TOKEN_PREFIX = "Splunk:"
 
 # ### Logging Setup ###############################################################
 def setup_logging() -> logging.Logger:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+    
     logger = logging.getLogger("splunk_soar")
     logger.setLevel(logging.INFO)
     fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 
-    handler = TimedRotatingFileHandler(
-        filename=str(LOG_FILE),
-        when=LOG_ROTATE["when"],
-        interval=LOG_ROTATE["interval"],
-        backupCount=LOG_ROTATE["backupCount"],
-        encoding="utf-8",
-    )
-    handler.suffix = "%Y-%m-%d"
+    handler = logging.FileHandler(str(LOG_FILE), encoding="utf-8")
     handler.setFormatter(fmt)
     logger.addHandler(handler)
     return logger
