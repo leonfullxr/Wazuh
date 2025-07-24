@@ -205,8 +205,8 @@ def main():
             queue_event(payload, logger)
         return 0
     except Exception as e:
-        logger.error("An error occurred: %s", e)
-        return 1
+        logger.error("An error occurred while processing the event: %s", e)
+        return ERR_BAD_ARGUMENTS
 
 if __name__ == '__main__':
     sys.exit(main())
