@@ -1,4 +1,3 @@
 .cache_ggshield
 meetings/
 images/vagrant/**/.vagrant/
-integrations/splunk
