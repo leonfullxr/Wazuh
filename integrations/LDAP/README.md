@@ -1,5 +1,6 @@
-# LDAPS Windows Server
-This is a general guide for creating a windows LDAPS server for integrating it into wazuh
+# LDAP Integration Guide for Wazuh
+
+This is a general guide for creating a windows LDAP server for integrating it into wazuh
 ### 1. Create Organizational Units
 
 To create an OU for users (e.g., "people") and one for groups (e.g., "Groups"), run the following commands:
@@ -74,15 +75,7 @@ You can then update your Wazuh configuration files with these values.
 ---
 
 These commands and steps should allow you to create the necessary users, groups, and OUs directly from the PowerShell command line in your AD environment.
-
-Let me know if you need any further assistance!
-
 # Troubleshooting
-Hi,
-
-The error message indicates that when connecting to your LDAP server on port 636 (LDAPS), the SSL handshake fails because the IP address (192.168.56.107) doesn’t match the hostname listed in the server’s certificate. This is causing the LDAP authentication to fail for your user (leon).
-
-### How to Resolve This Issue
 
 1. **Use the Correct FQDN:**  
     Instead of specifying the LDAP server’s IP address in your configuration, use its Fully Qualified Domain Name (FQDN) that matches the certificate. For example, if your LDAP server’s certificate is issued for `ldap.example.com`, update your configuration to use:
@@ -112,7 +105,11 @@ The error message indicates that when connecting to your LDAP server on port 636
     
     Look for the Common Name (CN) in the certificate, and then use that value in your configuration.
     
+```bash
+ldapsearch -x -H ldap://<Your_LDAP_Server>:389 -D "WazuhUser@wazuh.local" -W -b "OU=people,DC=wazuh,DC=local"
+openssl s_client -connect <Your_LDAP_Server>:636 -showcerts
 
+```
 ### Next Steps
 
 - **Update the LDAP Configuration:**  
@@ -120,13 +117,13 @@ The error message indicates that when connecting to your LDAP server on port 636
 - **Test the Connection:**  
     After updating the configuration, restart the relevant services and test again with your AD user (leon).
 
-Yes, that's correct. The command
+The command
 
 ```powershell
 ([System.Net.Dns]::GetHostEntry($env:COMPUTERNAME)).HostName
 ```
 
-returned `vagrant.ad.gpfs.net`, which is the fully qualified domain name (FQDN) of your Windows server. This FQDN is what you should use in your LDAP configuration when hostname verification is enabled.
+returned `vagrant.ad.gpfs.net`, which is the fully qualified domain name (FQDN) of my Windows server. This FQDN is what you should use in your LDAP configuration when hostname verification is enabled.
 
 The output from
 
@@ -137,13 +134,3 @@ ldapsearch -x -H ldap://192.168.56.107:389 -D "leon@ad.gpfs.net" -W -b "OU=peopl
 ```
 
 shows the separate parts (`vagrant` and `ad.gpfs.net`), but combining them as done by the PowerShell command gives you the full FQDN: `vagrant.ad.gpfs.net`.
-
-`curl -u your_jira_username:your_jira_token -X POST -H "Content-Type: application/json" \`
-     `-d '{"fields": {"project": {"key": "YOURPROJECT"}, "summary": "Test Issue from Wazuh Integrator", "description": "Testing integration", "issuetype": {"name": "Task"}}}' \`
-     `https://your-jira-domain/rest/api/2/issue`
-
-
-userldap2
-
-ldap server:
-ims.pci
