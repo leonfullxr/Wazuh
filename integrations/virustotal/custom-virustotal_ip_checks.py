@@ -7,12 +7,10 @@
 #
 # Example ossec.conf:
 # <integration>
-#   <name>custom-virustotal-ip</name>
+#   <name>custom-virustotal-custom-virustotal_ip_checks</name>
 #   <api_key>YOUR_VT_KEY</api_key>
-#   <group>authentication_failures</group>   <!-- adjust -->
+#   <group>sshd</group>   <!-- adjust -->
 #   <alert_format>json</alert_format>
-#   <timeout>15</timeout>
-#   <retries>1</retries>
 # </integration>
 
 import json
