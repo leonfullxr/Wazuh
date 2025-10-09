@@ -1,86 +1,112 @@
-# Copyright (C) 2015, Wazuh Inc.
+#!/usr/bin/env python3
+# Copyright (C) 2015-2025, Wazuh Inc.
 #
-# This program is free software; you can redistribute it
-# and/or modify it under the terms of the GNU General Public
-# License (version 2) as published by the FSF - Free Software
-# Foundation.
-
+# VirusTotal IP check (v3) for Wazuh Integrator
+# Adapted from the VT hash template to score IPs using VT engine hits, reputation,
+# analysis freshness, lightweight engine-weighting, and an optional communicating_files pivot.
+#
+# Example ossec.conf:
+# <integration>
+#   <name>custom-virustotal-ip</name>
+#   <api_key>YOUR_VT_KEY</api_key>
+#   <group>authentication_failures</group>   <!-- adjust -->
+#   <alert_format>json</alert_format>
+#   <timeout>15</timeout>
+#   <retries>1</retries>
+# </integration>
 
 import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from socket import AF_UNIX, SOCK_DGRAM, socket
 
-# Exit error codes
+# ===================== Heuristic constants (tune here) =====================
+
+# Primary threshold: how many "malicious" engines to call it malicious outright
+MAL_STRONG_MIN: int = 3
+
+# If at least this many malicious (>=1) AND reputation < REP_BAD_LT -> malicious
+REP_BAD_LT: int = 0  # negative reputation considered bad
+
+# Lightweight engine weighting from last_analysis_results
+# malicious = 1.0 point, suspicious = 0.5 point
+WEIGHT_MAL_STRONG: float = 3.0   # upgrade to malicious if weighted >= this
+WEIGHT_MAL_SUS: float    = 1.5   # upgrade unknown -> suspicious if weighted >= this
+
+# If analysis is older than this (days) and hits are weak (<=1 malicious) with non-negative rep -> unknown
+STALE_WEAK_DAYS: int = 90
+
+# Risk tags that prevent downgrading below suspicious if there is any engine hit
+RISK_TAGS = {"tor", "vpn", "proxy", "anonymizer", "anonymous"}
+
+# Pivot to communicating_files on borderline (unknown/suspicious with <=1 direct hit)
+PIVOT_ENABLED: bool = True
+PIVOT_LIMIT: int = 10                 # how many files to fetch
+PIVOT_STRONG_FILE_MIN: int = 5        # a file is "strongly malicious" if >= this many engines flag it
+PIVOT_UPGRADE_1: int = 1              # >=1 strong file: unknown -> suspicious
+PIVOT_UPGRADE_2: int = 3              # >=3 strong files: suspicious -> malicious (or unknown -> suspicious)
+
+# ============================ Exit error codes =============================
+
 ERR_NO_REQUEST_MODULE = 1
 ERR_BAD_ARGUMENTS = 2
-ERR_BAD_MD5_SUM = 3
 ERR_NO_RESPONSE_VT = 4
 ERR_SOCKET_OPERATION = 5
 ERR_FILE_NOT_FOUND = 6
 ERR_INVALID_JSON = 7
+ERR_NO_IP_FOUND = 8
 
 try:
     import requests
-    from requests.exceptions import Timeout
+    from requests.exceptions import Timeout, RequestException
 except Exception:
     print("No module 'requests' found. Install: pip install requests")
     sys.exit(ERR_NO_REQUEST_MODULE)
 
-# ossec.conf configuration:
-# <integration>
-#   <name>virustotal</name>
-#   <api_key>API_KEY</api_key> <!-- Replace with your VirusTotal API key -->
-#   <group>syscheck</group>
-#   <alert_format>json</alert_format>
-# </integration>
+# ============================ Globals / paths ==============================
 
-# Global vars
 debug_enabled = False
 timeout = 10
 retries = 3
 pwd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-json_alert = {}
+LOG_FILE = f"{pwd}/logs/integrations.log"
+SOCKET_ADDR = f"{pwd}/queue/sockets/queue"
 
-# Log and socket path
-LOG_FILE = f'{pwd}/logs/integrations.log'
-SOCKET_ADDR = f'{pwd}/queue/sockets/queue'
-
-# Constants
+# Argument positions per Wazuh Integrator call
 ALERT_INDEX = 1
 APIKEY_INDEX = 2
 TIMEOUT_INDEX = 6
 RETRIES_INDEX = 7
 
+VT_IP_URL = "https://www.virustotal.com/api/v3/ip_addresses/{ip}"
+VT_COMM_FILES_URL = "https://www.virustotal.com/api/v3/ip_addresses/{ip}/communicating_files?limit={limit}"
+
+# ================================ Main ====================================
 
 def main(args):
-    global debug_enabled
-    global timeout
-    global retries
+    global debug_enabled, timeout, retries
     try:
-        # Read arguments
-        bad_arguments: bool = False
-        msg = ''
+        bad_arguments = False
+        msg = ""
         if len(args) >= 4:
-            debug_enabled = len(args) > 4 and args[4] == 'debug'
+            debug_enabled = len(args) > 4 and args[4] == "debug"
             if len(args) > TIMEOUT_INDEX:
                 timeout = int(args[TIMEOUT_INDEX])
             if len(args) > RETRIES_INDEX:
                 retries = int(args[RETRIES_INDEX])
         else:
-            msg = '# Error: Wrong arguments\n'
+            msg = "# Error: Wrong arguments\n"
             bad_arguments = True
 
-        # Logging the call
-        with open(LOG_FILE, 'a') as f:
+        with open(LOG_FILE, "a") as f:
             f.write(msg)
 
         if bad_arguments:
-            debug('# Error: Exiting, bad arguments. Inputted: %s' % args)
+            debug(f"# Error: Exiting, bad arguments. Inputted: {args}")
             sys.exit(ERR_BAD_ARGUMENTS)
 
-        # Core function
         process_args(args)
 
     except Exception as e:
@@ -88,273 +114,295 @@ def main(args):
         raise
 
 
-def process_args(args) -> None:
-    """This is the core function, creates a message with all valid fields
-    and overwrite or add with the optional fields
+def process_args(args):
+    debug("# Running VirusTotal IP script")
 
-    Parameters
-    ----------
-    args : list[str]
-        The argument list from main call
-    """
-    debug('# Running VirusTotal script')
+    alert_file_location = args[ALERT_INDEX]
+    apikey_raw = args[APIKEY_INDEX]
+    apikey = parse_api_key(apikey_raw)
 
-    # Read args
-    alert_file_location: str = args[ALERT_INDEX]
-    apikey: str = args[APIKEY_INDEX]
-
-    # Load alert. Parse JSON object.
     json_alert = get_json_alert(alert_file_location)
     debug(f"# Opening alert file at '{alert_file_location}' with '{json_alert}'")
 
-    # Request VirusTotal info
-    debug('# Requesting VirusTotal information')
-    msg: any = request_virustotal_info(json_alert, apikey)
-
+    msg = request_virustotal_info(json_alert, apikey)
     if not msg:
-        debug('# Error: Empty message')
+        debug("# Error: Empty message")
         raise Exception
 
-    send_msg(msg, json_alert['agent'])
+    send_msg(msg, json_alert.get("agent"))
 
+# ================================ Utils ===================================
 
-def debug(msg: str) -> None:
-    """Log the message in the log file with the timestamp, if debug flag
-    is enabled
-
-    Parameters
-    ----------
-    msg : str
-        The message to be logged.
-    """
+def debug(msg: str):
     if debug_enabled:
         print(msg)
-        with open(LOG_FILE, 'a') as f:
-            f.write(msg + '\n')
+        with open(LOG_FILE, "a") as f:
+            f.write(msg + "\n")
 
 
-def request_info_from_api(alert, alert_output, api_key):
-    """Request information from an API using the provided alert and API key.
+def parse_api_key(arg):
+    # Wazuh may pass "api_key:VALUE" or just "VALUE"
+    if isinstance(arg, str) and ":" in arg:
+        _, v = arg.split(":", 1)
+        return v
+    return arg
 
-    Parameters
-    ----------
-    alert : dict
-        The alert dictionary containing information for the API request.
-    alert_output : dict
-        The output dictionary where API response information will be stored.
-    api_key : str
-        The API key required for making the API request.
 
-    Returns
-    -------
-    dict
-        The response data received from the API.
+def get_json_alert(file_location: str):
+    try:
+        with open(file_location) as alert_file:
+            return json.load(alert_file)
+    except FileNotFoundError:
+        debug(f"# JSON file for alert {file_location} doesn't exist")
+        sys.exit(ERR_FILE_NOT_FOUND)
+    except json.decoder.JSONDecodeError as e:
+        debug(f"Failed getting JSON alert. Error: {e}")
+        sys.exit(ERR_INVALID_JSON)
 
-    Raises
-    ------
-    Timeout
-        If the API request times out.
-    Exception
-        If an unexpected exception occurs during the API request.
-    """
+
+# Extract a source IP from common alert shapes
+IPV4_RE = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)(?:\.|$)){4}\b")
+IPV6_RE = re.compile(r"\b([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b")
+
+def pick_ip(alert):
+    # Preferred locations
+    prefer = [
+        ("data", "srcip"), ("data", "src_ip"), ("data", "source_ip"), ("data", "client_ip"),
+        ("srcip",), ("src_ip",), ("source_ip",), ("client_ip",),
+    ]
+    for path in prefer:
+        node = alert
+        ok = True
+        for k in path:
+            if isinstance(node, dict) and k in node:
+                node = node[k]
+            else:
+                ok = False; break
+        if ok and isinstance(node, str) and (IPV4_RE.search(node) or IPV6_RE.search(node)):
+            m = IPV4_RE.search(node) or IPV6_RE.search(node)
+            return m.group(0)
+
+    # Fallback: scan all string fields
+    def scan(obj):
+        if isinstance(obj, dict):
+            for v in obj.values():
+                ip = scan(v)
+                if ip: return ip
+        elif isinstance(obj, list):
+            for v in obj:
+                ip = scan(v)
+                if ip: return ip
+        elif isinstance(obj, str):
+            m = IPV4_RE.search(obj) or IPV6_RE.search(obj)
+            if m: return m.group(0)
+        return None
+
+    return scan(alert)
+
+
+def ts_age_days(ts):
+    if not ts:
+        return None
+    try:
+        then = datetime.fromtimestamp(int(ts), tz=timezone.utc)
+        now = datetime.now(timezone.utc)
+        return (now - then).total_seconds() / 86400.0
+    except Exception:
+        return None
+
+
+def vt_get(url, api_key):
+    headers = {"x-apikey": api_key, "accept": "application/json"}
+    return requests.get(url, headers=headers, timeout=timeout)
+
+
+def analyze_engine_results(last_analysis_results):
+    m = s = 0
+    weighted = 0.0
+    if isinstance(last_analysis_results, dict):
+        for _eng, res in last_analysis_results.items():
+            cat = (res or {}).get("category")
+            if cat == "malicious":
+                m += 1
+            elif cat == "suspicious":
+                s += 1
+            weighted += (1.0 if cat == "malicious" else (0.5 if cat == "suspicious" else 0.0))
+    return m, s, weighted
+
+
+def initial_verdict(mal, sus, rep, days):
+    if mal >= MAL_STRONG_MIN or (mal >= 1 and rep < REP_BAD_LT):
+        return "malicious"
+    if (mal + sus) >= 1:
+        if days is not None and days > STALE_WEAK_DAYS and rep >= REP_BAD_LT and mal <= 1:
+            return "unknown"  # stale weak hit
+        return "suspicious"
+    return "unknown"
+
+
+def apply_modifiers(verdict, weighted_mal, rep, tags, mal, sus):
+    # Engine-weight nudges
+    if verdict != "malicious":
+        if weighted_mal >= WEIGHT_MAL_STRONG:
+            verdict = "malicious"
+        elif weighted_mal >= WEIGHT_MAL_SUS and verdict == "unknown":
+            verdict = "suspicious"
+
+    # Risk tags: if any hit exists, don't let it drop below suspicious
+    if (mal + sus) >= 1 and (set(tags or []) & RISK_TAGS):
+        if verdict == "unknown":
+            verdict = "suspicious"
+    return verdict
+
+
+def pivot_comm_files(ip, api_key):
+    try:
+        r = vt_get(VT_COMM_FILES_URL.format(ip=ip, limit=PIVOT_LIMIT), api_key)
+        if r.status_code == 429:
+            return {"error": "rate_limited", "total_files": 0, "strong_mal_files": 0}
+        if r.status_code == 404:
+            return {"error": "not_found", "total_files": 0, "strong_mal_files": 0}
+        r.raise_for_status()
+        data = r.json()
+        files = data.get("data") or []
+        strong = 0
+        total = 0
+        for f in files:
+            total += 1
+            stats = (f.get("attributes") or {}).get("last_analysis_stats") or {}
+            if int(stats.get("malicious", 0) or 0) >= PIVOT_STRONG_FILE_MIN:
+                strong += 1
+        return {"total_files": total, "strong_mal_files": strong}
+    except RequestException:
+        return {"error": "request_error", "total_files": 0, "strong_mal_files": 0}
+
+
+def apply_pivot_upgrade(verdict, strong_count):
+    if strong_count >= PIVOT_UPGRADE_2:
+        # upgrade one level
+        if verdict == "unknown":
+            return "suspicious"
+        if verdict == "suspicious":
+            return "malicious"
+    elif strong_count >= PIVOT_UPGRADE_1 and verdict == "unknown":
+        return "suspicious"
+    return verdict
+
+# ====================== VT request & message build =========================
+
+def request_virustotal_info(alert, api_key):
+    out = {"virustotal_ip": {}, "integration": "virustotal_ip"}
+
+    ip = pick_ip(alert)
+    if not ip:
+        debug("# No IP found in alert")
+        sys.exit(ERR_NO_IP_FOUND)
+
+    # Retry loop
+    vt_body = None
     for attempt in range(retries + 1):
         try:
-            vt_response_data = query_api(alert['syscheck']['md5_after'], api_key)
-            return vt_response_data
+            resp = vt_get(VT_IP_URL.format(ip=ip), api_key)
+            if resp.status_code == 429:
+                out["virustotal_ip"]["error"] = 429
+                out["virustotal_ip"]["description"] = "Error: VT rate limit"
+                send_msg(out, alert.get("agent"))
+                sys.exit(ERR_NO_RESPONSE_VT)
+            if resp.status_code == 401:
+                out["virustotal_ip"]["error"] = 401
+                out["virustotal_ip"]["description"] = "Error: Unauthorized (check API key)"
+                send_msg(out, alert.get("agent"))
+                sys.exit(ERR_NO_RESPONSE_VT)
+            if resp.status_code == 404:
+                vt_body = None
+                break
+            resp.raise_for_status()
+            vt_body = resp.json()
+            break
         except Timeout:
-            debug('# Error: Request timed out. Remaining retries: %s' % (retries - attempt))
+            debug(f"# Error: Request timed out. Remaining retries: {retries - attempt}")
             continue
-        except Exception as e:
+        except RequestException as e:
             debug(str(e))
             sys.exit(ERR_NO_RESPONSE_VT)
 
-    debug('# Error: Request timed out and maximum number of retries was exceeded')
-    alert_output['virustotal']['error'] = 408
-    alert_output['virustotal']['description'] = 'Error: API request timed out'
-    send_msg(alert_output)
-    sys.exit(ERR_NO_RESPONSE_VT)
+    # Prepare output base
+    src = {"alert_id": alert.get("id"), "rule": (alert.get("rule") or {}).get("id"), "ip": ip}
+    out["virustotal_ip"].update({"found": 0, "verdict": "unknown", "source": src})
 
+    if not vt_body or "data" not in vt_body:
+        return out  # not in corpus
 
-def request_virustotal_info(alert: any, apikey: str):
-    """Generate the JSON object with the message to be send
+    attr = (vt_body.get("data") or {}).get("attributes") or {}
+    stats = attr.get("last_analysis_stats") or {}
+    mal = int(stats.get("malicious", 0) or 0)
+    sus = int(stats.get("suspicious", 0) or 0)
+    rep = int(attr.get("reputation", 0) or 0)
+    tags = attr.get("tags") or []
+    last_ts = attr.get("last_analysis_date")
+    days = ts_age_days(last_ts)
 
-    Parameters
-    ----------
-    alert : any
-        JSON alert object.
-    apikey : str
-        The API key required for making the API request.
+    # Lightweight engine weighting
+    lar = attr.get("last_analysis_results") or {}
+    m_count, s_count, wmal = analyze_engine_results(lar)
 
-    Returns
-    -------
-    msg: str
-        The JSON message to send
-    """
-    alert_output = {'virustotal': {}, 'integration': 'virustotal'}
+    verdict = initial_verdict(mal, sus, rep, days)
+    verdict = apply_modifiers(verdict, wmal, rep, tags, mal, sus)
 
-    # If there is no syscheck block present in the alert. Exit.
-    if 'syscheck' not in alert:
-        debug('# No syscheck block present in the alert')
-        return None
+    pivot_used = False
+    pivot = {}
+    if PIVOT_ENABLED and verdict in ("unknown", "suspicious") and (mal <= 1 and sus <= 1):
+        pivot = pivot_comm_files(ip, api_key)
+        pivot_used = True
+        verdict = apply_pivot_upgrade(verdict, int(pivot.get("strong_mal_files", 0)))
 
-    # If there is no md5 checksum present in the alert. Exit.
-    if 'md5_after' not in alert['syscheck']:
-        debug('# No md5 checksum present in the alert')
-        return None
+    # Build final block
+    out["virustotal_ip"]["found"] = 1
+    out["virustotal_ip"]["verdict"] = verdict
+    out["virustotal_ip"]["counts"] = {"malicious": mal, "suspicious": sus}
+    out["virustotal_ip"]["engine_counts"] = {"malicious": m_count, "suspicious": s_count}
+    out["virustotal_ip"]["weighted_malicious"] = round(wmal, 2)
+    out["virustotal_ip"]["reputation"] = rep
+    out["virustotal_ip"]["tags"] = tags
+    out["virustotal_ip"]["age_days"] = None if days is None else round(days, 1)
+    out["virustotal_ip"]["last_analysis_date"] = (
+        datetime.fromtimestamp(int(last_ts), tz=timezone.utc).isoformat() if last_ts else None
+    )
+    out["virustotal_ip"]["country"] = attr.get("country")
+    out["virustotal_ip"]["as_owner"] = attr.get("as_owner")
+    out["virustotal_ip"]["network"] = attr.get("network")
+    out["virustotal_ip"]["permalink"] = f"https://www.virustotal.com/gui/ip-address/{ip}"
+    out["virustotal_ip"]["pivot"] = {"used": pivot_used, **(pivot or {})}
 
-    # If the md5_after field is not a md5 hash checksum. Exit
-    if not (
-        isinstance(alert['syscheck']['md5_after'], str) is True
-        and len(re.findall(r'\b([a-f\d]{32}|[A-F\d]{32})\b', alert['syscheck']['md5_after'])) == 1
-    ):
-        debug('# md5_after field in the alert is not a md5 hash checksum')
-        return None
-
-    # Request info using VirusTotal API
-    vt_response_data = request_info_from_api(alert, alert_output, apikey)
-
-    alert_output['virustotal']['found'] = 0
-    alert_output['virustotal']['malicious'] = 0
-    alert_output['virustotal']['source'] = {
-        'alert_id': alert['id'],
-        'file': alert['syscheck']['path'],
-        'md5': alert['syscheck']['md5_after'],
-        'sha1': alert['syscheck']['sha1_after'],
-    }
-
-    # Check if VirusTotal has any info about the hash
-    if in_database(vt_response_data, hash):
-        alert_output['virustotal']['found'] = 1
-
-    # Info about the file found in VirusTotal
-    if alert_output['virustotal']['found'] == 1:
-        if vt_response_data['positives'] > 0:
-            alert_output['virustotal']['malicious'] = 1
-
-        # Populate JSON Output object with VirusTotal request
-        alert_output['virustotal'].update(
-            {
-                'sha1': vt_response_data['sha1'],
-                'scan_date': vt_response_data['scan_date'],
-                'positives': vt_response_data['positives'],
-                'total': vt_response_data['total'],
-                'permalink': vt_response_data['permalink'],
-            }
-        )
-
-    return alert_output
-
-
-def in_database(data, hash):
-    result = data['response_code']
-    if result == 0:
-        return False
-    return True
-
-
-def query_api(hash: str, apikey: str) -> any:
-    """Send a request to VT API and fetch information to build message
-
-    Parameters
-    ----------
-    hash : str
-        Hash need it for parameters
-    apikey: str
-        Authentication API
-
-    Returns
-    -------
-    data: any
-        JSON with the response
-
-    Raises
-    ------
-    Exception
-        If the status code is different than 200.
-    """
-    params = {'apikey': apikey, 'resource': hash}
-    headers = {'Accept-Encoding': 'gzip, deflate', 'User-Agent': 'gzip,  Python library-client-VirusTotal'}
-
-    debug('# Querying VirusTotal API')
-    response = requests.get(
-        'https://www.virustotal.com/vtapi/v2/file/report', params=params, headers=headers, timeout=timeout
+    # Flat line for rule matching
+    out["virustotal_ip"]["verdict_line"] = (
+        f"vt_ip verdict={verdict} ip={ip} mal={mal} sus={sus} "
+        f"wmal={round(wmal,2)} rep={rep} age_days={out['virustotal_ip']['age_days']} "
+        f"tags={','.join(tags[:5]) if tags else '-'} as_owner=\"{attr.get('as_owner')}\""
     )
 
-    if response.status_code == 200:
-        json_response = response.json()
-        vt_response_data = json_response
-        return vt_response_data
+    return out
+
+
+def send_msg(msg, agent=None):
+    if not agent or agent.get("id") == "000":
+        string = "1:virustotal_ip:{0}".format(json.dumps(msg))
     else:
-        alert_output = {}
-        alert_output['virustotal'] = {}
-        alert_output['integration'] = 'virustotal'
+        location = "[{0}] ({1}) {2}".format(agent["id"], agent["name"], agent["ip"] if "ip" in agent else "any")
+        location = location.replace("|", "||").replace(":", "|:")
+        string = "1:{0}->virustotal_ip:{1}".format(location, json.dumps(msg))
 
-        if response.status_code == 204:
-            alert_output['virustotal']['error'] = response.status_code
-            alert_output['virustotal']['description'] = 'Error: Public API request rate limit reached'
-            send_msg(alert_output)
-            raise Exception('# Error: VirusTotal Public API request rate limit reached')
-        elif response.status_code == 403:
-            alert_output['virustotal']['error'] = response.status_code
-            alert_output['virustotal']['description'] = 'Error: Check credentials'
-            send_msg(alert_output)
-            raise Exception('# Error: VirusTotal credentials, required privileges error')
-        else:
-            alert_output['virustotal']['error'] = response.status_code
-            alert_output['virustotal']['description'] = 'Error: API request fail'
-            send_msg(alert_output)
-            raise Exception('# Error: VirusTotal credentials, required privileges error')
-
-
-def send_msg(msg: any, agent: any = None) -> None:
-    if not agent or agent['id'] == '000':
-        string = '1:virustotal:{0}'.format(json.dumps(msg))
-    else:
-        location = '[{0}] ({1}) {2}'.format(agent['id'], agent['name'], agent['ip'] if 'ip' in agent else 'any')
-        location = location.replace('|', '||').replace(':', '|:')
-        string = '1:{0}->virustotal:{1}'.format(location, json.dumps(msg))
-
-    debug('# Request result from VT server: %s' % string)
+    debug(f"# Request result from VT server: {string}")
     try:
         sock = socket(AF_UNIX, SOCK_DGRAM)
         sock.connect(SOCKET_ADDR)
         sock.send(string.encode())
         sock.close()
     except FileNotFoundError:
-        debug('# Error: Unable to open socket connection at %s' % SOCKET_ADDR)
+        debug(f"# Error: Unable to open socket connection at {SOCKET_ADDR}")
         sys.exit(ERR_SOCKET_OPERATION)
 
+# ================================= Entry ==================================
 
-def get_json_alert(file_location: str) -> any:
-    """Read JSON alert object from file
-
-    Parameters
-    ----------
-    file_location : str
-        Path to the JSON file location.
-
-    Returns
-    -------
-    dict: any
-        The JSON object read it.
-
-    Raises
-    ------
-    FileNotFoundError
-        If no JSON file is found.
-    JSONDecodeError
-        If no valid JSON file are used
-    """
-    try:
-        with open(file_location) as alert_file:
-            return json.load(alert_file)
-    except FileNotFoundError:
-        debug("# JSON file for alert %s doesn't exist" % file_location)
-        sys.exit(ERR_FILE_NOT_FOUND)
-    except json.decoder.JSONDecodeError as e:
-        debug('Failed getting JSON alert. Error: %s' % e)
-        sys.exit(ERR_INVALID_JSON)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv)
