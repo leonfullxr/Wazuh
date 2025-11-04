@@ -1,6 +1,8 @@
 # Wazuh
 Wazuh configuration, setup and scripts. This repository serves as my personal notes and configurations that I have created for **deployment and testing**
 
+Please refer to the official integration repository which is mantained and updated: https://github.com/wazuh/integrations
+
 **Disclaimer**: The integrations and content within this repository are provided "as is" without warranty of any kind, express or implied. Users are responsible for evaluating the security, quality, and compatibility of any code or configurations they choose to utilize from this repository. I do not guarantee the absence of vulnerabilities, errors, or suitability for any particular purpose.
 
 ## Repository structure
