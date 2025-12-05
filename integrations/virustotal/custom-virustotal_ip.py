@@ -1,16 +1,11 @@
-#!/usr/bin/env python3
+#!/var/ossec/framework/python/bin/python3
 # Copyright (C) 2015-2025, Wazuh Inc.
-#
-# VirusTotal IP check (v3) for Wazuh Integrator
-# Adapted from the VT hash template to score IPs using VT engine hits, reputation,
-# analysis freshness, lightweight engine-weighting, and an optional communicating_files pivot.
 #
 # Example ossec.conf:
 # <integration>
-#   <name>custom-virustotal-custom-virustotal_ip_checks</name>
+#   <name>custom-virustotal_ip</name>
 #   <api_key>YOUR_VT_KEY</api_key>
-#   <group>sshd</group>   <!-- adjust -->
-#   <alert_format>json</alert_format>
+#   <group>sshd</group>   #   <alert_format>json</alert_format>
 # </integration>
 
 import json
@@ -38,13 +33,6 @@ STALE_WEAK_DAYS: int = 90
 
 # Risk tags that prevent downgrading below suspicious if there is any engine hit
 RISK_TAGS = {"tor", "vpn", "proxy", "anonymizer", "anonymous"}
-
-# Pivot to communicating_files on borderline (unknown/suspicious with <=1 direct hit)
-PIVOT_ENABLED: bool = True
-PIVOT_LIMIT: int = 10                 # how many files to fetch
-PIVOT_STRONG_FILE_MIN: int = 5        # a file is "strongly malicious" if >= this many engines flag it
-PIVOT_UPGRADE_1: int = 1              # >=1 strong file: unknown -> suspicious
-PIVOT_UPGRADE_2: int = 3              # >=3 strong files: suspicious -> malicious (or unknown -> suspicious)
 
 # ============================ Exit error codes =============================
 
@@ -79,7 +67,6 @@ TIMEOUT_INDEX = 6
 RETRIES_INDEX = 7
 
 VT_IP_URL = "https://www.virustotal.com/api/v3/ip_addresses/{ip}"
-VT_COMM_FILES_URL = "https://www.virustotal.com/api/v3/ip_addresses/{ip}/communicating_files?limit={limit}"
 
 # ================================ Main ====================================
 
@@ -252,40 +239,6 @@ def apply_modifiers(verdict, weighted_mal, rep, tags, mal, sus):
             verdict = "suspicious"
     return verdict
 
-
-def pivot_comm_files(ip, api_key):
-    try:
-        r = vt_get(VT_COMM_FILES_URL.format(ip=ip, limit=PIVOT_LIMIT), api_key)
-        if r.status_code == 429:
-            return {"error": "rate_limited", "total_files": 0, "strong_mal_files": 0}
-        if r.status_code == 404:
-            return {"error": "not_found", "total_files": 0, "strong_mal_files": 0}
-        r.raise_for_status()
-        data = r.json()
-        files = data.get("data") or []
-        strong = 0
-        total = 0
-        for f in files:
-            total += 1
-            stats = (f.get("attributes") or {}).get("last_analysis_stats") or {}
-            if int(stats.get("malicious", 0) or 0) >= PIVOT_STRONG_FILE_MIN:
-                strong += 1
-        return {"total_files": total, "strong_mal_files": strong}
-    except RequestException:
-        return {"error": "request_error", "total_files": 0, "strong_mal_files": 0}
-
-
-def apply_pivot_upgrade(verdict, strong_count):
-    if strong_count >= PIVOT_UPGRADE_2:
-        # upgrade one level
-        if verdict == "unknown":
-            return "suspicious"
-        if verdict == "suspicious":
-            return "malicious"
-    elif strong_count >= PIVOT_UPGRADE_1 and verdict == "unknown":
-        return "suspicious"
-    return verdict
-
 # ====================== VT request & message build =========================
 
 def request_virustotal_info(alert, api_key):
@@ -295,6 +248,20 @@ def request_virustotal_info(alert, api_key):
     if not ip:
         debug("# No IP found in alert")
         sys.exit(ERR_NO_IP_FOUND)
+        
+    # ---- Preserve requested original fields at TOP LEVEL ----
+    # These will appear as data.original_full_log
+    if "full_log" in alert:
+        out["original_full_log"] = alert["full_log"]
+
+    # ---- Example of preserving WAF data ----
+    # waf = (((alert.get("data") or {}).get("waf")) or {})
+    # waf_kept = {}
+    # for k in ("ref", "request", "src", "sip"):
+    #     if k in waf:
+    #         waf_kept[k] = waf[k]
+    # if waf_kept:
+    #     out["waf"] = waf_kept
 
     # Retry loop
     vt_body = None
@@ -347,13 +314,6 @@ def request_virustotal_info(alert, api_key):
     verdict = initial_verdict(mal, sus, rep, days)
     verdict = apply_modifiers(verdict, wmal, rep, tags, mal, sus)
 
-    pivot_used = False
-    pivot = {}
-    if PIVOT_ENABLED and verdict in ("unknown", "suspicious") and (mal <= 1 and sus <= 1):
-        pivot = pivot_comm_files(ip, api_key)
-        pivot_used = True
-        verdict = apply_pivot_upgrade(verdict, int(pivot.get("strong_mal_files", 0)))
-
     # Build final block
     out["virustotal_ip"]["found"] = 1
     out["virustotal_ip"]["verdict"] = verdict
@@ -370,7 +330,6 @@ def request_virustotal_info(alert, api_key):
     out["virustotal_ip"]["as_owner"] = attr.get("as_owner")
     out["virustotal_ip"]["network"] = attr.get("network")
     out["virustotal_ip"]["permalink"] = f"https://www.virustotal.com/gui/ip-address/{ip}"
-    out["virustotal_ip"]["pivot"] = {"used": pivot_used, **(pivot or {})}
 
     # Flat line for rule matching
     out["virustotal_ip"]["verdict_line"] = (
