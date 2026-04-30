@@ -17,7 +17,7 @@ Upon successful completion, the following artifacts are generated:
 
 1. **Clone the Wazuh repository and check out the target version:**
    ```bash
-   git clone [https://github.com/wazuh/wazuh](https://github.com/wazuh/wazuh)
+   git clone https://github.com/wazuh/wazuh
    cd wazuh/packages
    git checkout v4.14.5
    ```
@@ -98,4 +98,3 @@ The package installer handles the creation of the `wazuh` user/group and registe
 1. Edit `/var/ossec/etc/ossec.conf` and update `<server><address>` with your Manager IP.
 2. Register the agent using `/var/ossec/bin/agent-auth -m <MANAGER_IP>`.
 3. Start the service: `/var/ossec/bin/wazuh-control start`.
-```
