@@ -1,0 +1,249 @@
+---
+- name: Update Wazuh Config with API-based Agent Removal
+  hosts: wazuh_agents
+  become: true
+  gather_facts: true
+  serial: 40  # Process 40 agents at a time to avoid overwhelming the manager
+  vars:
+    wazuh_manager_host: "wazuh-manager"
+    wazuh_manager_ip: "192.168.56.110"  # Update with your manager IP
+    wazuh_api_port: "55000"
+    wazuh_api_user: "wazuh"
+    wazuh_api_password: "wazuh"
+    new_group: "Linux"
+    config_file: "/var/ossec/etc/ossec.conf"
+    client_keys_file: "/var/ossec/etc/client.keys"
+
+  tasks:
+    # ============================================================
+    # PHASE 1: Gather Information
+    # ============================================================
+    - name: Get hostname
+      command: hostname
+      register: hostname_result
+      changed_when: false
+
+    - name: Set agent name variable
+      set_fact:
+        agent_name: "{{ hostname_result.stdout | trim }}-linux"
+
+    - name: Display agent name that will be configured
+      debug:
+        msg: "Configuring agent as: {{ agent_name }}"
+
+    - name: Get current agent ID from client.keys
+      shell: "awk '{print $1}' {{ client_keys_file }} 2>/dev/null || echo ''"
+      register: agent_id
+      changed_when: false
+
+    - name: Display current agent ID
+      debug:
+        msg: "Current agent ID: {{ agent_id.stdout if agent_id.stdout != '' else 'No agent ID found' }}"
+
+    # ============================================================
+    # PHASE 2: Remove Agent from Manager via API
+    # ============================================================
+    - name: Authenticate to Wazuh API and get JWT token
+      uri:
+        url: "https://{{ wazuh_manager_ip }}:{{ wazuh_api_port }}/security/user/authenticate"
+        method: GET
+        user: "{{ wazuh_api_user }}"
+        password: "{{ wazuh_api_password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        return_content: yes
+      register: api_auth
+      delegate_to: localhost
+      run_once: false
+      when: agent_id.stdout != ""
+      no_log: true  # Hide password from logs
+
+    - name: Set API token variable
+      set_fact:
+        api_token: "{{ api_auth.json.data.token }}"
+      when: agent_id.stdout != "" and api_auth.json is defined
+
+    - name: Display authentication status
+      debug:
+        msg: "API authentication {{ 'successful' if api_token is defined else 'skipped (no agent ID)' }}"
+      when: agent_id.stdout != ""
+
+    - name: Remove agent from Wazuh manager via API
+      uri:
+        url: "https://{{ wazuh_manager_ip }}:{{ wazuh_api_port }}/agents?agents_list={{ agent_id.stdout }}&pretty=true&older_than=0s&status=all"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ api_token }}"
+        validate_certs: no
+        status_code: [200, 404]  # 404 means agent already removed
+      register: api_delete
+      delegate_to: localhost
+      when: agent_id.stdout != "" and api_token is defined
+      ignore_errors: true
+
+    - name: Display agent removal result
+      debug:
+        msg: |
+          Agent removal status: {{ api_delete.json.data.affected_items[0] if api_delete.json is defined and api_delete.json.data.affected_items is defined else 'Agent not found or already removed' }}
+      when: agent_id.stdout != ""
+
+    # ============================================================
+    # PHASE 3: Stop Agent Service
+    # ============================================================
+    - name: Stop Wazuh agent service
+      service:
+        name: wazuh-agent
+        state: stopped
+
+    # ============================================================
+    # PHASE 4: Backup and Modify Configuration
+    # ============================================================
+    - name: Backup current configuration with timestamp
+      copy:
+        src: "{{ config_file }}"
+        dest: "{{ config_file }}.backup.{{ ansible_date_time.epoch }}"
+        remote_src: true
+
+    - name: Remove existing agent_name tags (if any)
+      shell: |
+        sed -i '/<agent_name>/d' {{ config_file }}
+      args:
+        warn: false
+
+    - name: Remove existing groups tags (if any)
+      shell: |
+        sed -i '/<groups>/d' {{ config_file }}
+      args:
+        warn: false
+
+    - name: Insert agent_name and groups into enrollment section
+      shell: |
+        sed -i '/<enrollment>/a\      <agent_name>{{ agent_name }}</agent_name>\n      <groups>{{ new_group }}</groups>' {{ config_file }}
+      args:
+        warn: false
+
+    # ============================================================
+    # PHASE 5: Verify Configuration Changes
+    # ============================================================
+    - name: Verify configuration changes
+      shell: "grep -A 5 '<enrollment>' {{ config_file }}"
+      register: verify_config
+      changed_when: false
+
+    - name: Display updated configuration
+      debug:
+        msg: "{{ verify_config.stdout_lines }}"
+
+    # ============================================================
+    # PHASE 6: Force Re-enrollment
+    # ============================================================
+    - name: Remove client.keys to force re-enrollment
+      file:
+        path: "{{ client_keys_file }}"
+        state: absent
+
+    # ============================================================
+    # PHASE 7: Start Agent and Wait for Re-enrollment
+    # ============================================================
+    - name: Start Wazuh agent service
+      service:
+        name: wazuh-agent
+        state: started
+        enabled: yes
+
+    - name: Wait for agent to re-enroll with manager
+      pause:
+        seconds: 45
+
+    # ============================================================
+    # PHASE 8: Verification
+    # ============================================================
+    - name: Check if client.keys was recreated (indicates successful enrollment)
+      stat:
+        path: "{{ client_keys_file }}"
+      register: new_client_keys
+
+    - name: Verify enrollment in agent logs
+      shell: 'tail -30 /var/ossec/logs/ossec.log | grep -i "valid key\|Connected to enrollment\|Accepted by manager" || echo "No enrollment confirmation yet"'
+      register: enrollment_log
+      changed_when: false
+      failed_when: false
+
+    - name: Check agent connection status
+      shell: "tail -20 /var/ossec/logs/ossec.log | grep -i 'connected to server' || echo 'Not connected yet'"
+      register: connection_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display enrollment verification
+      debug:
+        msg: |
+          ========================================
+          Agent: {{ agent_name }}
+          Group: {{ new_group }}
+          Client keys recreated: {{ 'Yes' if new_client_keys.stat.exists else 'No - Check logs manually' }}
+          Enrollment log: {{ enrollment_log.stdout_lines[-1] if enrollment_log.stdout_lines else 'No logs found' }}
+          Connection status: {{ connection_check.stdout_lines[-1] if connection_check.stdout_lines else 'No connection logs' }}
+          ========================================
+
+# ============================================================
+# Optional: Verify all agents on manager after completion
+# ============================================================
+- name: Verify New Agents on Wazuh Manager
+  hosts: localhost
+  gather_facts: false
+  vars:
+    wazuh_manager_ip: "192.168.56.110"
+    wazuh_api_port: "55000"
+    wazuh_api_user: "admin"
+    wazuh_api_password: "Pepepepe123-*"
+
+  tasks:
+    - name: Authenticate to Wazuh API
+      uri:
+        url: "https://{{ wazuh_manager_ip }}:{{ wazuh_api_port }}/security/user/authenticate"
+        method: GET
+        user: "{{ wazuh_api_user }}"
+        password: "{{ wazuh_api_password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        return_content: yes
+      register: api_auth
+      no_log: true
+
+    - name: Get list of all agents
+      uri:
+        url: "https://{{ wazuh_manager_ip }}:{{ wazuh_api_port }}/agents?pretty=true&select=id,name,status,group"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ api_auth.json.data.token }}"
+        validate_certs: no
+      register: all_agents
+
+    - name: Filter agents with '-linux' suffix
+      set_fact:
+        linux_agents: "{{ all_agents.json.data.affected_items | selectattr('name', 'search', '-linux') | list }}"
+
+    - name: Display newly registered Linux agents
+      debug:
+        msg: |
+          ============================================
+          Newly Registered Linux Agents
+          ============================================
+          {% for agent in linux_agents %}
+          - ID: {{ agent.id }}, Name: {{ agent.name }}, Status: {{ agent.status }}, Groups: {{ agent.group | join(', ') }}
+          {% endfor %}
+
+    - name: Summary report
+      debug:
+        msg: |
+          ============================================
+          Wazuh Agent Reconfiguration Summary
+          ============================================
+          Total agents reconfigured: {{ linux_agents | length }}
+          Agents in 'Linux' group: {{ linux_agents | selectattr('group', 'search', 'Linux') | list | length }}
+          Connected agents: {{ linux_agents | selectattr('status', 'equalto', 'active') | list | length }}
+          Disconnected agents: {{ linux_agents | selectattr('status', 'equalto', 'disconnected') | list | length }}
+          Never connected: {{ linux_agents | selectattr('status', 'equalto', 'never_connected') | list | length }}
+          ============================================
+
