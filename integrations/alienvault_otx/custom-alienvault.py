@@ -595,9 +595,14 @@ def enrich_alert(
 # ---------------------------------------------------------------------------
 
 def _build_socket_line(msg: Dict[str, Any], agent: Optional[Dict[str, Any]]) -> str:
-    if not agent or agent.get("id") == "000":
+    if not agent:
         return f"1:{INTEGRATION_TAG}:{json.dumps(msg, separators=(',', ':'))}"
-    agent_str = f"[{agent['id']}] ({agent.get('name', '?')}) {agent.get('ip', 'any')}"
+
+    agent_id = agent.get("id")
+    if not agent_id or agent_id == "000":
+        return f"1:{INTEGRATION_TAG}:{json.dumps(msg, separators=(',', ':'))}"
+
+    agent_str = f"[{agent_id}] ({agent.get('name', '?')}) {agent.get('ip', 'any')}"
     return f"1:{agent_str}->{INTEGRATION_TAG}:{json.dumps(msg, separators=(',', ':'))}"
 
 
