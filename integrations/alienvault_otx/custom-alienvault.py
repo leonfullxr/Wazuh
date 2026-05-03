@@ -90,15 +90,6 @@ SHA256_IN_HASHES_STRING = re.compile(r"SHA256=([A-Fa-f0-9]{64})")
 # ---------------------------------------------------------------------------
 # IOC field registry
 # ---------------------------------------------------------------------------
-#
-# Each entry maps an IOC type to a list of dotted JSON paths inside a Wazuh
-# alert where the value may be found. The first non-empty match wins.
-# Add a new field path here when integrating a new log source -- there is
-# no need to touch the extraction logic below.
-#
-# Sources whose data needs structural parsing (e.g. Sysmon's comma-separated
-# `hashes` string, or Microsoft Graph `evidence` arrays) are handled by the
-# corresponding extractor function further down rather than by this map.
 
 SUPPORTED_FIELD_PATHS: Dict[str, List[str]] = {
     "src_ip": [
@@ -437,13 +428,7 @@ def otx_is_reachable(api_key: str, hook_url: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def evaluate_verdict(otx_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Translate an OTX general-endpoint response into a structured verdict.
 
-    Verdict is keyed on pulse_info.count -- the number of OTX community
-    pulses that reference the indicator. The OTX `reputation` field is
-    documented but consistently returns 0 across IPv4 responses and is
-    absent entirely from domain and file responses, so it is not used.
-    """
     if not otx_data:
         return {
             "malicious": False,

@@ -2,7 +2,6 @@
 
 * [AlienVault OTX Integration with Wazuh](#alienvault-otx-integration-with-wazuh)
 * [Prerequisites](#prerequisites)
-  * [Installing Wazuh](#installing-wazuh)
   * [Obtaining an OTX API key](#obtaining-an-otx-api-key)
     * [Testing connection from Wazuh to AlienVault OTX](#testing-connection-from-wazuh-to-alienvault-otx)
 * [AlienVault OTX‑Wazuh Integration](#alienvault-otxwazuh-integration)
@@ -27,26 +26,16 @@ This integration enriches Wazuh alerts with threat intelligence from AlienVault 
 
 > **Note:** OTX is a community‑driven feed. Indicators on shared infrastructure (cloud‑hosted IPs, mail‑sender ranges, CDN endpoints) often return `clean` even when the underlying activity is malicious in your environment. This integration is best used alongside, not instead of, your other detection signals.
 
-
-
 ## Prerequisites
 
-* Wazuh Manager
-* Python 3.8+ (Wazuh ships its own interpreter at `/var/ossec/framework/python/bin/python3`)
 * `requests` Python library installed for the Wazuh runtime
 * Network connectivity from Wazuh Manager to `https://otx.alienvault.com` (HTTPS)
 * A free OTX account with API key
 
-### Installing Wazuh
-
-* Wazuh offers an installation method called [Quickstart](https://documentation.wazuh.com/current/quickstart.html)
-* Download and run the [Wazuh installation assistant](https://documentation.wazuh.com/current/installation-guide/wazuh-indexer/installation-assistant.html)
-* Once installation is complete, the assistant will provide a username and password for the indexer
-
 ### Obtaining an OTX API key
 
 * Sign up at <https://otx.alienvault.com/>
-* Navigate to **Settings → User Settings → API Integration**
+* Navigate to **Settings --> User Settings --> API Integration**
 * Copy the OTX Key. It is a 64‑character hex string.
 
 #### Testing connection from Wazuh to AlienVault OTX
@@ -255,7 +244,7 @@ Sources whose data needs structural parsing (Sysmon's comma‑separated `hashes`
 
 Additional safeguards before an indicator is sent to OTX:
 
-* **IPs**: only globally‑routable addresses are queried. RFC1918 private space, loopback, link‑local, CGNAT, and reserved/multicast ranges are filtered out — they cannot meaningfully be looked up in a public threat‑intelligence feed.
+* **IPs**: only globally‑routable addresses are queried. RFC1918 private space, loopback, link‑local, CGNAT, and reserved/multicast ranges are filtered out as they cannot meaningfully be looked up in a public threat‑intelligence feed.
 * **Domains**: scheme/path/port/query are stripped, and the result is rejected if it parses as an IP, contains whitespace, or has no dot.
 * **Hashes**: validated against a 64‑character hex pattern.
 
@@ -263,7 +252,7 @@ Additional safeguards before an indicator is sent to OTX:
 
 ## Verdict Logic
 
-For each indicator the script translates the OTX `pulse_info.count` — the number of community pulses referencing the indicator — into a verdict and a confidence tier:
+For each indicator the script translates the OTX `pulse_info.count`, the number of community pulses referencing the indicator, into a verdict and a confidence tier:
 
 | `pulse_count` | `verdict` | `confidence` |
 |---|---|---|
@@ -304,24 +293,24 @@ The integration uses two independent on‑disk queues to prevent transient failu
 
 ```
 /var/log/wazuh-alienvault/
-├── custom-alienvault.log           ← rotating service log (10MB × 5 backups)
+├── custom-alienvault.log           # rotating service log (10MB × 5 backups)
 ├── wazuh-retry-queue/
-│   └── alienvault_queue.json       ← socket-retry queue
+│   └── alienvault_queue.json       # socket-retry queue
 └── otx-failed-enrichment/
-    └── alert_<id>.json             ← one file per alert pending re-enrichment
+    └── alert_<id>.json             # one file per alert pending re-enrichment
 ```
 
 ### Socket‑retry queue (`alienvault_queue.json`)
 
-Catches the case where an enrichment was successfully built but couldn't be delivered to the Wazuh manager's `queue` UNIX socket — for example during a manager restart. Each failed event is appended to the queue file as a single newline‑delimited line containing the exact socket payload that was about to be sent. On the next invocation, `process_queue` rotates the file to `.inprocess`, replays each line, and only deletes lines that succeed; anything that still fails is preserved for the next run.
+Catches the case where an enrichment was successfully built but couldn't be delivered to the Wazuh manager's `queue` UNIX socket, for example during a manager restart. Each failed event is appended to the queue file as a single newline‑delimited line containing the exact socket payload that was about to be sent. On the next invocation, `process_queue` rotates the file to `.inprocess`, replays each line, and only deletes lines that succeed; anything that still fails is preserved for the next run.
 
-This queue does **not** require an OTX round‑trip on retry — the enrichment is already done — so it drains very quickly once the local socket is back.
+This queue does **not** require an OTX round‑trip on retry as the enrichment is already done, so it drains very quickly once the local socket is back.
 
 ### Failed‑enrichment queue (`otx-failed-enrichment/`)
 
 Catches the case where OTX itself is unreachable (network down, OTX outage, rate limit). When **every** OTX query for an alert returns a recoverable failure (timeout, connection error, HTTP 429, HTTP 5xx), the original alert is written to a per‑alert JSON file in this directory. On the next invocation, the script performs a quick OTX health check (`GET /api/v1/user/me`); if successful, every queued alert is re‑enriched and emitted, and its file is removed. If OTX is still down, the queue is left intact for a future attempt.
 
-Note that **partial** OTX failures (e.g., the source‑IP query succeeded but the file‑hash query timed out) do not trigger queueing — the alert is still emitted with whatever enrichment was obtained, and the failed indicator is recorded with `verdict: unknown`. Queueing only kicks in when the script has effectively no OTX information at all.
+Note that **partial** OTX failures (e.g., the source‑IP query succeeded but the file‑hash query timed out) do not trigger queueing as the alert is still emitted with whatever enrichment was obtained, and the failed indicator is recorded with `verdict: unknown`. Queueing only kicks in when the script has effectively no OTX information at all.
 
 ### Triggering retry
 
@@ -339,7 +328,7 @@ The `process_queue` and `process_failed_otx_alerts` calls run before the new ale
 ## Logging
 
 * All script output goes to `/var/log/wazuh-alienvault/custom-alienvault.log` via a rotating file handler (10 MB per file, 5 backups).
-* Pass `debug` as the fourth argument to enable DEBUG‑level output. The Wazuh integrator does this automatically when you set `<integration_debug>1</integration_debug>` inside the integration block, or you can invoke the script manually.
+* Pass `debug` as the fourth argument to enable DEBUG‑level output.
 * Log lines include service name, level, and timestamp:
 
   ```
@@ -371,16 +360,16 @@ The repository ships a saved‑objects bundle, [`wazuh-otx-dashboard.ndjson`](wa
 <summary>Click to expand dashboard import steps</summary>
 
 1. Open the Wazuh dashboard in your browser.
-2. Navigate to **Stack Management → Saved Objects**.
+2. Navigate to **Stack Management --> Saved Objects**.
 3. Click **Import** in the upper‑right.
 4. Select `wazuh-otx-dashboard.ndjson`.
 5. Choose **Automatically overwrite all conflicts** (or **Request action on conflict** for a fresh import).
 6. Click **Import**.
-7. Open the **Dashboards** menu — the new dashboard appears as **AlienVault OTX | Threat Intelligence**.
+7. Open the **Dashboards** menu - the new dashboard appears as **AlienVault OTX | Threat Intelligence**.
 
 If your index pattern saved‑object ID is anything other than the literal string `wazuh-alerts-*`, the importer will surface a conflicts dialog and let you remap each visualisation.
 
-After the first import, refresh the field list once: **Stack Management → Index Patterns → wazuh-alerts-* → refresh icon**. This ensures the new `data.indicators.*` fields are recognised by the visualisation aggregations.
+After the first import, refresh the field list once: **Stack Management --> Index Patterns --> wazuh-alerts-* --> refresh icon**. This ensures the new `data.indicators.*` fields are recognised by the visualisation aggregations.
 
 </details>
 
@@ -393,7 +382,7 @@ sudo -u wazuh OTX_KEY=$OTX_KEY \
   /var/ossec/framework/python/bin/python3 populate_otx_dashboard.py
 ```
 
-The helper drives 21 distinct scenarios spanning SSH brute‑force, web scanning, Sysmon DNS queries, FIM events, Suricata C2 detections, MS Graph mail evidence, AWS CloudTrail and outbound firewall connections — touching every panel of the dashboard with a mix of malicious and clean indicators.
+The helper drives 21 distinct scenarios spanning SSH brute‑force, web scanning, Sysmon DNS queries, FIM events, Suricata C2 detections, MS Graph mail evidence, AWS CloudTrail and outbound firewall connections, touching every panel of the dashboard with a mix of malicious and clean indicators.
 
 ### Notes on aggregation field types
 
