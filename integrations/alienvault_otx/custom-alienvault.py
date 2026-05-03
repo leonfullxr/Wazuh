@@ -673,6 +673,28 @@ def save_to_queue(socket_line: str) -> None:
 
 def process_queue() -> None:
     """Re-send any socket-queue events from previous runs."""
+    # Recover any leftover QUEUE_TMP left behind by a previously interrupted run.
+    if QUEUE_TMP.exists():
+        if QUEUE_FILE.exists():
+            # Both files exist: merge the leftover temp entries into the main queue
+            # file so they are processed together, then remove the temp file.
+            try:
+                with open(QUEUE_TMP, "r", encoding="utf-8") as tmp_f:
+                    leftover = tmp_f.read()
+                with open(QUEUE_FILE, "a", encoding="utf-8") as q_f:
+                    q_f.write(leftover)
+                QUEUE_TMP.unlink()
+            except OSError as e:
+                logger.error(f"Failed to merge leftover temp queue file: {e}")
+                return
+        else:
+            # Only QUEUE_TMP exists: rename it back so the normal path processes it.
+            try:
+                QUEUE_TMP.rename(QUEUE_FILE)
+            except OSError as e:
+                logger.error(f"Failed to rename temp queue file for reprocessing: {e}")
+                return
+
     if not QUEUE_FILE.exists():
         return
 
@@ -695,6 +717,11 @@ def process_queue() -> None:
                     failed.append(line)
     except OSError as e:
         logger.error(f"Failed to read socket queue: {e}")
+        # Rename QUEUE_TMP back to QUEUE_FILE so data is not lost on the next run.
+        try:
+            QUEUE_TMP.rename(QUEUE_FILE)
+        except OSError as rename_err:
+            logger.error(f"Failed to recover queue after read error: {rename_err}")
         return
 
     if failed:
@@ -704,11 +731,13 @@ def process_queue() -> None:
             logger.warning(f"{len(failed)} event(s) still queued after retry.")
         except OSError as e:
             logger.error(f"Failed to restore failed events to queue: {e}")
-    else:
-        try:
+
+    # Always clean up QUEUE_TMP once processing is complete (success or partial failure).
+    try:
+        if QUEUE_TMP.exists():
             QUEUE_TMP.unlink()
-        except OSError as e:
-            logger.error(f"Failed to remove temp queue file: {e}")
+    except OSError as e:
+        logger.error(f"Failed to remove temp queue file: {e}")
 
 
 # ---------------------------------------------------------------------------
