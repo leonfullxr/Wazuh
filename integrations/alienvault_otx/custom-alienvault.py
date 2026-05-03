@@ -499,20 +499,29 @@ def evaluate_verdict(otx_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 # Pipeline
 # ---------------------------------------------------------------------------
 
+def is_public_ipv4(value: str) -> bool:
+    try:
+        parsed_ip = ipaddress.ip_address(value)
+    except ValueError:
+        return False
+
+    return parsed_ip.version == 4 and parsed_ip.is_global
+
+
 def collect_indicators(alert: Dict[str, Any]) -> Dict[str, str]:
     indicators: Dict[str, str] = {}
 
     src_ip = extract_src_ip(alert)
-    if src_ip and is_public_ip(src_ip):
+    if src_ip and is_public_ipv4(src_ip):
         indicators["src_ip"] = src_ip
     elif src_ip:
-        logger.debug(f"Skipping non-public src_ip: {src_ip}")
+        logger.debug(f"Skipping non-public or non-IPv4 src_ip: {src_ip}")
 
     dst_ip = extract_dst_ip(alert)
-    if dst_ip and is_public_ip(dst_ip):
+    if dst_ip and is_public_ipv4(dst_ip):
         indicators["dst_ip"] = dst_ip
     elif dst_ip:
-        logger.debug(f"Skipping non-public dst_ip: {dst_ip}")
+        logger.debug(f"Skipping non-public or non-IPv4 dst_ip: {dst_ip}")
 
     domain = extract_domain(alert)
     if domain:
