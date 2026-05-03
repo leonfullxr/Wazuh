@@ -1,5 +1,6 @@
 .cache_ggshield
 meetings/
-images/vagrant/**/.vagrant/__pycache__/
+images/vagrant/**/.vagrant/
+__pycache__/
 *.pyc
 *.pyo
