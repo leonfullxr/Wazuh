@@ -544,8 +544,24 @@ def enrich_alert(
     indicators = collect_indicators(alert)
     if not indicators:
         logger.info("No queryable indicators found in alert.")
+        minimal_event: Dict[str, Any] = {
+            "integration": INTEGRATION_TAG,
+            "original_rule": get_nested(alert, "rule.id"),
+            "input_alert": alert.get("id"),
+            "overall_malicious": False,
+            "overall_verdict": "no_indicators",
+            "reason": "no_indicators",
+        }
+
         win_fields = extract_windows_event_fields(alert)
-        return (win_fields if win_fields else alert, False)
+        if win_fields:
+            minimal_event["windows_event_data"] = win_fields
+        else:
+            file_path = extract_file_path(alert)
+            if file_path:
+                minimal_event["file_path"] = file_path
+
+        return ({k: v for k, v in minimal_event.items() if v not in (None, [], {})}, False)
 
     enriched_indicators: Dict[str, Dict[str, Any]] = {}
     recoverable_failures = 0
