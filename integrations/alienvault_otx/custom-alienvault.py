@@ -34,7 +34,6 @@ from __future__ import annotations
 import ipaddress
 import json
 import logging
-import os
 import re
 import sys
 from logging.handlers import RotatingFileHandler
