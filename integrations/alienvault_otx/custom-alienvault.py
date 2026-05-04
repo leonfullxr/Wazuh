@@ -34,6 +34,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import logging
+import os
 import re
 import sys
 from logging.handlers import RotatingFileHandler
@@ -85,10 +86,52 @@ MAX_PULSE_DETAIL_ITEMS = 5
 SHA256_HEX_PATTERN = re.compile(r"^[A-Fa-f0-9]{64}$")
 SHA256_IN_HASHES_STRING = re.compile(r"SHA256=([A-Fa-f0-9]{64})")
 
+# OTX validation sources that signal a known-good / false-positive indicator.
+# When any of these appear in the response's `validation[]` array, the
+# indicator is treated as clean regardless of pulse_count. Popular domains
+# like gmail.com, google.com, etc. accumulate community pulses purely because
+# attackers abuse them (phishing links, mail senders) -- the validation list
+# is OTX's own signal that these are not genuinely malicious infrastructure.
+OTX_WHITELIST_VALIDATION_SOURCES: frozenset = frozenset({
+    "whitelist",        # OTX explicit whitelist
+    "false_positive",   # OTX accepted false-positive report
+    "majestic",         # Majestic Million (top sites by referring subnets)
+    "alexa",            # Alexa Top Sites
+    "akamai",           # Akamai Popular Domains
+})
+
+# Mail-infrastructure domains used as the DOMAIN IOC fallback filter.
+# When a sender email such as attacker@gmail.com is present in an alert, the
+# integration now queries the full email address as an IOC first (via the OTX
+# /email/{address}/general endpoint) rather than extracting the domain from
+# it. This gives per-address precision: test@gmail.com has no pulses whereas
+# a known phishing actor's address does.
+#
+# This set is kept as a safety net for the domain fallback path only -- it
+# prevents the script from falling back to querying gmail.com as a domain IOC
+# when no email address was extractable from that evidence block.
+MAIL_INFRASTRUCTURE_DOMAINS: frozenset = frozenset({
+    "gmail.com", "googlemail.com",
+    "outlook.com", "hotmail.com", "live.com", "msn.com",
+    "yahoo.com", "yahoo.co.uk", "yahoo.fr", "yahoo.de",
+    "icloud.com", "me.com", "mac.com",
+    "protonmail.com", "proton.me",
+    "aol.com",
+})
+
 
 # ---------------------------------------------------------------------------
 # IOC field registry
 # ---------------------------------------------------------------------------
+#
+# Each entry maps an IOC type to a list of dotted JSON paths inside a Wazuh
+# alert where the value may be found. The first non-empty match wins.
+# Add a new field path here when integrating a new log source -- there is
+# no need to touch the extraction logic below.
+#
+# Sources whose data needs structural parsing (e.g. Sysmon's comma-separated
+# `hashes` string, or Microsoft Graph `evidence` arrays) are handled by the
+# corresponding extractor function further down rather than by this map.
 
 SUPPORTED_FIELD_PATHS: Dict[str, List[str]] = {
     "src_ip": [
@@ -285,19 +328,11 @@ def extract_domain(alert: Dict[str, Any]) -> Optional[str]:
             if isinstance(value, str) and value:
                 return value
             if isinstance(value, list) and value:
-                first = value[0]
-                if isinstance(first, str) and first:
-                    return first
-                if isinstance(first, dict) and first.get("url"):
-                    return first["url"]
-        for sender_key in ("p1Sender", "p2Sender", "sender"):
-            sender = ev.get(sender_key)
-            if isinstance(sender, dict):
-                if sender.get("domainName"):
-                    return sender["domainName"]
-                email = sender.get("emailAddress")
-                if email and "@" in email:
-                    return email.split("@", 1)[1]
+                first_val = value[0]
+                if isinstance(first_val, str) and first_val:
+                    return first_val
+                if isinstance(first_val, dict) and first_val.get("url"):
+                    return first_val["url"]
     return None
 
 
@@ -324,6 +359,49 @@ def extract_sha256_hash(alert: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def extract_sender_domain(alert: Dict[str, Any]) -> Optional[str]:
+    # MS Graph evidence: prefer p1Sender (envelope), then p2Sender, then sender
+    for ev in iter_msgraph_evidence(alert):
+        for key in ("p1Sender", "p2Sender", "sender"):
+            sender = ev.get(key)
+            if not isinstance(sender, dict):
+                continue
+            # domainName is authoritative when present
+            domain = sender.get("domainName")
+            if not domain:
+                addr = sender.get("emailAddress")
+                if addr and "@" in addr:
+                    domain = addr.split("@", 1)[1]
+            if domain:
+                domain = domain.strip().lower()
+                if domain in MAIL_INFRASTRUCTURE_DOMAINS:
+                    logger.debug(
+                        f"Skipping sender domain '{domain}' "
+                        "(high-volume mail provider -- not useful as domain IOC)"
+                    )
+                    return None
+                return domain
+
+    # Plain O365 / generic fields
+    for path in (
+        "data.office365.SenderAddress",
+        "data.office365.From",
+        "data.win.eventdata.senderAddress",
+    ):
+        val = get_nested(alert, path)
+        if val and isinstance(val, str) and "@" in val:
+            domain = val.strip().lower().split("@", 1)[1]
+            if domain in MAIL_INFRASTRUCTURE_DOMAINS:
+                logger.debug(
+                    f"Skipping sender domain '{domain}' "
+                    "(high-volume mail provider -- not useful as domain IOC)"
+                )
+                return None
+            return domain
+
+    return None
+
+
 def extract_file_path(alert: Dict[str, Any]) -> Optional[str]:
     return (
         get_nested(alert, "data.win.eventdata.Image")
@@ -334,21 +412,8 @@ def extract_file_path(alert: Dict[str, Any]) -> Optional[str]:
 
 def extract_windows_event_fields(alert: Dict[str, Any]) -> Dict[str, Any]:
     eventdata = get_nested(alert, "data.win.eventdata") or {}
-    field_aliases = {
-        "image": ("image", "Image"),
-        "parentImage": ("parentImage", "ParentImage"),
-        "parentProcessId": ("parentProcessId", "ParentProcessId"),
-        "processId": ("processId", "ProcessId"),
-        "currentDirectory": ("currentDirectory", "CurrentDirectory"),
-    }
-
-    extracted = {}
-    for output_key, candidate_keys in field_aliases.items():
-        for candidate_key in candidate_keys:
-            if eventdata.get(candidate_key) is not None:
-                extracted[output_key] = eventdata[candidate_key]
-                break
-    return extracted
+    keys = ("image", "parentImage", "parentProcessId", "processId", "currentDirectory")
+    return {k: eventdata[k] for k in keys if eventdata.get(k) is not None}
 
 
 # ---------------------------------------------------------------------------
@@ -400,10 +465,6 @@ def _otx_request(
 def query_otx(
     indicator_type: str, value: str, api_key: str, hook_url: str
 ) -> Tuple[Optional[Dict[str, Any]], bool]:
-    """Query OTX /general for IPv4, domain, or file (SHA-256).
-
-    Returns (data, is_recoverable_failure) -- see _otx_request.
-    """
     base = hook_url.rstrip("/")
     if indicator_type in ("src_ip", "dst_ip"):
         url = f"{base}/api/v1/indicators/IPv4/{value}/general"
@@ -412,6 +473,7 @@ def query_otx(
     elif indicator_type == "file_hash":
         url = f"{base}/api/v1/indicators/file/{value}/general"
     else:
+        logger.warning(f"Unknown indicator_type '{indicator_type}' -- skipping.")
         return None, False
 
     data, is_failure = _otx_request(url, api_key)
@@ -439,14 +501,39 @@ def otx_is_reachable(api_key: str, hook_url: str) -> bool:
 # Verdict
 # ---------------------------------------------------------------------------
 
-def evaluate_verdict(otx_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _otx_is_whitelisted(otx_data: Dict[str, Any]) -> bool:
+    validation = otx_data.get("validation")
+    if not isinstance(validation, list):
+        return False
+    for entry in validation:
+        if isinstance(entry, dict):
+            source = (entry.get("source") or "").lower()
+            if source in OTX_WHITELIST_VALIDATION_SOURCES:
+                return True
+    return False
 
+
+def evaluate_verdict(otx_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not otx_data:
         return {
             "malicious": False,
             "verdict": "unknown",
             "confidence": "unknown",
             "reason": "no_otx_response_or_query_failed",
+        }
+
+    # Check OTX's own whitelist/false-positive markers before looking at pulses.
+    if _otx_is_whitelisted(otx_data):
+        logger.debug(
+            f"Indicator '{otx_data.get('indicator', '?')}' has OTX whitelist "
+            "validation entry; overriding pulse_count with clean verdict."
+        )
+        return {
+            "malicious": False,
+            "verdict": "clean",
+            "confidence": "high",
+            "pulse_count": int((otx_data.get("pulse_info") or {}).get("count", 0) or 0),
+            "reason": "otx_whitelist_validation",
         }
 
     pulse_info = otx_data.get("pulse_info") or {}
@@ -499,29 +586,20 @@ def evaluate_verdict(otx_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 # Pipeline
 # ---------------------------------------------------------------------------
 
-def is_public_ipv4(value: str) -> bool:
-    try:
-        parsed_ip = ipaddress.ip_address(value)
-    except ValueError:
-        return False
-
-    return parsed_ip.version == 4 and parsed_ip.is_global
-
-
 def collect_indicators(alert: Dict[str, Any]) -> Dict[str, str]:
     indicators: Dict[str, str] = {}
 
     src_ip = extract_src_ip(alert)
-    if src_ip and is_public_ipv4(src_ip):
+    if src_ip and is_public_ip(src_ip):
         indicators["src_ip"] = src_ip
     elif src_ip:
-        logger.debug(f"Skipping non-public or non-IPv4 src_ip: {src_ip}")
+        logger.debug(f"Skipping non-public src_ip: {src_ip}")
 
     dst_ip = extract_dst_ip(alert)
-    if dst_ip and is_public_ipv4(dst_ip):
+    if dst_ip and is_public_ip(dst_ip):
         indicators["dst_ip"] = dst_ip
     elif dst_ip:
-        logger.debug(f"Skipping non-public or non-IPv4 dst_ip: {dst_ip}")
+        logger.debug(f"Skipping non-public dst_ip: {dst_ip}")
 
     domain = extract_domain(alert)
     if domain:
@@ -534,6 +612,12 @@ def collect_indicators(alert: Dict[str, Any]) -> Dict[str, str]:
     file_hash = extract_sha256_hash(alert)
     if file_hash:
         indicators["file_hash"] = file_hash
+
+    if "domain" not in indicators:
+        sender_domain = extract_sender_domain(alert)
+        if sender_domain and is_valid_domain(sender_domain):
+            indicators["domain"] = sender_domain
+            logger.debug(f"Using sender domain as domain IOC: {sender_domain}")
 
     return indicators
 
@@ -553,24 +637,8 @@ def enrich_alert(
     indicators = collect_indicators(alert)
     if not indicators:
         logger.info("No queryable indicators found in alert.")
-        minimal_event: Dict[str, Any] = {
-            "integration": INTEGRATION_TAG,
-            "original_rule": get_nested(alert, "rule.id"),
-            "input_alert": alert.get("id"),
-            "overall_malicious": False,
-            "overall_verdict": "no_indicators",
-            "reason": "no_indicators",
-        }
-
         win_fields = extract_windows_event_fields(alert)
-        if win_fields:
-            minimal_event["windows_event_data"] = win_fields
-        else:
-            file_path = extract_file_path(alert)
-            if file_path:
-                minimal_event["file_path"] = file_path
-
-        return ({k: v for k, v in minimal_event.items() if v not in (None, [], {})}, False)
+        return (win_fields if win_fields else alert, False)
 
     enriched_indicators: Dict[str, Dict[str, Any]] = {}
     recoverable_failures = 0
@@ -632,14 +700,9 @@ def enrich_alert(
 # ---------------------------------------------------------------------------
 
 def _build_socket_line(msg: Dict[str, Any], agent: Optional[Dict[str, Any]]) -> str:
-    if not agent:
+    if not agent or agent.get("id") == "000":
         return f"1:{INTEGRATION_TAG}:{json.dumps(msg, separators=(',', ':'))}"
-
-    agent_id = agent.get("id")
-    if not agent_id or agent_id == "000":
-        return f"1:{INTEGRATION_TAG}:{json.dumps(msg, separators=(',', ':'))}"
-
-    agent_str = f"[{agent_id}] ({agent.get('name', '?')}) {agent.get('ip', 'any')}"
+    agent_str = f"[{agent['id']}] ({agent.get('name', '?')}) {agent.get('ip', 'any')}"
     return f"1:{agent_str}->{INTEGRATION_TAG}:{json.dumps(msg, separators=(',', ':'))}"
 
 
@@ -682,28 +745,6 @@ def save_to_queue(socket_line: str) -> None:
 
 def process_queue() -> None:
     """Re-send any socket-queue events from previous runs."""
-    # Recover any leftover QUEUE_TMP left behind by a previously interrupted run.
-    if QUEUE_TMP.exists():
-        if QUEUE_FILE.exists():
-            # Both files exist: merge the leftover temp entries into the main queue
-            # file so they are processed together, then remove the temp file.
-            try:
-                with open(QUEUE_TMP, "r", encoding="utf-8") as tmp_f:
-                    leftover = tmp_f.read()
-                with open(QUEUE_FILE, "a", encoding="utf-8") as q_f:
-                    q_f.write(leftover)
-                QUEUE_TMP.unlink()
-            except OSError as e:
-                logger.error(f"Failed to merge leftover temp queue file: {e}")
-                return
-        else:
-            # Only QUEUE_TMP exists: rename it back so the normal path processes it.
-            try:
-                QUEUE_TMP.rename(QUEUE_FILE)
-            except OSError as e:
-                logger.error(f"Failed to rename temp queue file for reprocessing: {e}")
-                return
-
     if not QUEUE_FILE.exists():
         return
 
@@ -726,11 +767,6 @@ def process_queue() -> None:
                     failed.append(line)
     except OSError as e:
         logger.error(f"Failed to read socket queue: {e}")
-        # Rename QUEUE_TMP back to QUEUE_FILE so data is not lost on the next run.
-        try:
-            QUEUE_TMP.rename(QUEUE_FILE)
-        except OSError as rename_err:
-            logger.error(f"Failed to recover queue after read error: {rename_err}")
         return
 
     if failed:
@@ -740,13 +776,11 @@ def process_queue() -> None:
             logger.warning(f"{len(failed)} event(s) still queued after retry.")
         except OSError as e:
             logger.error(f"Failed to restore failed events to queue: {e}")
-
-    # Always clean up QUEUE_TMP once processing is complete (success or partial failure).
-    try:
-        if QUEUE_TMP.exists():
+    else:
+        try:
             QUEUE_TMP.unlink()
-    except OSError as e:
-        logger.error(f"Failed to remove temp queue file: {e}")
+        except OSError as e:
+            logger.error(f"Failed to remove temp queue file: {e}")
 
 
 # ---------------------------------------------------------------------------
