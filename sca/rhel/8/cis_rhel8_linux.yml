@@ -1005,7 +1005,7 @@ checks:
       subtechnique: ["T1195.001", "T1195.002"]
     condition: all
     rules:
-      - 'f:/etc/dnf/dnf.conf -> r:^\s*gpgcheck\s*=\s*1\b'
+      - 'f:/etc/dnf/dnf.conf -> r:^\s*gpgcheck\s*=\s*1'
 
   # 1.2.1.3 Ensure repo_gpgcheck is globally activated (Manual) - Not Implemented
 
@@ -1034,7 +1034,7 @@ checks:
       subtechnique: ["T1195.001", "T1195.002"]
     condition: all
     rules:
-      - 'f:/etc/dnf/dnf.conf -> r:^\s*install_weak_deps\s*=\s*0\b'
+      - 'f:/etc/dnf/dnf.conf -> r:^\s*install_weak_deps\s*=\s*0'
 
 
   # ----- 1.2.2 Configure Package Updates -----
@@ -1315,8 +1315,8 @@ checks:
       subtechnique: ["T1562.001"]
     condition: any
     rules:
-      - 'f:/etc/security/limits.conf -> r:^\s*\*\s+hard\s+core\s+0\b'
-      - 'd:/etc/security/limits.d -> r:\.conf$ -> r:^\s*\*\s+hard\s+core\s+0\b'
+      - 'f:/etc/security/limits.conf -> r:^\s*\*\s+hard\s+core\s+0'
+      - 'd:/etc/security/limits.d -> r:\.conf$ -> r:^\s*\*\s+hard\s+core\s+0'
 
   # 1.5.2 Ensure fs.protected_hardlinks is configured (Automated)
   - id: 5048
@@ -1515,7 +1515,7 @@ checks:
       technique: ["T1005", "T1025"]
     condition: all
     rules:
-      - 'f:/etc/systemd/coredump.conf -> r:^\s*ProcessSizeMax\s*=\s*0\b'
+      - 'f:/etc/systemd/coredump.conf -> r:^\s*ProcessSizeMax\s*=\s*0'
 
   # 1.5.10 Ensure systemd-coredump Storage is configured (Automated)
   - id: 5056
@@ -1539,7 +1539,7 @@ checks:
       technique: ["T1005", "T1025"]
     condition: all
     rules:
-      - 'f:/etc/systemd/coredump.conf -> r:^\s*Storage\s*=\s*none\b'
+      - 'f:/etc/systemd/coredump.conf -> r:^\s*Storage\s*=\s*none'
 
 
   ###############################################
@@ -3953,7 +3953,7 @@ checks:
       subtechnique: ["T1090.001", "T1090.002", "T1557.001"]
     condition: all
     rules:
-      - 'f:/etc/firewalld/firewalld.conf -> r:^\s*FirewallBackend\s*=\s*nftables\b'
+      - 'f:/etc/firewalld/firewalld.conf -> r:^\s*FirewallBackend\s*=\s*nftables'
 
   # 4.1.3 Ensure firewalld.service is configured (Automated)
   - id: 5151
@@ -4071,6 +4071,7 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/ssh/sshd_config -> r:^[0-6]?[046]0$'
+      - 'c:stat -L -c %u /etc/ssh/sshd_config -> r:^0$'
 
   # 5.1.3 Ensure access to /etc/sysconfig/sshd is configured (Automated)
   - id: 5155
@@ -4121,10 +4122,10 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key -> r:^[06]00$'
-      - 'c:stat -L -c %U /etc/ssh/ssh_host_rsa_key -> r:^root$'
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key -> r:^[06]00$'
-      - 'c:stat -L -c %U /etc/ssh/ssh_host_ed25519_key -> r:^root$'
+      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key -> r:^[06][04]0$'
+      - 'c:stat -L -c %u /etc/ssh/ssh_host_rsa_key -> r:^0$'
+      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key -> r:^[06][04]0$'
+      - 'c:stat -L -c %u /etc/ssh/ssh_host_ed25519_key -> r:^0$'
 
   # 5.1.5 Ensure access to SSH public host key files is configured (Automated)
   - id: 5157
@@ -4150,9 +4151,9 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key.pub -> r:^[06]?44$'
-      - 'c:stat -L -c %U /etc/ssh/ssh_host_rsa_key.pub -> r:^root$'
+      - 'c:stat -L -c %u /etc/ssh/ssh_host_rsa_key.pub -> r:^0$'
       - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key.pub -> r:^[06]?44$'
-      - 'c:stat -L -c %U /etc/ssh/ssh_host_ed25519_key.pub -> r:^root$'
+      - 'c:stat -L -c %u /etc/ssh/ssh_host_ed25519_key.pub -> r:^0$'
 
   # 5.1.6 Ensure sshd access is configured (Automated)
   - id: 5158
@@ -4205,7 +4206,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*Banner\s+(?:/etc/issue\.net)\b'
+      - 'f:$sshd_file -> r:^\s*Banner\s+(?:/etc/issue\.net)\s*$'
 
   # 5.1.8 Ensure sshd Ciphers are configured (Automated)
   - id: 5160
@@ -4255,7 +4256,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*ClientAliveInterval\s+(?:(?:[1-9]|[1-9]\d{1,2}))\b'
+      - 'f:$sshd_file -> r:^\s*ClientAliveInterval\s+(?:(?:[1-9]|[1-9]\d{1,2}))\s*$'
 
   # 5.1.10 Ensure sshd DisableForwarding is enabled (Automated)
   - id: 5162
@@ -4281,7 +4282,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*DisableForwarding\s+(?:yes)\b'
+      - 'f:$sshd_file -> r:^\s*DisableForwarding\s+(?:yes)\s*$'
 
   # 5.1.11 Ensure sshd GSSAPIAuthentication is disabled (Automated)
   - id: 5163
@@ -4306,7 +4307,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*GSSAPIAuthentication\s+(?:no)\b'
+      - 'f:$sshd_file -> r:^\s*GSSAPIAuthentication\s+(?:no)\s*$'
 
   # 5.1.12 Ensure sshd HostbasedAuthentication is disabled (Automated)
   - id: 5164
@@ -4331,7 +4332,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*HostbasedAuthentication\s+(?:no)\b'
+      - 'f:$sshd_file -> r:^\s*HostbasedAuthentication\s+(?:no)\s*$'
 
   # 5.1.13 Ensure sshd IgnoreRhosts is enabled (Automated)
   - id: 5165
@@ -4356,7 +4357,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*IgnoreRhosts\s+(?:yes)\b'
+      - 'f:$sshd_file -> r:^\s*IgnoreRhosts\s+(?:yes)\s*$'
 
   # 5.1.14 Ensure sshd KexAlgorithms is configured (Automated)
   - id: 5166
@@ -4406,7 +4407,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+(?:(?:[1-9]|[1-5]\d|60))\b'
+      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+(?:(?:[1-9]|[1-5]\d|60))\s*$'
 
   # 5.1.16 Ensure sshd LogLevel is configured (Automated)
   - id: 5168
@@ -4431,7 +4432,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*LogLevel\s+(?:INFO|VERBOSE)\b'
+      - 'f:$sshd_file -> r:^\s*LogLevel\s+(?:INFO|VERBOSE)\s*$'
 
   # 5.1.17 Ensure sshd MACs are configured (Automated)
   - id: 5169
@@ -4481,7 +4482,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+(?:[1-4])\b'
+      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+(?:[1-4])\s*$'
 
   # 5.1.19 Ensure sshd MaxSessions is configured (Automated)
   - id: 5171
@@ -4506,7 +4507,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxSessions\s+(?:(?:[1-9]|10))\b'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+(?:(?:[1-9]|10))\s*$'
 
   # 5.1.20 Ensure sshd MaxStartups is configured (Automated)
   - id: 5172
@@ -4531,7 +4532,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxStartups\s+(?:10:30:60|10:30:100)\b'
+      - 'f:$sshd_file -> r:^\s*MaxStartups\s+(?:10:30:60|10:30:100)\s*$'
 
   # 5.1.21 Ensure sshd PermitEmptyPasswords is disabled (Automated)
   - id: 5173
@@ -4556,7 +4557,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*PermitEmptyPasswords\s+(?:no)\b'
+      - 'f:$sshd_file -> r:^\s*PermitEmptyPasswords\s+(?:no)\s*$'
 
   # 5.1.22 Ensure sshd PermitRootLogin is disabled (Automated)
   - id: 5174
@@ -4581,7 +4582,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*PermitRootLogin\s+(?:no|prohibit-password)\b'
+      - 'f:$sshd_file -> r:^\s*PermitRootLogin\s+(?:no|prohibit-password)\s*$'
 
   # 5.1.23 Ensure sshd PermitUserEnvironment is disabled (Automated)
   - id: 5175
@@ -4606,7 +4607,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*PermitUserEnvironment\s+(?:no)\b'
+      - 'f:$sshd_file -> r:^\s*PermitUserEnvironment\s+(?:no)\s*$'
 
   # 5.1.24 Ensure sshd UsePAM is enabled (Automated)
   - id: 5176
@@ -4631,7 +4632,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*UsePAM\s+(?:yes)\b'
+      - 'f:$sshd_file -> r:^\s*UsePAM\s+(?:yes)\s*$'
 
 
   ###############################################
@@ -4765,7 +4766,7 @@ checks:
       subtechnique: ["T1548.003"]
     condition: all
     rules:
-      - 'c:grep -rPi -- "^\s*Defaults\s+([^#]+,\s*)?timestamp_timeout=" /etc/sudoers /etc/sudoers.d/ -> r:timestamp_timeout\s*=\s*(?:[0-9]|1[0-5])\b'
+      - 'c:grep -rPi -- "^\s*Defaults\s+([^#]+,\s*)?timestamp_timeout=" /etc/sudoers /etc/sudoers.d/ -> r:timestamp_timeout\s*=\s*(?:[0-9]|1[0-5])'
 
   # 5.2.7 Ensure access to the su command is restricted (Automated)
   - id: 5182
@@ -5008,7 +5009,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/security/faillock.conf -> r:^\s*deny\s*=\s*[1-5]\b'
+      - 'f:/etc/security/faillock.conf -> r:^\s*deny\s*=\s*[1-5]'
 
   # 5.3.3.1.2 Ensure password unlock time is configured (Automated)
   - id: 5191
@@ -5139,7 +5140,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/security/pwquality.conf -> r:^\s*maxrepeat\s*=\s*[1-3]\b'
+      - 'f:/etc/security/pwquality.conf -> r:^\s*maxrepeat\s*=\s*[1-3]'
 
   # 5.3.3.2.5 Ensure password maximum sequential characters is configured (Automated)
   - id: 5196
@@ -5164,7 +5165,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/security/pwquality.conf -> r:^\s*maxsequence\s*=\s*[1-3]\b'
+      - 'f:/etc/security/pwquality.conf -> r:^\s*maxsequence\s*=\s*[1-3]'
 
   # 5.3.3.2.6 Ensure password dictionary check is enabled (Automated)
   - id: 5197
@@ -5427,7 +5428,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'f:/etc/login.defs -> r:^\s*PASS_MAX_DAYS\s+(?:[1-9]|[1-9]\d|36[0-5])\b'
+      - 'f:/etc/login.defs -> r:^\s*PASS_MAX_DAYS\s+(?:[1-9]|[1-9]\d|36[0-5])'
 
   # 5.4.1.2 Ensure minimum password days is configured (Manual) - Not Implemented
 
@@ -5454,7 +5455,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'f:/etc/login.defs -> r:^\s*PASS_WARN_AGE\s+(?:[7-9]|\d{2,})\b'
+      - 'f:/etc/login.defs -> r:^\s*PASS_WARN_AGE\s+(?:[7-9]|\d{2,})'
 
   # 5.4.1.4 Ensure strong password hashing algorithm is configured (Automated)
   - id: 5208
@@ -5504,7 +5505,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'c:useradd -D -> r:^INACTIVE=(?:[1-9]|[1-2]\d|30)\b'
+      - 'c:useradd -D -> r:^INACTIVE=(?:[1-9]|[1-2]\d|30)'
 
   # 5.4.1.6 Ensure all users last password change date is in the past (Automated)
   - id: 5210
@@ -5633,8 +5634,8 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: any
     rules:
-      - 'c:passwd -S root -> r:^root\s+L\b'
-      - 'c:passwd -S root -> r:^root\s+P\b'
+      - 'c:passwd -S root -> r:^root\s+L'
+      - 'c:passwd -S root -> r:^root\s+P'
 
   # 5.4.2.5 Ensure root path integrity (Automated)
   - id: 5215
@@ -5684,7 +5685,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'f:/root/.bashrc -> r:^\s*umask\s+0?0?27\b|^\s*umask\s+0?0?77\b'
+      - 'f:/root/.bashrc -> r:^\s*umask\s+0?0?27|^\s*umask\s+0?0?77'
 
   # 5.4.2.7 Ensure system accounts do not have a valid login shell (Automated)
   - id: 5217
@@ -5787,8 +5788,8 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: any
     rules:
-      - 'f:/etc/profile -> r:^\s*(?:readonly\s+|export\s+)?TMOUT\s*=\s*[1-9]\d{1,2}\b'
-      - 'd:/etc/profile.d -> r:\.sh$ -> r:^\s*(?:readonly\s+|export\s+)?TMOUT\s*=\s*[1-9]\d{1,2}\b'
+      - 'f:/etc/profile -> r:^\s*(?:readonly\s+|export\s+)?TMOUT\s*=\s*[1-9]\d{1,2}'
+      - 'd:/etc/profile.d -> r:\.sh$ -> r:^\s*(?:readonly\s+|export\s+)?TMOUT\s*=\s*[1-9]\d{1,2}'
 
   # 5.4.3.3 Ensure default user umask is configured (Automated)
   - id: 5221
@@ -5964,7 +5965,7 @@ checks:
       subtechnique: ["T1562.001", "T1562.006"]
     condition: none
     rules:
-      - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes\b'
+      - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes'
 
   # 6.2.1.1.5 Ensure journald Storage is configured (Automated)
   - id: 5227
@@ -5988,7 +5989,7 @@ checks:
       subtechnique: ["T1562.001", "T1562.006"]
     condition: all
     rules:
-      - 'f:/etc/systemd/journald.conf -> r:^\s*Storage\s*=\s*persistent\b'
+      - 'f:/etc/systemd/journald.conf -> r:^\s*Storage\s*=\s*persistent'
 
   # 6.2.1.1.6 Ensure journald Compress is configured (Automated)
   - id: 5228
@@ -6012,7 +6013,7 @@ checks:
       subtechnique: ["T1562.001", "T1562.006"]
     condition: all
     rules:
-      - 'f:/etc/systemd/journald.conf -> r:^\s*Compress\s*=\s*yes\b'
+      - 'f:/etc/systemd/journald.conf -> r:^\s*Compress\s*=\s*yes'
 
   # --- 6.2.1.2 Configure systemd-journal-remote ---
 
@@ -6167,7 +6168,7 @@ checks:
       subtechnique: ["T1562.001", "T1562.006"]
     condition: all
     rules:
-      - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes\b'
+      - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes'
 
   # 6.2.2.4 Ensure rsyslog log file creation mode is configured (Automated)
   - id: 5235
@@ -6191,7 +6192,7 @@ checks:
       subtechnique: ["T1562.001", "T1562.006"]
     condition: all
     rules:
-      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0?[0-6][04]0\b'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0?[0-6][04]0'
 
   # 6.2.2.5 Ensure rsyslog logging is configured (Manual) - Not Implemented
 
@@ -6357,7 +6358,7 @@ checks:
       subtechnique: ["T1562.001"]
     condition: all
     rules:
-      - 'f:/etc/audit/auditd.conf -> r:^\s*max_log_file\s*=\s*[1-9]\d*\b'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*max_log_file\s*=\s*[1-9]\d*'
 
   # 6.3.2.2 Ensure audit logs are not automatically deleted (Automated)
   - id: 5242
@@ -6381,7 +6382,7 @@ checks:
       subtechnique: ["T1562.001"]
     condition: all
     rules:
-      - 'f:/etc/audit/auditd.conf -> r:^\s*max_log_file_action\s*=\s*keep_logs\b'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*max_log_file_action\s*=\s*keep_logs'
 
   # 6.3.2.3 Ensure system is disabled when audit logs are full (Automated)
   - id: 5243
@@ -6406,8 +6407,8 @@ checks:
       subtechnique: ["T1562.001"]
     condition: all
     rules:
-      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_full_action\s*=\s*(?:halt|single)\b'
-      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_error_action\s*=\s*(?:halt|single|syslog)\b'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_full_action\s*=\s*(?:halt|single)'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_error_action\s*=\s*(?:halt|single|syslog)'
 
   # 6.3.2.4 Ensure system warns when audit logs are low on space (Automated)
   - id: 5244
@@ -6432,7 +6433,7 @@ checks:
       subtechnique: ["T1562.001"]
     condition: all
     rules:
-      - 'f:/etc/audit/auditd.conf -> r:^\s*space_left_action\s*=\s*email\b'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*space_left_action\s*=\s*email'
       - 'f:/etc/audit/auditd.conf -> r:^\s*action_mail_acct\s*=\s*\S+'
 
 
@@ -6917,7 +6918,7 @@ checks:
       subtechnique: ["T1562.012"]
     condition: all
     rules:
-      - 'd:/etc/audit/rules.d -> r:\.rules$ -> r:^\s*-e\s+2\b'
+      - 'd:/etc/audit/rules.d -> r:\.rules$ -> r:^\s*-e\s+2'
 
   # 6.3.3.22 Ensure the running and on disk configuration is the same (Manual) - Not Implemented
 
@@ -7198,7 +7199,7 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/passwd -> r:^[0-7]?644$'
-      - 'c:stat -L -c %U /etc/passwd -> r:^root$'
+      - 'c:stat -L -c %u /etc/passwd -> r:^0$'
 
   # 7.1.2 Ensure access to /etc/passwd- is configured (Automated)
   - id: 5276
@@ -7224,7 +7225,7 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/passwd- -> r:^[0-7]?644$'
-      - 'c:stat -L -c %U /etc/passwd- -> r:^root$'
+      - 'c:stat -L -c %u /etc/passwd- -> r:^0$'
 
   # 7.1.3 Ensure access to /etc/group is configured (Automated)
   - id: 5277
@@ -7250,7 +7251,7 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/group -> r:^[0-7]?644$'
-      - 'c:stat -L -c %U /etc/group -> r:^root$'
+      - 'c:stat -L -c %u /etc/group -> r:^0$'
 
   # 7.1.4 Ensure access to /etc/group- is configured (Automated)
   - id: 5278
@@ -7276,7 +7277,7 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/group- -> r:^[0-7]?644$'
-      - 'c:stat -L -c %U /etc/group- -> r:^root$'
+      - 'c:stat -L -c %u /etc/group- -> r:^0$'
 
   # 7.1.5 Ensure access to /etc/shadow is configured (Automated)
   - id: 5279
@@ -7301,8 +7302,8 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/shadow -> r:^[0-7]?00$'
-      - 'c:stat -L -c %U /etc/shadow -> r:^root$'
+      - 'c:stat -L -c %a /etc/shadow -> r:^0$'
+      - 'c:stat -L -c %u /etc/shadow -> r:^0$'
 
   # 7.1.6 Ensure access to /etc/shadow- is configured (Automated)
   - id: 5280
@@ -7327,8 +7328,8 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/shadow- -> r:^[0-7]?00$'
-      - 'c:stat -L -c %U /etc/shadow- -> r:^root$'
+      - 'c:stat -L -c %a /etc/shadow- -> r:^0$'
+      - 'c:stat -L -c %u /etc/shadow- -> r:^0$'
 
   # 7.1.7 Ensure access to /etc/gshadow is configured (Automated)
   - id: 5281
@@ -7353,8 +7354,8 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/gshadow -> r:^[0-7]?00$'
-      - 'c:stat -L -c %U /etc/gshadow -> r:^root$'
+      - 'c:stat -L -c %a /etc/gshadow -> r:^0$'
+      - 'c:stat -L -c %u /etc/gshadow -> r:^0$'
 
   # 7.1.8 Ensure access to /etc/gshadow- is configured (Automated)
   - id: 5282
@@ -7379,8 +7380,8 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/gshadow- -> r:^[0-7]?00$'
-      - 'c:stat -L -c %U /etc/gshadow- -> r:^root$'
+      - 'c:stat -L -c %a /etc/gshadow- -> r:^0$'
+      - 'c:stat -L -c %u /etc/gshadow- -> r:^0$'
 
   # 7.1.9 Ensure access to /etc/shells is configured (Automated)
   - id: 5283
@@ -7406,7 +7407,7 @@ checks:
     condition: all
     rules:
       - 'c:stat -L -c %a /etc/shells -> r:^[0-7]?644$'
-      - 'c:stat -L -c %U /etc/shells -> r:^root$'
+      - 'c:stat -L -c %u /etc/shells -> r:^0$'
 
   # 7.1.10 Ensure access to /etc/security/opasswd is configured (Automated)
   - id: 5284
@@ -7431,8 +7432,8 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/security/opasswd -> r:^[0-7]?00$'
-      - 'c:stat -L -c %U /etc/security/opasswd -> r:^root$'
+      - 'c:stat -L -c %a /etc/security/opasswd -> r:^0$'
+      - 'c:stat -L -c %u /etc/security/opasswd -> r:^0$'
 
   # 7.1.11 Ensure world writable files and directories are secured (Automated)
   - id: 5285
