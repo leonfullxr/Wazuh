@@ -1743,7 +1743,7 @@ checks:
       technique: ["T1078"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/motd -> r:^[0-6]?44$|^[0-6]?40$|^[0-6]?00$'
+      - 'c:stat -L -c %a /etc/motd -> r:^644$|^640$|^600$|^444$|^440$|^400$'
 
   # 1.7.5 Ensure access to /etc/issue is configured (Automated)
   - id: 5065
@@ -1765,7 +1765,7 @@ checks:
       technique: ["T1078"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/issue -> r:^[0-6]?44$|^[0-6]?40$|^[0-6]?00$'
+      - 'c:stat -L -c %a /etc/issue -> r:^644$|^640$|^600$|^444$|^440$|^400$'
 
   # 1.7.6 Ensure access to /etc/issue.net is configured (Automated)
   - id: 5066
@@ -1787,7 +1787,7 @@ checks:
       technique: ["T1078"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/issue.net -> r:^[0-6]?44$|^[0-6]?40$|^[0-6]?00$'
+      - 'c:stat -L -c %a /etc/issue.net -> r:^644$|^640$|^600$|^444$|^440$|^400$'
 
 
   ###############################################
@@ -2824,7 +2824,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/crontab -> r:^[0-6]?00$'
+      - 'c:stat -L -c %a /etc/crontab -> r:^600$'
 
   # 2.4.1.3 Ensure access to /etc/cron.hourly is configured (Automated)
   - id: 5107
@@ -2849,7 +2849,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/cron.hourly -> r:^[0-7]?00$'
+      - 'c:stat -L -c %a /etc/cron.hourly -> r:^700$'
 
   # 2.4.1.4 Ensure access to /etc/cron.daily is configured (Automated)
   - id: 5108
@@ -2874,7 +2874,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/cron.daily -> r:^[0-7]?00$'
+      - 'c:stat -L -c %a /etc/cron.daily -> r:^700$'
 
   # 2.4.1.5 Ensure access to /etc/cron.weekly is configured (Automated)
   - id: 5109
@@ -2899,7 +2899,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/cron.weekly -> r:^[0-7]?00$'
+      - 'c:stat -L -c %a /etc/cron.weekly -> r:^700$'
 
   # 2.4.1.6 Ensure access to /etc/cron.monthly is configured (Automated)
   - id: 5110
@@ -2924,7 +2924,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/cron.monthly -> r:^[0-7]?00$'
+      - 'c:stat -L -c %a /etc/cron.monthly -> r:^700$'
 
   # 2.4.1.7 Ensure access to /etc/cron.yearly is configured (Automated)
   - id: 5111
@@ -2949,7 +2949,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/cron.yearly -> r:^[0-7]?00$'
+      - 'c:stat -L -c %a /etc/cron.yearly -> r:^700$'
 
   # 2.4.1.8 Ensure access to /etc/cron.d is configured (Automated)
   - id: 5112
@@ -2974,7 +2974,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/cron.d -> r:^[0-7]?00$'
+      - 'c:stat -L -c %a /etc/cron.d -> r:^700$'
 
   # 2.4.1.9 Ensure access to crontab is configured (Automated)
   - id: 5113
@@ -2999,7 +2999,7 @@ checks:
       subtechnique: ["T1053.003"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/crontab -> r:^[0-6]?00$'
+      - 'c:stat -L -c %a /etc/crontab -> r:^600$'
 
 
   # ----- 2.4.2 Configure at -----
@@ -4070,7 +4070,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/sshd_config -> r:^[0-6]?[046]0$'
+      - 'c:stat -L -c %a /etc/ssh/sshd_config -> r:^6[04]0$'
       - 'c:stat -L -c %u /etc/ssh/sshd_config -> r:^0$'
 
   # 5.1.3 Ensure access to /etc/sysconfig/sshd is configured (Automated)
@@ -4097,7 +4097,7 @@ checks:
     condition: any
     rules:
       - 'not f:/etc/sysconfig/sshd'
-      - 'c:stat -L -c %a /etc/sysconfig/sshd -> r:^[0-6]?00$'
+      - 'c:stat -L -c %a /etc/sysconfig/sshd -> r:^6[04]0$'
 
   # 5.1.4 Ensure access to SSH private host key files is configured (Automated)
   - id: 5156
@@ -4122,9 +4122,9 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key -> r:^[06][04]0$'
+      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key -> r:^6[04]0$'
       - 'c:stat -L -c %u /etc/ssh/ssh_host_rsa_key -> r:^0$'
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key -> r:^[06][04]0$'
+      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key -> r:^6[04]0$'
       - 'c:stat -L -c %u /etc/ssh/ssh_host_ed25519_key -> r:^0$'
 
   # 5.1.5 Ensure access to SSH public host key files is configured (Automated)
@@ -4150,9 +4150,9 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key.pub -> r:^[06]?44$'
+      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key.pub -> r:^644$'
       - 'c:stat -L -c %u /etc/ssh/ssh_host_rsa_key.pub -> r:^0$'
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key.pub -> r:^[06]?44$'
+      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key.pub -> r:^644$'
       - 'c:stat -L -c %u /etc/ssh/ssh_host_ed25519_key.pub -> r:^0$'
 
   # 5.1.6 Ensure sshd access is configured (Automated)
@@ -6947,7 +6947,7 @@ checks:
       subtechnique: ["T1070.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /var/log/audit -> r:^[0-6]?[05]0$'
+      - 'c:stat -L -c %a /var/log/audit -> r:^750$|^700$'
 
   # 6.3.4.2 Ensure audit log files mode is configured (Automated)
   - id: 5266
@@ -7198,7 +7198,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/passwd -> r:^[0-7]?644$'
+      - 'c:stat -L -c %a /etc/passwd -> r:^644$'
       - 'c:stat -L -c %u /etc/passwd -> r:^0$'
 
   # 7.1.2 Ensure access to /etc/passwd- is configured (Automated)
@@ -7224,7 +7224,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/passwd- -> r:^[0-7]?644$'
+      - 'c:stat -L -c %a /etc/passwd- -> r:^644$'
       - 'c:stat -L -c %u /etc/passwd- -> r:^0$'
 
   # 7.1.3 Ensure access to /etc/group is configured (Automated)
@@ -7250,7 +7250,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/group -> r:^[0-7]?644$'
+      - 'c:stat -L -c %a /etc/group -> r:^644$'
       - 'c:stat -L -c %u /etc/group -> r:^0$'
 
   # 7.1.4 Ensure access to /etc/group- is configured (Automated)
@@ -7276,7 +7276,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/group- -> r:^[0-7]?644$'
+      - 'c:stat -L -c %a /etc/group- -> r:^644$'
       - 'c:stat -L -c %u /etc/group- -> r:^0$'
 
   # 7.1.5 Ensure access to /etc/shadow is configured (Automated)
@@ -7406,7 +7406,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/shells -> r:^[0-7]?644$'
+      - 'c:stat -L -c %a /etc/shells -> r:^644$'
       - 'c:stat -L -c %u /etc/shells -> r:^0$'
 
   # 7.1.10 Ensure access to /etc/security/opasswd is configured (Automated)
