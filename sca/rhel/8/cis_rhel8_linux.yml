@@ -4070,8 +4070,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/sshd_config -> r:^6[04]0$'
-      - 'c:stat -L -c %u /etc/ssh/sshd_config -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/sshd_config -> r:^6[04]0:0$'
 
   # 5.1.3 Ensure access to /etc/sysconfig/sshd is configured (Automated)
   - id: 5155
@@ -4097,7 +4096,7 @@ checks:
     condition: any
     rules:
       - 'not f:/etc/sysconfig/sshd'
-      - 'c:stat -L -c %a /etc/sysconfig/sshd -> r:^6[04]0$'
+      - 'c:stat -L -c %a:%u /etc/sysconfig/sshd -> r:^6[04]0:0$'
 
   # 5.1.4 Ensure access to SSH private host key files is configured (Automated)
   - id: 5156
@@ -4122,10 +4121,8 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key -> r:^6[04]0$'
-      - 'c:stat -L -c %u /etc/ssh/ssh_host_rsa_key -> r:^0$'
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key -> r:^6[04]0$'
-      - 'c:stat -L -c %u /etc/ssh/ssh_host_ed25519_key -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_rsa_key -> r:^6[04]0:0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_ed25519_key -> r:^6[04]0:0$'
 
   # 5.1.5 Ensure access to SSH public host key files is configured (Automated)
   - id: 5157
@@ -4150,10 +4147,8 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_rsa_key.pub -> r:^644$'
-      - 'c:stat -L -c %u /etc/ssh/ssh_host_rsa_key.pub -> r:^0$'
-      - 'c:stat -L -c %a /etc/ssh/ssh_host_ed25519_key.pub -> r:^644$'
-      - 'c:stat -L -c %u /etc/ssh/ssh_host_ed25519_key.pub -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_rsa_key.pub -> r:^644:0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_ed25519_key.pub -> r:^644:0$'
 
   # 5.1.6 Ensure sshd access is configured (Automated)
   - id: 5158
@@ -7198,8 +7193,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/passwd -> r:^644$'
-      - 'c:stat -L -c %u /etc/passwd -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/passwd -> r:^644:0$'
 
   # 7.1.2 Ensure access to /etc/passwd- is configured (Automated)
   - id: 5276
@@ -7224,8 +7218,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/passwd- -> r:^644$'
-      - 'c:stat -L -c %u /etc/passwd- -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/passwd- -> r:^644:0$'
 
   # 7.1.3 Ensure access to /etc/group is configured (Automated)
   - id: 5277
@@ -7250,8 +7243,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/group -> r:^644$'
-      - 'c:stat -L -c %u /etc/group -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/group -> r:^644:0$'
 
   # 7.1.4 Ensure access to /etc/group- is configured (Automated)
   - id: 5278
@@ -7276,8 +7268,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/group- -> r:^644$'
-      - 'c:stat -L -c %u /etc/group- -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/group- -> r:^644:0$'
 
   # 7.1.5 Ensure access to /etc/shadow is configured (Automated)
   - id: 5279
@@ -7302,8 +7293,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/shadow -> r:^0$'
-      - 'c:stat -L -c %u /etc/shadow -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/shadow -> r:^0:0$'
 
   # 7.1.6 Ensure access to /etc/shadow- is configured (Automated)
   - id: 5280
@@ -7328,8 +7318,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/shadow- -> r:^0$'
-      - 'c:stat -L -c %u /etc/shadow- -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/shadow- -> r:^0:0$'
 
   # 7.1.7 Ensure access to /etc/gshadow is configured (Automated)
   - id: 5281
@@ -7354,8 +7343,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/gshadow -> r:^0$'
-      - 'c:stat -L -c %u /etc/gshadow -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/gshadow -> r:^0:0$'
 
   # 7.1.8 Ensure access to /etc/gshadow- is configured (Automated)
   - id: 5282
@@ -7380,8 +7368,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/gshadow- -> r:^0$'
-      - 'c:stat -L -c %u /etc/gshadow- -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/gshadow- -> r:^0:0$'
 
   # 7.1.9 Ensure access to /etc/shells is configured (Automated)
   - id: 5283
@@ -7406,8 +7393,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/shells -> r:^644$'
-      - 'c:stat -L -c %u /etc/shells -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/shells -> r:^644:0$'
 
   # 7.1.10 Ensure access to /etc/security/opasswd is configured (Automated)
   - id: 5284
@@ -7432,8 +7418,7 @@ checks:
       subtechnique: ["T1222.002"]
     condition: all
     rules:
-      - 'c:stat -L -c %a /etc/security/opasswd -> r:^0$'
-      - 'c:stat -L -c %u /etc/security/opasswd -> r:^0$'
+      - 'c:stat -L -c %a:%u /etc/security/opasswd -> r:^0:0$'
 
   # 7.1.11 Ensure world writable files and directories are secured (Automated)
   - id: 5285
@@ -7583,7 +7568,7 @@ checks:
       technique: ["T1078"]
     condition: all
     rules:
-      - 'c:awk -F: ''{print $3}'' /etc/passwd -> n:^(\d+)$ compare > 0 && r:^(.*)$'
+      - 'not c:sh -c "cut -d: -f3 /etc/passwd | sort | uniq -d" -> r:.'
 
   # 7.2.5 Ensure no duplicate GIDs exist (Automated)
   - id: 5291
@@ -7606,7 +7591,7 @@ checks:
       technique: ["T1078"]
     condition: all
     rules:
-      - 'c:awk -F: ''{print $3}'' /etc/group -> n:^(\d+)$ compare > 0 && r:^(.*)$'
+      - 'not c:sh -c "cut -d: -f3 /etc/group | sort | uniq -d" -> r:.'
 
   # 7.2.6 Ensure no duplicate user names exist (Automated)
   - id: 5292
