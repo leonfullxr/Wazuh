@@ -20,6 +20,10 @@
 * [Verdict Logic](#verdict-logic)
   * [OTX `validation` override](#otx-validation-override)
 * [Custom Rules](#custom-rules)
+* [Reliability and Queueing](#reliability-and-queueing)
+  * [Socket‑retry queue](#socketretry-queue)
+  * [Failed‑enrichment queue](#failedenrichment-queue)
+  * [Triggering retry](#triggering-retry)
 * [Logging](#logging)
 * [Dashboard](#dashboard)
 * [Sources](#sources)
@@ -83,7 +87,18 @@ sudo chmod 640 /var/ossec/etc/rules/alienvault_otx_rules.xml
 /var/ossec/framework/python/bin/pip3 install requests
 ```
 
-The script writes its log output to the standard Wazuh integrations log at `/var/ossec/logs/integrations.log`, which is already managed by the Wazuh manager - no additional log directory is needed.
+* Create the log + queue directories with the right ownership:
+
+```bash
+sudo mkdir -p /var/log/wazuh-alienvault/wazuh-retry-queue
+sudo mkdir -p /var/log/wazuh-alienvault/otx-failed-enrichment
+sudo chown -R wazuh:wazuh /var/log/wazuh-alienvault
+sudo chmod 750 /var/log/wazuh-alienvault \
+                /var/log/wazuh-alienvault/wazuh-retry-queue \
+                /var/log/wazuh-alienvault/otx-failed-enrichment
+```
+
+If these directories don't exist when the script starts, it will try to create them on first use and fall back to stderr‑only logging if it can't. Pre‑creating them with the correct ownership is the recommended approach.
 
 </details>
 
@@ -186,15 +201,19 @@ The `original_full_log` field preserves the raw log line from the source alert s
 ```mermaid
 graph TD
     A[Wazuh Manager] --> B[Invoke custom-alienvault.py]
-    B --> C[Collect IOC candidates from alert]
-    C --> D[Dedupe, filter private/invalid, cap at 3 per type]
-    D --> E[Query OTX /general for each indicator]
-    E --> F[Apply OTX validation whitelist check]
-    F --> G[Evaluate verdict from pulse_count]
-    G --> H[Select worst-verdict block per IOC type]
-    H --> I[Build enriched event with original_full_log]
-    I --> J[Send to Wazuh queue socket]
-    J --> K[Custom rules fire]
+    B --> C[process_socket_queue: drain pending events]
+    C --> D[process_failed_otx_alerts: retry pending alerts if OTX up]
+    D --> E[Collect IOC candidates from current alert]
+    E --> F[Dedupe, filter private/invalid, cap at 3 per type]
+    F --> G[Query OTX /general for each indicator]
+    G --> H{All queries transient failures?}
+    H -->|Yes| I[save_failed_otx_alert: defer for retry]
+    H -->|No| J[Apply OTX validation whitelist + verdict logic]
+    J --> K[Select worst-verdict block per IOC type]
+    K --> L[Build enriched event with original_full_log]
+    L --> M{Send to Wazuh queue socket}
+    M -->|Success| N[Custom rules fire]
+    M -->|Socket failure| O[save_to_socket_queue: defer for replay]
 ```
 
 </div>
@@ -325,25 +344,68 @@ The bundled rules use IDs in the user range 100010–100024 and chain off the ba
 
 
 
-## Logging
+## Reliability and Queueing
 
-The script logs to the standard Wazuh integrations log at `/var/ossec/logs/integrations.log`, alongside any other custom integrations on the same manager. Lines are prefixed with the service name so they can be filtered:
+The integration uses two independent on‑disk queues so that transient failures - of either the Wazuh queue socket or the OTX API - never silently drop an enrichment. Both queues live under `/var/log/wazuh-alienvault/`:
+
+```
+/var/log/wazuh-alienvault/
+├── custom-alienvault.log           # rotating service log (10MB × 5 backups)
+├── wazuh-retry-queue/
+│   └── alienvault_queue.json       # socket-retry queue (newline-delimited)
+└── otx-failed-enrichment/
+    └── alert_<id>.json             # one file per alert pending re-enrichment
+```
+
+### Socket‑retry queue
+
+Catches the case where an enrichment was successfully built but the Wazuh manager's queue socket at `/var/ossec/queue/sockets/queue` couldn't be reached - for example during a manager restart. The pre‑formatted socket line is appended to `wazuh-retry-queue/alienvault_queue.json` as a newline‑delimited JSON record carrying both the enriched event and the original agent context.
+
+On the next invocation, `process_socket_queue` atomically renames the queue file to `.inprocess`, replays every entry, and re‑queues only the ones whose replay still fails. This path is cheap because **no OTX round‑trip is required** - the enrichment is already done, so the queue drains as fast as the socket can accept it.
+
+### Failed‑enrichment queue
+
+Catches the case where OTX itself is unreachable: network outage, OTX downtime, sustained rate‑limiting, or auth issues. The script classifies every OTX response into one of four outcomes:
+
+| OTX response | Treatment |
+|---|---|
+| 200 OK | Normal success - emit verdict |
+| 404 Not Found | Indicator absent from OTX - emit `verdict: unknown`, **not** queued |
+| 401 Unauthorized | Treated as transient (queueable) - usually means a key rotation problem |
+| 429 / 5xx / connection error / timeout | Transient (queueable) |
+
+When **every** OTX query for an alert returns a transient error, the script writes the raw alert to `otx-failed-enrichment/alert_<id>.json` rather than emitting an empty‑enrichment event. The next invocation performs a lightweight health check (`GET /api/v1/user/me`) before reading the queue; if OTX is still down the files are left in place, and if OTX has recovered each saved alert is re‑enriched and its file is deleted on success.
+
+The distinction between a 404 and a transient failure is deliberate. A 404 just means the indicator isn't in OTX's database - which is a legitimate "OTX has nothing on this" result, not a failure - so the alert is still emitted with `verdict: unknown` for that indicator and the alert is **not** retried. Without this rule, the failed‑enrichment directory would fill up with alerts whose indicators OTX simply doesn't know about.
+
+A **partial** OTX failure (one IOC succeeds, another times out) also does not trigger queueing: the alert is emitted with whatever enrichment was obtained, and the failed indicator carries `verdict: unknown`. Queueing kicks in only when the script has effectively no OTX information at all.
+
+### Triggering retry
+
+Because the integration is invoked once per Wazuh alert, queue drainage is opportunistic: the next alert that flows through the integration is what triggers retry of any backlog. In an active environment this is essentially continuous. To force a drain manually (for example after a long OTX outage in a quiet environment), invoke the script with any alert file:
 
 ```bash
-grep "custom-alienvault" /var/ossec/logs/integrations.log
+/var/ossec/integrations/custom-alienvault.py /tmp/anyalert.json \
+  $OTX_KEY https://otx.alienvault.com debug
 ```
+
+The `process_socket_queue` and `process_failed_otx_alerts` calls run before the new alert is processed, so a single manual run is enough.
+
+
+
+## Logging
+
+The script logs to a dedicated rotating file at `/var/log/wazuh-alienvault/custom-alienvault.log` (10 MB per file, 5 backups, ~50 MB worst case). Stderr also receives every log line in case the Wazuh integrator captures it. If the log directory isn't writable, the script falls back to stderr‑only logging rather than crashing.
 
 Log format:
 
 ```
 2026-05-13 11:36:53,385 [INFO] custom-alienvault: Starting; alert=/tmp/alert.json hook_url=https://otx.alienvault.com
 2026-05-13 11:36:54,012 [WARNING] custom-alienvault: Capped src_ip at 3 of 4 candidates; dropped: ['13.14.15.16']
-2026-05-13 11:36:55,890 [DEBUG] custom-alienvault: src_ip: queried 3 candidates (['1.1.1.1', '45.153.34.132', '176.65.139.134']), selecting worst verdict
+2026-05-13 11:36:55,011 [WARNING] custom-alienvault: All 2 OTX queries failed transiently for alert test.001; queuing for retry.
+2026-05-13 11:36:55,012 [WARNING] custom-alienvault: Alert test.001 saved for retry (OTX unreachable for all IOCs).
+2026-05-13 11:36:55,890 [INFO] custom-alienvault: Replayed 3 queued event(s) to the Wazuh socket.
 ```
-
-Pass `debug` as the fourth CLI argument (or set `<integration_debug>1</integration_debug>` in the integration block) to enable DEBUG‑level output. DEBUG is verbose - it logs every IOC candidate skipped, every OTX 404, and every worst‑verdict selection across multiple candidates.
-
-
 
 ## Dashboard
 
