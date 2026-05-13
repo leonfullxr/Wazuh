@@ -13,9 +13,13 @@
   * [Check enriched alerts](#check-enriched-alerts)
 * [Workflow](#workflow)
 * [IOC Extraction](#ioc-extraction)
+  * [Field sources covered out of the box](#field-sources-covered-out-of-the-box)
+  * [Multi‑indicator handling](#multiindicator-handling)
+  * [Sender‑domain filtering](#senderdomain-filtering)
+  * [CrowdStrike `IOCValue` dispatch](#crowdstrike-iocvalue-dispatch)
 * [Verdict Logic](#verdict-logic)
+  * [OTX `validation` override](#otx-validation-override)
 * [Custom Rules](#custom-rules)
-* [Reliability and Queueing](#reliability-and-queueing)
 * [Logging](#logging)
 * [Dashboard](#dashboard)
 * [Sources](#sources)
@@ -47,8 +51,7 @@ curl -s -H "X-OTX-API-KEY: <YOUR_OTX_KEY>" \
   "https://otx.alienvault.com/api/v1/user/me" | jq .
 ```
 
-A successful response returns your OTX user profile. The integration's
-built‑in health check uses this same endpoint.
+A successful response returns your OTX user profile.
 
 
 
@@ -74,22 +77,13 @@ sudo chown wazuh:wazuh /var/ossec/etc/rules/alienvault_otx_rules.xml
 sudo chmod 640 /var/ossec/etc/rules/alienvault_otx_rules.xml
 ```
 
-* Create the log and queue directories with the right ownership:
-
-```bash
-sudo mkdir -p /var/log/wazuh-alienvault/wazuh-retry-queue
-sudo mkdir -p /var/log/wazuh-alienvault/otx-failed-enrichment
-sudo chown -R wazuh:wazuh /var/log/wazuh-alienvault
-sudo chmod 750 /var/log/wazuh-alienvault \
-                /var/log/wazuh-alienvault/wazuh-retry-queue \
-                /var/log/wazuh-alienvault/otx-failed-enrichment
-```
-
 * Install the `requests` library into the Wazuh Python runtime:
 
 ```bash
 /var/ossec/framework/python/bin/pip3 install requests
 ```
+
+The script writes its log output to the standard Wazuh integrations log at `/var/ossec/logs/integrations.log`, which is already managed by the Wazuh manager - no additional log directory is needed.
 
 </details>
 
@@ -136,10 +130,7 @@ curl -s -H "X-OTX-API-KEY: $OTX_KEY" \
   jq '.pulse_info.count'
 ```
 
-For populating the dashboard with a varied dataset, the
-[populate_otx_dashboard.py](populate_otx_dashboard.py) helper generates
-a set of synthetic alerts spanning multiple Wazuh log sources and runs
-each through the integration:
+For populating the dashboard with a varied dataset, the [populate_otx_dashboard.py](populate_otx_dashboard.py) helper generates a set of synthetic alerts spanning multiple Wazuh log sources and runs each through the integration:
 
 ```bash
 sudo -u wazuh OTX_KEY=$OTX_KEY \
@@ -163,6 +154,8 @@ You should see events of the form:
 ```json
 {
   "integration": "alienvault_otx",
+  "original_rule": "5712",
+  "input_alert": "1777630620.14970618",
   "overall_malicious": true,
   "overall_verdict": "malicious",
   "indicators": {
@@ -175,9 +168,12 @@ You should see events of the form:
       "pulse_names": ["Emotet C2", "..."],
       "malware_families": ["Emotet"]
     }
-  }
+  },
+  "original_full_log": "Sep 1 12:34:56 host sshd[123]: Failed password..."
 }
 ```
+
+The `original_full_log` field preserves the raw log line from the source alert so analysts can pivot back to the original event without needing to correlate by alert ID. If preserving the full log is a storage concern in your environment (some `full_log` values can be 5-10 KB), the relevant line in `enrich_alert` is easy to truncate.
 
 </details>
 
@@ -190,18 +186,15 @@ You should see events of the form:
 ```mermaid
 graph TD
     A[Wazuh Manager] --> B[Invoke custom-alienvault.py]
-    B --> C[process_queue: drain socket-retry queue]
-    C --> D[process_failed_otx_alerts: retry pending alerts if OTX is up]
-    D --> E[Extract IOCs from current alert]
-    E --> F{Public IP / valid domain / valid hash?}
-    F -->|No| G[Skip indicator]
-    F -->|Yes| H[Query OTX /general endpoint]
-    H -->|Network failure for ALL queries| I[save_failed_otx_alert]
-    H -->|Success / partial success| J[Evaluate verdict from pulse_count]
-    J --> K[Build enriched event]
-    K --> L{Send to Wazuh queue socket}
-    L -->|Success| M[Custom rules fire]
-    L -->|Socket failure| N[save_to_queue]
+    B --> C[Collect IOC candidates from alert]
+    C --> D[Dedupe, filter private/invalid, cap at 3 per type]
+    D --> E[Query OTX /general for each indicator]
+    E --> F[Apply OTX validation whitelist check]
+    F --> G[Evaluate verdict from pulse_count]
+    G --> H[Select worst-verdict block per IOC type]
+    H --> I[Build enriched event with original_full_log]
+    I --> J[Send to Wazuh queue socket]
+    J --> K[Custom rules fire]
 ```
 
 </div>
@@ -210,13 +203,14 @@ graph TD
 
 ## IOC Extraction
 
-Field paths are declared centrally in `SUPPORTED_FIELD_PATHS` at the top of the script. To support a new log source, add the relevant dotted path under the matching IOC type — no other code change is required:
+Field paths are declared centrally in `SUPPORTED_FIELD_PATHS` at the top of the script. To support a new log source, add the relevant dotted path under the matching IOC type - no other code change is required:
 
 ```python
 SUPPORTED_FIELD_PATHS = {
     "src_ip": [
         "srcip",
         "data.srcip",
+        "data.source_address",
         "data.aws.ClientIP",
         # add new field paths here ...
     ],
@@ -226,27 +220,64 @@ SUPPORTED_FIELD_PATHS = {
 }
 ```
 
-Sources covered out of the box:
-
-| Source | Fields |
-|---|---|
-| Generic Wazuh | `srcip`, `dstip`, `domain` |
-| AWS CloudTrail / Wazuh AWS module | `data.aws.ClientIP`, `sourceIPAddress`, `destinationIPAddress` |
-| Windows Sysmon | `data.win.eventdata.ipAddress`, `queryName`, `destinationIp`, `Image`, `hashes` (parsed) |
-| Office 365 / Microsoft Graph | `ClientIPAddress`, `SenderIp`, plus the structured `evidence[]` array |
-| GCP / Azure | `data.gcp.jsonPayload.sourceIP`, `data.azure.properties.ipAddress` |
-| Suricata / Zeek | `data.suricata.src_ip`, `data.zeek.id_orig_h`, etc. |
-| Wazuh FIM | `syscheck.sha256_after` |
-| VirusTotal integration | `data.virustotal.source.sha256` |
-| Osquery | `data.osquery.columns.sha256` |
-
-Sources whose data needs structural parsing (Sysmon's comma‑separated `hashes` string, MS Graph `evidence` arrays) are handled by dedicated extractor functions rather than the path map.
-
 Additional safeguards before an indicator is sent to OTX:
 
 * **IPs**: only globally‑routable addresses are queried. RFC1918 private space, loopback, link‑local, CGNAT, and reserved/multicast ranges are filtered out as they cannot meaningfully be looked up in a public threat‑intelligence feed.
 * **Domains**: scheme/path/port/query are stripped, and the result is rejected if it parses as an IP, contains whitespace, or has no dot.
-* **Hashes**: validated against a 64‑character hex pattern.
+* **Hashes**: validated against a 64‑character hex pattern. MD5 and SHA‑1 are not extracted because OTX's `/file/` endpoint only resolves SHA‑256.
+
+### Field sources covered out of the box
+
+| Source | Fields |
+|---|---|
+| Generic Wazuh | `srcip`, `dstip`, `domain`, `data.source_address`, `data.destination_address`, `data.nat_source_ip`, `data.nat_destination_ip` |
+| AWS CloudTrail / Wazuh AWS module | `data.aws.ClientIP`, `data.aws.source_ip_address`, `data.aws.sourceIPAddress`, `data.aws.destinationIPAddress` |
+| Cloudflare module | `data.aws.ClientIP`, `data.aws.OriginIP` (shares the AWS module schema) |
+| Wazuh DNS module | `data.Remote_IP` |
+| Windows Sysmon | `data.win.eventdata.ipAddress`, `destinationIp`, `queryName`, `destinationHostname`, `Image`, `hashes` (parsed for SHA‑256) |
+| Office 365 / Microsoft Graph | `data.office365.ClientIPAddress`, `ClientIP`, `SenderIp`, plus the structured `data.ms-graph.evidence[]` array (URLs and sender objects) |
+| GCP / Azure | `data.gcp.jsonPayload.sourceIP`, `data.azure.properties.ipAddress` |
+| Suricata / Zeek | `data.suricata.src_ip`, `data.suricata.dest_ip`, `data.suricata.dns.rrname`, `data.zeek.id_orig_h`, `data.zeek.id_resp_h` |
+| Wazuh FIM | `syscheck.sha256_after` |
+| VirusTotal integration | `data.virustotal.source.sha256` |
+| Osquery | `data.osquery.columns.sha256` |
+| CrowdStrike Falcon | `data.event.IOCValue` (dispatched on `IOCType`), `data.event.SHA256String`, `data.event.QuarantineFiles[].SHA256HashData` |
+
+Sources whose data needs structural parsing - Sysmon's comma‑separated `hashes` string, MS Graph `evidence` arrays, CrowdStrike's `QuarantineFiles[]` array, the `IOCType`/`IOCValue` discriminated union - are handled by dedicated extractor functions rather than the path map.
+
+### Multi‑indicator handling
+
+A single Wazuh alert frequently contains multiple candidates for the same IOC type - for example, AWS CloudTrail records both `sourceIPAddress` and `ClientIP`, and a NAT‑traversing flow contributes both `srcip` and `nat_source_ip`. The script:
+
+1. Walks **every** registered path for the IOC type and collects all values.
+2. Deduplicates while preserving the path order, so the most authoritative field wins on ties.
+3. Filters out RFC1918/loopback/etc. addresses, invalid domains, and non‑SHA‑256 hashes.
+4. Caps the surviving candidates at `MAX_QUERIES_PER_TYPE = 3` to stay within OTX rate limits. Dropped values are logged with a `WARNING` naming the specific indicators that were not queried.
+5. Queries OTX for every kept candidate and picks the **worst** verdict block as the value for that IOC type in the emitted event. Ranking is `(verdict_score, pulse_count)` where malicious > clean > unknown.
+
+This means the alert shape stays identical to a single‑value enrichment (one block per IOC type), so existing dashboard panels and rules continue to work, but the enrichment itself is robust to alerts that happen to mention several IPs or hashes.
+
+### Sender‑domain filtering
+
+For alerts carrying email evidence (MS Graph `p1Sender` / `p2Sender`, Office 365 `SenderAddress`), the sender domain is only used as a domain IOC when:
+
+* No structural domain (Sysmon `queryName`, URL evidence, etc.) was already found in the alert, **and**
+* The sender domain is not in `MAIL_INFRASTRUCTURE_DOMAINS` - the built‑in skip list of major webmail providers (gmail.com, outlook.com, yahoo.com, protonmail.com, icloud.com, aol.com, and their regional variants).
+
+The motivation is concrete: popular mail platforms accumulate OTX pulses because attackers abuse them as phishing lure hosts, but the domains themselves are not malicious infrastructure. Querying them produces false positives that flood the dashboard. Non‑webmail sender domains (e.g. `attacker@suspicious-domain.ru`) are still extracted and queried normally.
+
+### CrowdStrike `IOCValue` dispatch
+
+CrowdStrike's `DetectionSummaryEvent` carries IOCs through a discriminated union: `data.event.IOCValue` is type‑tagged by the sibling `data.event.IOCType` field. The script dispatches on `IOCType`:
+
+| `IOCType` | Routed to |
+|---|---|
+| `hash_sha256`, `sha256` | `file_hash` |
+| `domain` | `domain` |
+| `ipv4`, `ipv6` | `dst_ip` (Falcon IOCs typically represent the externally‑observed peer) |
+| anything else (`hash_md5`, `hash_sha1`, registry, etc.) | skipped (not OTX‑resolvable) |
+
+If your CrowdStrike pulses tend to record inbound‑attacker IPs rather than outbound peers and you'd prefer `ipv4`/`ipv6` to land in `src_ip`, change one line in `_classify_crowdstrike_ioc`.
 
 
 
@@ -254,17 +285,24 @@ Additional safeguards before an indicator is sent to OTX:
 
 For each indicator the script translates the OTX `pulse_info.count`, the number of community pulses referencing the indicator, into a verdict and a confidence tier:
 
-| `pulse_count` | `verdict` | `confidence` |
-|---|---|---|
-| 0 | `clean` | `high` |
-| 1 | `malicious` | `low` |
-| 2–4 | `malicious` | `medium` |
-| ≥ 5 | `malicious` | `high` |
-| query failed / no response | `unknown` | `unknown` |
+| `pulse_count` | OTX `validation` | `verdict` | `confidence` |
+|---|---|---|---|
+| any | contains `whitelist`, `false_positive`, `majestic`, `alexa`, or `akamai` | `clean` | `high` |
+| 0 | - | `clean` | `high` |
+| 1 | - | `malicious` | `low` |
+| 2–4 | - | `malicious` | `medium` |
+| ≥ 5 | - | `malicious` | `high` |
+| query failed / no response | - | `unknown` | `unknown` |
 
 Two top‑level fields summarise the alert: `overall_malicious` (boolean) and `overall_verdict` (`malicious` / `clean` / `partial_unknown`). The first up to five non‑empty pulse names, adversary tags, and malware‑family names are also included to keep the enriched event compact while still actionable.
 
 > **A note on the OTX `reputation` field.** The OTX API documents a `reputation` score on IPv4 indicators, but in practice it consistently returns `0` regardless of how malicious an indicator is, and the field is absent entirely from domain and file responses. This integration therefore keys verdicts solely on `pulse_info.count` and does not surface the reputation field in the enriched alert.
+
+### OTX `validation` override
+
+Some indicators legitimately have a non‑zero `pulse_count` but are explicitly marked by OTX as known‑good: popular domains like `google.com` or `gmail.com` show up in phishing pulses because attackers abuse them, not because the domains themselves are malicious. OTX exposes this in the response's `validation[]` array, with entries whose `source` field takes values like `whitelist`, `false_positive`, `majestic`, `alexa`, or `akamai`.
+
+The script reads this array before evaluating the pulse count. If any entry's source is in `OTX_WHITELIST_VALIDATION_SOURCES`, the indicator is marked `verdict: clean, reason: otx_whitelist_validation` regardless of how many pulses reference it. The raw `pulse_count` is still included in the emitted block for transparency.
 
 
 
@@ -287,57 +325,23 @@ The bundled rules use IDs in the user range 100010–100024 and chain off the ba
 
 
 
-## Reliability and Queueing
-
-The integration uses two independent on‑disk queues to prevent transient failures from causing dropped enrichments. Both live under `/var/log/wazuh-alienvault/`:
-
-```
-/var/log/wazuh-alienvault/
-├── custom-alienvault.log           # rotating service log (10MB × 5 backups)
-├── wazuh-retry-queue/
-│   └── alienvault_queue.json       # socket-retry queue
-└── otx-failed-enrichment/
-    └── alert_<id>.json             # one file per alert pending re-enrichment
-```
-
-### Socket‑retry queue (`alienvault_queue.json`)
-
-Catches the case where an enrichment was successfully built but couldn't be delivered to the Wazuh manager's `queue` UNIX socket, for example during a manager restart. Each failed event is appended to the queue file as a single newline‑delimited line containing the exact socket payload that was about to be sent. On the next invocation, `process_queue` rotates the file to `.inprocess`, replays each line, and only deletes lines that succeed; anything that still fails is preserved for the next run.
-
-This queue does **not** require an OTX round‑trip on retry as the enrichment is already done, so it drains very quickly once the local socket is back.
-
-### Failed‑enrichment queue (`otx-failed-enrichment/`)
-
-Catches the case where OTX itself is unreachable (network down, OTX outage, rate limit). When **every** OTX query for an alert returns a recoverable failure (timeout, connection error, HTTP 429, HTTP 5xx), the original alert is written to a per‑alert JSON file in this directory. On the next invocation, the script performs a quick OTX health check (`GET /api/v1/user/me`); if successful, every queued alert is re‑enriched and emitted, and its file is removed. If OTX is still down, the queue is left intact for a future attempt.
-
-Note that **partial** OTX failures (e.g., the source‑IP query succeeded but the file‑hash query timed out) do not trigger queueing as the alert is still emitted with whatever enrichment was obtained, and the failed indicator is recorded with `verdict: unknown`. Queueing only kicks in when the script has effectively no OTX information at all.
-
-### Triggering retry
-
-Because the integration is invoked once per Wazuh alert, queue drainage is opportunistic: the next alert that flows through the integration is what triggers retry of any backlog. In an active environment this is essentially continuous. If you need to force a drain (for example after a long OTX outage in a quiet environment), invoke the script manually with any alert file:
-
-```bash
-/var/ossec/integrations/custom-alienvault.py /tmp/anyalert.json \
-  $OTX_KEY https://otx.alienvault.com debug
-```
-
-The `process_queue` and `process_failed_otx_alerts` calls run before the new alert is processed, so even a single manual run is enough.
-
-
-
 ## Logging
 
-* All script output goes to `/var/log/wazuh-alienvault/custom-alienvault.log` via a rotating file handler (10 MB per file, 5 backups).
-* Pass `debug` as the fourth argument to enable DEBUG‑level output.
-* Log lines include service name, level, and timestamp:
+The script logs to the standard Wazuh integrations log at `/var/ossec/logs/integrations.log`, alongside any other custom integrations on the same manager. Lines are prefixed with the service name so they can be filtered:
 
-  ```
-  2026-05-01 11:36:53,385 [INFO]  wazuh-alienvault-integration: Starting; alert=...
-  2026-05-01 11:36:55,012 [WARN]  wazuh-alienvault-integration: OTX rate limit hit (429). Will retry later.
-  2026-05-01 11:36:55,013 [WARN]  wazuh-alienvault-integration: All 2 OTX queries failed for alert test.001. Queuing for retry.
-  ```
+```bash
+grep "custom-alienvault" /var/ossec/logs/integrations.log
+```
 
-The standard Wazuh `/var/ossec/logs/integrations.log` is no longer written to by this integration; everything is centralised under `/var/log/wazuh-alienvault/` so the logs can be rotated and analysed independently of the rest of the Wazuh manager.
+Log format:
+
+```
+2026-05-13 11:36:53,385 [INFO] custom-alienvault: Starting; alert=/tmp/alert.json hook_url=https://otx.alienvault.com
+2026-05-13 11:36:54,012 [WARNING] custom-alienvault: Capped src_ip at 3 of 4 candidates; dropped: ['13.14.15.16']
+2026-05-13 11:36:55,890 [DEBUG] custom-alienvault: src_ip: queried 3 candidates (['1.1.1.1', '45.153.34.132', '176.65.139.134']), selecting worst verdict
+```
+
+Pass `debug` as the fourth CLI argument (or set `<integration_debug>1</integration_debug>` in the integration block) to enable DEBUG‑level output. DEBUG is verbose - it logs every IOC candidate skipped, every OTX 404, and every worst‑verdict selection across multiple candidates.
 
 
 
@@ -399,5 +403,6 @@ The dashboard's IOC tables use **Top Hits** rather than **Max** for the `pulse_c
 * Wazuh integrator documentation: <https://documentation.wazuh.com/current/user-manual/manager/manual-integration.html>
 * Wazuh ruleset rule syntax: <https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/rules.html>
 * OpenSearch Dashboards saved‑objects API: <https://opensearch.org/docs/latest/dashboards/management/saved-objects/>
+* CrowdStrike Falcon Streaming API event dictionary (for `IOCType` values): <https://falcon.crowdstrike.com/documentation>
 
 </details>
