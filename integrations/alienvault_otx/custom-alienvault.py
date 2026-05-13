@@ -774,8 +774,30 @@ def enrich_alert(
 
     if not any(indicators.values()):
         logger.info("No queryable indicators found in alert.")
+        enriched: Dict[str, Any] = {
+            "integration": "alienvault_otx",
+            "original_rule": get_nested(alert, "rule.id"),
+            "input_alert": alert.get("id"),
+            "overall_malicious": False,
+            "overall_verdict": "no_indicators",
+            "indicators": {},
+        }
+
+        # Preserve the original alert's full_log so analysts can pivot back to
+        # the source event from a single enriched record.
+        full_log = alert.get("full_log")
+        if full_log:
+            enriched["original_full_log"] = full_log
+
         win_fields = extract_windows_event_fields(alert)
-        return win_fields if win_fields else alert
+        if win_fields:
+            enriched["windows_event_data"] = win_fields
+        else:
+            file_path = extract_file_path(alert)
+            if file_path:
+                enriched["file_path"] = file_path
+
+        return {k: v for k, v in enriched.items() if v not in (None, [], {})}
 
     enriched_indicators: Dict[str, Dict[str, Any]] = {}
     for ioc_type, values in indicators.items():
