@@ -358,8 +358,23 @@ apply_auditd() {
 -e 2
 EOF
     
-    augenrules --load
-    service auditd restart 2>/dev/null || /usr/sbin/auditd -s disable 2>/dev/null || true
+    if ! augenrules --load; then
+        echo "  Failed to load auditd rules." >&2
+        return 1
+    fi
+
+    if command -v systemctl >/dev/null 2>&1; then
+        if ! systemctl restart auditd 2>/dev/null && ! service auditd restart 2>/dev/null; then
+            echo "  Failed to restart auditd after loading rules." >&2
+            return 1
+        fi
+    else
+        if ! service auditd restart 2>/dev/null; then
+            echo "  Failed to restart auditd after loading rules." >&2
+            return 1
+        fi
+    fi
+
     echo "  auditd configured."
 }
 
