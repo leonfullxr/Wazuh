@@ -1339,9 +1339,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl fs.protected_hardlinks -> r:^fs\.protected_hardlinks\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*fs\.protected_hardlinks\s*=\s*1'
 
   # 1.5.3 Ensure fs.protected_symlinks is configured (Automated)
   - id: 5049
@@ -1364,9 +1365,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl fs.protected_symlinks -> r:^fs\.protected_symlinks\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*fs\.protected_symlinks\s*=\s*1'
 
   # 1.5.4 Ensure fs.suid_dumpable is configured (Automated)
   - id: 5050
@@ -1389,9 +1391,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl fs.suid_dumpable -> r:^fs\.suid_dumpable\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*fs\.suid_dumpable\s*=\s*0'
 
   # 1.5.5 Ensure kernel.dmesg_restrict is configured (Automated)
   - id: 5051
@@ -1414,9 +1417,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl kernel.dmesg_restrict -> r:^kernel\.dmesg_restrict\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.dmesg_restrict\s*=\s*1'
 
   # 1.5.6 Ensure kernel.kptr_restrict is configured (Automated)
   - id: 5052
@@ -1439,9 +1443,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
-      - 'c:sysctl kernel.kptr_restrict -> r:^kernel\.kptr_restrict\s*=\s*2\s*$'
+      - 'c:sysctl kernel.kptr_restrict -> r:^kernel.kptr_restrict\s*=\s*[12]\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.kptr_restrict\s*=\s*[12]'
 
   # 1.5.7 Ensure kernel.yama.ptrace_scope is configured (Automated)
   - id: 5053
@@ -1464,9 +1469,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
-      - 'c:sysctl kernel.yama.ptrace_scope -> r:^kernel\.yama\.ptrace_scope\s*=\s*1\s*$'
+      - 'c:sysctl kernel.yama.ptrace_scope -> r:^kernel.yama.ptrace_scope\s*=\s*[123]\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.yama\.ptrace_scope\s*=\s*[123]'
 
   # 1.5.8 Ensure kernel.randomize_va_space is configured (Automated)
   - id: 5054
@@ -1489,9 +1495,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562"]
       subtechnique: ["T1562.001"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl kernel.randomize_va_space -> r:^kernel\.randomize_va_space\s*=\s*2\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.randomize_va_space\s*=\s*2'
 
   # 1.5.9 Ensure systemd-coredump ProcessSizeMax is configured (Automated)
   - id: 5055
@@ -1864,7 +1871,7 @@ checks:
       technique: ["T1078"]
     condition: all
     rules:
-      - 'd:/etc/dconf/db/local.d -> r:^[^.] -> r:idle-delay=uint32 \d+'
+      - 'd:/etc/dconf/db/local.d -> r:^[^.] -> r:idle-delay=uint32 [0-9]+'
 
   # 1.8.4 Ensure GDM automount is configured (Automated)
   - id: 5070
@@ -3278,9 +3285,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.ip_forward -> r:^net\.ipv4\.ip_forward\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.ip_forward\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.ip_forward\s*=\s*0'
 
   # 3.3.1.2 Ensure net.ipv4.conf.all.forwarding is configured (Automated)
   - id: 5124
@@ -3303,9 +3312,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.forwarding -> r:^net\.ipv4\.conf\.all\.forwarding\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.forwarding\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.forwarding\s*=\s*0'
 
   # 3.3.1.3 Ensure net.ipv4.conf.default.forwarding is configured (Automated)
   - id: 5125
@@ -3328,9 +3339,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.forwarding -> r:^net\.ipv4\.conf\.default\.forwarding\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.forwarding\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.forwarding\s*=\s*0'
 
   # 3.3.1.4 Ensure net.ipv4.conf.all.send_redirects is configured (Automated)
   - id: 5126
@@ -3353,9 +3366,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.send_redirects -> r:^net\.ipv4\.conf\.all\.send_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.send_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.send_redirects\s*=\s*0'
 
   # 3.3.1.5 Ensure net.ipv4.conf.default.send_redirects is configured (Automated)
   - id: 5127
@@ -3378,9 +3393,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.send_redirects -> r:^net\.ipv4\.conf\.default\.send_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.send_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.send_redirects\s*=\s*0'
 
   # 3.3.1.6 Ensure net.ipv4.icmp_ignore_bogus_error_responses is configured (Automated)
   - id: 5128
@@ -3402,9 +3419,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.icmp_ignore_bogus_error_responses -> r:^net\.ipv4\.icmp_ignore_bogus_error_responses\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.icmp_ignore_bogus_error_responses\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.icmp_ignore_bogus_error_responses\s*=\s*1'
 
   # 3.3.1.7 Ensure net.ipv4.icmp_echo_ignore_broadcasts is configured (Automated)
   - id: 5129
@@ -3426,9 +3445,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.icmp_echo_ignore_broadcasts -> r:^net\.ipv4\.icmp_echo_ignore_broadcasts\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.icmp_echo_ignore_broadcasts\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.icmp_echo_ignore_broadcasts\s*=\s*1'
 
   # 3.3.1.8 Ensure net.ipv4.conf.all.accept_redirects is configured (Automated)
   - id: 5130
@@ -3450,9 +3471,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.accept_redirects -> r:^net\.ipv4\.conf\.all\.accept_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.accept_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.accept_redirects\s*=\s*0'
 
   # 3.3.1.9 Ensure net.ipv4.conf.default.accept_redirects is configured (Automated)
   - id: 5131
@@ -3474,9 +3497,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.accept_redirects -> r:^net\.ipv4\.conf\.default\.accept_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.accept_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.accept_redirects\s*=\s*0'
 
   # 3.3.1.10 Ensure net.ipv4.conf.all.secure_redirects is configured (Automated)
   - id: 5132
@@ -3498,9 +3523,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.secure_redirects -> r:^net\.ipv4\.conf\.all\.secure_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.secure_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.secure_redirects\s*=\s*0'
 
   # 3.3.1.11 Ensure net.ipv4.conf.default.secure_redirects is configured (Automated)
   - id: 5133
@@ -3522,9 +3549,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.secure_redirects -> r:^net\.ipv4\.conf\.default\.secure_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.secure_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.secure_redirects\s*=\s*0'
 
   # 3.3.1.12 Ensure net.ipv4.conf.all.rp_filter is configured (Automated)
   - id: 5134
@@ -3547,9 +3576,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.rp_filter -> r:^net\.ipv4\.conf\.all\.rp_filter\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.rp_filter\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.rp_filter\s*=\s*1'
 
   # 3.3.1.13 Ensure net.ipv4.conf.default.rp_filter is configured (Automated)
   - id: 5135
@@ -3572,9 +3603,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.rp_filter -> r:^net\.ipv4\.conf\.default\.rp_filter\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.rp_filter\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.rp_filter\s*=\s*1'
 
   # 3.3.1.14 Ensure net.ipv4.conf.all.accept_source_route is configured (Automated)
   - id: 5136
@@ -3596,9 +3629,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.accept_source_route -> r:^net\.ipv4\.conf\.all\.accept_source_route\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.accept_source_route\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.accept_source_route\s*=\s*0'
 
   # 3.3.1.15 Ensure net.ipv4.conf.default.accept_source_route is configured (Automated)
   - id: 5137
@@ -3620,9 +3655,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.accept_source_route -> r:^net\.ipv4\.conf\.default\.accept_source_route\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.accept_source_route\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.accept_source_route\s*=\s*0'
 
   # 3.3.1.16 Ensure net.ipv4.conf.all.log_martians is configured (Automated)
   - id: 5138
@@ -3644,9 +3681,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.all.log_martians -> r:^net\.ipv4\.conf\.all\.log_martians\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.all\.log_martians\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.all\.log_martians\s*=\s*1'
 
   # 3.3.1.17 Ensure net.ipv4.conf.default.log_martians is configured (Automated)
   - id: 5139
@@ -3668,9 +3707,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.conf.default.log_martians -> r:^net\.ipv4\.conf\.default\.log_martians\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.conf\.default\.log_martians\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.conf\.default\.log_martians\s*=\s*1'
 
   # 3.3.1.18 Ensure net.ipv4.tcp_syncookies is configured (Automated)
   - id: 5140
@@ -3692,9 +3733,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv4.tcp_syncookies -> r:^net\.ipv4\.tcp_syncookies\s*=\s*1\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv4\.tcp_syncookies\s*=\s*1'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv4\.tcp_syncookies\s*=\s*1'
 
 
   # ----- 3.3.2 Configure IPv6 parameters -----
@@ -3720,9 +3763,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.all.forwarding -> r:^net\.ipv6\.conf\.all\.forwarding\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.all\.forwarding\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.all\.forwarding\s*=\s*0'
 
   # 3.3.2.2 Ensure net.ipv6.conf.default.forwarding is configured (Automated)
   - id: 5142
@@ -3745,9 +3790,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.default.forwarding -> r:^net\.ipv6\.conf\.default\.forwarding\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.default\.forwarding\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.default\.forwarding\s*=\s*0'
 
   # 3.3.2.3 Ensure net.ipv6.conf.all.accept_redirects is configured (Automated)
   - id: 5143
@@ -3769,9 +3816,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.all.accept_redirects -> r:^net\.ipv6\.conf\.all\.accept_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.all\.accept_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.all\.accept_redirects\s*=\s*0'
 
   # 3.3.2.4 Ensure net.ipv6.conf.default.accept_redirects is configured (Automated)
   - id: 5144
@@ -3793,9 +3842,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.default.accept_redirects -> r:^net\.ipv6\.conf\.default\.accept_redirects\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.default\.accept_redirects\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.default\.accept_redirects\s*=\s*0'
 
   # 3.3.2.5 Ensure net.ipv6.conf.all.accept_source_route is configured (Automated)
   - id: 5145
@@ -3817,9 +3868,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.all.accept_source_route -> r:^net\.ipv6\.conf\.all\.accept_source_route\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.all\.accept_source_route\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.all\.accept_source_route\s*=\s*0'
 
   # 3.3.2.6 Ensure net.ipv6.conf.default.accept_source_route is configured (Automated)
   - id: 5146
@@ -3841,9 +3894,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.default.accept_source_route -> r:^net\.ipv6\.conf\.default\.accept_source_route\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.default\.accept_source_route\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.default\.accept_source_route\s*=\s*0'
 
   # 3.3.2.7 Ensure net.ipv6.conf.all.accept_ra is configured (Automated)
   - id: 5147
@@ -3865,9 +3920,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.all.accept_ra -> r:^net\.ipv6\.conf\.all\.accept_ra\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.all\.accept_ra\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.all\.accept_ra\s*=\s*0'
 
   # 3.3.2.8 Ensure net.ipv6.conf.default.accept_ra is configured (Automated)
   - id: 5148
@@ -3889,9 +3946,11 @@ checks:
     mitre:
       tactic: ["TA0011"]
       technique: ["T1090"]
-    condition: all
+    condition: any
     rules:
       - 'c:sysctl net.ipv6.conf.default.accept_ra -> r:^net\.ipv6\.conf\.default\.accept_ra\s*=\s*0\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*net\.ipv6\.conf\.default\.accept_ra\s*=\s*0'
+      - 'f:/etc/sysctl.conf -> r:^\s*net\.ipv6\.conf\.default\.accept_ra\s*=\s*0'
 
 
   ###############################################
@@ -4070,7 +4129,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a:%u /etc/ssh/sshd_config -> r:^6[04]0:0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/sshd_config -> r:^600:0$|^640:0$'
 
   # 5.1.3 Ensure access to /etc/sysconfig/sshd is configured (Automated)
   - id: 5155
@@ -4096,7 +4155,7 @@ checks:
     condition: any
     rules:
       - 'not f:/etc/sysconfig/sshd'
-      - 'c:stat -L -c %a:%u /etc/sysconfig/sshd -> r:^6[04]0:0$'
+      - 'c:stat -L -c %a:%u /etc/sysconfig/sshd -> r:^600:0$|^640:0$'
 
   # 5.1.4 Ensure access to SSH private host key files is configured (Automated)
   - id: 5156
@@ -4121,8 +4180,8 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_rsa_key -> r:^6[04]0:0$'
-      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_ed25519_key -> r:^6[04]0:0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_rsa_key -> r:^600:0$|^640:0$'
+      - 'c:stat -L -c %a:%u /etc/ssh/ssh_host_ed25519_key -> r:^600:0$|^640:0$'
 
   # 5.1.5 Ensure access to SSH public host key files is configured (Automated)
   - id: 5157
@@ -4201,7 +4260,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*Banner\s+(?:/etc/issue\.net)\s*$'
+      - 'f:$sshd_file -> r:^\s*Banner\s+/etc/issue\.net'
 
   # 5.1.8 Ensure sshd Ciphers are configured (Automated)
   - id: 5160
@@ -4251,7 +4310,8 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*ClientAliveInterval\s+(?:(?:[1-9]|[1-9]\d{1,2}))\s*$'
+      - 'f:$sshd_file -> r:^\s*ClientAliveInterval\s+[1-9]'
+      - 'f:$sshd_file -> r:^\s*ClientAliveCountMax\s+[0-9]'
 
   # 5.1.10 Ensure sshd DisableForwarding is enabled (Automated)
   - id: 5162
@@ -4277,7 +4337,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*DisableForwarding\s+(?:yes)\s*$'
+      - 'f:$sshd_file -> r:^\s*DisableForwarding\s+yes'
 
   # 5.1.11 Ensure sshd GSSAPIAuthentication is disabled (Automated)
   - id: 5163
@@ -4302,7 +4362,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*GSSAPIAuthentication\s+(?:no)\s*$'
+      - 'f:$sshd_file -> r:^\s*GSSAPIAuthentication\s+no'
 
   # 5.1.12 Ensure sshd HostbasedAuthentication is disabled (Automated)
   - id: 5164
@@ -4327,7 +4387,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*HostbasedAuthentication\s+(?:no)\s*$'
+      - 'f:$sshd_file -> r:^\s*HostbasedAuthentication\s+no'
 
   # 5.1.13 Ensure sshd IgnoreRhosts is enabled (Automated)
   - id: 5165
@@ -4352,7 +4412,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*IgnoreRhosts\s+(?:yes)\s*$'
+      - 'f:$sshd_file -> r:^\s*IgnoreRhosts\s+yes'
 
   # 5.1.14 Ensure sshd KexAlgorithms is configured (Automated)
   - id: 5166
@@ -4400,9 +4460,11 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
-      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+(?:(?:[1-9]|[1-5]\d|60))\s*$'
+      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+60'
+      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+[1-5][0-9]'
+      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+[1-9]$'
 
   # 5.1.16 Ensure sshd LogLevel is configured (Automated)
   - id: 5168
@@ -4425,9 +4487,10 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
-      - 'f:$sshd_file -> r:^\s*LogLevel\s+(?:INFO|VERBOSE)\s*$'
+      - 'f:$sshd_file -> r:^\s*LogLevel\s+INFO'
+      - 'f:$sshd_file -> r:^\s*LogLevel\s+VERBOSE'
 
   # 5.1.17 Ensure sshd MACs are configured (Automated)
   - id: 5169
@@ -4477,7 +4540,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+(?:[1-4])\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+[1-4]'
 
   # 5.1.19 Ensure sshd MaxSessions is configured (Automated)
   - id: 5171
@@ -4502,7 +4565,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxSessions\s+(?:(?:[1-9]|10))\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+[1-9]'
 
   # 5.1.20 Ensure sshd MaxStartups is configured (Automated)
   - id: 5172
@@ -4527,7 +4590,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxStartups\s+(?:10:30:60|10:30:100)\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxStartups\s+10:30:'
 
   # 5.1.21 Ensure sshd PermitEmptyPasswords is disabled (Automated)
   - id: 5173
@@ -4552,7 +4615,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*PermitEmptyPasswords\s+(?:no)\s*$'
+      - 'f:$sshd_file -> r:^\s*PermitEmptyPasswords\s+no'
 
   # 5.1.22 Ensure sshd PermitRootLogin is disabled (Automated)
   - id: 5174
@@ -4575,9 +4638,10 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
-      - 'f:$sshd_file -> r:^\s*PermitRootLogin\s+(?:no|prohibit-password)\s*$'
+      - 'f:$sshd_file -> r:^\s*PermitRootLogin\s+no'
+      - 'f:$sshd_file -> r:^\s*PermitRootLogin\s+prohibit-password'
 
   # 5.1.23 Ensure sshd PermitUserEnvironment is disabled (Automated)
   - id: 5175
@@ -4602,7 +4666,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*PermitUserEnvironment\s+(?:no)\s*$'
+      - 'f:$sshd_file -> r:^\s*PermitUserEnvironment\s+no'
 
   # 5.1.24 Ensure sshd UsePAM is enabled (Automated)
   - id: 5176
@@ -4627,7 +4691,7 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*UsePAM\s+(?:yes)\s*$'
+      - 'f:$sshd_file -> r:^\s*UsePAM\s+yes'
 
 
   ###############################################
@@ -5030,7 +5094,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/security/faillock.conf -> r:^\s*unlock_time\s*=\s*(?:0|[6-9]\d{2,}|[1-9]\d{3,})'
+      - 'f:/etc/security/faillock.conf -> r:^\s*unlock_time\s*=\s*(0|[6-9][0-9]{2,}|[1-9][0-9]{3,})'
 
   # 5.3.3.1.3 Ensure password failed attempts lockout includes root account (Automated)
   - id: 5192
@@ -5083,7 +5147,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/security/pwquality.conf -> r:^\s*difok\s*=\s*[2-9]|^\s*difok\s*=\s*\d{2,}'
+      - 'f:/etc/security/pwquality.conf -> r:^\s*difok\s*=\s*[2-9]|^\s*difok\s*=\s*[0-9]{2,}'
 
   # 5.3.3.2.2 Ensure password length is configured (Automated)
   - id: 5194
@@ -5108,7 +5172,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/security/pwquality.conf -> r:^\s*minlen\s*=\s*(?:1[4-9]|[2-9]\d|\d{3,})'
+      - 'f:/etc/security/pwquality.conf -> r:^\s*minlen\s*=\s*(1[4-9]|[2-9][0-9]|[0-9]{3,})'
 
   # 5.3.3.2.3 Ensure password complexity is configured (Manual) - Not Implemented
 
@@ -5237,7 +5301,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/pam.d/system-auth -> r:pam_pwhistory.*remember=(?:[5-9]|\d{2,})'
+      - 'f:/etc/pam.d/system-auth -> r:pam_pwhistory.*remember=([5-9]|[0-9]{2,})'
 
   # 5.3.3.3.2 Ensure password history is enforced for the root user (Automated)
   - id: 5200
@@ -5423,7 +5487,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'f:/etc/login.defs -> r:^\s*PASS_MAX_DAYS\s+(?:[1-9]|[1-9]\d|36[0-5])'
+      - 'f:/etc/login.defs -> r:^\s*PASS_MAX_DAYS\s+([1-9]|[1-9][0-9]|36[0-5])'
 
   # 5.4.1.2 Ensure minimum password days is configured (Manual) - Not Implemented
 
@@ -5450,7 +5514,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'f:/etc/login.defs -> r:^\s*PASS_WARN_AGE\s+(?:[7-9]|\d{2,})'
+      - 'f:/etc/login.defs -> r:^\s*PASS_WARN_AGE\s+([7-9]|[0-9]{2,})'
 
   # 5.4.1.4 Ensure strong password hashing algorithm is configured (Automated)
   - id: 5208
@@ -5475,7 +5539,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'f:/etc/login.defs -> r:^\s*ENCRYPT_METHOD\s+(?:SHA512|YESCRYPT)'
+      - 'f:/etc/login.defs -> r:^\s*ENCRYPT_METHOD\s+(SHA512|YESCRYPT)'
 
   # 5.4.1.5 Ensure inactive password lock is configured (Automated)
   - id: 5209
@@ -5500,7 +5564,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: all
     rules:
-      - 'c:useradd -D -> r:^INACTIVE=(?:[1-9]|[1-2]\d|30)'
+      - 'c:useradd -D -> r:^INACTIVE=([1-9]|[1-2][0-9]|30)'
 
   # 5.4.1.6 Ensure all users last password change date is in the past (Automated)
   - id: 5210
@@ -5578,7 +5642,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: none
     rules:
-      - 'f:/etc/passwd -> r:^(?!root:).*:\d+:0:'
+      - 'f:/etc/passwd -> r:^(?!root:).*:[0-9]+:0:'
 
   # 5.4.2.3 Ensure group root is the only GID 0 group (Automated)
   - id: 5213
@@ -5783,8 +5847,8 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: any
     rules:
-      - 'f:/etc/profile -> r:^\s*(?:readonly\s+|export\s+)?TMOUT\s*=\s*[1-9]\d{1,2}'
-      - 'd:/etc/profile.d -> r:\.sh$ -> r:^\s*(?:readonly\s+|export\s+)?TMOUT\s*=\s*[1-9]\d{1,2}'
+      - 'f:/etc/profile -> r:^\s*(readonly\s+|export\s+)?TMOUT\s*=\s*[1-9][0-9]{1,2}'
+      - 'd:/etc/profile.d -> r:\.sh$ -> r:^\s*(readonly\s+|export\s+)?TMOUT\s*=\s*[1-9][0-9]{1,2}'
 
   # 5.4.3.3 Ensure default user umask is configured (Automated)
   - id: 5221
@@ -6301,7 +6365,7 @@ checks:
       subtechnique: ["T1562.001", "T1562.012"]
     condition: all
     rules:
-      - 'c:grep -P "^\s*GRUB_CMDLINE_LINUX(_DEFAULT)?=" /etc/default/grub -> r:audit_backlog_limit=(?:8192|\d{5,})'
+      - 'c:grep -P "^\s*GRUB_CMDLINE_LINUX(_DEFAULT)?=" /etc/default/grub -> r:audit_backlog_limit=(?:8192|[0-9]{5,})'
 
   # 6.3.1.4 Ensure auditd service is enabled and active (Automated)
   - id: 5240
@@ -6353,7 +6417,7 @@ checks:
       subtechnique: ["T1562.001"]
     condition: all
     rules:
-      - 'f:/etc/audit/auditd.conf -> r:^\s*max_log_file\s*=\s*[1-9]\d*'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*max_log_file\s*=\s*[1-9][0-9]*'
 
   # 6.3.2.2 Ensure audit logs are not automatically deleted (Automated)
   - id: 5242
@@ -6402,8 +6466,8 @@ checks:
       subtechnique: ["T1562.001"]
     condition: all
     rules:
-      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_full_action\s*=\s*(?:halt|single)'
-      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_error_action\s*=\s*(?:halt|single|syslog)'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_full_action\s*=\s*(halt|single)'
+      - 'f:/etc/audit/auditd.conf -> r:^\s*disk_error_action\s*=\s*(halt|single|syslog)'
 
   # 6.3.2.4 Ensure system warns when audit logs are low on space (Automated)
   - id: 5244
