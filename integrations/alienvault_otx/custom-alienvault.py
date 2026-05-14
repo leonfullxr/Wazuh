@@ -588,8 +588,23 @@ def extract_file_path(alert: Dict[str, Any]) -> Optional[str]:
 
 def extract_windows_event_fields(alert: Dict[str, Any]) -> Dict[str, Any]:
     eventdata = get_nested(alert, "data.win.eventdata") or {}
-    keys = ("image", "parentImage", "parentProcessId", "processId", "currentDirectory")
-    return {k: eventdata[k] for k in keys if eventdata.get(k) is not None}
+    key_aliases = {
+        "image": ("image", "Image"),
+        "parentImage": ("parentImage", "ParentImage"),
+        "parentProcessId": ("parentProcessId", "ParentProcessId"),
+        "processId": ("processId", "ProcessId"),
+        "currentDirectory": ("currentDirectory", "CurrentDirectory"),
+    }
+
+    out: Dict[str, Any] = {}
+    for output_key, aliases in key_aliases.items():
+        for alias in aliases:
+            value = eventdata.get(alias)
+            if value is not None:
+                out[output_key] = value
+                break
+
+    return out
 
 
 # ---------------------------------------------------------------------------
