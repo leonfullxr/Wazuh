@@ -1,0 +1,13 @@
+---
+- name: Hardening RHEL 8 to CIS 4.0
+  hosts: all
+  become: yes
+  vars:
+    # Some CIS rules are destructive. Toggle them here if needed.
+    rhel8cis_rule_1_1_1_1: true 
+    
+    # Provide a custom name for the PAM authselect profile
+    rhel8cis_authselect_custom_profile_name: 'my_rhel8_cis_profile'
+    
+  roles:
+    - role: roles/ansible-lockdown.rhel8_cis
