@@ -982,9 +982,14 @@ def escape_agent_string(value: str) -> str:
 def _format_socket_line(msg: Dict[str, Any], agent: Optional[Dict[str, Any]]) -> str:
     """Build the exact wire line that the Wazuh queue socket expects."""
     payload = json.dumps(msg)
-    if not agent or agent.get("id") == "000":
+    if not isinstance(agent, dict):
         return f"1:alienvault_otx:{payload}"
-    agent_str = f"[{agent['id']}] ({agent.get('name', '?')}) {agent.get('ip', 'any')}"
+
+    agent_id = agent.get("id")
+    if not agent_id or agent_id == "000":
+        return f"1:alienvault_otx:{payload}"
+
+    agent_str = f"[{agent_id}] ({agent.get('name', '?')}) {agent.get('ip', 'any')}"
     agent_str = escape_agent_string(agent_str)
     return f"1:{agent_str}->alienvault_otx:{payload}"
 
