@@ -424,7 +424,11 @@ apply_firewall_crypto() {
     systemctl enable --now firewalld
     
     # Force nftables backend
-    sed -i 's/^FirewallBackend.*/FirewallBackend=nftables/' /etc/firewalld/firewalld.conf
+    if grep -Eq '^[[:space:]]*#?[[:space:]]*FirewallBackend=' /etc/firewalld/firewalld.conf; then
+        sed -Ei 's/^[[:space:]]*#?[[:space:]]*FirewallBackend=.*/FirewallBackend=nftables/' /etc/firewalld/firewalld.conf
+    else
+        echo 'FirewallBackend=nftables' >> /etc/firewalld/firewalld.conf
+    fi
     systemctl restart firewalld
     
     # CRITICAL: Allow SSH before setting default drop to prevent lockout
