@@ -383,7 +383,8 @@ EOF
 # ============================================================================
 apply_file_permissions() {
     echo "=== Applying CIS file permission requirements ==="
-    chmod 0644 /etc/passwd /etc/group
+    chown root:root /etc/passwd /etc/group /etc/passwd- /etc/group- 2>/dev/null || true
+    chmod 0644 /etc/passwd /etc/group /etc/passwd- /etc/group- 2>/dev/null || true
     chmod 0000 /etc/shadow /etc/shadow- /etc/gshadow /etc/gshadow-
     chmod 0000 /etc/security/opasswd 2>/dev/null || true
     echo "  File permissions set."
