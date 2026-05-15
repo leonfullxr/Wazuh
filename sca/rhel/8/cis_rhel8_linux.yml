@@ -2605,7 +2605,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.3", "CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1071"]
     condition: all
     rules:
@@ -2630,7 +2630,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.3", "CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1071"]
     condition: all
     rules:
@@ -2655,7 +2655,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.3", "CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1071"]
     condition: all
     rules:
@@ -2680,7 +2680,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.3", "CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1071"]
     condition: all
     rules:
@@ -2704,7 +2704,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.3", "CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1071"]
     condition: all
     rules:
@@ -3082,7 +3082,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1011"]
       subtechnique: ["T1011.001"]
     condition: all
@@ -3108,7 +3108,7 @@ checks:
       pci_dss: ["1.1", "2.2"]
       tsc: ["CC6.6"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1011"]
       subtechnique: ["T1011.001"]
     condition: any
@@ -3297,7 +3297,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3324,7 +3324,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3351,7 +3351,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3378,7 +3378,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3405,7 +3405,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3431,7 +3431,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3457,7 +3457,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3483,7 +3483,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3509,7 +3509,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3535,7 +3535,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3561,7 +3561,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3588,7 +3588,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3615,7 +3615,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3641,7 +3641,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3667,7 +3667,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3693,7 +3693,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3719,7 +3719,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3745,7 +3745,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3775,7 +3775,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3802,7 +3802,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3828,7 +3828,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3854,7 +3854,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3880,7 +3880,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3906,7 +3906,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3932,7 +3932,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3958,7 +3958,7 @@ checks:
       pci_dss: ["1.1", "1.4"]
       tsc: ["CC6.6", "CC6.8"]
     mitre:
-      tactic: ["TA0011"]
+      tactic: ["T1071"]
       technique: ["T1090"]
     condition: any
     rules:
@@ -3995,7 +3995,7 @@ checks:
       pci_dss: ["1.1", "1.2", "1.3", "1.4"]
       tsc: ["CC6.6", "CC6.1", "CC6.2", "CC6.3", "CC6.4", "CC6.5", "CC6.7", "CC6.8", "CC7.1", "CC7.2", "CC7.3", "CC7.4", "CC7.5", "CC4.1", "CC4.2"]
     mitre:
-      tactic: ["TA0001", "TA0011"]
+      tactic: ["TA0001", "T1071"]
       technique: ["T1046", "T1090", "T1133"]
       subtechnique: ["T1090.001", "T1090.002", "T1557.001"]
     condition: all
@@ -4021,7 +4021,7 @@ checks:
       pci_dss: ["1.1", "1.2", "1.3", "1.4"]
       tsc: ["CC6.6", "CC6.1", "CC6.2", "CC6.3", "CC6.4", "CC6.5", "CC6.7", "CC6.8", "CC7.1", "CC7.2", "CC7.3", "CC7.4", "CC7.5", "CC4.1", "CC4.2"]
     mitre:
-      tactic: ["TA0001", "TA0011"]
+      tactic: ["TA0001", "T1071"]
       technique: ["T1046", "T1090", "T1133"]
       subtechnique: ["T1090.001", "T1090.002", "T1557.001"]
     condition: all
@@ -4046,7 +4046,7 @@ checks:
       pci_dss: ["1.1", "1.2", "1.3", "1.4"]
       tsc: ["CC6.6", "CC6.1", "CC6.2", "CC6.3", "CC6.4", "CC6.5", "CC6.7", "CC6.8", "CC7.1", "CC7.2", "CC7.3", "CC7.4", "CC7.5", "CC4.1", "CC4.2"]
     mitre:
-      tactic: ["TA0001", "TA0011"]
+      tactic: ["TA0001", "T1071"]
       technique: ["T1046", "T1090", "T1133"]
       subtechnique: ["T1090.001", "T1090.002", "T1557.001"]
     condition: all
@@ -4072,7 +4072,7 @@ checks:
       pci_dss: ["1.1", "1.2", "1.3", "1.4"]
       tsc: ["CC6.6", "CC6.1", "CC6.2", "CC6.3", "CC6.4", "CC6.5", "CC6.7", "CC6.8", "CC7.1", "CC7.2", "CC7.3", "CC7.4", "CC7.5", "CC4.1", "CC4.2"]
     mitre:
-      tactic: ["TA0001", "TA0011"]
+      tactic: ["TA0001", "T1071"]
       technique: ["T1046", "T1090", "T1133"]
       subtechnique: ["T1090.001", "T1090.002", "T1557.001"]
     condition: none
@@ -4972,7 +4972,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'c:authselect check -> r:configuration is valid'
+      - 'f:/etc/nsswitch.conf -> !r:^$'
 
   # 5.3.2.2 Ensure pam_faillock module is enabled (Automated)
   - id: 5186
