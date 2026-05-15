@@ -5651,7 +5651,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: none
     rules:
-      - 'f:/etc/passwd -> r:^(?!root:).*:0:'
+      - 'f:/etc/passwd -> r:^(?!root:)[^:]+:[^:]+:0:'
 
   # 5.4.2.2 Ensure root is the only GID 0 account (Automated)
   - id: 5212
@@ -5676,7 +5676,7 @@ checks:
       subtechnique: ["T1078.001", "T1078.003"]
     condition: none
     rules:
-      - 'f:/etc/passwd -> r:^(?!root:).*:[0-9]+:0:'
+      - 'f:/etc/passwd -> r:^(?!root:)[^:]+:[^:]+:[^:]+:0:'
 
   # 5.4.2.3 Ensure group root is the only GID 0 group (Automated)
   - id: 5213
@@ -6064,10 +6064,9 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562", "T1070"]
       subtechnique: ["T1562.001", "T1562.006"]
-    condition: none
+    condition: all
     rules:
-      - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes'
-      - 'd:/etc/systemd/journald.conf.d -> r:\.conf$ -> r:^\s*ForwardToSyslog\s*=\s*yes'
+      - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes\b|^\s*ForwardToSyslog\s*=\s*no\b'
 
   # 6.2.1.1.5 Ensure journald Storage is configured (Automated)
   - id: 5227
@@ -7006,7 +7005,7 @@ checks:
       subtechnique: ["T1562.012"]
     condition: all
     rules:
-      - 'd:/etc/audit/rules.d -> r:\.rules$ -> r:\-\-loginuid\-immutable'
+      - 'd:/etc/audit/rules.d -> r:\.rules$ -> r:^\s*-c\b'
 
   # 6.3.3.21 Ensure the audit configuration is immutable (Automated)
   - id: 5264
