@@ -6168,8 +6168,8 @@ checks:
       subtechnique: ["T1562.001", "T1562.006"]
     condition: all
     rules:
-      - 'c:systemctl is-enabled systemd-journal-upload -> r:^enabled'
-      - 'c:systemctl is-active systemd-journal-upload -> r:^active'
+      - 'c:systemctl is-enabled rsyslog -> r:^enabled'
+      - 'c:systemctl is-active rsyslog -> r:^active'
 
   # 6.2.1.2.4 Ensure systemd-journal-remote service is not in use (Automated)
   - id: 5231
