@@ -511,6 +511,5 @@ case "$SECTION" in
 esac
 
 echo ""
-echo "After applying, restart the Wazuh agent and re-probe from the manager:"
+echo "After applying, restart the Wazuh agent"
 echo "  systemctl restart wazuh-agent"
-echo "  # On manager: ./16_sca_probe_manager.sh 044"
