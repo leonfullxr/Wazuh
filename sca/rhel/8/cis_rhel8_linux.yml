@@ -14,6 +14,7 @@ policy:
   id: "custom_cis_rhel8_linux_v4"
   file: "cis_rhel8_linux.yml"
   name: "CIS Red Hat Enterprise Linux 8 Benchmark v4.0.0"
+  regex_type: "pcre2"
   description: "This document provides prescriptive guidance for establishing a secure configuration posture for Red Hat Enterprise Linux 8 systems running on x86 and x64 platforms. This document was tested against Red Hat Enterprise Linux 8."
   references:
     - https://www.cisecurity.org/cis-benchmarks/
@@ -1283,9 +1284,11 @@ checks:
       tactic: ["TA0003", "TA0004"]
       technique: ["T1542"]
       subtechnique: ["T1542.003"]
-    condition: all
+    condition: any
     rules:
-      - 'c:stat -L -c %a /boot/grub2/grub.cfg -> r:^[0-6]00$'
+      - 'c:stat -L -c %a:%u /boot/grub2/grub.cfg -> r:^600:0$|^400:0$|^700:0$|^640:0$'
+      - 'c:stat -L -c %a:%u /boot/grub2/user.cfg -> r:^600:0$|^400:0$|^700:0$|^640:0$'
+      - 'c:stat -L -c %a:%u /boot/efi/EFI/redhat/grub.cfg -> r:^600:0$|^400:0$|^700:0$|^640:0$'
 
 
   ###############################################
@@ -1317,6 +1320,8 @@ checks:
     rules:
       - 'f:/etc/security/limits.conf -> r:^\s*\*\s+hard\s+core\s+0'
       - 'd:/etc/security/limits.d -> r:\.conf$ -> r:^\s*\*\s+hard\s+core\s+0'
+      - 'f:/etc/security/limits.conf -> r:hard\s+core\s+0'
+      - 'd:/etc/security/limits.d -> r:\.conf$ -> r:hard\s+core\s+0'
 
   # 1.5.2 Ensure fs.protected_hardlinks is configured (Automated)
   - id: 5048
@@ -1445,8 +1450,10 @@ checks:
       subtechnique: ["T1562.001"]
     condition: any
     rules:
-      - 'c:sysctl kernel.kptr_restrict -> r:^kernel.kptr_restrict\s*=\s*[12]\s*$'
-      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.kptr_restrict\s*=\s*[12]'
+      - 'c:sysctl kernel.kptr_restrict -> r:^kernel.kptr_restrict\s*=\s*1\s*$'
+      - 'c:sysctl kernel.kptr_restrict -> r:^kernel.kptr_restrict\s*=\s*2\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.kptr_restrict\s*=\s*1'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.kptr_restrict\s*=\s*2'
 
   # 1.5.7 Ensure kernel.yama.ptrace_scope is configured (Automated)
   - id: 5053
@@ -1471,8 +1478,12 @@ checks:
       subtechnique: ["T1562.001"]
     condition: any
     rules:
-      - 'c:sysctl kernel.yama.ptrace_scope -> r:^kernel.yama.ptrace_scope\s*=\s*[123]\s*$'
-      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.yama\.ptrace_scope\s*=\s*[123]'
+      - 'c:sysctl kernel.yama.ptrace_scope -> r:^kernel.yama.ptrace_scope\s*=\s*1\s*$'
+      - 'c:sysctl kernel.yama.ptrace_scope -> r:^kernel.yama.ptrace_scope\s*=\s*2\s*$'
+      - 'c:sysctl kernel.yama.ptrace_scope -> r:^kernel.yama.ptrace_scope\s*=\s*3\s*$'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.yama\.ptrace_scope\s*=\s*1'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.yama\.ptrace_scope\s*=\s*2'
+      - 'd:/etc/sysctl.d -> r:\.conf$ -> r:^\s*kernel\.yama\.ptrace_scope\s*=\s*3'
 
   # 1.5.8 Ensure kernel.randomize_va_space is configured (Automated)
   - id: 5054
@@ -1520,9 +1531,10 @@ checks:
     mitre:
       tactic: ["TA0009"]
       technique: ["T1005", "T1025"]
-    condition: all
+    condition: any
     rules:
       - 'f:/etc/systemd/coredump.conf -> r:^\s*ProcessSizeMax\s*=\s*0'
+      - 'd:/etc/systemd/coredump.conf.d -> r:\.conf$ -> r:^\s*ProcessSizeMax\s*=\s*0'
 
   # 1.5.10 Ensure systemd-coredump Storage is configured (Automated)
   - id: 5056
@@ -1544,9 +1556,10 @@ checks:
     mitre:
       tactic: ["TA0009"]
       technique: ["T1005", "T1025"]
-    condition: all
+    condition: any
     rules:
       - 'f:/etc/systemd/coredump.conf -> r:^\s*Storage\s*=\s*none'
+      - 'd:/etc/systemd/coredump.conf.d -> r:\.conf$ -> r:^\s*Storage\s*=\s*none'
 
 
   ###############################################
@@ -2770,9 +2783,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1070"]
       subtechnique: ["T1070.006"]
-    condition: all
+    condition: any
     rules:
-      - 'f:/etc/sysconfig/chronyd -> r:^\s*OPTIONS\s*=.*\s*-u\s+chrony'
+      - 'f:/etc/sysconfig/chronyd -> r:OPTIONS.*-u\s+chrony'
+      - 'c:ps -ef -> r:chronyd.*-u\s+chrony'
 
 
   ###############################################
@@ -4236,6 +4250,10 @@ checks:
       - 'f:$sshd_file -> r:^\s*AllowGroups\s+\S+'
       - 'f:$sshd_file -> r:^\s*DenyUsers\s+\S+'
       - 'f:$sshd_file -> r:^\s*DenyGroups\s+\S+'
+      - 'd:/etc/ssh/sshd_config.d -> r:\.conf$ -> r:^\s*AllowUsers\s+\S+'
+      - 'd:/etc/ssh/sshd_config.d -> r:\.conf$ -> r:^\s*AllowGroups\s+\S+'
+      - 'd:/etc/ssh/sshd_config.d -> r:\.conf$ -> r:^\s*DenyUsers\s+\S+'
+      - 'd:/etc/ssh/sshd_config.d -> r:\.conf$ -> r:^\s*DenyGroups\s+\S+'
 
   # 5.1.7 Ensure sshd Banner is configured (Automated)
   - id: 5159
@@ -4283,9 +4301,11 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
       - 'f:$sshd_file -> r:^\s*Ciphers\s+\S+'
+      - 'd:/etc/crypto-policies/policies/modules -> r:\.pmod$ -> r:cipher@SSH'
+      - 'd:/etc/crypto-policies/back-ends -> r:^openssh'
 
   # 5.1.9 Ensure sshd ClientAliveInterval and ClientAliveCountMax are configured (Automated)
   - id: 5161
@@ -4310,8 +4330,8 @@ checks:
       subtechnique: ["T1021.004"]
     condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*ClientAliveInterval\s+[1-9]'
-      - 'f:$sshd_file -> r:^\s*ClientAliveCountMax\s+[0-9]'
+      - 'f:$sshd_file -> r:^\s*ClientAliveInterval\s+\S'
+      - 'f:$sshd_file -> r:^\s*ClientAliveCountMax\s+\S'
 
   # 5.1.10 Ensure sshd DisableForwarding is enabled (Automated)
   - id: 5162
@@ -4435,9 +4455,11 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
       - 'f:$sshd_file -> r:^\s*KexAlgorithms\s+\S+'
+      - 'd:/etc/crypto-policies/policies/modules -> r:\.pmod$ -> r:group@SSH'
+      - 'd:/etc/crypto-policies/back-ends -> r:^openssh'
 
   # 5.1.15 Ensure sshd LoginGraceTime is configured (Automated)
   - id: 5167
@@ -4460,11 +4482,9 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: any
+    condition: all
     rules:
-      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+60'
-      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+[1-5][0-9]'
-      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+[1-9]$'
+      - 'f:$sshd_file -> r:^\s*LoginGraceTime\s+\S'
 
   # 5.1.16 Ensure sshd LogLevel is configured (Automated)
   - id: 5168
@@ -4513,9 +4533,11 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
       - 'f:$sshd_file -> r:^\s*MACs\s+\S+'
+      - 'd:/etc/crypto-policies/policies/modules -> r:\.pmod$ -> r:mac@SSH'
+      - 'd:/etc/crypto-policies/back-ends -> r:^openssh'
 
   # 5.1.18 Ensure sshd MaxAuthTries is configured (Automated)
   - id: 5170
@@ -4538,9 +4560,12 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+[1-4]'
+      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+1\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+2\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+3\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxAuthTries\s+4\s*$'
 
   # 5.1.19 Ensure sshd MaxSessions is configured (Automated)
   - id: 5171
@@ -4563,9 +4588,18 @@ checks:
       tactic: ["TA0001", "TA0008"]
       technique: ["T1021", "T1078"]
       subtechnique: ["T1021.004"]
-    condition: all
+    condition: any
     rules:
-      - 'f:$sshd_file -> r:^\s*MaxSessions\s+[1-9]'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+1\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+2\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+3\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+4\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+5\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+6\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+7\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+8\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+9\s*$'
+      - 'f:$sshd_file -> r:^\s*MaxSessions\s+10\s*$'
 
   # 5.1.20 Ensure sshd MaxStartups is configured (Automated)
   - id: 5172
@@ -4748,7 +4782,7 @@ checks:
       subtechnique: ["T1548.003"]
     condition: all
     rules:
-      - 'c:grep -rPi -- "^\s*Defaults\s+([^#]+,\s*)?use_pty\b" /etc/sudoers /etc/sudoers.d/ -> r:use_pty'
+      - 'f:/etc/sudoers -> r:^\s*Defaults\s+.*use_pty'
 
   # 5.2.3 Ensure sudo log file exists (Automated)
   - id: 5179
@@ -4774,7 +4808,7 @@ checks:
       subtechnique: ["T1548.003"]
     condition: all
     rules:
-      - 'c:grep -rPi -- "^\s*Defaults\s+([^#]+,\s*)?logfile\b" /etc/sudoers /etc/sudoers.d/ -> r:logfile\s*='
+      - 'f:/etc/sudoers -> r:^\s*Defaults\s+.*logfile\s*=\s*"?/var/log/sudo\.log"?'
 
   # 5.2.4 Ensure users must provide password for escalation (Automated)
   - id: 5180
@@ -4825,7 +4859,7 @@ checks:
       subtechnique: ["T1548.003"]
     condition: all
     rules:
-      - 'c:grep -rPi -- "^\s*Defaults\s+([^#]+,\s*)?timestamp_timeout=" /etc/sudoers /etc/sudoers.d/ -> r:timestamp_timeout\s*=\s*(?:[0-9]|1[0-5])'
+      - 'f:/etc/sudoers -> r:^\s*Defaults\s+.*timestamp_timeout\s*=\s*(?:[0-9]|1[0-5])\b'
 
   # 5.2.7 Ensure access to the su command is restricted (Automated)
   - id: 5182
@@ -4909,7 +4943,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'c:rpm -q authselect -> r:^authselect-'
+      - 'f:/etc/pam.d/system-auth -> r:^\s*password\s+(?:requisite|required)\s+pam_pwquality\.so'
 
 
   # ----- 5.3.2 Configure authselect -----
@@ -4988,7 +5022,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'c:authselect current -> r:with-pwquality'
+      - 'f:/etc/pam.d/system-auth -> r:^\s*password\s+(?:requisite|required|sufficient)\s+pam_pwquality\.so'
 
   # 5.3.2.4 Ensure pam_pwhistory module is enabled (Automated)
   - id: 5188
@@ -5013,7 +5047,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'c:authselect current -> r:with-pwhistory'
+      - 'f:/etc/pam.d/system-auth -> r:^\s*password\s+(?:requisite|required|sufficient)\s+pam_pwhistory\.so'
 
   # 5.3.2.5 Ensure pam_unix module is enabled (Automated)
   - id: 5189
@@ -5301,7 +5335,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/pam.d/system-auth -> r:pam_pwhistory.*remember=([5-9]|[0-9]{2,})'
+      - 'f:/etc/security/pwhistory.conf -> r:^\s*remember\s*=\s*(?:[5-9]|[1-9]\d+)'
 
   # 5.3.3.3.2 Ensure password history is enforced for the root user (Automated)
   - id: 5200
@@ -5326,7 +5360,7 @@ checks:
       subtechnique: ["T1110.001", "T1110.003"]
     condition: all
     rules:
-      - 'f:/etc/pam.d/system-auth -> r:pam_pwhistory.*enforce_for_root'
+      - 'f:/etc/security/pwhistory.conf -> r:^\s*enforce_for_root'
 
   # 5.3.3.3.3 Ensure pam_pwhistory includes use_authtok (Automated)
   - id: 5201
@@ -5937,6 +5971,8 @@ checks:
       - 'c:systemctl is-enabled aidecheck.service -> r:^enabled'
       - 'c:systemctl is-enabled aidecheck.timer -> r:^enabled'
       - 'c:crontab -u root -l -> r:aide.*--check'
+      - 'f:/etc/cron.daily/aide'
+      - 'f:/etc/cron.d/aide'
 
   # 6.1.3 Ensure cryptographic mechanisms are used to protect the integrity of audit tools (Automated)
   - id: 5224
@@ -5961,7 +5997,13 @@ checks:
       subtechnique: ["T1565.001"]
     condition: any
     rules:
-      - 'f:/etc/aide.conf -> r:auditd_ALL\s*='
+      - 'f:/etc/aide.conf -> r:^/usr/sbin/auditctl\s+'
+      - 'f:/etc/aide.conf -> r:^/sbin/auditctl\s+'
+      - 'f:/etc/aide.conf -> r:^/usr/sbin/auditd\s+'
+      - 'f:/etc/aide.conf -> r:^/sbin/auditd\s+'
+      - 'f:/etc/aide.conf -> r:^/usr/sbin/ausearch\s+'
+      - 'f:/etc/aide.conf -> r:^/usr/sbin/aureport\s+'
+      - 'f:/etc/aide.conf -> r:^/usr/sbin/augenrules\s+'
 
 
   ###############################################
@@ -6025,6 +6067,7 @@ checks:
     condition: none
     rules:
       - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes'
+      - 'd:/etc/systemd/journald.conf.d -> r:\.conf$ -> r:^\s*ForwardToSyslog\s*=\s*yes'
 
   # 6.2.1.1.5 Ensure journald Storage is configured (Automated)
   - id: 5227
@@ -6046,9 +6089,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562", "T1070"]
       subtechnique: ["T1562.001", "T1562.006"]
-    condition: all
+    condition: any
     rules:
       - 'f:/etc/systemd/journald.conf -> r:^\s*Storage\s*=\s*persistent'
+      - 'd:/etc/systemd/journald.conf.d -> r:\.conf$ -> r:^\s*Storage\s*=\s*persistent'
 
   # 6.2.1.1.6 Ensure journald Compress is configured (Automated)
   - id: 5228
@@ -6070,9 +6114,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562", "T1070"]
       subtechnique: ["T1562.001", "T1562.006"]
-    condition: all
+    condition: any
     rules:
       - 'f:/etc/systemd/journald.conf -> r:^\s*Compress\s*=\s*yes'
+      - 'd:/etc/systemd/journald.conf.d -> r:\.conf$ -> r:^\s*Compress\s*=\s*yes'
 
   # --- 6.2.1.2 Configure systemd-journal-remote ---
 
@@ -6225,9 +6270,10 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562", "T1070"]
       subtechnique: ["T1562.001", "T1562.006"]
-    condition: all
+    condition: any
     rules:
       - 'f:/etc/systemd/journald.conf -> r:^\s*ForwardToSyslog\s*=\s*yes'
+      - 'd:/etc/systemd/journald.conf.d -> r:\.conf$ -> r:^\s*ForwardToSyslog\s*=\s*yes'
 
   # 6.2.2.4 Ensure rsyslog log file creation mode is configured (Automated)
   - id: 5235
@@ -6249,9 +6295,16 @@ checks:
       tactic: ["TA0005"]
       technique: ["T1562", "T1070"]
       subtechnique: ["T1562.001", "T1562.006"]
-    condition: all
+    condition: any
     rules:
-      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0?[0-6][04]0'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0640'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0600'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0400'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+0440'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+640'
+      - 'f:/etc/rsyslog.conf -> r:^\s*\$FileCreateMode\s+600'
+      - 'd:/etc/rsyslog.d -> r:\.conf$ -> r:^\s*\$FileCreateMode\s+0640'
+      - 'd:/etc/rsyslog.d -> r:\.conf$ -> r:^\s*\$FileCreateMode\s+0600'
 
   # 6.2.2.5 Ensure rsyslog logging is configured (Manual) - Not Implemented
 
