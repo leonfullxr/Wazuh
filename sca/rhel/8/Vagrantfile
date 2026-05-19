@@ -1,0 +1,30 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "rhel8-cis-ready"
+  # Point to the local box file Packer just generated
+  config.vm.box_url = "file://rhel8-cis-ready.box" 
+# Tell Vagrant to use the password we set in Kickstart
+  config.ssh.username = "vagrant"
+  config.ssh.password = "vagrant"
+
+  # 1. Disable the default sync folder to prevent the rsync crash
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  config.ssh.insert_key = true
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.memory = 2048
+    libvirt.cpus = 2
+  end
+
+  # 2. Register with Red Hat BEFORE running Ansible
+  # REPLACE 'YOUR_USERNAME' and 'YOUR_PASSWORD' with your Red Hat Developer credentials
+  config.vm.provision "shell", upload_path: "/home/vagrant/vagrant-shell", inline: <<-SHELL
+    echo "Registering system to Red Hat..."
+    subscription-manager register --username 'xxxxxx' --password 'xxxxxx' --auto-attach --force
+  SHELL
+
+  # Run Ansible upon vagrant up
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "playbook.yml"
+    ansible.become = true
+  end
+end
