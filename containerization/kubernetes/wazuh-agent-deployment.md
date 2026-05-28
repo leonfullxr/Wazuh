@@ -15,12 +15,13 @@ The Wazuh agent can be deployed natively within a Kubernetes cluster to monitor 
 
 ### How agent configuration works in both models
 
-Both deployment models use the same init container pattern:
+Both deployment models use the same core init container pattern, with the DaemonSet manifest adding one extra permissions-fix step:
 
 1. **`cleanup-ossec-stale`** - removes stale PID and lock files from previous runs to ensure a clean start
 2. **`seed-ossec-tree`** - on first run, copies the full `/var/ossec` tree from the image into the persistent volume; skipped on subsequent starts if data already exists
 3. **`write-ossec-config`** - generates `ossec.conf` at runtime using environment variables for the manager address, port, and agent name
 4. **`fix-authd-pass-perms`** - copies the enrollment password from a Kubernetes Secret into the agent's expected path with correct ownership
+5. **`fix-permissions`** - adjusts ownership and permissions on the mounted agent data so the DaemonSet deployment can start with the expected filesystem access
 
 The main container then starts the agent against the pre-configured data volume.
 
