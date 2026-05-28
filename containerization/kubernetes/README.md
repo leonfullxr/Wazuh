@@ -8,4 +8,5 @@ Kubernetes deployment patterns, ConfigMap-based configuration management, and tr
 
 | Guide | Description |
 |-------|-------------|
+| [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) | Deploy Wazuh agents across cluster nodes as a DaemonSet, or alongside a specific application as a sidecar container |
 | [Archives disabled after pod update](./archives-disabled-after-update.md) | `wazuh-archives-*` indices stop receiving data after image upgrades due to `filebeat.yml` being regenerated at pod startup; ConfigMap + `subPath` mitigation |
