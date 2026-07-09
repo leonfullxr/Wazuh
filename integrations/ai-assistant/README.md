@@ -6,6 +6,26 @@ Everything in this directory is runnable configuration and code: a complete loca
 
 The design in one paragraph: the model never writes a datastore query and never computes a number. Questions route through lanes ranked by verifiability. Lane 0 answers recurring questions from embedding-matched curated templates with no model in the loop. Lane 1 lets the model pick typed tools with schema-validated parameters. Lane 2 lets it emit a typed Query IR that is allowlist-checked and compiled to OpenSearch DSL server-side. Every query passes four veracity checks (mapping validation, dry-run, datastore-computed counts, zero-hit differential diagnosis), every claim in an answer must carry a citation that is verified against what was actually retrieved, and every answer states its verifiability label. Identity is a chain in which telemetry queries execute as the logged-in analyst through an indexer JWT auth domain, so the assistant can never show anyone more than their own permissions allow.
 
+## Architecture diagrams
+
+The four diagrams below are the whole PoC at a glance, exported from an editable draw.io source at [`diagrams/wazuh-ai-poc-architecture.drawio`](diagrams/wazuh-ai-poc-architecture.drawio). The D-tags in the labels are defined in [section 9](#9-design-decision-tags).
+
+**1. What runs where** - the self-hosted stack on one machine and the pluggable inference port ([section 1](#1-what-runs-where)).
+
+![Local PoC harness: the self-hosted stack on one machine and the pluggable inference port](diagrams/1-local-poc-harness.png)
+
+**2. One question, end to end** - the identity chain first, then the veracity pipeline on every tool call, with the lane 0 fast-path branch ([sections 4-5](#4-the-identity-chain-end-to-end)).
+
+![Local turn data flow: identity chain and veracity pipeline for one question](diagrams/2-turn-data-flow.png)
+
+**3. Inference backends and sovereignty** - one provider port, three postures, and exactly what crosses your machine boundary per backend ([section 3](#3-choosing-the-inference-backend)).
+
+![Inference backends: what leaves the machine for Bedrock, local Ollama, or any OpenAI-compatible endpoint](diagrams/3-inference-backends.png)
+
+**4. Query cascade** - recognition before reasoning: lane 0 semantic match, the router and analysis tiers, the batch depth lane, and the evidence cache ([sections 3.5-3.6](#35-lane-0-and-the-evidence-cache-whether-a-model-runs-at-all)).
+
+![Query cascade: lane 0, router tier, analysis tier, depth lane, and the shared veracity pipeline](diagrams/4-query-cascade.png)
+
 ## 1. What runs where
 
 Everything except inference is local, and even inference can be. The Wazuh stack is the official single-node Docker deployment, so the indexer the assistant queries is the same OpenSearch fork a production deployment runs. Keycloak stands in for the identity provider. n8n is the chat edge. The auth shim and the tool service are the two components this project actually builds. The inference backend is a pluggable port behind `llm.py`: the default is Amazon Bedrock, because testing against the same inference API you would ship is worth more than a weaker offline substitute, but the same harness runs fully air-gapped on a local model through Ollama, or against Groq and any other endpoint that speaks the OpenAI chat-completions dialect. Section 3 walks the setup for each, and nothing above that one module changes when you switch.
@@ -351,6 +371,7 @@ Comments across the code carry `D<n>` tags referring to the design log this PoC 
 | `n8n/` | Instructions for the chat workflow that consumes the tool service |
 | `airllm-shim/` | EXPERIMENTAL batch depth lane: AirLLM layer streaming behind an OpenAI-compatible shim (section 3.4) |
 | `litellm/` | Load-balancing / failover proxy config (compose profile `litellm`, section 3.6) |
+| `diagrams/` | draw.io source (`wazuh-ai-poc-architecture.drawio`) and PNG exports of the four architecture diagrams |
 | `keys/` | Generated JWT keypair (gitignored) |
 
 `.wazuh-docker/` and `keys/` are generated, edit the scripts instead.
