@@ -8,7 +8,7 @@ The design in one paragraph: the model never writes a datastore query and never 
 
 ## Architecture diagrams
 
-The four diagrams below are the whole PoC at a glance, exported from an editable draw.io source at [`diagrams/wazuh-ai-poc-architecture.drawio`](diagrams/wazuh-ai-poc-architecture.drawio). The D-tags in the labels are defined in [section 9](#9-design-decision-tags).
+The eight diagrams below are the whole PoC at a glance, exported from an editable draw.io source at [`diagrams/wazuh-ai-poc-architecture.drawio`](diagrams/wazuh-ai-poc-architecture.drawio). The D-tags in the labels are defined in [section 9](#9-design-decision-tags).
 
 **1. What runs where** - the self-hosted stack on one machine and the pluggable inference port ([section 1](#1-what-runs-where)).
 
@@ -25,6 +25,22 @@ The four diagrams below are the whole PoC at a glance, exported from an editable
 **4. Query cascade** - recognition before reasoning: lane 0 semantic match, the router and analysis tiers, the batch depth lane, and the evidence cache ([sections 3.5-3.6](#35-lane-0-and-the-evidence-cache-whether-a-model-runs-at-all)).
 
 ![Query cascade: lane 0, router tier, analysis tier, depth lane, and the shared veracity pipeline](diagrams/4-query-cascade.png)
+
+**5. Veracity lanes** - the four query lanes ranked by verifiability, from template matching to gated generation ([section 5](#5-the-veracity-ladder-live)).
+
+![Veracity lanes: the four query lanes ranked by verifiability](diagrams/5-veracity-lanes.png)
+
+**6. When the logs attack back** - alert evidence is attacker-controlled input: guardrails on question, evidence and output, citation verification, and the audit trail watching all of it ([section 7](#7-what-this-harness-proves-and-what-it-defers)).
+
+![Injection defense: guardrails, citation verification, and the audit trail](diagrams/6-injection-defense.png)
+
+**7. The harness proves itself** - deterministic seeding, the bilingual golden set driving the full chain, and assertions that gate CI ([`golden/`](golden/)).
+
+![Eval harness: seeder, golden set, full-chain runner, assertions, CI gate](diagrams/7-eval-harness.png)
+
+**8. Where this goes** - the multi-tenant production shape the PoC mirrors: per-tenant namespaces, IAM roles, inference profiles and guardrails, with PrivateLink as the only path to Bedrock ([blog writeup](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/)).
+
+![Production topology: per-tenant namespaces, IAM roles, inference profiles and guardrails](diagrams/8-production-topology.png)
 
 ## 1. What runs where
 
@@ -371,7 +387,7 @@ Comments across the code carry `D<n>` tags referring to the design log this PoC 
 | `n8n/` | Instructions for the chat workflow that consumes the tool service |
 | `airllm-shim/` | EXPERIMENTAL batch depth lane: AirLLM layer streaming behind an OpenAI-compatible shim (section 3.4) |
 | `litellm/` | Load-balancing / failover proxy config (compose profile `litellm`, section 3.6) |
-| `diagrams/` | draw.io source (`wazuh-ai-poc-architecture.drawio`) and PNG exports of the four architecture diagrams |
+| `diagrams/` | draw.io source (`wazuh-ai-poc-architecture.drawio`) and PNG exports of the eight architecture diagrams |
 | `keys/` | Generated JWT keypair (gitignored) |
 
 `.wazuh-docker/` and `keys/` are generated, edit the scripts instead.
