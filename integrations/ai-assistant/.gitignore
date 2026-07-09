@@ -1,0 +1,7 @@
+.env
+keys/*.pem
+.wazuh-docker/
+securityconfig/tmp/
+golden/ground_truth.json
+__pycache__/
+*.pyc

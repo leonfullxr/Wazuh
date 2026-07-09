@@ -1,0 +1,43 @@
+# LiteLLM proxy config (README s3.6) - load balancing and failover in front of
+# the provider port. verify: flag and key names against the LiteLLM docs for
+# the image version you pull; this file is a working sketch.
+#
+# Pattern: several deployments sharing one model_name form a load-balanced
+# group; fallbacks chain groups. The tool service then uses
+#   WAI_LLM_PROVIDER=openai
+#   WAI_LLM_BASE_URL=http://litellm:4000/v1
+#   WAI_MODEL_ANALYSIS=analysis-local     (a group name, not a raw model id)
+
+model_list:
+  # ---- load-balanced local group: add one entry per Ollama replica --------
+  - model_name: analysis-local
+    litellm_params:
+      model: openai/qwen3:30b-a3b
+      api_base: http://ollama:11434/v1
+      api_key: none
+  # - model_name: analysis-local
+  #   litellm_params:
+  #     model: openai/qwen3:30b-a3b
+  #     api_base: http://ollama-2:11434/v1     # second box on your LAN
+  #     api_key: none
+
+  # ---- cloud fallback group ------------------------------------------------
+  - model_name: analysis-bedrock
+    litellm_params:
+      model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0  # verify id
+
+  # ---- router tier ----------------------------------------------------------
+  - model_name: router-local
+    litellm_params:
+      model: openai/qwen2.5:7b
+      api_base: http://ollama:11434/v1
+      api_key: none
+
+router_settings:
+  routing_strategy: least-busy        # spreads load across same-name entries
+  num_retries: 1
+  fallbacks:
+    - analysis-local: ["analysis-bedrock"]
+
+litellm_settings:
+  drop_params: true                   # tolerate params a backend rejects

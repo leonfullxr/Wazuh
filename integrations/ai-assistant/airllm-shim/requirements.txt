@@ -1,0 +1,4 @@
+# torch is installed in the Dockerfile (CPU or CUDA channel via build arg)
+airllm~=3.0
+fastapi~=0.115
+uvicorn[standard]~=0.32

@@ -1,0 +1,70 @@
+# wazuh-ai local PoC harness - see README.md for the walkthrough
+SHELL := /bin/bash
+-include .env
+export
+
+WAZUH_VERSION ?= 4.14.5
+WAZUH_DIR := .wazuh-docker/single-node
+OLLAMA_MODEL ?= qwen2.5:14b
+EMBED_MODEL ?= bge-m3
+
+.PHONY: keys wazuh securityconfig poc ollama embed airllm seed evals test logs down clean
+
+keys:
+	./keys/gen-keys.sh
+
+wazuh:
+	@if [ ! -d .wazuh-docker ]; then \
+	  git clone --depth 1 --branch v$(WAZUH_VERSION) https://github.com/wazuh/wazuh-docker.git .wazuh-docker ; \
+	fi
+	cd $(WAZUH_DIR) && docker compose -f generate-indexer-certs.yml run --rm generator
+	cd $(WAZUH_DIR) && docker compose up -d
+	@echo "Wazuh single-node starting. Dashboard: https://localhost:443 (admin / $(INDEXER_ADMIN_PASSWORD))"
+
+securityconfig:
+	./securityconfig/apply.sh
+
+poc:
+	docker compose -f docker-compose.poc.yml up -d --build
+	@echo "keycloak: http://localhost:8085  n8n: http://localhost:5678  tool-service: http://localhost:8080"
+
+ollama:
+	docker compose -f docker-compose.poc.yml --profile ollama up -d ollama
+	docker compose -f docker-compose.poc.yml exec ollama ollama pull $(OLLAMA_MODEL)
+	@echo "ollama serving $(OLLAMA_MODEL). Set WAI_LLM_PROVIDER=openai and the"
+	@echo "WAI_MODEL_* ids in .env (option B), then: make poc"
+	@echo "Sparse MoE upgrades (README s3.4): make ollama OLLAMA_MODEL=gpt-oss:20b"
+	@echo "(16 GB systems) or OLLAMA_MODEL=qwen3:30b-a3b (32 GB / 24 GB VRAM)"
+
+embed:
+	docker compose -f docker-compose.poc.yml --profile ollama up -d ollama
+	docker compose -f docker-compose.poc.yml exec ollama ollama pull $(EMBED_MODEL)
+	@echo "$(EMBED_MODEL) ready. Enable lane 0 with WAI_LANE0_ENABLED=true in .env"
+	@echo "(README s3.5), then recreate the tool service."
+
+airllm:
+	docker compose -f docker-compose.poc.yml --profile airllm up -d --build airllm-shim
+	@echo "airllm-shim on :8090 (EXPERIMENTAL batch depth lane, README s3.4)."
+	@echo "Bind the analysis tier to it with .env option D2. First request"
+	@echo "downloads and layer-splits AIRLLM_MODEL_ID - expect minutes per answer."
+
+seed:
+	python3 seed/seed_alerts.py
+
+evals:
+	python3 golden/run_evals.py
+
+test:
+	docker compose -f docker-compose.poc.yml run --rm --no-deps \
+	  -v ./tool-service/tests:/app/tests:ro --entrypoint sh tool-service \
+	  -c "pip install -q pytest && python -m pytest -q tests"
+
+logs:
+	docker compose -f docker-compose.poc.yml logs -f tool-service auth-shim
+
+down:
+	docker compose -f docker-compose.poc.yml down
+	cd $(WAZUH_DIR) && docker compose down
+
+clean: down
+	rm -rf .wazuh-docker securityconfig/tmp golden/ground_truth.json

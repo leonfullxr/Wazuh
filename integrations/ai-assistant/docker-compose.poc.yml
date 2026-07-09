@@ -1,0 +1,182 @@
+# Overlay compose for the wazuh-ai PoC services. Joins the network created by the
+# official wazuh-docker single-node stack (start that first with `make wazuh`).
+#
+# verify: the external network name derives from the wazuh-docker directory name
+# ("single-node"). If your docker compose names it differently, check with
+#   docker network ls | grep single-node
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "8085:8080"
+    networks: [wazuh]
+
+  auth-shim:
+    build: ./auth-shim
+    environment:
+      SHIM_TENANT: ${WAI_TENANT:-lab}
+      SHIM_KC_URL: ${KC_URL:-http://keycloak:8080}
+      SHIM_KC_REALM: ${KC_REALM:-wazuh-poc}
+      SHIM_JWT_ISSUER: ${WAI_JWT_ISSUER:-wazuh-ai-shim.lab}
+      SHIM_BACKEND_AUDIENCE: ${WAI_JWT_AUDIENCE:-wazuh-ai-backend.lab}
+      SHIM_INDEXER_AUDIENCE: ${WAI_JWT_INDEXER_AUDIENCE:-wazuh-indexer.lab}
+      SHIM_TTL_SECONDS: ${WAI_JWT_TTL_SECONDS:-600}
+      SHIM_REQUIRED_ROLE: wazuh_ai_analyst
+    volumes:
+      # The ONLY place the private key is mounted (D30)
+      - ./keys:/keys:ro
+    ports:
+      - "8081:8081"
+    depends_on: [keycloak]
+    networks: [wazuh]
+
+  tool-service:
+    build: ./tool-service
+    environment:
+      WAI_TENANT: ${WAI_TENANT:-lab}
+      WAI_JWT_ISSUER: ${WAI_JWT_ISSUER:-wazuh-ai-shim.lab}
+      WAI_JWT_AUDIENCE: ${WAI_JWT_AUDIENCE:-wazuh-ai-backend.lab}
+      WAI_INDEXER_URL: ${WAI_INDEXER_URL:-https://wazuh.indexer:9200}
+      WAI_INDEXER_VERIFY_SSL: ${WAI_INDEXER_VERIFY_SSL:-false}
+      WAI_LLM_PROVIDER: ${WAI_LLM_PROVIDER:-bedrock}
+      WAI_LLM_BASE_URL: ${WAI_LLM_BASE_URL:-http://ollama:11434/v1}
+      WAI_LLM_API_KEY: ${WAI_LLM_API_KEY:-}
+      WAI_MODEL_ROUTER: ${WAI_MODEL_ROUTER}
+      WAI_MODEL_ANALYSIS: ${WAI_MODEL_ANALYSIS}
+      # Per-tier overrides (D39, README s3.4) - empty inherits the globals
+      WAI_ROUTER_PROVIDER: ${WAI_ROUTER_PROVIDER:-}
+      WAI_ROUTER_BASE_URL: ${WAI_ROUTER_BASE_URL:-}
+      WAI_ROUTER_API_KEY: ${WAI_ROUTER_API_KEY:-}
+      WAI_ANALYSIS_PROVIDER: ${WAI_ANALYSIS_PROVIDER:-}
+      WAI_ANALYSIS_BASE_URL: ${WAI_ANALYSIS_BASE_URL:-}
+      WAI_ANALYSIS_API_KEY: ${WAI_ANALYSIS_API_KEY:-}
+      # Lane 0 semantic fast path + evidence cache (D40/D41, README s3.5)
+      WAI_LANE0_ENABLED: ${WAI_LANE0_ENABLED:-false}
+      WAI_LANE0_THRESHOLD: ${WAI_LANE0_THRESHOLD:-0.80}
+      WAI_EMBED_BASE_URL: ${WAI_EMBED_BASE_URL:-http://ollama:11434/v1}
+      WAI_EMBED_MODEL: ${WAI_EMBED_MODEL:-bge-m3}
+      WAI_EMBED_API_KEY: ${WAI_EMBED_API_KEY:-}
+      WAI_EVIDENCE_CACHE_TTL: ${WAI_EVIDENCE_CACHE_TTL:-0}
+      # Ops knobs (README s8)
+      WAI_STREAMING: ${WAI_STREAMING:-true}
+      WAI_QUEUE_WAIT_S: ${WAI_QUEUE_WAIT_S:-30}
+      WAI_SERVICE_ENABLED: ${WAI_SERVICE_ENABLED:-true}
+      WAI_CONVERSATION_TTL: ${WAI_CONVERSATION_TTL:-3600}
+      WAI_PROMPT_CACHE: ${WAI_PROMPT_CACHE:-false}
+      # CA pinning: uncomment here and the volume below (README s8)
+      # WAI_INDEXER_CA_PATH: /certs/root-ca.pem
+      WAI_GUARDRAIL_ID: ${WAI_GUARDRAIL_ID:-}
+      WAI_GUARDRAIL_VERSION: ${WAI_GUARDRAIL_VERSION:-DRAFT}
+      WAI_LANE2_ENABLED: ${WAI_LANE2_ENABLED:-true}
+      WAI_MAX_TOOL_CALLS: ${WAI_MAX_TOOL_CALLS:-6}
+      WAI_EVIDENCE_BUDGET_CHARS: ${WAI_EVIDENCE_BUDGET_CHARS:-24000}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    volumes:
+      # Public key only - the reasoning core cannot mint (D30)
+      - ./keys/jwt-public.pem:/keys/jwt-public.pem:ro
+      # CA pinning (recommended once the wazuh certs exist; verify the path):
+      # - ./.wazuh-docker/single-node/config/wazuh_indexer_ssl_certs/root-ca.pem:/certs/root-ca.pem:ro
+    ports:
+      - "8080:8080"
+    networks: [wazuh]
+
+  # Optional local inference backend. Start with the "ollama" profile:
+  #   make ollama    (or: docker compose -f docker-compose.poc.yml --profile ollama up -d ollama)
+  # then set WAI_LLM_PROVIDER=openai and the model ids in .env (README s3.2).
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    environment:
+      # Memory-optimization ladder, rung 3 (README s3.4): flash attention
+      # enables the quantized KV cache; q8_0 roughly halves KV memory at
+      # negligible quality cost. Two loaded models = both tiers resident.
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_KV_CACHE_TYPE: "q8_0"
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_KEEP_ALIVE: "30m"
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks: [wazuh]
+    # NVIDIA GPU (optional) - uncomment to accelerate:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # EXPERIMENTAL depth lane (README s3.4): AirLLM layer streaming behind an
+  # OpenAI-compatible shim. Frontier-size models on tiny hardware at BATCH
+  # latency (0.07-0.7 tok/s measured upstream). Start with:
+  #   make airllm    (profile "airllm")
+  # then bind the analysis tier to it (.env option D2). First request
+  # downloads and layer-splits the model into the hf_cache volume.
+  airllm-shim:
+    build: ./airllm-shim
+    profiles: ["airllm"]
+    environment:
+      AIRLLM_MODEL_ID: ${AIRLLM_MODEL_ID:-Qwen/Qwen2.5-7B-Instruct}
+      AIRLLM_COMPRESSION: ${AIRLLM_COMPRESSION:-4bit}
+      AIRLLM_MAX_NEW_TOKENS: ${AIRLLM_MAX_NEW_TOKENS:-512}
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    ports:
+      - "8090:8090"
+    networks: [wazuh]
+    # GPU passthrough strongly recommended - reuse the deploy stanza shown on
+    # the ollama service, and build with the CUDA torch channel (Dockerfile).
+
+  # OPTIONAL load-balancing / failover proxy (README s3.6). One dial across
+  # replicas and providers: point WAI_LLM_BASE_URL (or a single tier, D39)
+  # at http://litellm:4000/v1 and use the model group names from
+  # litellm/config.yaml. Start with: --profile litellm
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    profiles: ["litellm"]
+    command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
+    environment:
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    volumes:
+      - ./litellm/config.yaml:/etc/litellm/config.yaml:ro
+    ports:
+      - "4000:4000"
+    networks: [wazuh]
+
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: Europe/Madrid
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks: [wazuh]
+
+volumes:
+  n8n_data:
+  ollama_models:
+  hf_cache:
+
+networks:
+  wazuh:
+    external: true
+    name: single-node_default
