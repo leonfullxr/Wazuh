@@ -12,9 +12,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 CONTAINER="${CONTAINER:-single-node-wazuh.indexer-1}"   # verify: docker ps
-SC_DIR=/usr/share/wazuh-indexer/opensearch-security      # verify per version
-CERTS=/usr/share/wazuh-indexer/certs                     # verify per version
-TOOLS=/usr/share/wazuh-indexer/plugins/opensearch-security/tools
+# Paths as shipped in wazuh-indexer 4.14 images (override via env if yours differ)
+SC_DIR="${SC_DIR:-/usr/share/wazuh-indexer/config/opensearch-security}"
+CERTS="${CERTS:-/usr/share/wazuh-indexer/config/certs}"
+TOOLS="${TOOLS:-/usr/share/wazuh-indexer/plugins/opensearch-security/tools}"
 
 mkdir -p tmp
 for f in config.yml roles.yml roles_mapping.yml; do

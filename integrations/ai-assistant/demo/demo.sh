@@ -8,15 +8,26 @@ set -euo pipefail
 
 say() { printf '\n\033[1;36m# %s\033[0m\n' "$*"; sleep 1; }
 
+need_token() { # fail fast with the raw response instead of carrying "null" forward
+  if [ -z "$2" ] || [ "$2" = "null" ]; then
+    printf '\033[1;31m%s failed - raw response:\033[0m\n%s\n' "$1" "$3" >&2
+    exit 1
+  fi
+}
+
 say "1. Log in as analyst1 (OIDC password grant against Keycloak)"
-OIDC=$(curl -s http://localhost:8085/realms/wazuh-poc/protocol/openid-connect/token \
+OIDC_RAW=$(curl -s http://localhost:8085/realms/wazuh-poc/protocol/openid-connect/token \
   -d grant_type=password -d client_id=wazuh-ai \
-  -d username=analyst1 -d password=analyst1 | jq -r .access_token)
+  -d username=analyst1 -d password=analyst1)
+OIDC=$(jq -r .access_token <<<"$OIDC_RAW")
+need_token "OIDC login" "$OIDC" "$OIDC_RAW"
 echo "OIDC token: ${OIDC:0:24}..."
 
 say "2. Exchange it at the auth shim for a turn JWT (<=10 min, tenant from config)"
-TURN=$(curl -s -X POST http://localhost:8081/v1/token/exchange \
-  -H "Authorization: Bearer $OIDC" | jq -r .access_token)
+TURN_RAW=$(curl -s -X POST http://localhost:8081/v1/token/exchange \
+  -H "Authorization: Bearer $OIDC")
+TURN=$(jq -r .access_token <<<"$TURN_RAW")
+need_token "token exchange" "$TURN" "$TURN_RAW"
 echo "turn JWT:   ${TURN:0:24}..."
 
 say "3. The ceiling, with no AI involved: reads allowed, writes denied (403)"

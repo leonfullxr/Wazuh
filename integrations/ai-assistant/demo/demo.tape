@@ -19,9 +19,9 @@ Enter
 Sleep 12s
 
 # Step 4 runs a real model turn - give it room to finish
-Sleep 45s
+Sleep 120s
 
 # Step 5 zero-hit diagnosis turn
-Sleep 40s
+Sleep 120s
 
 Sleep 5s

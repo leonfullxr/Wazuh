@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     tenant: str = "lab"
     kc_url: str = "http://keycloak:8080"
     kc_realm: str = "wazuh-poc"
+    # Expected `iss` claim. Split from kc_url because the JWKS is fetched over
+    # the in-network URL while tokens carry the IdP's public-facing issuer.
+    kc_issuer: str = ""
     jwt_issuer: str = "wazuh-ai-shim.lab"
     backend_audience: str = "wazuh-ai-backend.lab"
     indexer_audience: str = "wazuh-indexer.lab"
@@ -63,7 +66,7 @@ def exchange(authorization: str = Header(...)) -> dict:
             token,
             signing_key.key,
             algorithms=["RS256"],
-            issuer=f"{CFG.kc_url}/realms/{CFG.kc_realm}",
+            issuer=CFG.kc_issuer or f"{CFG.kc_url}/realms/{CFG.kc_realm}",
             # Keycloak access tokens default aud to "account"; we pin issuer +
             # signature + azp instead. verify: tighten aud once the customer
             # IdP's token shape is known.

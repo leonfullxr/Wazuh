@@ -11,7 +11,6 @@ Adds, idempotently:
 
 Usage: merge_securityconfig.py <dir-with-the-three-files> <public-key.pem>
 """
-import base64
 import sys
 from pathlib import Path
 
@@ -25,7 +24,11 @@ AUDIENCE = f"wazuh-indexer.{TENANT}"
 def main() -> None:
     workdir = Path(sys.argv[1])
     pubkey_pem = Path(sys.argv[2]).read_text()
-    signing_key = base64.b64encode(pubkey_pem.encode()).decode()
+    # The security plugin routes on the key's shape: a value starting with
+    # -----BEGIN is parsed as an RSA/ECDSA PEM, anything else is treated as a
+    # base64 HMAC secret. Base64-encoding the PEM lands in the HMAC branch and
+    # every RS256 token fails verification, so pass the PEM through verbatim.
+    signing_key = pubkey_pem
 
     # ---- config.yml: the JWT auth domain -----------------------------------
     cfg_path = workdir / "config.yml"

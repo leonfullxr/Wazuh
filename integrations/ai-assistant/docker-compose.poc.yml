@@ -12,6 +12,9 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+      # Pin the issuer so tokens carry the same `iss` no matter which URL
+      # (host localhost:8085 or in-network keycloak:8080) minted them.
+      KC_HOSTNAME: ${KC_PUBLIC_URL:-http://localhost:8085}
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
@@ -23,6 +26,7 @@ services:
     environment:
       SHIM_TENANT: ${WAI_TENANT:-lab}
       SHIM_KC_URL: ${KC_URL:-http://keycloak:8080}
+      SHIM_KC_ISSUER: ${KC_ISSUER:-http://localhost:8085/realms/wazuh-poc}
       SHIM_KC_REALM: ${KC_REALM:-wazuh-poc}
       SHIM_JWT_ISSUER: ${WAI_JWT_ISSUER:-wazuh-ai-shim.lab}
       SHIM_BACKEND_AUDIENCE: ${WAI_JWT_AUDIENCE:-wazuh-ai-backend.lab}
