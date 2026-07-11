@@ -1,10 +1,20 @@
 # Certificates, TLS and SSO for Wazuh
 
-Guides for managing TLS certificates across the Wazuh stack, serving the dashboard over HTTPS (including on private IPs), and configuring SAML single sign-on.
+This section is for administrators managing trust between Wazuh components
+and browser access to the dashboard. It covers the internal Wazuh CA and node
+certificates, corporate or public certificates, private-IP HTTPS, SAML
+metadata and signing certificates, and incident diagnosis.
+
+Start here to identify which certificate owns a failing connection, then use
+the linked runbook. Do not replace every certificate in response to one TLS
+error: the indexer transport, indexer HTTP API, Filebeat, dashboard, manager
+API, enrollment service, and WPK verification use distinct certificate
+paths.
 
 ## Table of Contents
 
 - [Which certificates does each component use?](#which-certificates-does-each-component-use)
+- [Quick reference](#quick-reference)
 - [Guides in this section](#guides-in-this-section)
 - [Quick verification commands](#quick-verification-commands)
 - [Related sections](#related-sections)
@@ -25,9 +35,23 @@ A default Wazuh deployment (created with `wazuh-certs-tool.sh`) uses one interna
 Key facts to keep in mind:
 
 - Every node certificate must be signed by the **same root CA** (`root-ca.pem`) that the other components trust. A cert signed by a different CA is the most common cause of `bad_certificate` handshake failures.
-- Certificates must contain the node's hostname or IP in the **Subject Alternative Name (SAN)** — the CN alone is not enough for modern clients.
+- Certificates must contain the node's hostname or IP in the **Subject Alternative Name (SAN)** - the CN alone is not enough for modern clients.
 - The **admin certificate** is a client certificate, not a server certificate. Keep it: without it you cannot run `securityadmin.sh` to load security configuration changes (users, roles, SAML config).
 - SAML SSO does not add TLS certificates to Wazuh itself, but relies on the IdP's **signing certificate** (exchanged through SAML metadata files) and on the dashboard being served over HTTPS.
+
+## Quick reference
+
+| Symptom or task | Runbook |
+|---|---|
+| Generate, deploy, or rotate the central-component bundle | [Component certificates](component-certificates.md) |
+| Add a node, SAN, corporate CA, or PKCS#12 certificate | [Component certificates](component-certificates.md#using-a-corporate-or-commercial-ca-custom-csr) |
+| Browser must reach a dashboard on a private IP | [HTTPS for a private IP](https-for-private-ip.md) |
+| Configure Keycloak, Entra ID, or another SAML IdP | [SAML SSO](sso-saml.md) |
+| Indexer logs `bad_certificate` | [TLS diagnostic flow](troubleshooting.md#step-by-step-diagnostic-flow) |
+| LDAPS works by IP only when verification is disabled | [Hostname and SAN diagnosis](troubleshooting.md#hostnamesan-mismatches-ldaps-example) |
+| New agents cannot enroll but existing agents stay connected | [Enrollment certificate](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert) |
+| API clients reject port 55000 after certificate replacement | [API certificate chain](component-certificates.md#the-wazuh-server-api-certificate-port-55000) |
+| Certbot renewed but the dashboard still serves an expired cert | [Renewal deployment troubleshooting](troubleshooting.md#lets-encrypt-certificate-renewed-but-not-applied) |
 
 ## Guides in this section
 
@@ -58,6 +82,6 @@ See [troubleshooting.md](troubleshooting.md) for the full diagnostic flow.
 
 ## Related sections
 
-- [LDAP integration](../integrations/LDAP/README.md) — LDAP/Active Directory authentication, including verifying the AD server's LDAPS certificate
+- [LDAP and Active Directory](../troubleshooting/ldap-ad.md) - dashboard authentication and LDAPS hostname/certificate verification
 - [Official documentation: Wazuh certificates deployment](https://documentation.wazuh.com/current/deployment-options/deploying-with-wazuh-installation-assistant/deploying-step-by-step.html)
 - [Official documentation: Configuring third-party certificates with NGINX](https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/configuring-third-party-certs/ssl-nginx.html)

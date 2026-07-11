@@ -1,6 +1,6 @@
 # HTTPS for the Wazuh Dashboard on a Private IP
 
-How to serve the Wazuh dashboard (and optionally a self-hosted OpenSearch maps server) over HTTPS when the deployment is only reachable on a **private IP address** — where Let's Encrypt and public CAs cannot help — using a self-signed IP-SAN certificate and NGINX.
+How to serve the Wazuh dashboard (and optionally a self-hosted OpenSearch maps server) over HTTPS when the deployment is only reachable on a **private IP address** - where Let's Encrypt and public CAs cannot help - using a self-signed IP-SAN certificate and NGINX.
 
 ## Table of Contents
 
@@ -10,14 +10,13 @@ How to serve the Wazuh dashboard (and optionally a self-hosted OpenSearch maps s
 - [Creating an IP-SAN certificate](#creating-an-ip-san-certificate)
 - [Public FQDNs: Let's Encrypt and commercial CAs](#public-fqdns-lets-encrypt-and-commercial-cas)
 - [Disabling HTTPS on the dashboard (lab only)](#disabling-https-on-the-dashboard-lab-only)
-- [NGINX for agent traffic (1514/1515)](#nginx-for-agent-traffic-15141515)
 - [Verification](#verification)
 
 ## Background
 
 - Public CAs (including Let's Encrypt) do **not** issue certificates for private RFC1918 addresses such as `192.168.x.x` or `10.x.x.x`. Let's Encrypt began issuing certificates for *public* IP addresses in mid-2025, but those are short-lived and still unusable for private ranges. For private networks, use a **self-signed certificate or a private CA**, or register an internal DNS name and issue a certificate for the FQDN instead.
 - Browsers only trust an IP certificate if the IP appears in the certificate's **Subject Alternative Name (SAN)**; the CN alone is not enough.
-- If the dashboard is HTTPS but loads resources (e.g. map tiles) over plain HTTP, browsers block them as **mixed content** — so everything must be served over HTTPS.
+- If the dashboard is HTTPS but loads resources (e.g. map tiles) over plain HTTP, browsers block them as **mixed content** - so everything must be served over HTTPS.
 - To get a padlock with no warnings, sign the server certificate with a private root CA and import that root CA into the client trust stores.
 
 Throughout this guide, replace `<WAZUH_DASHBOARD_IP>` with your dashboard's private IP (e.g. `192.168.1.100`).
@@ -102,7 +101,7 @@ The cleanest layout: NGINX terminates TLS on 443 and serves both the dashboard (
     }
     ```
 
-    > Note: every directive must end with a semicolon — a missing `;` produces `nginx: [emerg] unexpected "}"` on `nginx -t`.
+    > Note: every directive must end with a semicolon - a missing `;` produces `nginx: [emerg] unexpected "}"` on `nginx -t`.
 
 5. Restart everything:
 
@@ -122,7 +121,7 @@ The cleanest layout: NGINX terminates TLS on 443 and serves both the dashboard (
 <details>
 <summary>Example verification output</summary>
 
-```
+```text
 $ curl -Ik https://192.168.1.100/maps/manifest.json
 HTTP/2 200
 server: nginx/1.18.0 (Ubuntu)
@@ -249,7 +248,7 @@ sudo certbot renew --dry-run
 
 Certbot writes `privkey.pem` and `fullchain.pem` under `/etc/letsencrypt/live/wazuh.example.com/`; point `ssl_certificate`/`ssl_certificate_key` (or the dashboard's `server.ssl.*` settings) at them. Wildcard certificates (`*.example.com`) require the DNS-01 challenge; in Kubernetes, cert-manager automates issuance and renewal.
 
-**Commercial CA:** generate a key and CSR (`openssl genrsa` + `openssl req -new`, CN/SAN matching the FQDN), submit the CSR through the CA portal, then install the issued certificate **together with the intermediate chain** — see [component-certificates.md](component-certificates.md#using-a-corporate-or-commercial-ca-custom-csr).
+**Commercial CA:** generate a key and CSR (`openssl genrsa` + `openssl req -new`, CN/SAN matching the FQDN), submit the CSR through the CA portal, then install the issued certificate **together with the intermediate chain** - see [component-certificates.md](component-certificates.md#using-a-corporate-or-commercial-ca-custom-csr).
 
 ## Disabling HTTPS on the dashboard (lab only)
 
@@ -272,35 +271,6 @@ curl -I http://<WAZUH_DASHBOARD_IP>
 # location: /app/login?
 ```
 
-## NGINX for agent traffic (1514/1515)
-
-The same NGINX host can also load-balance **agent** traffic using the `stream` module (TCP passthrough — the agents' own TLS is not terminated here). In `/etc/nginx/nginx.conf`:
-
-```nginx
-stream {
-    upstream workers {
-        server <WORKER_1_IP>:1514;
-        server <WORKER_2_IP>:1514;
-    }
-
-    upstream master {
-        server <MASTER_IP>:1515;
-    }
-
-    server {
-        listen 1514;
-        proxy_pass workers;
-    }
-
-    server {
-        listen 1515;
-        proxy_pass master;
-    }
-}
-```
-
-Restart NGINX and watch `/var/log/nginx/access.log` and `/var/log/nginx/error.log`. See [troubleshooting.md](troubleshooting.md#agent-connectivity-on-15141515) for connectivity tests through the proxy.
-
 ## Verification
 
 ```bash
@@ -316,3 +286,6 @@ curl -Ik https://<WAZUH_DASHBOARD_IP>/app/login
 ```
 
 No mixed-content errors should appear in the browser console once every resource (dashboard, manifest, tiles) is HTTPS.
+
+For TCP load balancing of Wazuh agent traffic on ports 1514 and 1515, use the
+separate [NGINX stream load-balancer guide](../integrations/nginx/README.md).

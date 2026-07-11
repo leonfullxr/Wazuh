@@ -1,6 +1,6 @@
 # TLS and Certificate Troubleshooting
 
-A diagnostic playbook for TLS failures across the Wazuh stack — most notably the indexer's `Received fatal alert: bad_certificate`, but the same flow applies to Filebeat-to-indexer, dashboard-to-indexer, LDAPS, and agent enrollment problems.
+A diagnostic playbook for TLS failures across the Wazuh stack - most notably the indexer's `Received fatal alert: bad_certificate`, but the same flow applies to Filebeat-to-indexer, dashboard-to-indexer, LDAPS, and agent enrollment problems.
 
 ## Table of Contents
 
@@ -9,6 +9,8 @@ A diagnostic playbook for TLS failures across the Wazuh stack — most notably t
 - [Case study: inverted validity window](#case-study-inverted-validity-window)
 - [Hostname/SAN mismatches (LDAPS example)](#hostnamesan-mismatches-ldaps-example)
 - [Agent connectivity on 1514/1515](#agent-connectivity-on-15141515)
+- [API certificate errors on port 55000](#api-certificate-errors-on-port-55000)
+- [Let's Encrypt certificate renewed but not applied](#lets-encrypt-certificate-renewed-but-not-applied)
 - [Useful openssl one-liners](#useful-openssl-one-liners)
 
 ## What bad_certificate means
@@ -16,7 +18,7 @@ A diagnostic playbook for TLS failures across the Wazuh stack — most notably t
 When the indexer logs `Received fatal alert: bad_certificate`, Java attempted a TLS handshake and one of the following is true:
 
 - the certificate it loaded is **expired, malformed, or doesn't match the private key**;
-- the peer (client or server) did not present a certificate **signed by your CA** — or you pointed Java at the wrong truststore;
+- the peer (client or server) did not present a certificate **signed by your CA** - or you pointed Java at the wrong truststore;
 - there is a **hostname or time mismatch** (clock skew, or the CN/SAN doesn't match the address being connected to).
 
 ## Step-by-step diagnostic flow
@@ -46,7 +48,7 @@ openssl x509 -in /etc/wazuh-indexer/certs/indexer.pem -noout \
 
 Check:
 
-- `notBefore` / `notAfter` — today must be inside the window;
+- `notBefore` / `notAfter` - today must be inside the window;
 - the SAN (or CN) includes the hostname/IP that clients actually use to connect.
 
 If either is wrong, regenerate the certificate ([component-certificates.md](component-certificates.md)).
@@ -62,7 +64,7 @@ openssl rsa  -noout -modulus -in /etc/wazuh-indexer/certs/indexer-key.pem | open
 
 ### 5. Test a live handshake
 
-Connect the same way Java will — transport layer (9300) with mutual TLS, and HTTP layer (9200):
+Connect the same way Java will - transport layer (9300) with mutual TLS, and HTTP layer (9200):
 
 ```bash
 # Transport layer, presenting the node's cert as a client
@@ -95,7 +97,7 @@ The CA belongs in the **truststore**; the node's cert+key in the **keystore**.
 
 ### 7. Regenerate and restart
 
-If anything above failed (expired dates, wrong CN/SAN, missing CA, modulus mismatch), reissue the certificate against the root CA — either with `wazuh-certs-tool.sh` or a manual `openssl x509 -req ... -CA root-ca.pem` (see [component-certificates.md](component-certificates.md#signing-additional-certificates-with-an-existing-root-ca)). Then:
+If anything above failed (expired dates, wrong CN/SAN, missing CA, modulus mismatch), reissue the certificate against the root CA - either with `wazuh-certs-tool.sh` or a manual `openssl x509 -req ... -CA root-ca.pem` (see [component-certificates.md](component-certificates.md#signing-additional-certificates-with-an-existing-root-ca)). Then:
 
 ```bash
 systemctl restart wazuh-indexer
@@ -110,12 +112,12 @@ The `bad_certificate` errors should stop and cluster nodes should join cleanly.
 
 Real-world example of step 3 paying off. The certificate dump showed:
 
-```
+```text
 notBefore=May 16 07:34:51 2035 GMT
 notAfter =May 14 07:34:51 2035 GMT
 ```
 
-The certificate is "valid" *from* a date *after* its expiry — it can never be valid, and Java rejects it with `bad_certificate` no matter what else is configured. The fix is simply to reissue with a sane window:
+The certificate is "valid" *from* a date *after* its expiry - it can never be valid, and Java rejects it with `bad_certificate` no matter what else is configured. The fix is simply to reissue with a sane window:
 
 ```bash
 openssl x509 -req -in indexer.csr \
@@ -149,7 +151,7 @@ When the security plugin connects to an external TLS service (e.g. Active Direct
     verify_hostnames: false
     ```
 
-The same rule applies to the Wazuh components themselves: whatever address clients use (IP or FQDN) must appear in the certificate's SAN. See the [LDAP integration guide](../integrations/LDAP/README.md) for the full LDAP/AD setup.
+The same rule applies to the Wazuh components themselves: whatever address clients use (IP or FQDN) must appear in the certificate's SAN. See the [LDAP and Active Directory guide](../troubleshooting/ldap-ad.md) for the full setup.
 
 ## Agent connectivity on 1514/1515
 
@@ -167,7 +169,7 @@ nc -zv <MANAGER_IP> 1514 1515 55000
 /var/ossec/bin/agent_control -i <AGENT_ID> | grep Status
 ```
 
-To probe both ports at protocol level — including timing the TLS handshake on 1515, useful when a proxy or load balancer sits in between — this Python script sends the `#ping` probe on 1514 and performs a TLS echo test on 1515:
+To probe both ports at protocol level - including timing the TLS handshake on 1515, useful when a proxy or load balancer sits in between - this Python script sends the `#ping` probe on 1514 and performs a TLS echo test on 1515:
 
 <details>
 <summary>tls_agent_ping.py</summary>
@@ -269,7 +271,7 @@ if __name__ == "__main__":
 
 </details>
 
-Run it against both a direct manager address and (if applicable) the proxy/load-balancer address and compare — a handshake that works direct but fails through the proxy points at the proxy configuration. See also the official [agent enrollment troubleshooting guide](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/troubleshooting.html).
+Run it against both a direct manager address and (if applicable) the proxy/load-balancer address and compare - a handshake that works direct but fails through the proxy points at the proxy configuration. See also the official [agent enrollment troubleshooting guide](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/troubleshooting.html).
 
 If agents repeatedly try to **re-register** instead of reconnecting (rejected because a valid key already exists), tune the agent's `ossec.conf`:
 
@@ -277,6 +279,85 @@ If agents repeatedly try to **re-register** instead of reconnecting (rejected be
 <force_reconnect_interval>1h</force_reconnect_interval>
 <time-reconnect>300</time-reconnect>
 ```
+
+If **new** agents cannot enroll on 1515 while already-registered agents keep reporting normally, suspect the manager's dedicated enrollment certificate `/var/ossec/etc/sslmanager.cert` rather than the shared bundle - most often it has expired. It is only used during registration, so its expiry does not disconnect existing agents. Check and renew it as described in [component-certificates.md](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert):
+
+```bash
+openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert
+```
+
+## API certificate errors on port 55000
+
+The Wazuh server REST API (TCP 55000) has its own certificate, separate from the indexer/Filebeat/dashboard bundle. A recurring failure mode after replacing it is that clients (agents doing remote upgrades, the dashboard, custom scripts) report:
+
+```text
+tls: failed to verify certificate: x509: certificate signed by unknown authority
+```
+
+while a plain `openssl s_client` against the certificate file looks valid. This is almost always an **incomplete chain**: the certificate is signed by an intermediate CA, and the API serves only the leaf certificate, so a client that does not already hold the intermediate cannot build a path to the root.
+
+Confirm it by looking at what the API actually sends on the wire:
+
+```bash
+openssl s_client -connect <MANAGER_IP>:55000 -showcerts
+```
+
+The tell-tale is a `verify error:num=20:unable to get local issuer certificate` with only the leaf (and no intermediate) in the `Certificate chain` block. The fix has two halves - serve the full chain from the manager and trust the CA on the client - both detailed in [component-certificates.md](component-certificates.md#the-wazuh-server-api-certificate-port-55000). In short:
+
+```bash
+# On the manager: build leaf + intermediate and point api.yaml at it
+cat server.crt intermediate.crt > /var/ossec/api/configuration/ssl/server-chain.crt
+# (set `cert: "server-chain.crt"` in /var/ossec/api/configuration/api.yaml, then restart)
+
+# On each client host: trust the intermediate + root CA
+cp root-wazuh-api.crt /usr/local/share/ca-certificates/
+update-ca-certificates
+```
+
+A successful chain lets you authenticate without `-k`:
+
+```bash
+TOKEN=$(curl -u <API_USER>:<API_PASSWORD> \
+  -X POST "https://<MANAGER_IP>:55000/security/user/authenticate?raw=true")
+curl -X GET "https://<MANAGER_IP>:55000/?pretty=true" -H "Authorization: Bearer $TOKEN"
+```
+
+## Let's Encrypt certificate renewed but not applied
+
+A dashboard that was secure at install time starts being reported as "not secure" roughly 90 days later, and the dashboard log shows a TLS alert such as `sslv3 alert certificate unknown`. `certbot renew` reports success, yet the browser still sees the expired certificate.
+
+The usual root cause is that the deployment **copied** `fullchain.pem` / `privkey.pem` from `/etc/letsencrypt/live/<domain>/` into the component's certs directory (e.g. `/etc/wazuh-dashboard/certs/`) instead of pointing the service straight at the live files. Certbot renews the files under `/etc/letsencrypt/live/`, but the stale copies the dashboard actually serves are never refreshed. Compare the timestamps to confirm:
+
+```bash
+ls -l /etc/letsencrypt/live/<domain>/fullchain.pem
+ls -l /etc/wazuh-dashboard/certs/fullchain.pem   # older -> this is the problem
+```
+
+Two ways to fix it:
+
+- **Point the service directly at the live files** (`server.ssl.certificate` / `server.ssl.key`, or the NGINX `ssl_certificate*` directives) so no copy step exists.
+- **Automate the copy on renewal.** Add a certbot `--deploy-hook` (runs only when a certificate actually changes) or a small scheduled job that copies the renewed files into the certs directory and restarts the service. A minimal timestamp-driven script:
+
+    ```bash
+    #!/bin/bash
+    SRC=/etc/letsencrypt/live/<domain>
+    DEST=/etc/wazuh-dashboard/certs
+    changed=0
+    for f in privkey.pem fullchain.pem; do
+      if [ "$SRC/$f" -nt "$DEST/$f" ]; then
+        cp "$SRC/$f" "$DEST/$f"; changed=1
+      fi
+    done
+    [ "$changed" -eq 1 ] && systemctl restart wazuh-dashboard
+    ```
+
+    Schedule it (for example monthly) with `crontab -e`:
+
+    ```cron
+    0 0 1 * * /path/to/checkcerts.sh
+    ```
+
+Remember to keep file ownership/permissions correct on the copied files (`chown wazuh-dashboard:wazuh-dashboard`, mode `400`).
 
 ## Useful openssl one-liners
 
