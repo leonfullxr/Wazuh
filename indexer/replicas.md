@@ -1,6 +1,6 @@
 # Replica Management
 
-Replica shards provide redundancy — but a replica can never be allocated on
+Replica shards provide redundancy - but a replica can never be allocated on
 the same node as its primary. On a **single-node** deployment (the default
 Wazuh all-in-one install), every index created with 1 replica leaves an
 unassigned replica shard behind, and the cluster sits permanently
@@ -22,15 +22,15 @@ and are the usual culprit behind a stubbornly yellow single-node cluster.
 
 Set replicas to 0 on the offending indices. From Dev Tools:
 
-```
+```http
 PUT wazuh-monitoring*/_settings
 { "index": { "number_of_replicas": 0 } }
 ```
 
 For the `.opendistro-*` system indices, also disable `auto_expand_replicas`
-— otherwise the plugin re-expands the replica count as nodes join:
+- otherwise the plugin re-expands the replica count as nodes join:
 
-```
+```http
 PUT .opendistro-*/_settings
 {
   "index": {
@@ -57,7 +57,7 @@ Settings changes only affect existing indices; the plugins keep creating new
 ones (alerting history indices roll over frequently). Install index templates
 so new system indices are born with 0 replicas:
 
-```
+```http
 PUT _index_template/opendistro_alerting_alerts
 {
   "index_patterns": [".opendistro-alerting-alerts*"],
@@ -70,7 +70,7 @@ PUT _index_template/opendistro_alerting_alerts
 }
 ```
 
-```
+```http
 PUT _index_template/ism_history_indices
 {
   "index_patterns": [".opendistro-ism-managed-index-history-*"],
@@ -84,9 +84,9 @@ PUT _index_template/ism_history_indices
 ```
 
 The ISM plugin's history indices additionally honor a dedicated cluster
-setting — set it too:
+setting - set it too:
 
-```
+```http
 PUT .opendistro-ism-managed-index-history-*/_settings
 {
   "index.number_of_replicas": 0,
@@ -114,7 +114,7 @@ belt-and-braces approach that force-sets replicas to 0 on every new
 <details>
 <summary>Click to expand the ISM policy</summary>
 
-```
+```http
 PUT _plugins/_ism/policies/set_opendistro_replica_to_0
 {
   "policy": {
@@ -166,7 +166,7 @@ indices; the `retry` block handles transient failures.
 
 - On multi-node clusters, **keep at least 1 replica** on `wazuh-alerts-*`:
   losing a node without replicas means a red cluster and lost data. Replicas
-  are configured alongside shards in `/etc/filebeat/wazuh-template.json` —
+  are configured alongside shards in `/etc/filebeat/wazuh-template.json` -
   see [Increasing shards](shard-management.md#increasing-the-number-of-primary-shards).
 - Replicas double the disk footprint and cluster-wide shard count; factor
   them into the [shard-per-heap budget](shard-management.md#sizing-guidelines)

@@ -29,27 +29,53 @@ overall. As a starting point for time-based data such as Wazuh alerts:
   50 GB**. Oversized shards cause increased memory and CPU usage on data
   nodes, longer query response times, slow recovery and rebalancing, and
   performance bottlenecks during ingestion.
-- **Avoid the "gazillion shards" problem.** The number of shards a node can
-  hold is proportional to its heap. As a rule of thumb, keep it **below 20
-  shards per GB of JVM heap** on each node.
-- **Low-volume environments (under ~100 GB/day per index):** the opposite
-  problem. Daily indices produce many tiny shards. Consider merging several
-  days into one index (weekly/monthly rollover, or reindexing old daily
-  indices together) to reduce index count. Perform merges during low-activity
-  windows to avoid disturbing ingestion.
+- **Avoid the "gazillion shards" problem.** As a conservative planning
+  ceiling, keep the total of primary and replica shards **below 20 per GB of
+  JVM heap** on each data node. This is a legacy operational rule of thumb,
+  not an OpenSearch hard limit; benchmark the OpenSearch version bundled with
+  Wazuh and monitor heap pressure, cluster-manager latency, and recovery time.
+- **Low-volume environments:** if a daily primary shard remains far below the
+  target range, daily indices create unnecessary cluster-state and heap
+  overhead. Consider a longer index period or a tested size/age rollover
+  design. Do not raise `cluster.max_shards_per_node` to compensate for
+  oversharding.
 
-References: [Wazuh indexer tuning — shards and replicas](https://documentation.wazuh.com/current/user-manual/wazuh-indexer/wazuh-indexer-tuning.html#shards-and-replicas),
-[Elastic — Size your shards](https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards).
+Measure the current distribution before changing the template:
+
+```http
+GET _cat/indices/wazuh-alerts-*?v&h=index,pri,rep,docs.count,pri.store.size&s=index:desc
+GET _cat/shards/wazuh-alerts-*?v&h=index,shard,prirep,state,store,node&s=store:desc
+GET _cat/nodes?v&h=name,heap.max,heap.percent,disk.used_percent,node.role
+```
+
+Calculate both budgets:
+
+```text
+estimated primaries = ceil(expected primary bytes per index / target shard bytes)
+total shards = primary shards * (1 + number_of_replicas)
+```
+
+Prefer a primary count that distributes evenly across the data nodes without
+creating tiny shards. Re-evaluate after changing ingestion volume, node count,
+heap size, replica count, or index period.
+
+References: [Wazuh indexer tuning - shards and replicas](https://documentation.wazuh.com/current/user-manual/wazuh-indexer/wazuh-indexer-tuning.html#shards-and-replicas),
+[Elastic - Size your shards](https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards).
 
 ## Worked example: resizing oversized shards
 
 A common failure mode in large environments: `wazuh-alerts` daily indices
-ingest ~1.5 TB/day with the default-ish 12 primary shards, producing shards of
-roughly **150 GB each** — three times the recommended maximum. The fix is to
-raise the primary shard count so shards land in the target range:
+ingest about 1.5 TB/day with 12 primary shards, producing shards of roughly
+125 GB each. Compare candidate counts before changing the template:
 
-- 1.5 TB / 36 shards ≈ **41.6 GB per shard** — within the recommended limit.
-- With 12 data nodes, 36 shards distribute evenly at 3 primaries per node.
+- 1.5 TB / 36 shards is about **42 GB per shard** and distributes as three
+  primaries per node on a 12-node cluster.
+- 1.5 TB / 48 shards is about **31 GB per shard** and distributes as four
+  primaries per node.
+
+Both are below 50 GB, but 48 is inside the initial target range at the cost of
+more shard overhead. Benchmark ingestion, search, and recovery on the actual
+hardware rather than choosing from arithmetic alone.
 
 After the change, expect improvements only gradually: old oversized indices
 remain until [retention policies](ilm-retention.md) delete them (or you
@@ -60,30 +86,56 @@ itself (index rotation scheme, node count, heap sizing) needs a redesign.
 
 ## Increasing the number of primary shards
 
-The shard count for **new** indices is set in the Filebeat-managed index
-template on the Wazuh manager:
+The shard count for **new** indices comes from an index template. Use a
+higher-order custom template so a Filebeat setup or upgrade does not silently
+replace the setting:
 
-1. SSH into the Wazuh manager and back up the template:
+1. Download the template that matches the installed Wazuh version:
 
    ```bash
-   cd /etc/filebeat
-   cp wazuh-template.json wazuh-template.json.bak
+   WAZUH_VERSION="<WAZUH_VERSION>"
+   curl -fsSL \
+     "https://raw.githubusercontent.com/wazuh/wazuh/v${WAZUH_VERSION}/extensions/elasticsearch/7.x/wazuh-template.json" \
+     -o w-indexer-template.json
    ```
 
-2. Edit `wazuh-template.json` and change the shard count, e.g.:
+2. Edit `w-indexer-template.json`. Set `order` to `1` and change the shard
+   and replica settings:
 
    ```json
-   "index.number_of_shards": 36
+   {
+     "order": 1,
+     "index_patterns": [
+       "wazuh-alerts-4.x-*",
+       "wazuh-archives-4.x-*"
+     ],
+     "settings": {
+       "index.number_of_shards": 48,
+       "index.number_of_replicas": 1
+     }
+   }
    ```
 
-3. Upload the template and restart Filebeat:
+   Preserve the mappings and remaining settings from the downloaded template;
+   the shortened object above shows only the fields to review.
+
+3. Load the template through the Wazuh Indexer API:
 
    ```bash
-   filebeat setup --index-management
-   systemctl restart filebeat
+   curl -fsS -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> \
+     -X PUT "https://<INDEXER_IP>:9200/_template/wazuh-custom" \
+     -H "Content-Type: application/json" \
+     --data-binary @w-indexer-template.json
    ```
 
-The new setting takes effect **from the next daily index onward** — the
+4. Verify the effective custom template before waiting for the next index:
+
+   ```bash
+   curl -fsS -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> \
+     "https://<INDEXER_IP>:9200/_template/wazuh-custom?pretty&filter_path=wazuh-custom.order,wazuh-custom.index_patterns,wazuh-custom.settings"
+   ```
+
+The new setting takes effect **from the next daily index onward** - the
 current day's index was already created with the old settings, which live in
 the indexer itself. To apply the new shard count to existing indices you must
 [reindex them](reindexing.md); the number of primary shards cannot be changed
@@ -93,7 +145,7 @@ on a live index.
 
 Each node can hold a limited number of shards
 (`cluster.max_shards_per_node`, default 1000). Approaching the limit blocks
-new index creation — which for Wazuh means alerts stop being indexed at
+new index creation - which for Wazuh means alerts stop being indexed at
 midnight when the next daily index is due.
 
 You can create an OpenSearch Alerting monitor that fires when the active
@@ -101,7 +153,7 @@ shard count reaches ~85% of your cluster-wide maximum. Use a query against
 `_cluster/health` (or a cluster metrics monitor) with a trigger condition
 such as:
 
-```
+```javascript
 ctx.results[0].active_shards > 1000
 ```
 
@@ -109,7 +161,7 @@ Adjust the threshold to 85% of `max_shards_per_node * number_of_data_nodes`.
 
 ## Cluster health: red and yellow states
 
-```
+```http
 GET _cluster/health
 ```
 
@@ -121,13 +173,13 @@ GET _cluster/health
 
 Common causes and fixes:
 
-- **Yellow on a single-node cluster** — replicas can never be assigned
+- **Yellow on a single-node cluster** - replicas can never be assigned
   because a replica may not live on the same node as its primary. Set
   replicas to 0; see [Replicas](replicas.md).
-- **Yellow on `.opendistro-*` system indices** — same root cause; these
+- **Yellow on `.opendistro-*` system indices** - same root cause; these
   indices default to 1 replica. See [Replicas](replicas.md) for settings,
   templates, and an ISM policy that fixes this permanently.
-- **Red after a node loss or disk-full event** — diagnose with the allocation
+- **Red after a node loss or disk-full event** - diagnose with the allocation
   explain API below; free disk first if watermarks are the cause.
 
 ## Diagnosing unassigned shards
@@ -140,7 +192,7 @@ curl -k -u <USERNAME>:<PASSWORD> \
   | grep UNASSIGNED
 ```
 
-Ask the cluster *why* it will not allocate a shard — this is the single most
+Ask the cluster *why* it will not allocate a shard - this is the single most
 useful API for shard problems:
 
 ```bash
@@ -150,7 +202,7 @@ curl -k -u <USERNAME>:<PASSWORD> \
 
 Wider context (Dev Tools console):
 
-```
+```http
 GET _cluster/stats
 GET _cat/shards?v=true&h=index,shard,prirep,state,node,unassigned.reason&s=state
 GET _cat/nodes?v&h=name,heap.percent,ram.percent,ram.max,load_1m
@@ -166,11 +218,11 @@ GET _cluster/settings?flat_settings=true&include_defaults=true
 ### Allocation is disabled
 
 If `allocation/explain` reports that no allocations are allowed, shard
-allocation was disabled (typically for maintenance — e.g. the
+allocation was disabled (typically for maintenance - e.g. the
 [move-data-to-a-new-disk procedure](disk-management.md#moving-indexer-data-to-a-new-disk)
 sets it to `primaries`) and never re-enabled:
 
-```
+```http
 PUT _cluster/settings
 {
   "persistent": {
@@ -181,7 +233,7 @@ PUT _cluster/settings
 
 Also check for a per-index allocation block:
 
-```
+```http
 PUT <index>/_settings
 { "index.routing.allocation.disable_allocation": false }
 ```
@@ -200,11 +252,11 @@ Check disk usage and shard distribution per node:
 curl -k -u <USERNAME>:<PASSWORD> "https://<INDEXER_IP>:9200/_cat/allocation?v"
 ```
 
-**Fix the disk first** — see [Disk management](disk-management.md). If your
+**Fix the disk first** - see [Disk management](disk-management.md). If your
 nodes have large disks (multiple TB), the default 85% may be unnecessarily
-conservative — 15% of a 5 TB disk is a lot of headroom. You can raise it:
+conservative - 15% of a 5 TB disk is a lot of headroom. You can raise it:
 
-```
+```http
 PUT _cluster/settings
 {
   "transient": {
@@ -224,7 +276,7 @@ survive restarts. Important subtlety from the
 For explicit control over shard placement, use the cluster reroute API.
 Move a shard between nodes:
 
-```
+```http
 POST _cluster/reroute
 {
   "commands": [
@@ -244,7 +296,7 @@ As a **last resort** for a red index whose primary shard data is genuinely
 lost (e.g. the node's disk is gone), you can allocate an empty primary. This
 **permanently discards whatever data was in that shard**:
 
-```
+```http
 POST _cluster/reroute
 {
   "commands": [
@@ -266,7 +318,9 @@ shard, and prefer restoring from a snapshot if one exists.
 ## References
 
 - [Wazuh indexer tuning](https://documentation.wazuh.com/current/user-manual/wazuh-indexer/wazuh-indexer-tuning.html)
-- [Elastic — Size your shards](https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards)
-- [Elastic — How many shards should I have in my Elasticsearch cluster?](https://www.elastic.co/blog/how-many-shards-should-i-have-in-my-elasticsearch-cluster)
-- [Elastic — Cluster reroute API](https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-reroute.html)
-- [Elastic — Disk-based shard allocation](https://www.elastic.co/guide/en/elasticsearch/reference/current/disk-allocator.html)
+- [OpenSearch - Tuning for indexing speed](https://docs.opensearch.org/latest/tuning-your-cluster/performance/)
+- [OpenSearch - Cluster shard limits](https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/cluster-settings/)
+- [Elastic - Size your shards](https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards)
+- [Elastic - How many shards should I have in my Elasticsearch cluster?](https://www.elastic.co/blog/how-many-shards-should-i-have-in-my-elasticsearch-cluster)
+- [Elastic - Cluster reroute API](https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-reroute.html)
+- [Elastic - Disk-based shard allocation](https://www.elastic.co/guide/en/elasticsearch/reference/current/disk-allocator.html)

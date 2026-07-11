@@ -3,14 +3,14 @@
 Security reviews of a Wazuh deployment regularly flag the indexer's default
 accounts and ask which can be removed. Short answer: they are **service
 accounts and roles of the OpenSearch Security plugin**, not end-user logins.
-Most should be kept and restricted rather than deleted — several are
+Most should be kept and restricted rather than deleted - several are
 load-bearing, and removing the wrong one takes the dashboard or alert
 ingestion down.
 
 They are defined in
 `/etc/wazuh-indexer/opensearch-security/internal_users.yml` and managed with
 `securityadmin.sh` or the dashboard security UI. See
-[OpenSearch — security configuration YAML files](https://docs.opensearch.org/latest/security/configuration/yaml/).
+[OpenSearch - security configuration YAML files](https://docs.opensearch.org/latest/security/configuration/yaml/).
 
 ## Account-by-account breakdown
 
@@ -22,7 +22,7 @@ configuration via `securityadmin.sh`) and general backend administration.
 
 **Do not delete.** It is the only account that can recover control of the
 cluster if the security configuration locks you out. Day-to-day operational
-use can and should be restricted — reserve it for emergency and maintenance
+use can and should be restricted - reserve it for emergency and maintenance
 procedures.
 
 ### kibanaserver
@@ -44,7 +44,7 @@ indexer.
 
 **Verify before touching it.** If your ingestion pipelines authenticate with
 this account, removing it stops alert indexing. If Filebeat uses a dedicated
-account with the `filebeat` role instead, `logstash` may be inactive — but it
+account with the `filebeat` role instead, `logstash` may be inactive - but it
 is conventionally kept as a template account for ingestion integrations.
 Check what credentials Filebeat actually uses (`filebeat keystore list`,
 `filebeat test output`) before deciding.
@@ -56,7 +56,7 @@ Mapped to the role with snapshot privileges (`cluster:admin/snapshot/*`,
 operations.
 
 Not essential for online cluster operation, but required for the snapshot
-functionality — **recommended to keep**.
+functionality - **recommended to keep**.
 
 ### anomalyadmin
 
@@ -72,7 +72,7 @@ all indices at the backend level; `kibanaro` allows read-only consumption
 through the dashboard. They exist to map audit, monitoring or query users
 without write privileges.
 
-**No risk if unmapped to real users** — and they are exactly what you want
+**No risk if unmapped to real users** - and they are exactly what you want
 for least-privilege and segregation-of-duties mappings, so keep them.
 
 ## Summary table
@@ -89,12 +89,18 @@ for least-privilege and segregation-of-duties mappings, so keep them.
 ## Hardening recommendations
 
 - Change every default password with the `wazuh-passwords-tool.sh` (see
-  [recovering indexer credentials](misc-operations.md#recovering-indexer-credentials)
+  [password reset and recovery](../troubleshooting/passwords-recovery.md)
   for the keystore side effects on Filebeat and the dashboard).
 - Restrict `admin` to break-glass procedures; create named administrator
   accounts mapped to appropriate roles for routine work.
 - Map human read-only consumers (auditors, NOC screens) to `readall` /
   `kibanaro` instead of granting broader roles.
-- Audit `internal_users.yml` and the role mappings after upgrades — new
+- Audit `internal_users.yml` and the role mappings after upgrades - new
   plugin service accounts (like `anomalyadmin`) can appear as features are
   enabled by default.
+
+## See also
+
+- [Indexer security audit logs](security-audit-logs.md) - record authentication,
+  authorization, TLS, and security-configuration activity.
+- [Password reset and recovery](../troubleshooting/passwords-recovery.md)

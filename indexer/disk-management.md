@@ -7,7 +7,7 @@ means **alerts stop being indexed**. This guide covers finding where the
 space went, freeing it quickly, and moving or expanding storage properly.
 
 Long-term, the real fix is a [retention policy](ilm-retention.md) sized to
-your ingestion rate — everything below buys you time or capacity.
+your ingestion rate - everything below buys you time or capacity.
 
 ## Table of Contents
 
@@ -41,7 +41,7 @@ than `du` can account for, something on that filesystem is holding space that
    sudo du -xhd1 /mount/point | sort -h     # top-level dirs, no crossing mounts
    ```
 
-2. **Deleted-but-still-open files** (the classic cause — a process holds a
+2. **Deleted-but-still-open files** (the classic cause - a process holds a
    file descriptor to a log that was rotated/deleted; counts in `df`, not in
    `du`):
 
@@ -54,7 +54,7 @@ than `du` can account for, something on that filesystem is holding space that
    `:> /proc/<PID>/fd/<FD>`. Common culprits: application logs, rotated
    logs, `journald`, Docker container logs.
 
-3. **Filesystem snapshots / CoW subvolumes** — `du` does not see snapshot
+3. **Filesystem snapshots / CoW subvolumes** - `du` does not see snapshot
    data, `df` does:
 
    ```bash
@@ -78,7 +78,7 @@ than `du` can account for, something on that filesystem is holding space that
    sudo ls -lh /var/lib/docker/containers/*/*-json.log
    ```
 
-6. **Inode exhaustion** — lots of tiny files can exhaust inodes while bytes
+6. **Inode exhaustion** - lots of tiny files can exhaust inodes while bytes
    look fine. Note `du -i` shows inode counts, **not** sizes:
 
    ```bash
@@ -102,7 +102,7 @@ reserved-block percentage.
 When the indexer node is at the flood-stage watermark and you need headroom
 *now*:
 
-- **Vacuum the systemd journal** — archived journals routinely accumulate
+- **Vacuum the systemd journal** - archived journals routinely accumulate
   gigabytes:
 
   ```bash
@@ -110,7 +110,7 @@ When the indexer node is at the flood-stage watermark and you need headroom
   sudo journalctl --vacuum-size=2048M
   ```
 
-- **Temporarily lower the ext4 root reserve** (default 5% — on a large data
+- **Temporarily lower the ext4 root reserve** (default 5% - on a large data
   partition that is a lot of space):
 
   ```bash
@@ -120,7 +120,7 @@ When the indexer node is at the flood-stage watermark and you need headroom
   Treat this as an emergency measure and **revert it** once real capacity is
   restored.
 
-- **Delete the oldest indices** (irreversible — snapshot first if you must
+- **Delete the oldest indices** (irreversible - snapshot first if you must
   keep them):
 
   ```
@@ -190,14 +190,14 @@ curl -X PUT "https://<INDEXER_IP>:9200/_cluster/settings" -u <USERNAME> -k \
 }'
 ```
 
-Do not forget step 11 — a cluster left with `allocation.enable: primaries`
+Do not forget step 11 - a cluster left with `allocation.enable: primaries`
 will accumulate [unassigned replica shards](shard-management.md#allocation-is-disabled).
 
 ## Expanding into a new partition on the same disk
 
 A common scenario on VMs: the hypervisor disk was grown, and the extra space
 must become the indexer's data volume. Generic procedure (adapt device names
-— here the new partition ends up as `/dev/sda7`):
+- here the new partition ends up as `/dev/sda7`):
 
 ```bash
 # 0. Stop the stack and snapshot the VM first
@@ -240,7 +240,7 @@ environment uses LVM, simply growing the logical volume and filesystem
 
 Wazuh manager archives (`/var/ossec/logs/archives/`) grow fast when event
 archiving is enabled and often fill the manager's disk. Same bind-mount
-approach — one node at a time:
+approach - one node at a time:
 
 ```bash
 # 1. Stop services
@@ -273,7 +273,7 @@ sudo tail -f /var/ossec/logs/ossec.log   # confirm events are processing
 - Keep Filebeat **stopped** on the managers until the indexer's data
   partition is back under the low watermark; consider disabling archives
   ingestion in Filebeat if you do not need it. When Filebeat restarts it will
-  ship its backlog, causing an ingestion surge — make sure there is headroom.
+  ship its backlog, causing an ingestion surge - make sure there is headroom.
 - If indices were forced read-only by the flood-stage watermark, the block is
   released automatically once disk drops below the high watermark (on
   current versions); on older versions clear it manually:

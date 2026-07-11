@@ -18,7 +18,7 @@ and then copy the data into a fresh index with `_reindex`.
 
 Templates apply **by index name pattern**. After updating the template (e.g.
 changing a field mapping from `keyword` to `long`), the destination index
-must match the template's pattern — usually `wazuh-alerts-4.x-*`. If you
+must match the template's pattern - usually `wazuh-alerts-4.x-*`. If you
 reindex into a name like `backup-2023`, the template will not apply and the
 indexer will dynamically map the field right back to the wrong type.
 
@@ -28,7 +28,7 @@ The pragmatic convention: append `-reindexed` to the original name.
 - New index: `wazuh-alerts-4.x-2023.10.01-reindexed`
 
 Because the Wazuh dashboards query with the wildcard pattern
-`wazuh-alerts-*`, the `-reindexed` index is picked up automatically — no
+`wazuh-alerts-*`, the `-reindexed` index is picked up automatically - no
 saved objects need touching.
 
 ## Step 2: Pre-tune the destination index
@@ -36,7 +36,7 @@ saved objects need touching.
 Create the destination with heavy-write settings so the copy is not throttled
 by refreshes, replication and synchronous translog writes:
 
-```
+```http
 PUT /wazuh-alerts-4.x-2023.10.01-reindexed
 {
   "settings": {
@@ -55,7 +55,7 @@ time.
 
 Use `slices=auto` to parallelize across shards/cores and a larger batch size:
 
-```
+```http
 POST /_reindex?slices=auto&wait_for_completion=false
 {
   "source": {
@@ -71,15 +71,18 @@ POST /_reindex?slices=auto&wait_for_completion=false
 `wait_for_completion=false` returns a **task ID** immediately so the console
 does not time out on large indices. Track progress with:
 
-```
+```http
 GET /_tasks/<task_id>
 ```
 
 ## Step 4: Post-reindex cleanup
 
-Restore standard settings so the new index is searchable and redundant again:
+Restore standard settings so the new index is searchable. Set replicas for
+the deployment topology: `0` on a single-node cluster, or at least `1` on an
+HA cluster with enough nodes and disk capacity to allocate them. The example
+below is for HA:
 
-```
+```http
 PUT /wazuh-alerts-4.x-2023.10.01-reindexed/_settings
 {
   "index.number_of_replicas": 1,
@@ -88,16 +91,19 @@ PUT /wazuh-alerts-4.x-2023.10.01-reindexed/_settings
 }
 ```
 
+For a single-node deployment, use `"index.number_of_replicas": 0` instead;
+otherwise the new index remains yellow. See [Replica management](replicas.md).
+
 Verify the document counts match between source and destination
 (`GET _cat/indices/wazuh-alerts-4.x-2023.10.01*?v`), then delete the old
 index:
 
-```
+```http
 DELETE /wazuh-alerts-4.x-2023.10.01
 ```
 
 Repeat per historical index. Weigh the effort against simply letting
-[retention](ilm-retention.md) age the old indices out — reindexing months of
+[retention](ilm-retention.md) age the old indices out - reindexing months of
 daily indices is expensive.
 
 ## Alternative: re-ingesting archived logs with Filebeat
@@ -121,5 +127,5 @@ Then restart Filebeat:
 systemctl restart filebeat
 ```
 
-Revert to the defaults after the backfill — permanently oversized bulk
+Revert to the defaults after the backfill - permanently oversized bulk
 requests increase memory pressure on both Filebeat and the indexer.

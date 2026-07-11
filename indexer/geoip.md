@@ -244,17 +244,17 @@ level 12 with a dedicated rule ID.
 
 Notes:
 
-- This rewrites the indexed document only — manager-side outputs (email,
+- This rewrites the indexed document only - manager-side outputs (email,
   integrations, active response) still see the original level.
 - For notification-only use cases, an OpenSearch **Alerting monitor** on
   `GeoLocation.country_name` is simpler and requires no pipeline surgery.
 - `pipeline.json` is shared with the
   [index separation](index-separation.md#coordinating-pipelinejson-changes)
-  and [timezone](misc-operations.md#showing-local-time-in-full_log)
-  customizations — keep them coordinated and re-apply after upgrades.
+  and [timestamp formatting](ingest-pipeline-customization.md)
+  customizations - keep them coordinated and re-apply after upgrades.
 
 ## References
 
-- [Wazuh — GeoIP enrichment discussion](https://github.com/wazuh/wazuh/issues/4053)
-- [MaxMind — Updating GeoIP databases](https://dev.maxmind.com/geoip/updating-databases/)
-- [Elastic — Enrich events with GeoIP information (Filebeat)](https://www.elastic.co/docs/reference/beats/filebeat/filebeat-geoip)
+- [Wazuh - GeoIP enrichment discussion](https://github.com/wazuh/wazuh/issues/4053)
+- [MaxMind - Updating GeoIP databases](https://dev.maxmind.com/geoip/updating-databases/)
+- [Elastic - Enrich events with GeoIP information (Filebeat)](https://www.elastic.co/docs/reference/beats/filebeat/filebeat-geoip)

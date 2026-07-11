@@ -48,7 +48,7 @@ On **every Wazuh manager node**:
    ```
 
    This exact-equality condition only matches alerts whose rule has **that
-   single group** — see the next section for the common multi-group case.
+   single group** - see the next section for the common multi-group case.
 
 3. Upload the pipeline and restart services:
 
@@ -77,7 +77,7 @@ instead:
 },
 ```
 
-You can key the condition on other fields the same way — for example on an
+You can key the condition on other fields the same way - for example on an
 agent label: `"if": "ctx.agent?.labels?.group == 'db'"`. A processor accepts
 only **one** `if`; combine multiple criteria with `&&` / `||` inside it.
 
@@ -93,7 +93,7 @@ only **one** `if`; combine multiple criteria with `&&` / `||` inside it.
   **Dashboard management > Index patterns** so the new indices are
   searchable from the UI.
 - **Retention:** add the new pattern to your
-  [ISM policy](ilm-retention.md#example-delete-alerts-after-90-days) —
+  [ISM policy](ilm-retention.md#example-delete-alerts-after-90-days) -
   separated indices are usually separated precisely to give them different
   retention.
 - Historical alerts already indexed into `wazuh-alerts-4.x-*` are not moved
@@ -103,7 +103,7 @@ only **one** `if`; combine multiple criteria with `&&` / `||` inside it.
 
 `pipeline.json` is a single shared file also modified by the
 [GeoIP country filtering](geoip.md#filtering-alerts-by-country) and
-[timezone](misc-operations.md#showing-local-time-in-full_log) customizations.
+[timestamp formatting](ingest-pipeline-customization.md) customizations.
 All customizations must coexist in the same file, be re-uploaded together
 with `filebeat setup --pipelines`, and be **re-applied after Wazuh upgrades**,
 which ship a fresh pipeline. Keep your processors in version control or a
