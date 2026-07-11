@@ -2,7 +2,9 @@
 
 Operational troubleshooting guides for the Wazuh server (manager) and agents, distilled from real-world support scenarios. Each guide is written as a symptom-driven runbook: what you see, how to confirm the root cause, and how to fix it.
 
-> Indexer (OpenSearch) troubleshooting — shards, ILM, reindexing, disk watermarks — lives in [`../indexer/`](../indexer/). Certificate generation and TLS troubleshooting are covered in their own section.
+> Indexer (OpenSearch) troubleshooting - shards, ISM, reindexing, and disk
+> watermarks - lives in [`../indexer/`](../indexer/). Certificate generation
+> and TLS troubleshooting live in [`../certificates/`](../certificates/).
 
 ## Table of Contents
 
@@ -22,6 +24,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | `Agent buffer is full` warnings, events dropped at the agent | [agents/flooding.md](agents/flooding.md) |
 | A handful of rules generate most of your alert volume | [agents/flooding.md](agents/flooding.md#step-2-reduce-noise-at-the-source) |
 | macOS agent collects nothing useful / needs health metrics | [agents/macos.md](agents/macos.md) |
+| Windows registry monitoring misses changes or creates noise | [agents/windows-registry.md](agents/windows-registry.md) |
 | Remote agent upgrade fails with WPK certificate or `Send lock restart error` | [agents/custom-wpk.md](agents/custom-wpk.md) |
 | `events_dropped` / `discarded_count` non-zero on the manager | [server/analysisd.md](server/analysisd.md) |
 | Need to measure how many events per second the manager receives | [server/analysisd.md](server/analysisd.md#measuring-eps) |
@@ -30,28 +33,36 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | Agent fails to start on a hardened host (`noexec` on `/var`) | [server/mount-permissions.md](server/mount-permissions.md) |
 | Lost the API or indexer `admin` password | [passwords-recovery.md](passwords-recovery.md) |
 | LDAP / Active Directory login to the dashboard fails | [ldap-ad.md](ldap-ad.md) |
+| TLS, `bad_certificate`, certificate-chain, or HTTPS failures | [Certificate troubleshooting](../certificates/troubleshooting.md) |
+| SAML login fails, returns ACS 404/500, or works intermittently | [SAML SSO](../certificates/sso-saml.md) |
+| Need a multi-site failover and failback procedure | [Disaster recovery](../upgrading/disaster-recovery.md) |
 
 ## Agents
 
-- [Disconnections](agents/disconnections.md) — connectivity tests for ports 1514/1515, log checks on both sides, and fixing re-registration loops with `force_reconnect_interval` / `time-reconnect`.
-- [Enrollment and key conflicts](agents/enrollment-key-conflicts.md) — duplicate IDs, key mismatches, roaming laptops/VPN clients, and force re-enrollment.
-- [Flooding and noisy alerts](agents/flooding.md) — how the agent buffer works, finding the noisy source, tuning `client_buffer`, and silencing noisy rules or Windows event IDs.
-- [macOS agents](agents/macos.md) — unified log collection queries and CPU/memory/disk/network health metrics via `full_command`.
-- [Custom WPK and remote upgrades](agents/custom-wpk.md) — renewing the WPK root CA on agents and recovering failed remote upgrades.
+- [Disconnections](agents/disconnections.md) - connectivity tests for ports 1514/1515, log checks on both sides, and fixing re-registration loops with `force_reconnect_interval` / `time-reconnect`.
+- [Enrollment and key conflicts](agents/enrollment-key-conflicts.md) - duplicate IDs, key mismatches, roaming laptops/VPN clients, and force re-enrollment.
+- [Flooding and noisy alerts](agents/flooding.md) - how the agent buffer works, finding the noisy source, tuning `client_buffer`, and silencing noisy rules or Windows event IDs.
+- [macOS agents](agents/macos.md) - unified log collection queries and CPU/memory/disk/network health metrics via `full_command`.
+- [Windows registry monitoring](agents/windows-registry.md) - registry FIM scope, value checks, exclusions, and verification.
+- [Custom WPK and remote upgrades](agents/custom-wpk.md) - renewing the WPK root CA on agents and recovering failed remote upgrades.
 
 ## Server / manager
 
-- [Analysisd, EPS, and dropped events](server/analysisd.md) — statistics files, queue/thread tuning, memory sizing of queues, measuring EPS, and when to scale out.
-- [Vulnerability Detection](server/vulnerability-detection.md) — how the VD queues work internally, diagnostics to collect, full state reset, and fixing stale per-agent data.
-- [Postfix email delivery](server/postfix-email.md) — diagnosing SMTP relay failures with tcpdump; firewall resets vs. Postfix misconfiguration.
-- [Mount permissions](server/mount-permissions.md) — running Wazuh under a `noexec` `/var` partition with a dedicated `exec` mount.
+- [Analysisd, EPS, and dropped events](server/analysisd.md) - statistics files, queue/thread tuning, memory sizing of queues, measuring EPS, and when to scale out.
+- [Vulnerability Detection](server/vulnerability-detection.md) - how the VD queues work internally, diagnostics to collect, full state reset, and fixing stale per-agent data.
+- [Postfix email delivery](server/postfix-email.md) - diagnosing SMTP relay failures with tcpdump; firewall resets vs. Postfix misconfiguration.
+- [Mount permissions](server/mount-permissions.md) - running Wazuh under a `noexec` `/var` partition with a dedicated `exec` mount.
 
 ## Access and authentication
 
-- [Password reset and recovery](passwords-recovery.md) — Wazuh API users, indexer internal users, the Filebeat keystore, and restoring a previous password from backup.
-- [LDAP / Active Directory](ldap-ad.md) — preparing AD (OUs, bind user, access group), and fixing TLS hostname-verification failures.
+- [Password reset and recovery](passwords-recovery.md) - Wazuh API users, indexer internal users, the Filebeat keystore, and restoring a previous password from backup.
+- [LDAP / Active Directory](ldap-ad.md) - preparing AD (OUs, bind user, access group), and fixing TLS hostname-verification failures.
+
+## Disaster recovery
+
+- [Disaster recovery](../upgrading/disaster-recovery.md) - active/passive site design, LB/DNS/AWS ELB failover, replication, failback (also [planning checklist](../upgrading/deployment-architecture.md#disaster-recovery)).
 
 ## Useful tooling
 
-- [`../scripts/diagnosis/`](../scripts/diagnosis/) — collects a full diagnostic report (manager, indexer, cluster, agents) and runs an upgrade-readiness healthcheck. Run this first when opening any investigation.
-- [`../scripts/EPS/`](../scripts/EPS/) — real-time events-per-second measurement script for the manager.
+- [`../scripts/diagnosis/`](../scripts/diagnosis/) - collects a full diagnostic report (manager, indexer, cluster, agents) and runs an upgrade-readiness healthcheck. Run this first when opening any investigation.
+- [`../scripts/EPS/`](../scripts/EPS/) - real-time events-per-second measurement script for the manager.

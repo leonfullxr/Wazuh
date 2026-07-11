@@ -23,7 +23,7 @@ macOS agents read the unified logging system with `log_format` `macos`. Without 
 </localfile>
 ```
 
-Trim the process list to your use case — `sudo`, `sshd`, `screensharingd`, `securityd`, and `tccd` cover most authentication/access monitoring needs.
+Trim the process list to your use case - `sudo`, `sshd`, `screensharingd`, `securityd`, and `tccd` cover most authentication/access monitoring needs.
 
 Reference: [Monitoring macOS ULS events](https://documentation.wazuh.com/current/user-manual/capabilities/log-data-collection/monitoring-macos-uls-events.html)
 
@@ -193,11 +193,11 @@ Each entry runs a shell one-liner every 30 seconds and forwards the output as an
 
 ## Notes
 
-- `full_command` requires `logcollector.remote_commands=1` in the agent's `local_internal_options.conf` when pushed via centralized configuration — see the [remote commands reference](https://documentation.wazuh.com/current/user-manual/reference/internal-options.html).
+- `full_command` requires `logcollector.remote_commands=1` in the agent's `local_internal_options.conf` when pushed via centralized configuration - see the [remote commands reference](https://documentation.wazuh.com/current/user-manual/reference/internal-options.html).
 - Each metric arrives as a plain log line prefixed by its alias (e.g. `CPU_health:`); write custom rules matching those aliases to alert on thresholds or feed dashboards.
 - A 30-second frequency across eight collectors is noticeable event volume per agent; raise `<frequency>` for large fleets.
 
 ## Related guides
 
-- [flooding.md](flooding.md) — keep an eye on event volume added by frequent `full_command` collectors
+- [flooding.md](flooding.md) - keep an eye on event volume added by frequent `full_command` collectors
 - macOS agent installation and control paths differ from Linux: the agent lives under `/Library/Ossec/` and is managed with `/Library/Ossec/bin/wazuh-control`

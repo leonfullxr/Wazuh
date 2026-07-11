@@ -21,16 +21,16 @@ The manager logs this warning when more than one agent tries to connect using th
 ## Prevention
 
 - Give every agent a **unique hostname** (or set a unique `<agent_name>` explicitly).
-- Never bake `client.keys` into machine images — enroll on first boot instead.
+- Never bake `client.keys` into machine images - enroll on first boot instead.
 - Prefer stable naming over stable IPs; Wazuh identifies agents primarily by name, not by IP.
 
 ## Enable force re-enrollment on the manager
 
 If agents legitimately change IPs or hit key mismatches, configure the manager to overwrite the existing (disconnected) registration when an agent with the same name re-enrolls.
 
-**Step 1** — Open the manager configuration from the dashboard: **☰ → Server Management → Settings → Edit Configuration** (or edit `/var/ossec/etc/ossec.conf` directly).
+**Step 1** - Open the manager configuration from the dashboard: **☰ → Server Management → Settings → Edit Configuration** (or edit `/var/ossec/etc/ossec.conf` directly).
 
-**Step 2** — Add the following inside the `<auth>` section:
+**Step 2** - Add the following inside the `<auth>` section:
 
 ```xml
 <auth>
@@ -43,7 +43,7 @@ If agents legitimately change IPs or hit key mismatches, configure the manager t
 </auth>
 ```
 
-**Step 3** — Save and restart the manager:
+**Step 3** - Save and restart the manager:
 
 ```bash
 systemctl restart wazuh-manager
@@ -55,7 +55,7 @@ Reference: [`auth` force options](https://documentation.wazuh.com/current/user-m
 
 ## Roaming devices: laptops and VPN clients
 
-Wazuh determines the agent name from the agent's `ossec.conf`: if `<agent_name>` is set it is used, otherwise the device hostname. Changing IPs (office Wi-Fi, home network, VPN) is **not** a problem by itself — the manager keys off the name.
+Wazuh determines the agent name from the agent's `ossec.conf`: if `<agent_name>` is set it is used, otherwise the device hostname. Changing IPs (office Wi-Fi, home network, VPN) is **not** a problem by itself - the manager keys off the name.
 
 For laptop fleets:
 
@@ -69,5 +69,5 @@ References:
 
 ## Related guides
 
-- [Disconnections](disconnections.md) — key conflicts and disconnections usually appear together; fix connectivity first
-- [Flooding](flooding.md) — a key-mismatch loop can contribute to reconnection storms
+- [Disconnections](disconnections.md) - key conflicts and disconnections usually appear together; fix connectivity first
+- [Flooding](flooding.md) - a key-mismatch loop can contribute to reconnection storms

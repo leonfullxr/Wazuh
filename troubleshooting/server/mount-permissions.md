@@ -48,8 +48,8 @@ Comply with the hardening policy on `/var` while carving out `/var/ossec` as a s
    systemctl start wazuh-agent
    ```
 
-Verify with `findmnt /var/ossec` — the options column must include `exec` (i.e. must not show `noexec`).
+Verify with `findmnt /var/ossec` - the options column must include `exec` (i.e. must not show `noexec`).
 
 ## Summary
 
-A `noexec` parent `/var` is fatal for Wazuh. The clean fix is a dedicated `exec` mount at `/var/ossec` — either a real volume or a self bind mount — persisted in `/etc/fstab`. The same technique applies on manager nodes, and is closely related to moving Wazuh data onto a new disk (see the indexer/storage guides in [`../../indexer/`](../../indexer/)).
+A `noexec` parent `/var` is fatal for Wazuh. The clean fix is a dedicated `exec` mount at `/var/ossec` - either a real volume or a self bind mount - persisted in `/etc/fstab`. The same technique applies on manager nodes, and is closely related to moving Wazuh data onto a new disk (see the indexer/storage guides in [`../../indexer/`](../../indexer/)).

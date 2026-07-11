@@ -68,7 +68,7 @@ netstat -vatunp | grep 514
 netstat -an | findstr 1514
 ```
 
-If any of these fail, the problem is in the network path (firewall, security group, NAT, proxy) — fix that before touching Wazuh configuration.
+If any of these fail, the problem is in the network path (firewall, security group, NAT, proxy) - fix that before touching Wazuh configuration.
 
 ## Step 3: Collect logs from both sides
 
@@ -83,7 +83,7 @@ The official enrollment troubleshooting guide covers the most common error signa
 
 ## Agents stuck in a re-registration loop
 
-A common failure mode: when an agent fails to connect several times, it tries to **generate a new key**. The manager rejects the request because the agent already has a valid key, or because the disconnection was too recent — and the agent tries again, forever. In the agent's `ossec.log` you will see repeated connection attempts followed by rejected re-registrations.
+A common failure mode: when an agent fails to connect several times, it tries to **generate a new key**. The manager rejects the request because the agent already has a valid key, or because the disconnection was too recent - and the agent tries again, forever. In the agent's `ossec.log` you will see repeated connection attempts followed by rejected re-registrations.
 
 Fix it by making the agent prefer reconnection over re-registration, using two `<client>` options in the agent's `ossec.conf`:
 
@@ -111,6 +111,6 @@ If the loop is caused by duplicate agent names or key mismatches rather than con
 
 ## Related guides
 
-- [Enrollment and key conflicts](enrollment-key-conflicts.md) — duplicate IDs and key mismatches often masquerade as disconnections
-- [Flooding](flooding.md) — a flooded agent buffer can precede disconnection events
-- [Diagnosis script](../../scripts/diagnosis/) — collects agent status and manager logs in one pass
+- [Enrollment and key conflicts](enrollment-key-conflicts.md) - duplicate IDs and key mismatches often masquerade as disconnections
+- [Flooding](flooding.md) - a flooded agent buffer can precede disconnection events
+- [Diagnosis script](../../scripts/diagnosis/) - collects agent status and manager logs in one pass

@@ -2,7 +2,7 @@
 
 Guide for a Wazuh manager that is dropping events: reading the statistics files, measuring events per second (EPS), tuning analysisd queues and threads, and deciding when tuning stops and scaling starts.
 
-This guide also covers general manager resource monitoring — the statistics files below are the single most useful signal for "does my server need more resources?".
+This guide also covers general manager resource monitoring - the statistics files below are the single most useful signal for "does my server need more resources?".
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ cat /var/ossec/var/run/wazuh-analysisd.state | grep -Ei "processed|dropped|decod
 cat /var/ossec/var/run/wazuh-remoted.state | egrep 'discarded|queue_size|evt_count'
 ```
 
-Both counters at zero means the manager is keeping up — look at the agent side instead ([../agents/flooding.md](../agents/flooding.md)). Non-zero and growing means the manager is the bottleneck: continue below.
+Both counters at zero means the manager is keeping up - look at the agent side instead ([../agents/flooding.md](../agents/flooding.md)). Non-zero and growing means the manager is the bottleneck: continue below.
 
 You can also query queue usage, processed counts, and discards per daemon live through the API: `GET /manager/daemons/stats` ([queuing mechanisms reference](https://documentation.wazuh.com/current/user-manual/manager/wazuh-server-queue.html)).
 
@@ -39,7 +39,7 @@ Reference: [Statistics files](https://documentation.wazuh.com/current/user-manua
 Before tuning queues, discard the cheap explanations:
 
 ```bash
-# Disk space — a full /var stalls everything
+# Disk space - a full /var stalls everything
 df -h
 
 # Errors and warnings in the manager log
@@ -53,7 +53,7 @@ For a full snapshot (manager, indexer, cluster, agents) in one command, run the 
 
 ## Measuring EPS
 
-To quantify the load, measure real EPS at the manager. The procedure (temporarily enable `<logall>`, run a counting script against `archives.log`, disable `<logall>` again) is packaged in [`../../scripts/EPS/`](../../scripts/EPS/) — use that rather than re-implementing it.
+To quantify the load, measure real EPS at the manager. The procedure (temporarily enable `<logall>`, run a counting script against `archives.log`, disable `<logall>` again) is packaged in [`../../scripts/EPS/`](../../scripts/EPS/) - use that rather than re-implementing it.
 
 The core of it, for reference:
 
@@ -73,7 +73,7 @@ while true; do
 done
 ```
 
-> Remember to set `<logall>` back to `no` and restart the manager when done — archives will otherwise fill the disk.
+> Remember to set `<logall>` back to `no` and restart the manager when done - archives will otherwise fill the disk.
 
 Wazuh does not impose a per-node EPS limit; sustainable EPS is a function of your hardware. Compare the measured EPS against the [architecture sizing recommendations](https://documentation.wazuh.com/current/quickstart.html#requirements) to know whether you are simply over capacity.
 
@@ -94,12 +94,12 @@ Then restart the manager and watch `wazuh-analysisd.state` again.
 Notes:
 
 - Thread options (`analysisd.event_threads`, `analysisd.rule_matching_threads`, `analysisd.winevt_threads`) max out at **32**. Keep them at or below your CPU thread count.
-- Queue sizes are counted in **events, not bytes** — default 16,384, maximum 2,000,000.
+- Queue sizes are counted in **events, not bytes** - default 16,384, maximum 2,000,000.
 - Full limits and defaults: [internal configuration reference](https://documentation.wazuh.com/current/user-manual/reference/internal-options.html) and [queuing mechanisms](https://documentation.wazuh.com/current/user-manual/manager/wazuh-server-queue.html#wazuh-analysis-engine-queue-queue-and).
 
 ### How much RAM does a bigger queue cost?
 
-Rule of thumb: `RAM ≈ queue_size × average event size`, consumed **only while the queue is occupied** — larger queues do not pre-reserve memory. For a 65,536-event queue:
+Rule of thumb: `RAM ≈ queue_size × average event size`, consumed **only while the queue is occupied** - larger queues do not pre-reserve memory. For a 65,536-event queue:
 
 | Average event size | Approx. RAM when full |
 |---|---|
@@ -114,14 +114,14 @@ Real usage runs somewhat higher than the raw log size because the manager builds
 
 If events are still dropped after queue tuning:
 
-1. **Reduce the input.** Review the top-alerting rules and filter noise **at the agent side** — excluding events at collection saves agent CPU, bandwidth, and manager throughput simultaneously. Silencing rules on the manager still pays the full ingestion cost. Techniques (event channel `<query>`, `localfile` `<exclude>`, rule overwrites) are in [../agents/flooding.md](../agents/flooding.md#step-2-reduce-noise-at-the-source).
-2. **Distribute the workload.** A single manager is a natural bottleneck; deploy a [Wazuh server cluster](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/index.html) with two or more nodes (separate VMs) and split the agent load — typically behind a TCP load balancer on ports 1514/1515.
-3. **Scale the indexer tier** if the bottleneck is downstream — see [adding indexer nodes](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/add-wazuh-indexer-nodes.html) and the guides in [`../../indexer/`](../../indexer/).
+1. **Reduce the input.** Review the top-alerting rules and filter noise **at the agent side** - excluding events at collection saves agent CPU, bandwidth, and manager throughput simultaneously. Silencing rules on the manager still pays the full ingestion cost. Techniques (event channel `<query>`, `localfile` `<exclude>`, rule overwrites) are in [../agents/flooding.md](../agents/flooding.md#step-2-reduce-noise-at-the-source).
+2. **Distribute the workload.** A single manager is a natural bottleneck; deploy a [Wazuh server cluster](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/index.html) with two or more nodes (separate VMs) and split the agent load - typically behind a TCP load balancer on ports 1514/1515.
+3. **Scale the indexer tier** if the bottleneck is downstream - see [adding indexer nodes](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/add-wazuh-indexer-nodes.html) and the guides in [`../../indexer/`](../../indexer/).
 
-When investigating further, capture the full `wazuh-analysisd.state`, `wazuh-remoted.state`, and `/var/ossec/logs/ossec.log` files together — the ratios between `received`, `processed`, and `dropped` identify the saturated stage.
+When investigating further, capture the full `wazuh-analysisd.state`, `wazuh-remoted.state`, and `/var/ossec/logs/ossec.log` files together - the ratios between `received`, `processed`, and `dropped` identify the saturated stage.
 
 ## Related guides
 
-- [../agents/flooding.md](../agents/flooding.md) — the agent-side half of the same problem, plus noise-reduction techniques
-- [../../scripts/EPS/](../../scripts/EPS/) — packaged EPS measurement script
-- [../../scripts/diagnosis/](../../scripts/diagnosis/) — full environment diagnostic collection
+- [../agents/flooding.md](../agents/flooding.md) - the agent-side half of the same problem, plus noise-reduction techniques
+- [../../scripts/EPS/](../../scripts/EPS/) - packaged EPS measurement script
+- [../../scripts/diagnosis/](../../scripts/diagnosis/) - full environment diagnostic collection
