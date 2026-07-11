@@ -75,7 +75,7 @@ Create or edit a rules file, e.g. `/var/ossec/ruleset/local_rules.xml`:
 </group>
 ```
 
-Adjust rule IDs and `<if_sid>` values to suit your environment and avoid conflicts with other Azure rules (e.g., 87802, 87803…).
+Adjust rule IDs and `<if_sid>` values to suit your environment and avoid conflicts with other Azure rules (e.g., 87802, 87803...).
 
 ## Script Details & Workflow
 
@@ -134,7 +134,7 @@ sock.close()
 logging.info("SWIFT log has been sent to the analysis queue.")
 ```
 
-* **Socket path**: `…/queue/sockets/queue` (built relative to script’s parent directory).
+* **Socket path**: `.../queue/sockets/queue` (built relative to script’s parent directory).
 * Prepends `"SWIFT:"` to the enriched JSON.
 * Any send errors are logged and printed.
 

@@ -22,11 +22,19 @@ README with usage instructions plus the script/config files.
   disconnected/pending/never-connected agents.
 - [resource-monitoring](resource-monitoring/) - CPU/memory/disk/load metrics
   as Wazuh alerts, with decoders and threshold rules (Linux and Windows).
+- [email-alerting](email-alerting/) - granular email alerting: generic vs.
+  granular manager-side options, per-agent-group/per-OS routing, and the
+  indexer-side OpenSearch Alerting module.
 - [syscheck-email-notifications](syscheck-email-notifications/) - email
   alerts for FIM (syscheck) events.
 - [diagnosis](diagnosis/) - environment diagnostics collection and upgrade
   readiness healthcheck.
 - [EPS](EPS/) - events-per-second calculation on the manager.
+
+## Detection & response
+
+- [active-response](active-response/) - block attacker IPs via the built-in
+  `firewall-drop` or a custom CDB-blocklist integration script.
 
 ## Data retention & housekeeping
 
