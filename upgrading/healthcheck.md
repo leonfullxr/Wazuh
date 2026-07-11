@@ -33,7 +33,7 @@ grep -iE "error|warning|critical" /var/ossec/logs/ossec.log | tail -50
 
 Via the Wazuh API (Dev Tools / API console):
 
-```
+```http
 GET /manager/version/check
 ```
 
@@ -43,11 +43,11 @@ GET /manager/version/check
 filebeat test output
 ```
 
-Expected: all checks report `ok` against the indexer on port 9200. A `401` here means the Filebeat keystore credentials are stale — update the keystore with the current indexer username/password.
+Expected: all checks report `ok` against the indexer on port 9200. A `401` here means the Filebeat keystore credentials are stale - update the keystore with the current indexer username/password.
 
 ## Indexer
 
-```
+```http
 GET _cat/health?v&pretty=true&format=json
 GET _cluster/health?pretty
 GET _cat/indices/wazuh-alerts-*?v&h=index,pri
@@ -59,7 +59,7 @@ GET _cluster/allocation/explain
 ```
 
 - Cluster status should be `green`. On `yellow`/`red`, `_cluster/allocation/explain` tells you why a shard is not allocated.
-- Watch the store sizes against the disk watermarks — once a node crosses the high watermark, the indexer stops allocating shards to it and indexing can grind to a halt.
+- Watch the store sizes against the disk watermarks - once a node crosses the high watermark, the indexer stops allocating shards to it and indexing can grind to a halt.
 
 ## Dashboard
 

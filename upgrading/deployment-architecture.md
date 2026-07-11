@@ -70,7 +70,24 @@ Plus:
 
 - **During installation**, internet access is required to download packages. Once installation is complete, the servers can operate without internet access.
 - **Vulnerability detection** needs connectivity to the Wazuh CTI service ([https://cti.wazuh.com](https://cti.wazuh.com/)) to fetch vulnerability feeds. It can alternatively be configured with the [offline update method](https://documentation.wazuh.com/current/user-manual/capabilities/vulnerability-detection/configuring-scans.html).
-- **Agent upgrades** require the manager to reach [https://packages.wazuh.com](https://packages.wazuh.com/) — only needed when upgrading agents (see [Upgrading Agents](upgrading-agents.md)).
+- **Agent upgrades** require the manager to reach [https://packages.wazuh.com](https://packages.wazuh.com/) - only needed when upgrading agents (see [Upgrading Agents](upgrading-agents.md)).
+
+## Disaster recovery
+
+<!-- Support: WS-26647 -->
+
+Full runbook: [Disaster Recovery Architecture](disaster-recovery.md).
+
+When the primary Wazuh site may become unreachable, plan an **active/passive** standby site with automated failover (load balancer health checks or DNS switch). Before go-live:
+
+- [ ] Choose failover mechanism (ALB/NGINX/AWS ELB or DNS)
+- [ ] Standby DR environment mirrors primary capacity (on-prem or Wazuh Cloud)
+- [ ] Replicate agent keys, groups, custom rules/decoders, CDB lists, SCA policies
+- [ ] Configuration source of truth (e.g. Git) shared by both sites
+- [ ] Health checks on primary; documented activation and failback
+- [ ] Periodic DR failover test
+
+**DR ports (typical on-prem):** 1514/TCP (agents), 1515/TCP (enrollment), 55000/TCP (API). Wazuh Cloud DR often uses 1514 + 443. Details in [disaster-recovery.md](disaster-recovery.md#port-matrix).
 
 ## Documentation
 
