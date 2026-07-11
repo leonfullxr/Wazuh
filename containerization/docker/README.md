@@ -16,3 +16,4 @@ Docker Compose configurations, deployment patterns, and troubleshooting for Wazu
 | Guide | Description |
 |-------|-------------|
 | [Archives disabled after container update](./archives-disabled-after-update.md) | `wazuh-archives-*` indices stop receiving data after image upgrades due to `filebeat.yml` being regenerated at container startup |
+| [Network & proxy debugging](./network-proxy-debugging.md) | Inspecting container networking, service-to-service reachability, and HTTP proxy connectivity in Wazuh compose stacks |

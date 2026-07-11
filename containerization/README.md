@@ -6,14 +6,14 @@ This section covers deployment, configuration, and troubleshooting for Wazuh run
 
 | Folder | Description |
 |--------|-------------|
-| [`docker/`](./docker/README.md) | Docker Compose deployments — single-node, multi-node cluster, and specialised configurations |
-| [`kubernetes/`](./kubernetes/README.md) | Kubernetes deployments — StatefulSet-based clusters, ConfigMap patterns, and upgrade guidance |
+| [`docker/`](./docker/README.md) | Docker Compose deployments — single-node, multi-node cluster, network/proxy debugging, and specialised configurations |
+| [`kubernetes/`](./kubernetes/README.md) | Kubernetes deployments — StatefulSet clusters, managed platforms (EKS, AKS, GKE), agent deployment models, and cluster debugging |
 
 ## Other files in this section
 
 | File | Description |
 |------|-------------|
-| [`FIM.md`](./FIM.md) | File Integrity Monitoring configuration notes for containerised agents |
+| [`FIM.md`](./FIM.md) | File Integrity Monitoring in containerized environments — what FIM can and cannot do per agent deployment model, volumes vs bind mounts, and centralized syscheck configuration |
 | `puppet.txt` | Puppet-based provisioning notes for Wazuh agent deployment |
 
 ## General notes
