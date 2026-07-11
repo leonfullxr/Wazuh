@@ -1,8 +1,17 @@
 # Wazuh Knowledge Base
 
-Field-tested Wazuh configurations, operational guides and scripts, distilled from hands-on deployment, tuning and troubleshooting work. Everything here is written for real-world use: each guide explains not just the how but the why, with verified commands and configuration.
+Field-tested Wazuh configurations, operational guides, and scripts for
+administrators and detection engineers. The knowledge base focuses on
+repeatable production procedures: prerequisites, commands, verification,
+failure modes, and rollback or recovery considerations.
 
-Please refer to the official integration repository, which is maintained and updated: https://github.com/wazuh/integrations
+This repository complements, rather than replaces, the
+[official Wazuh documentation](https://documentation.wazuh.com/) and
+[official integrations repository](https://github.com/wazuh/integrations).
+Confirm paths and behavior against the installed Wazuh version and test
+changes outside production first.
+
+**Obsidian vault sync:** See [SYNC_MAPPING.md](SYNC_MAPPING.md) for how this repository maps to the personal Obsidian knowledge vault.
 
 **Disclaimer**: The content in this repository is provided "as is" without warranty of any kind, express or implied. Users are responsible for evaluating the security, quality, and compatibility of any code or configurations they choose to use. Test in a lab before applying to production.
 
@@ -10,23 +19,23 @@ Please refer to the official integration repository, which is maintained and upd
 
 ### Infrastructure & operations
 
-- [containerization/](containerization/) - Wazuh in Docker and Kubernetes: EKS, AKS and GKE deployment guides, agent DaemonSets, FIM inside containers, cluster debugging, Docker networking and proxy diagnostics.
+- [containerization/](containerization/) - Wazuh in Docker and Kubernetes: EKS, AKS, GKE, OpenShift, persistent storage, agent DaemonSets, FIM inside containers, cluster debugging, Docker Swarm, backup/migration, Docker networking and proxy diagnostics.
 - [cloud/](cloud/) - Cloud log ingestion and infrastructure: AWS (`aws-s3` wodle, IAM), Azure (Log Analytics, MS Graph), GCP Pub/Sub, plus Wazuh Cloud usage and dashboard RBAC.
-- [indexer/](indexer/) - Wazuh Indexer (OpenSearch) operations and fine tuning: shard sizing and management, ISM/ILM retention, disk-space forensics, reindexing, index separation, replicas, GeoIP enrichment, cross-cluster search, security auditing.
-- [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and sizing.
+- [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
+- [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and sizing, disaster recovery, Wazuh 5.0 migration FAQ.
 - [certificates/](certificates/) - TLS certificate lifecycle for every component, HTTPS for dashboards on private IPs, SAML SSO, and a certificate troubleshooting playbook.
-- [troubleshooting/](troubleshooting/) - Symptom-driven guides: agent disconnections, flooding and buffer tuning, enrollment conflicts, analysisd queue/EPS tuning, vulnerability detection internals and reset, password recovery, LDAP/AD.
+- [troubleshooting/](troubleshooting/) - Symptom-driven guides: agent disconnections, flooding and buffer tuning, enrollment conflicts, analysisd queue/EPS tuning, vulnerability detection internals and reset, password recovery, LDAP/AD, Windows registry monitoring.
 
 ### Integrations & detection
 
-- [integrations/](integrations/) - Third-party integrations: threat intel (MISP, AlienVault OTX, VirusTotal, AbuseIPDB), LDAP/AD, Splunk, OpenSearch, alerting (Jira, Confluence, Teams), and an LLM-powered AI assistant PoC.
-- [rules/](rules/) - Custom rule sets (FortiGate, Vectra).
-- [decoders/](decoders/) - Custom decoders (FortiGate, Vectra, NetIQ).
+- [integrations/](integrations/) - Integration hub for Fortinet and generic syslog, NGINX agent load balancing, webhooks, MSSQL audit events, Splunk SOAR/Logstash forwarding, threat intelligence, and SaaS audit collection.
+- [rules/](rules/) - Custom rule deployment guidance, FortiGate and Vectra suites, and validated [`<var>` examples](rules/examples/var.md).
+- [decoders/](decoders/) - Decoder deployment workflow, FortiGate, Vectra, and NetIQ suites, plus a [syntax reference](decoders/syntax.md).
 - [sca/](sca/) - Security Configuration Assessment content and RHEL hardening scripts.
 
 ### Automation & tooling
 
-- [scripts/](scripts/) - Operational scripts, each with its own README: agent management and deployment, service and resource monitoring, alert retention and deletion policies, syscheck email notifications, eventchannel extraction, EPS measurement, diagnosis, MaxMind updates, all-in-one installs.
+- [scripts/](scripts/) - Operational scripts, each with its own README: agent management and deployment, service and resource monitoring, alert retention and deletion policies, syscheck email notifications, granular email alerting, active-response CDB blocklist, eventchannel extraction, EPS measurement, diagnosis, MaxMind updates, all-in-one installs.
 - [ansible/](ansible/) - Ansible playbooks (agent renaming).
 - [packages/](packages/) - Platform-specific packaging notes (Solaris).
 - [images/](images/) - Vagrant lab images (Windows, FreeBSD).
