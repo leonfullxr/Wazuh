@@ -1,149 +1,110 @@
-# Splunk SOAR Integration with Wazuh
+# Splunk Integrations
 
-This integration forwards Wazuh alerts into Splunk SOAR (Privileged On‑Prem) via a Python hook script with built‑in queueing for reliable delivery.
+This section covers two distinct data paths. Choose by destination and
+delivery model; they are not interchangeable.
 
-> **Note:** Depending on your event volume, you may experience delays as events are queued and retried on failure.
+| Task | Guide |
+|---|---|
+| Send selected Wazuh alerts to Splunk SOAR as containers | This README |
+| Copy indexed Wazuh alerts into Splunk Enterprise or Cloud | [Logstash forwarding](logstash-forwarding.md) |
 
-## 🔧 Prerequisites
+## Splunk SOAR alert hook
 
-* Wazuh Manager (v4.x+)
-* Python 3.8+ on Wazuh Manager
-* `urllib3` Python library installed
-* Network connectivity from Wazuh Manager to Splunk SOAR (HTTPS)
-* Splunk SOAR user with API access and token
+The bundled `custom-splunk` wrapper and `custom-splunk.py` script transform a
+Wazuh alert into a Splunk SOAR container and POST it to `/rest/container`.
+Failed requests are stored in a local newline-delimited queue and retried when
+the next alert invokes the script.
 
-### Installing Wazuh
+This queue is best-effort and opportunistic. It has no independent worker,
+size limit, or exactly-once guarantee. Use a durable external queue for
+high-volume or compliance-critical delivery.
 
-- Wazuh offers an installation method called `Quick Start`
-- Download and run the Wazuh installation assistant
-```bash
-curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh && sudo bash ./wazuh-install.sh -a
-```
-- Once the installation is complete, the assistant will give us a username and password to connect to the indexer
+### Prerequisites
 
-#### Testing connection from Wazuh to Splunk SOAR
-To do this you can use the following command from a linux server, and you must replace the ip, and the authorization with the value of the key that you generated:
-```bash
-curl -k -X GET https://<IPFromSplunkServer>/services/search/jobs/export -H 'Content-Type: application/json' -H 'Authorization: Bearer <YOUR_SPLUNK_SOAR_TOKEN>' -H 'Accept: application/json'
-```
+- Splunk SOAR on-premises with an automation user and API token.
+- HTTPS connectivity from every Wazuh manager that can invoke integrations.
+- The Splunk SOAR CA trusted by the manager.
+- `urllib3` installed in the Wazuh Python runtime.
+- A narrow Wazuh rule, group, or level filter.
 
-## Splunk-Wazuh Integration
+### Procedure
 
-### Integration Steps
+1. Copy the wrapper and Python file to `/var/ossec/integrations/`, then create
+   the runtime directory:
 
-#### Step 1: Add the Python script
+   ```bash
+   sudo install -o root -g wazuh -m 750 custom-splunk \
+     /var/ossec/integrations/custom-splunk
+   sudo install -o root -g wazuh -m 750 custom-splunk.py \
+     /var/ossec/integrations/custom-splunk.py
+   sudo install -d -o wazuh -g wazuh -m 750 /var/log/custom-splunk
+   ```
 
-<details>
-<summary>Click to expand integration script configuration steps</summary>
+2. If Splunk SOAR uses a private CA, install its PEM bundle and expose the path
+   to the manager service as `SPLUNK_SOAR_CA_FILE`. For example, create a
+   root-owned systemd drop-in:
 
-- Place [this Python script](https://github.com/leonfullxr/Wazuh/blob/main/integrations/splunk/custom-splunk.py) at `/var/ossec/integrations/custom-splunk.py`
+   ```ini
+   [Service]
+   Environment="SPLUNK_SOAR_CA_FILE=/etc/pki/ca-trust/source/anchors/splunk-soar-ca.pem"
+   ```
 
-- Make sure to set the permissions:
-```bash
-mkdir -p /var/log/custom-splunk
-chown wazuh:wazuh /var/log/custom-misp
-chmod 750 /var/log/custom-misp
-cd /var/ossec/integrations/
-sudo chown root:wazuh custom-splunk* && sudo chmod 750 custom-splunk*
-```
+   Then reload systemd. The script verifies TLS and accepts HTTPS URLs only.
 
-</details>
+3. Add a filtered integration block to
+   `/var/ossec/etc/ossec.conf`:
 
-#### Step 2: Configure the integration in Wazuh
+   ```xml
+   <integration>
+     <name>custom-splunk</name>
+     <hook_url>https://soar.example.com/rest/container</hook_url>
+     <api_key>Splunk:REPLACE_WITH_PH_AUTH_TOKEN</api_key>
+     <rule_id>100100,100101</rule_id>
+     <alert_format>json</alert_format>
+   </integration>
+   ```
 
-<details>
-<summary>Click to expand Wazuh integration configuration steps</summary>
+   The `Splunk:` prefix is required by the script and removed before sending
+   the `ph-auth-token` header. Replace the example rule IDs with approved
+   alerts; do not forward the entire alert stream by default.
 
-- Edit the Wazuh manager's `/var/ossec/etc/ossec.conf` file to add the integration block:
+4. Validate and restart:
 
-```xml
-<integration>
-  <name>custom-splunk</name>
-  <hook_url>https://<SOAR-HOST>:443/rest/container</hook_url>
-  <api_key>Splunk:YOUR_PH_AUTH_TOKEN</api_key>
-  <alert_format>json</alert_format>
-</integration>
-```
+   ```bash
+   sudo systemctl daemon-reload
+   sudo /var/ossec/bin/wazuh-integratord -t
+   sudo systemctl restart wazuh-manager
+   sudo journalctl -u wazuh-manager --since "5 minutes ago" --no-pager
+   ```
 
-* **`hook_url`**: Splunk SOAR REST API endpoint (`/rest/container`), without trailing slash.
-* **`api_key`**: Your SOAR Automation user token, prefixed with `Splunk:`.
+### Verification
 
-- Restart the Wazuh manager.
-```bash
-systemctl restart wazuh-manager
-```
-</details>
+Trigger one test alert and confirm:
 
-## Integration Testing
+1. Splunk SOAR creates one container with the Wazuh rule description.
+2. The container artifact contains the original alert fields.
+3. `/var/log/custom-splunk/custom-splunk.log` records HTTP success without
+   printing the token or webhook URL.
+4. `/var/log/custom-splunk/splunk_queue.json` is absent or empty after
+   successful delivery.
 
-In the integration test, you can use any attribute from the feeds. However, we'll create our own event and add a domain attribute to it, allowing us to test with that domain later.
+Test failure recovery in a maintenance window by making the endpoint
+temporarily unreachable, generating one test alert, restoring connectivity,
+and generating another alert. The first payload should be replayed before the
+second is sent.
 
-### Create our own event
+### Operations
 
-<details>
-<summary>Click to expand event creation steps</summary>
+- Monitor queue file size and age; no alert means no automatic retry attempt.
+- The log rotates at 10 MiB with five backups.
+- A response outside HTTP 2xx is treated as failure and queued.
+- Rotate the SOAR token in `ossec.conf`, restart the manager, and perform a
+  test alert.
+- Preserve CA verification. Do not reintroduce `CERT_NONE` or `curl -k`.
+- Review payload size because the full Wazuh alert is included in both the
+  SOAR description and artifact.
 
-- Access the MISP interface via its URL (e.g.: http://<MISP_IP_address>).
-- Navigate to `Home` > `Add Event`
-- Create a new event with a title, distribution, and threat level, then submit.
-- Add a domain attribute with a fictitious name, like `lolo.koko.co`, and save it.
-- Publish the event by clicking on `Publish Event`
+## References
 
-![Create MISP Event](images/add_event.png)
-
-![Add Domain Attribute](images/add_attribute.png)
-
-![Create Domain Attribute](images/create_attribute.png)
-
-![Publish Event](images/publish_event.png)
-
-- On a Windows machine with the Wazuh agent installed, use PowerShell to interact with the added domain:
-
-![Test Domain Query](images/domain_query.png)
-
-- Check if the malicious domain is detected and marked as a critical alert in the Sysmon logs transmitted to Wazuh.
-
-![Alert Detection](images/test1.png)
-
-![Alert Details](images/test2.png)
-</details>
-
-<div align="center">
-
-## Workflow
-
-```mermaid
-graph TD
-    A[Wazuh Manager] --> B[Invoke custom-splunk.py]
-    B --> C[process_queue]
-    C -->|Queued events| G[POST to SOAR]
-    B --> F[build_container_payload]
-    F --> G[POST to SOAR]
-    G -->|Success| H[Log Success]
-    G -->|Failure| E[queue_event]
-    E --> I[splunk_queue.json]
-    H --> J[End]
-    I --> J[End]
-```
-
-</div>
-
-## 🔄 Queue & Retry Logic
-
-* **`splunk_queue.json`** stores failed containers (one JSON per line).
-* On each run, the script calls `process_queue()` to retry deliveries.
-* On success, queued entries are removed; failures are re‑queued.
-
-## 📋 Logging
-
-* Logs written to `/var/log/custom-splunk/custom-splunk.log`.
-* INFO level by default; use `--debug` flag or set `DEBUG=True` in script for DEBUG logs.
-
-## Sources
-
-<details>
-<summary>Click to expand source references</summary>
-
-- [Wazuh Documentation](https://documentation.wazuh.com/)
-
-</details>
+- [Wazuh external API integration](https://documentation.wazuh.com/current/user-manual/manager/integration-with-external-apis.html)
+- [Splunk SOAR REST API](https://docs.splunk.com/Documentation/SOARonprem/latest/PlatformAPI/Using)

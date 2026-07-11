@@ -1,47 +1,33 @@
-#!/bin/bash
-#
-# extract_results.sh
-#
-# Usage:
-#   ./extract_results.sh [input_file]
-#   cat input_file | ./extract_results.sh
-#
-# Reads JSON of the form:
-#   {"results":[{…},{…},…], …}
-# and writes each `{…}` in “results” as its own line.
+#!/usr/bin/env bash
+set -euo pipefail
 
-# check for jq
-if ! command -v jq &>/dev/null; then
-  echo "Error: this script requires jq. Install it from https://stedolan.github.io/jq/" >&2
-  exit 1
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage: $0 <confluence-audit-export.json> [output.ndjson]" >&2
+  exit 2
 fi
 
-# Check if an input JSON filename was provided as an argument
-if [ -z "$1" ]; then
-  echo "Error: Please provide the input JSON filename as an argument."
-  echo "Usage: $0 <input_filename.json>"
+command -v jq >/dev/null 2>&1 || {
+  echo "Error: jq is required." >&2
   exit 1
-fi
+}
 
-# Assign the first argument (input filename) to a variable
-input_file="$1"
-
-# Check if the input file exists
-if [ ! -f "$input_file" ]; then
-  echo "Error: The input file '$input_file' does not exist."
+input_file=$1
+[[ -f "$input_file" ]] || {
+  echo "Error: input file does not exist: $input_file" >&2
   exit 1
-fi
+}
 
-# Get the filename without the extension
 base_name=$(basename "$input_file" .json)
+output_file=${2:-"$(dirname "$input_file")/converted_${base_name}.ndjson"}
+output_dir=$(dirname "$output_file")
+mkdir -p "$output_dir"
 
-# Construct the output filename
-output_file="converted_${base_name}.json"
-# For the FIM module to detect the file and generate the alerts
-touch "$output_file"
-sleep 120
+tmp_file=$(mktemp "${output_dir}/.confluence-audit.XXXXXX")
+trap 'rm -f "$tmp_file"' EXIT
 
-# Use jq to read the JSON file and extract each object, redirecting the output to the output file
-jq -c '.results[]' "$input_file" > "$output_file"
+jq -ce '.results[]' "$input_file" >"$tmp_file"
+chmod 0640 "$tmp_file"
+mv -f "$tmp_file" "$output_file"
+trap - EXIT
 
-echo "The output has been saved to '$output_file'."
+echo "Wrote $(wc -l <"$output_file") Confluence audit records to $output_file"

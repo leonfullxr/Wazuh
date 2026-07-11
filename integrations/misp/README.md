@@ -1,12 +1,4 @@
-# 🛡️ MISP-Wazuh Integration
-
-<div align="center">
-  
-[![MISP](https://img.shields.io/badge/MISP-Threat_Intelligence-blue?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEwSURBVDhPY/j//z8K9pz1sv+59xSHn3tOJf3cczLn596TGSAaXQzEZvjz37/Df/7+O/Dn77+O3//+GWNoRJL4/O//zN9//0r8+vNX9s+//wp//v5LQJf89ffvxF9//iUia/j5999cZD5Q4xSYYpDGX3/+zgVpBGv+/TcQWfL3v7lAzQsYfv/9t+7Xn39boIqmoGv+9fvvGqDGGQy///xb+uvP32SQ4B+g5E+g5O9/8dg0//nzLxmkFqjxzJ/f/2f+/vNvDswqoMb5QMuXYWgG0XP//tv899e/Tb9//1v/9//fTUCN24B0LlDjXKDGKb9//ZsI1DQVqHnm79//5/3+82/h77//Fv/5+3fZ77//lv/5928lUNOa33//bwRimAa4RgwMFQQA5Wx8V3yw8cgAAAAASUVORK5CYII=)](https://www.misp-project.org/)
-[![Wazuh](https://img.shields.io/badge/Wazuh-Security_Monitoring-orange?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEASURBVDhPnZKxSgNBEIa/vSQHFiKIhVgJFhYW1iKKjY2FL2BhY2HrC/gCegcJBBsLH0DEwkpIYaGFFiIiImJAMJFc/GfvAiYkKX6YnZ3Zf2d2d1bMTEVuuUgYJ/cRTzZbxFFUl1hreiqT2dGb6/qTVXBNwevnbWqcPwq+Cj35kqR+mHOgkPsAdiqfvx/5UMFJJpM7RVHs/is4zzScpunt97zFcVyTZDKdTsdhGO7W8YVBEKTz+fyaVrSYTCYL6/W610bOuZqkUuW8/FgsiLrdbu3n9zxvT9Kw0+l0qtVKsjeTZVmHkgZL0v84khSk6Wrm+6sPvTzPD9vkf5JOJd3UcJvXL3zxnQhvCByzAAAAAElFTkSuQmCC)](https://wazuh.com/)
-[![Sysmon](https://img.shields.io/badge/Sysmon-Event_Monitoring-green?style=for-the-badge&logo=microsoft)](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon)
-
-</div>
+# MISP-Wazuh Integration
 
 ## Table of Contents
 - [Introduction](#introduction)
@@ -96,7 +88,7 @@ GPG_PASSPHRASE=
 CRON_USER_ID=
 # defaults to 'https://localhost'
 # note: if you are exposing MISP on a non-standard port (i.e., the port is part of the URL you would use to access it, e.g., https://192.168.0.1:4433) you need to include the port in the BASE_URL variable
-BASE_URL=https://192.168.56.101 # MY TEST IP
+BASE_URL=https://misp.example.com
 # store settings in db except those that must stay in config.php. true/false, defaults to false
 ENABLE_DB_SETTINGS=
 # encryption key. defaults to empty string
@@ -329,7 +321,7 @@ In the integration test, you can use any attribute from the feeds. However, we'l
 - Access the MISP interface via its URL (e.g.: https://<MISP_IP_address>).
 - Navigate to `Home` > `Add Event`
 - Create a new event with a title, distribution, and threat level, then submit.
-- Add a domain attribute with a fictitious name, like `lolo.koko.co`, and save it.
+- Add a controlled test domain attribute, such as `suspicious.example`, and save it.
 - Publish the event by clicking on `Publish Event`
 
 ![Create MISP Event](images/add_event.png)
