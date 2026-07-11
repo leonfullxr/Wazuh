@@ -1,0 +1,76 @@
+<!-- Rules for Windows performance counters collected via command wodles
+     (see README.md for the agent-side configuration). Install as a new rule
+     file on the Wazuh manager (Server Management > Rules). -->
+
+<group name="WinCounter,">
+
+    <rule id="301000" level="0">
+      <decoded_as>json</decoded_as>
+      <match>^{"winCounter":</match>
+      <description>Windows Performance Counter: $(winCounter.Path)</description>
+    </rule>
+
+    <rule id="302000" level="3">
+      <if_sid>301000</if_sid>
+      <field name="winCounter.Path">memory\\available mbytes</field>
+      <description>Windows Counter: Available Memory</description>
+      <group>MEMUsage,</group>
+    </rule>
+
+    <rule id="302001" level="5">
+      <if_sid>302000</if_sid>
+      <field name="winCounter.CookedValue" type="pcre2">^[5-9]\d\d$</field>
+      <description>Windows Counter: Available Memory less than 1GB</description>
+      <group>MEMUsage,</group>
+    </rule>
+
+    <rule id="302002" level="7">
+      <if_sid>302000</if_sid>
+      <field name="winCounter.CookedValue" type="pcre2">^[1-4]\d\d$</field>
+      <description>Windows Counter: Available Memory less than 500MB</description>
+      <group>MEMUsage,</group>
+    </rule>
+
+    <rule id="302003" level="3">
+      <if_sid>301000</if_sid>
+      <field name="winCounter.Path">free megabytes</field>
+      <description>Windows Counter: Disk Space Free</description>
+      <group>DiskFree,</group>
+    </rule>
+
+    <rule id="302004" level="3">
+      <if_sid>301000</if_sid>
+      <field name="winCounter.Path">bytes received/sec</field>
+      <description>Windows Counter: Network Traffic In</description>
+      <group>NetworkTrafficIn,</group>
+    </rule>
+
+    <rule id="302005" level="3">
+      <if_sid>301000</if_sid>
+      <field name="winCounter.Path">bytes sent/sec</field>
+      <description>Windows Counter: Network Traffic Out</description>
+      <group>NetworkTrafficOut,</group>
+    </rule>
+
+    <rule id="303000" level="3">
+      <if_sid>301000</if_sid>
+      <field name="winCounter.Path">processor\S+ processor time</field>
+      <description>Windows Counter: CPU Usage</description>
+      <group>CPUUsage,</group>
+    </rule>
+
+    <rule id="303001" level="5">
+      <if_sid>303000</if_sid>
+      <field name="winCounter.CookedValue">^8\d.\d+$</field>
+      <description>Windows Counter: CPU Usage above 80%</description>
+      <group>CPUUsage,</group>
+    </rule>
+
+    <rule id="303002" level="7">
+      <if_sid>303000</if_sid>
+      <field name="winCounter.CookedValue">^9\d.\d+$</field>
+      <description>Windows Counter CPU Usage above 90%</description>
+      <group>CPUUsage,</group>
+    </rule>
+
+</group>
