@@ -10,6 +10,15 @@ The simplest **supported** way to monitor Kubernetes workloads is to install the
 
 This walkthrough monitors an NGINX deployment: pod logs are written to a hostPath, and the node-level agent tails them and watches Docker events.
 
+## Why on the node instead of in a container
+
+There is no official Wazuh agent image or DaemonSet, and running the agent inside a container has two limitations that a node-level install avoids:
+
+- **The agent reports the container's OS, not the node's.** An agent running in a pod inventories the container image - its package list, SCA results, and system inventory describe the container, not the worker node you actually want to assess. Bind-mounting host paths into the container does not fully fix this: data such as the installed-package list is still queried from inside the container.
+- **Heterogeneous workload logs are hard to normalize.** Logs from the various workloads on a node rarely share a single format (syslog, JSON, ...), and the format cannot be inferred from the log file name, so parsing frequently fails and needs per-source custom decoders.
+
+Installing the agent on the host OS sidesteps both: the agent sees the real node (FIM, SCA, inventory) and reads each workload's logs from a known path where you control the format.
+
 ## 1. Expose application logs to the host
 
 Create the application deployment with its log directory mounted on the node via `hostPath`. NGINX writes to `/var/log/nginx` inside the container, which is bound to `/var/log/kubernetes/nginx` **on the node**:
@@ -53,7 +62,7 @@ The replicas spread across the nodes, and each node's agent sees the logs of the
 <details>
 <summary>Pod distribution across nodes</summary>
 
-```
+```text
 NAME                              READY   STATUS    RESTARTS   AGE   IP           NODE
 nginx-test-app-54d4c9b59d-59kc2   1/1     Running   0          44m   10.42.1.7    worker-2
 nginx-test-app-54d4c9b59d-9qpj8   1/1     Running   0          44m   10.42.0.19   control-plane
@@ -110,8 +119,17 @@ kubectl scale deploy nginx-test-app --replicas=1 -n wazuh
 
 Both actions should produce alerts on the Wazuh dashboard.
 
+## Dynamic and autoscaling clusters
+
+When nodes are commissioned and decommissioned automatically, agent enrollment has to run unattended - there is no operator to register each new node by hand. Practical considerations:
+
+- **Bootstrap the install and enrollment at node startup.** On self-managed node pools, put the agent installation and enrollment in the node's bootstrap/startup script (cloud "user data") so every new node registers itself as it joins. Assign it to the group above so it inherits the centralized configuration immediately.
+- **Do not hard-code the registration password in plaintext.** Baking `WAZUH_REGISTRATION_PASSWORD` into a bootstrap script or machine image exposes it. Fetch it at boot from a secrets manager instead, and prefer scoping enrollment tightly.
+- **Fully managed node pools may not expose a bootstrap hook.** With managed worker nodes (for example EKS-managed node groups), you often cannot inject a startup script. The alternatives are a **custom machine image** with the agent preinstalled - which works but adds the overhead of maintaining and updating that image yourself - or accepting the reduced coverage of an in-cluster agent.
+- **Route agent traffic through a stable endpoint.** Because node IPs churn, point agents at the manager through a load balancer (for example an NLB) rather than a fixed node address, so enrollment and reporting survive scaling events.
+
 ## Related
 
-- [Wazuh agent deployment — DaemonSet & Sidecar](./wazuh-agent-deployment.md) — running the agent *inside* the cluster instead
-- [Containerized agent (custom image)](./agent-daemonset.md) — when host access is not possible
-- [FIM in containerized environments](../FIM.md) — extending this setup with file integrity monitoring over the mounted volumes
+- [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) - running the agent *inside* the cluster instead
+- [Containerized agent (custom image)](./agent-daemonset.md) - when host access is not possible
+- [FIM in containerized environments](../FIM.md) - extending this setup with file integrity monitoring over the mounted volumes

@@ -38,7 +38,7 @@ Yes, and it is actively recommended. It delays volume provisioning until a pod u
 
 **`reclaimPolicy: Delete` vs `Retain`?**
 
-The Wazuh manifests default to `Retain`, which keeps the volume for manual reclamation when its claim is deleted — safer against accidental data loss. `Delete` cleans up automatically. Choose based on your data retention policy; see the Kubernetes [persistent volumes documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+The Wazuh manifests default to `Retain`, which keeps the volume for manual reclamation when its claim is deleted - safer against accidental data loss. `Delete` cleans up automatically. Choose based on your data retention policy; see the Kubernetes [persistent volumes documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
 Example storage class for EKS:
 
@@ -73,13 +73,19 @@ affinity:
                 - us-east-1a
 ```
 
-The default Kustomize setup does not ship affinity rules — add them as patches in your environment overlay (`envs/`).
+The default Kustomize setup does not ship affinity rules - add them as patches in your environment overlay (`envs/`).
+
+Pinning every indexer to one Availability Zone solves attachment locality but
+creates a zone-level failure domain. For HA, use `WaitForFirstConsumer`,
+topology spread/anti-affinity, and one StatefulSet replica plus its EBS volume
+per selected zone. Verify OpenSearch primary and replica shards are also
+distributed across those zones.
 
 ## Configuration management and customization
 
 **Where should changes be made in the wazuh-kubernetes repository?**
 
-All environment-specific changes belong in the `envs/` directory (Kustomize overlays). Do not modify the base manifests under the `wazuh/` subfolders — keeping the base pristine makes upgrades to newer Wazuh versions a clean rebase instead of a merge conflict hunt.
+All environment-specific changes belong in the `envs/` directory (Kustomize overlays). Do not modify the base manifests under the `wazuh/` subfolders - keeping the base pristine makes upgrades to newer Wazuh versions a clean rebase instead of a merge conflict hunt.
 
 **Pulling images from a private ECR**
 
@@ -94,7 +100,7 @@ Set resource requests/limits in the Kustomize overlays, then monitor actual usag
 **Moving from a LoadBalancer to an Ingress**
 
 1. Deploy an Ingress controller in the cluster (e.g. AWS Load Balancer Controller or ingress-nginx).
-2. Create Ingress resources with routing rules pointing at the Wazuh dashboard service — verify the service name and port match the deployment.
+2. Create Ingress resources with routing rules pointing at the Wazuh dashboard service - verify the service name and port match the deployment.
 3. Update DNS records to point to the Ingress controller's external address.
 4. Include TLS settings in the Ingress resource for secure external access.
 
@@ -106,7 +112,7 @@ An NLB can terminate TLS for *external* access (e.g. the dashboard), but it cann
 
 **SSO**
 
-Wazuh supports SAML-based Single Sign-On with providers such as Okta, Microsoft Entra ID, PingOne, Google, JumpCloud, OneLogin, and Keycloak. See [Single sign-on — Wazuh documentation](https://documentation.wazuh.com/current/user-manual/user-administration/single-sign-on/index.html). On Kubernetes, apply the SAML configuration files and restart the affected workloads:
+Wazuh supports SAML-based Single Sign-On with providers such as Okta, Microsoft Entra ID, PingOne, Google, JumpCloud, OneLogin, and Keycloak. See [Single sign-on - Wazuh documentation](https://documentation.wazuh.com/current/user-manual/user-administration/single-sign-on/index.html). On Kubernetes, apply the SAML configuration files and restart the affected workloads:
 
 ```bash
 kubectl apply -f wazuh-indexer-saml-config.yaml
@@ -150,19 +156,26 @@ Manage custom rules in Git: a dedicated repository (or branch) with a pull-reque
 
 **Private vs public CA**
 
-Both work. You can use a public CA (Let's Encrypt, DigiCert, ...) or an internal CA — the certificate just needs to be properly signed and trusted by the agents, so distribute the CA cert to all managed systems.
+Both work. You can use a public CA (Let's Encrypt, DigiCert, ...) or an internal CA - the certificate just needs to be properly signed and trusted by the agents, so distribute the CA cert to all managed systems.
 
 **Recommended enrollment method**
 
-Use the [agent-auth tool](https://documentation.wazuh.com/current/user-manual/reference/tools/agent-auth.html) with password authentication:
+Use the [agent-auth tool](https://documentation.wazuh.com/current/user-manual/reference/tools/agent-auth.html)
+with password authentication. Mount the enrollment password from a Kubernetes
+Secret as `/var/ossec/etc/authd.pass`, readable only by the agent process, and
+invoke `agent-auth` without putting the password in the command line:
 
 ```bash
-/var/ossec/bin/agent-auth -m <WAZUH_MANAGER_IP> -A <AGENT_NAME> -P <ENROLLMENT_PASSWORD>
+/var/ossec/bin/agent-auth -m <WAZUH_MANAGER_IP> -A <AGENT_NAME>
 ```
+
+Passing `-P <ENROLLMENT_PASSWORD>` exposes the secret in shell history and the
+process list. Remove the mounted enrollment secret after registration if the
+pod does not need to re-enroll automatically.
 
 **Are pre-shared keys supported?**
 
-The enrollment password stored in `/var/ossec/etc/authd.pass` on the manager acts as a pre-shared key **for enrollment only**. It is not used for ongoing communication — after enrollment, agents talk to the manager over TLS on port 1514 using their individual agent keys.
+The enrollment password stored in `/var/ossec/etc/authd.pass` on the manager acts as a pre-shared key **for enrollment only**. It is not used for ongoing communication - after enrollment, agents talk to the manager over TLS on port 1514 using their individual agent keys.
 
 ## Useful commands
 
@@ -179,6 +192,6 @@ kubectl get services -o wide -n wazuh
 
 ## Related
 
-- [AWS credentials as Secrets/ConfigMaps](./aws-credentials.md) — persisting AWS module credentials across pod restarts
-- [Cluster debugging](./cluster-debugging.md) — kubectl/minikube diagnostic commands
-- [Agent DaemonSet (custom image)](./agent-daemonset.md) — includes EKS Fargate logging via CloudWatch
+- [AWS credentials as Secrets/ConfigMaps](./aws-credentials.md) - persisting AWS module credentials across pod restarts
+- [Cluster debugging](./cluster-debugging.md) - kubectl/minikube diagnostic commands
+- [Agent DaemonSet (custom image)](./agent-daemonset.md) - includes EKS Fargate logging via CloudWatch

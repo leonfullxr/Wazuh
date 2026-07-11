@@ -123,6 +123,6 @@ cat ~/.kube/config
 
 ## Related
 
-- [Wazuh on Amazon EKS](./eks.md) — storage classes, affinity, ingress, SSO
+- [Wazuh on Amazon EKS](./eks.md) - storage classes, affinity, ingress, SSO
 - [Wazuh on GKE](./gke.md) · [Wazuh on AKS](./aks.md)
-- [Docker network and proxy debugging](../docker/network-proxy-debugging.md) — the container-level equivalent
+- [Docker network and proxy debugging](../docker/network-proxy-debugging.md) - the container-level equivalent

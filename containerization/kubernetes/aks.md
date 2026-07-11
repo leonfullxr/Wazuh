@@ -1,57 +1,146 @@
-# Wazuh on Azure AKS
+# Wazuh on Azure Kubernetes Service (AKS)
 
-**Applies to:** Wazuh 4.x · Azure Kubernetes Service (AKS) · Wazuh indexer (OpenSearch) sizing
+**Applies to:** Wazuh 4.x, AKS, and the
+[`wazuh-kubernetes`](https://github.com/wazuh/wazuh-kubernetes) deployment.
 
-[Back to Kubernetes README](./README.md)
+This guide covers AKS-specific storage, scheduling, capacity, snapshots, and
+verification. Follow the official Wazuh Kubernetes procedure for certificate
+generation and base manifests; keep Azure changes in a Kustomize overlay so
+upstream upgrades remain reviewable.
 
-## Table of Contents
+## Prerequisites
 
-- [Overview](#overview)
-- [Disk selection and sizing](#disk-selection-and-sizing)
-- [Hot/warm storage tiers and snapshots](#hotwarm-storage-tiers-and-snapshots)
-- [Node sizing](#node-sizing)
-- [Ingesting logs from a centralized syslog server](#ingesting-logs-from-a-centralized-syslog-server)
-- [Monitoring AKS workloads with the agent](#monitoring-aks-workloads-with-the-agent)
+- An AKS cluster with the Azure Disk CSI driver.
+- At least three schedulable indexer nodes for a three-indexer deployment.
+- Azure Disk quota and zone availability for the selected SKU.
+- Measured daily primary-data volume, retention, replica count, and recovery
+  objectives.
 
-## Overview
+## Storage class
 
-Sizing and architecture notes for running the Wazuh central components on AKS. The numbers below come from a reference scenario of roughly 12 TB of indexed data over a 180-day retention window; scale them to your own ingestion volume.
+Wazuh Indexer is the I/O-sensitive component. Start with a premium Azure Disk
+class and benchmark indexing, search, and recovery before selecting a cheaper
+or faster tier. Premium SSD v2 requires regional/zone support and
+`cachingMode: None`.
 
-## Disk selection and sizing
+Example retained Premium SSD v2 class:
 
-- **Recommended disk type:** for the Wazuh indexer (OpenSearch) in production, **Premium SSD v2** offers the best balance of price, IOPS, and throughput while keeping the low latency indexing requires. Ultra Disk is usually overkill; Standard SSD is generally not suitable for the hot tier due to IOPS limits.
-- **Hot tier sizing:** with a 12 TB / 180-day total estimate, a 30-day hot tier needs roughly **2 TB** of high-performance storage.
-- **Account for replicas:** if `number_of_replicas` is 1 (recommended for high availability), the storage requirement **doubles**.
-- Reference: [Wazuh index lifecycle management](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/index-lifecycle-management.html)
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: wazuh-indexer-premium-v2
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: PremiumV2_LRS
+  cachingMode: None
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+```
 
-## Hot/warm storage tiers and snapshots
+Use `managed-csi-premium` or a custom `Premium_LRS`/`Premium_ZRS` class when
+Premium SSD v2 is unavailable. `WaitForFirstConsumer` lets Kubernetes create
+the disk in the zone selected for the pod. `Retain` protects the underlying
+disk if a PVC is deleted, but also requires an explicit cleanup process.
 
-- **Hot/warm architecture on AKS:** use separate **node pools** with labels (e.g. `node_type=hot`, `node_type=warm`), combined with Kubernetes **taints and tolerations** and OpenSearch **shard allocation awareness**, so hot indices stay on high-performance nodes and warm indices move to nodes backed by cheaper storage.
-- **Azure Blob Storage for long retention:** move data older than 30–60 days to Blob Storage snapshots using the OpenSearch `repository-azure` plugin.
-  - Use the **Hot** or **Cool** access tiers for snapshot repositories that may need restoring. Avoid the **Archive** tier for direct snapshot integration — it requires manual rehydration before OpenSearch can read the data.
+Reference this class only from the indexer volume claim template. Managers
+and the dashboard have different capacity and I/O requirements.
 
-## Node sizing
+## Zones and scheduling
 
-- OpenSearch is memory-intensive. For a ~12 TB environment, indexer nodes should have **32–64 GB of RAM**, with the JVM heap set to 50% of available RAM (capped at 32 GB).
-- Always deploy the Wazuh indexer and manager as **StatefulSets** to get stable network identities and persistent storage binding, following the [official Kubernetes deployment](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html).
+Azure Disks are normally `ReadWriteOnce`; a StatefulSet pod must return to a
+node that can attach its existing disk. Spread indexer replicas across zones
+with pod anti-affinity or topology spread constraints, while allowing each
+PVC to bind in its pod's zone.
 
-## Ingesting logs from a centralized syslog server
+Verify before deployment:
 
-If logs are aggregated on a central syslog server before reaching Wazuh, two options work well:
+```bash
+kubectl get nodes \
+  -L topology.kubernetes.io/region,topology.kubernetes.io/zone
+kubectl get storageclass wazuh-indexer-premium-v2 -o yaml
+```
 
-1. Install a **Wazuh agent on the syslog server** and configure `localfile` blocks to read and forward the aggregated log files to the manager.
-2. Route the logs through an **Azure Event Hub** and pull them with the Wazuh [Azure integration module](https://documentation.wazuh.com/current/cloud-security/azure/index.html).
+After scheduling:
 
-## Monitoring AKS workloads with the agent
+```bash
+kubectl get pods -n wazuh -o wide
+kubectl get pvc,pv -n wazuh
+kubectl describe pod -n wazuh <INDEXER_POD>
+```
 
-To monitor the AKS cluster itself, run the Wazuh agent as a **DaemonSet** and read the container logs at `/var/log/containers` and/or `/var/log/pods` on each node.
+Do not force all indexers into one zone merely to solve a volume-attachment
+error. Fix storage binding and scheduling constraints, then confirm primary
+and replica shards are distributed across failure domains.
 
-A useful refinement is to put **Fluent Bit** in front of the agent: Fluent Bit tails and processes the pod logs, tags them with source pod/instance metadata, filters out noise (reducing the EPS the agent has to handle), and writes the result to a file the agent ingests.
+## Capacity planning
 
-See [Wazuh agent deployment on Kubernetes](./wazuh-agent-deployment.md) for ready-to-use DaemonSet manifests.
+Calculate storage from measured primary data, not a fixed environment size:
 
-## Related
+```text
+raw indexed storage =
+  daily primary data * retention days * (1 + replica count)
+```
 
-- [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md)
-- [Wazuh on Amazon EKS](./eks.md) — the EKS counterpart of this guide
-- [Wazuh on GKE](./gke.md)
+Add headroom for segment merges, shard relocation, translogs, snapshots in
+progress, and disk watermarks. The result is cluster-wide; distribute it
+across indexer PVCs while ensuring the cluster can recover from the loss of
+one node.
+
+Use the [Indexer optimization hub](../../indexer/README.md) for shard size,
+replica, heap, and retention decisions. Set JVM minimum and maximum heap to
+equal values, normally near half the container memory limit, then validate
+garbage collection and heap pressure. Treat 32 GB as a benchmark boundary,
+not a universal hard cap.
+
+## Azure Blob snapshots
+
+Azure Blob is a snapshot repository, not a transparent warm data tier. The
+Wazuh Indexer image does not automatically gain Azure repository support:
+
+1. Build and test a custom image with the `repository-azure` plugin matching
+   the exact bundled OpenSearch version.
+2. Install the plugin on every indexer node before startup.
+3. Provide Azure credentials through the OpenSearch keystore or use supported
+   managed-identity settings for the bundled OpenSearch version.
+4. Register and verify the repository, then test a restore into a separate
+   cluster.
+
+Do not use the Azure Archive access tier for snapshots that OpenSearch must
+restore directly; archived blobs require rehydration first.
+
+Plugin changes alter the indexer image and upgrade path. If that operational
+cost is not acceptable, use an externally supported backup design instead of
+installing plugins manually in running pods.
+
+## Verification
+
+After applying the AKS overlay:
+
+```bash
+kubectl rollout status statefulset/wazuh-indexer -n wazuh
+kubectl get pods,pvc,pv -n wazuh -o wide
+kubectl top pods -n wazuh
+```
+
+From Wazuh Dashboard Dev Tools:
+
+```http
+GET _cluster/health
+GET _cat/nodes?v&h=name,node.role,heap.percent,ram.percent,disk.used_percent
+GET _cat/allocation?v
+GET _cat/shards?v&h=index,shard,prirep,state,node
+```
+
+The cluster must be green, every PVC bound, indexers spread as designed, and
+disk/heap pressure stable during representative ingestion.
+
+## See also
+
+- [Official Wazuh Kubernetes deployment](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html)
+- [AKS Azure Disk CSI volumes](https://learn.microsoft.com/en-us/azure/aks/create-volume-azure-disk)
+- [Persistent Wazuh configuration](./persistent-storage.md)
+- [Kubernetes cluster debugging](./cluster-debugging.md)
+- [Agent DaemonSet and sidecar patterns](./wazuh-agent-deployment.md)
+- [Device syslog ingestion](../../integrations/syslog/README.md)

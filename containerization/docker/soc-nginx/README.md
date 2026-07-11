@@ -84,4 +84,4 @@ With this structure in place, you can:
 
 3. Extend with container‐security rules via Wazuh’s Docker integration docs linked in the README.
 
-Feel free to tweak, add your own dashboards, or integrate Trivy for image scanning—this repo is your springboard to a full micro‐SOC on Docker!
+Feel free to tweak, add your own dashboards, or integrate Trivy for image scanning-this repo is your springboard to a full micro‐SOC on Docker!

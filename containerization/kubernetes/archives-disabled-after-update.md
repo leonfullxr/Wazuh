@@ -6,15 +6,15 @@
 
 ## Problem
 
-After upgrading the Wazuh Manager image and rolling the StatefulSet, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk. No data is lost — the issue is with ingestion, not storage.
+After upgrading the Wazuh Manager image and rolling the StatefulSet, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk. No data is lost - the issue is with ingestion, not storage.
 
-A ConfigMap mounted to `/etc/filebeat/filebeat.yml` directly has no lasting effect — the setting reverts to `false` on every pod startup, identical to the Docker Compose bind mount behaviour.
+A ConfigMap mounted to `/etc/filebeat/filebeat.yml` directly has no lasting effect - the setting reverts to `false` on every pod startup, identical to the Docker Compose bind mount behaviour.
 
 ## Root cause
 
 Same underlying mechanism as the [Docker variant](../docker/archives-disabled-after-update.md). The container entrypoint regenerates `/etc/filebeat/filebeat.yml` at every startup from a bundled internal template:
 
-```
+```text
 Source template (inside image):
   /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
 
@@ -100,7 +100,7 @@ kubectl rollout restart statefulset/wazuh-worker -n wazuh
 
 ## Behaviour across upgrades
 
-The ConfigMap is a standalone Kubernetes resource — it is not tied to the pod, StatefulSet, or image version. When you upgrade the Wazuh image by updating the `image:` tag and rolling the StatefulSet, the ConfigMap remains in place and the mount is reapplied to new pods automatically. No manual re-application is required after an upgrade.
+The ConfigMap is a standalone Kubernetes resource - it is not tied to the pod, StatefulSet, or image version. When you upgrade the Wazuh image by updating the `image:` tag and rolling the StatefulSet, the ConfigMap remains in place and the mount is reapplied to new pods automatically. No manual re-application is required after an upgrade.
 
 ## Upgrade procedure
 

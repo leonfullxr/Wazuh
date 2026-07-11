@@ -6,7 +6,7 @@
 
 ## Overview
 
-Command reference for diagnosing connectivity problems in containerized Wazuh deployments — containers that cannot reach each other, and outbound traffic that must traverse an HTTP proxy (a common requirement in corporate networks, e.g. when the dashboard or integrations need to reach identity providers such as Microsoft Entra ID).
+Command reference for diagnosing connectivity problems in containerized Wazuh deployments - containers that cannot reach each other, and outbound traffic that must traverse an HTTP proxy (a common requirement in corporate networks, e.g. when the dashboard or integrations need to reach identity providers such as Microsoft Entra ID).
 
 ## Inspecting container networking
 
@@ -29,7 +29,7 @@ docker exec -it multi-node-wazuh1.indexer-1 ip a
 curl -v http://wazuh1.indexer
 ```
 
-Name resolution failures here usually mean the containers are not on the same Docker network — check the `networks:` sections of the compose file.
+Name resolution failures here usually mean the containers are not on the same Docker network - check the `networks:` sections of the compose file.
 
 ## Testing proxy connectivity
 
@@ -55,5 +55,5 @@ Common failure modes:
 
 ## Related
 
-- [Wazuh agent DaemonSet (custom image)](../kubernetes/agent-daemonset.md) — containerized agents where these issues typically surface
+- [Wazuh agent DaemonSet (custom image)](../kubernetes/agent-daemonset.md) - containerized agents where these issues typically surface
 - [Kubernetes cluster debugging](../kubernetes/cluster-debugging.md)

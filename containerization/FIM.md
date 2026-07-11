@@ -20,8 +20,8 @@ Container security monitoring with Wazuh works at two layers, and where you can 
 
 | Where the agent runs | FIM available? | What it can see |
 |----------------------|----------------|-----------------|
-| On the Docker host / K8s node (recommended) | Yes — full | Host filesystem, plus any container data exposed via volumes/bind mounts; Docker & K8s APIs |
-| Inside a container (DaemonSet) | Limited | Only volumes mounted into the agent container — not officially supported |
+| On the Docker host / K8s node (recommended) | Yes - full | Host filesystem, plus any container data exposed via volumes/bind mounts; Docker & K8s APIs |
+| Inside a container (DaemonSet) | Limited | Only volumes mounted into the agent container - not officially supported |
 | EKS Fargate / fully managed pods | No | No node access; use cloud log ingestion instead ([details](./kubernetes/agent-daemonset.md#eks-fargate-ship-logs-to-cloudwatch)) |
 
 ## Layer 1: the infrastructure
@@ -38,8 +38,8 @@ Typical alerts at this layer: a Docker image is modified, a container runs in pr
 
 Two options for monitoring the containers themselves:
 
-1. **Agent as a DaemonSet pod:** the agent accesses the filesystems other containers expose through volumes — reading logs, detecting config changes. **Not officially supported, and FIM is not available** against arbitrary container filesystems; the agent only sees what is mounted into its own pod. See [containerized agent (custom image)](./kubernetes/agent-daemonset.md).
-2. **Agent directly on the host (recommended):** full agent capabilities — FIM, log collection, SCA, Docker listener. See [deploying an agent on a K8s node](./kubernetes/agent-on-node.md).
+1. **Agent as a DaemonSet pod:** the agent accesses the filesystems other containers expose through volumes - reading logs, detecting config changes. **Not officially supported, and FIM is not available** against arbitrary container filesystems; the agent only sees what is mounted into its own pod. See [containerized agent (custom image)](./kubernetes/agent-daemonset.md).
+2. **Agent directly on the host (recommended):** full agent capabilities - FIM, log collection, SCA, Docker listener. See [deploying an agent on a K8s node](./kubernetes/agent-on-node.md).
 
 ## Recommended setup: agent on the host
 
@@ -48,14 +48,14 @@ If installing the agent on the host is feasible:
 1. [Install the Wazuh agent](https://documentation.wazuh.com/current/installation-guide/wazuh-agent/index.html) and connect it to the manager.
 2. Enable the [Docker listener](https://documentation.wazuh.com/current/user-manual/capabilities/container-security/monitoring-docker.html) to capture container events.
 3. [Configure FIM](https://documentation.wazuh.com/current/user-manual/capabilities/file-integrity/how-to-configure-fim.html) on the directories backing the Docker volumes.
-4. Optionally monitor command output (`docker ps`, etc.) — see [Docker container security monitoring with Wazuh](https://wazuh.com/blog/docker-container-security-monitoring-with-wazuh/).
+4. Optionally monitor command output (`docker ps`, etc.) - see [Docker container security monitoring with Wazuh](https://wazuh.com/blog/docker-container-security-monitoring-with-wazuh/).
 
 ## Volumes vs bind mounts
 
 Both mechanisms expose container data where a host-level agent can watch it:
 
 - **Volumes** are managed entirely by Docker, live outside the container lifecycle, and work reliably across platforms (including Windows container hosts). Good for sharing data between containers or with other compute services.
-- **Bind mounts** map an explicit host directory into the container, which makes the path on the host predictable — convenient for pointing syscheck at it.
+- **Bind mounts** map an explicit host directory into the container, which makes the path on the host predictable - convenient for pointing syscheck at it.
 
 ```bash
 # Bind mounts
@@ -112,10 +112,10 @@ Apply syscheck settings to all node agents at once through a group's shared `age
 </agent_config>
 ```
 
-Tune the `<directories>` and `<ignore>` entries to your workloads — excluding high-churn paths (package caches, spool, logs) keeps FIM noise and database size manageable.
+Tune the `<directories>` and `<ignore>` entries to your workloads - excluding high-churn paths (package caches, spool, logs) keeps FIM noise and database size manageable.
 
 ## Related
 
 - [Deploying an agent on a Kubernetes node](./kubernetes/agent-on-node.md)
 - [Containerized agent as a DaemonSet](./kubernetes/agent-daemonset.md)
-- [Wazuh agent deployment — DaemonSet & Sidecar](./kubernetes/wazuh-agent-deployment.md)
+- [Wazuh agent deployment - DaemonSet & Sidecar](./kubernetes/wazuh-agent-deployment.md)

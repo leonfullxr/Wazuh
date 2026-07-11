@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Wazuh AWS module needs credential/profile files inside the manager container. If you write them into the pod's filesystem by hand, they disappear on every pod recreation. Mount them from a **Secret** (credentials) and a **ConfigMap** (profile config) instead — the files then survive any pod restart or image upgrade.
+The Wazuh AWS module needs credential/profile files inside the manager container. If you write them into the pod's filesystem by hand, they disappear on every pod recreation. Mount them from a **Secret** (credentials) and a **ConfigMap** (profile config) instead - the files then survive any pod restart or image upgrade.
 
 This pattern supports multiple AWS profiles, which is useful when one manager pulls logs from several accounts.
 
@@ -115,5 +115,5 @@ aws s3 ls --profile <PROFILE_NAME>
 
 ## Related
 
-- [Wazuh on Amazon EKS](./eks.md) — the deployment where this is typically needed
+- [Wazuh on Amazon EKS](./eks.md) - the deployment where this is typically needed
 - [Wazuh AWS integration documentation](https://documentation.wazuh.com/current/cloud-security/amazon/index.html)

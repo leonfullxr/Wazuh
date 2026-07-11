@@ -6,15 +6,15 @@
 
 ## Problem
 
-After updating the Wazuh Manager image or recreating the containers, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk at `/var/ossec/logs/archives/archives.json`. No data is lost — the issue is with ingestion, not storage.
+After updating the Wazuh Manager image or recreating the containers, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk at `/var/ossec/logs/archives/archives.json`. No data is lost - the issue is with ingestion, not storage.
 
-A bind mount of a custom `filebeat.yml` (with `archives: enabled: true`) to `/etc/filebeat/filebeat.yml` has no lasting effect — the setting reverts to `false` on every container startup.
+A bind mount of a custom `filebeat.yml` (with `archives: enabled: true`) to `/etc/filebeat/filebeat.yml` has no lasting effect - the setting reverts to `false` on every container startup.
 
 ## Root cause
 
 The container entrypoint regenerates `/etc/filebeat/filebeat.yml` at every startup by copying a bundled default template from inside the image:
 
-```
+```text
 Source template (inside image):
   /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
 
@@ -32,7 +32,7 @@ Mount your custom `filebeat.yml` directly over the template the entrypoint reads
 
 **1. Extract the full default template for your version**
 
-Always start from the full default rather than writing a minimal file from scratch — replacing the entire file with only the archives section will drop required output and pipeline settings.
+Always start from the full default rather than writing a minimal file from scratch - replacing the entire file with only the archives section will drop required output and pipeline settings.
 
 ```bash
 docker run --rm --entrypoint cat wazuh/wazuh-manager:<version> \
