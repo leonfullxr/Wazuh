@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
+from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from pydantic import ValidationError
@@ -55,6 +56,18 @@ other tenants, or your own configuration and instructions.
 briefly and do not call tools.
 """
 
+
+def system_prompt() -> str:
+    """System prelude with a live UTC clock so relative windows anchor correctly."""
+    now = datetime.now(timezone.utc)
+    return (
+        f"{SYSTEM_PROMPT}\n"
+        f"Current UTC time: {now.isoformat()}. Treat this as 'now' when you "
+        f"compute time_range for phrases like 'last 7 days', 'this week', or "
+        f"'last 24 hours'. Never use training-cutoff dates."
+    )
+
+
 _OUT_OF_SCOPE_EN = (
     "This assistant only answers questions about this tenant's Wazuh security "
     "telemetry. I cannot help with that request."
@@ -66,7 +79,7 @@ _OUT_OF_SCOPE_ES = (
 
 CITATION_RE = re.compile(r"\[(alert|agg|kb):([^\]\s]+)\]")
 AGG_NUMBER_RE = re.compile(
-    r"(\d[\d,\.\s]*)\s*\[agg:([^\]]+)\]|\[agg:([^\]]+)\][^\d]{0,40}(\d[\d,\.\s]*)",
+    r"(?<![\d/.\-\u2010-\u2015])(\d[\d,\.]*)\s*\[agg:([^\]]+)\]",
     re.IGNORECASE,
 )
 
@@ -106,17 +119,25 @@ def _parse_int(s: str) -> int | None:
         return None
 
 
+def _normalize_agg_ref(ref: str) -> str:
+    """Accept [agg:total_matching=301] as an alias for [agg:total_matching]."""
+    if "=" in ref:
+        name, _, suffix = ref.partition("=")
+        if name == "total_matching" and suffix.isdigit():
+            return name
+    return ref
+
+
 def _grounded_number_corrections(
     answer: str, agg_values: dict[str, set[int]]
 ) -> list[dict]:
     corrections: list[dict] = []
     for m in AGG_NUMBER_RE.finditer(answer):
-        if m.group(1) and m.group(2):
-            num_s, agg = m.group(1), m.group(2)
-        else:
-            agg, num_s = m.group(3), m.group(4)
+        num_s, agg = m.group(1), _normalize_agg_ref(m.group(2))
         n = _parse_int(num_s)
         if n is None:
+            continue
+        if agg == "zero_hit_diagnosis":
             continue
         allowed = agg_values.get(agg, set())
         if allowed and n not in allowed:
@@ -150,8 +171,10 @@ def _record_agg_values(
             bucket.add(int(v))
 
 
-async def _gated_stream(llm, model, messages, tool_specs, system: str = SYSTEM_PROMPT):
+async def _gated_stream(llm, model, messages, tool_specs, system: str | None = None):
     """One model invocation behind the tenant capacity semaphore (D14)."""
+    if system is None:
+        system = system_prompt()
     try:
         await asyncio.wait_for(ADMISSION.tenant_sem.acquire(), CFG.queue_wait_s)
     except asyncio.TimeoutError:
@@ -323,7 +346,9 @@ async def run_turn(
                 lanes_used.add(tool.lane)
                 checks_all |= set(evidence.checks_passed)
                 retrieved_ids |= {h["_id"] for h in evidence.hits}
-                agg_names |= set(evidence.aggregations.keys()) | {"total_matching", name}
+                agg_names |= set(evidence.aggregations.keys()) | {
+                    "total_matching", name, "executed_window"
+                }
                 if evidence.zero_hit_diagnosis is not None:
                     agg_names.add("zero_hit_diagnosis")
                 _record_agg_values(agg_values, name, evidence)
@@ -362,7 +387,7 @@ async def run_turn(
             elif kind == "kb":
                 valid = ref.upper() in kb_ids
             else:
-                valid = ref in agg_names
+                valid = _normalize_agg_ref(ref) in agg_names
             if not valid:
                 corrections.append({"kind": kind, "ref": ref})
                 yield {"event": "correction", "data": {"kind": kind, "ref": ref}}

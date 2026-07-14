@@ -8,7 +8,7 @@ WAZUH_DIR := .wazuh-docker/single-node
 OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh bakeoff test logs down clean
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh evals-qwen3 bakeoff test logs down clean
 
 keys:
 	./keys/gen-keys.sh
@@ -80,6 +80,24 @@ bakeoff:
 	  cp golden/last_run.json "golden/last_run.$$(echo $$m | tr ':/' '--').json"; \
 	done; \
 	echo "artifacts: golden/last_run.*.json"
+
+# ---- Qwen3 instruct retry (lane 0 off — model-only golden run) ---------------
+# Official non-thinking instruct build; raise output cap for tool-heavy turns.
+# make evals-qwen3
+QWEN3_INSTRUCT_MODEL ?= qwen3:30b-a3b-instruct-2507-q4_K_M
+
+evals-qwen3:
+	python3 seed/seed_alerts.py
+	docker compose -f docker-compose.poc.yml --profile ollama exec -T ollama ollama pull $(QWEN3_INSTRUCT_MODEL)
+	WAI_LLM_PROVIDER=openai \
+	WAI_MODEL_ROUTER=$(QWEN3_INSTRUCT_MODEL) WAI_MODEL_ANALYSIS=$(QWEN3_INSTRUCT_MODEL) \
+	WAI_LANE0_ENABLED=false WAI_MAX_OUTPUT_TOKENS=4096 \
+		docker compose -f docker-compose.poc.yml up -d --build --force-recreate tool-service
+	@until curl -sf http://localhost:8080/healthz >/dev/null 2>&1; do sleep 2; done
+	WAI_LLM_PROVIDER=openai \
+	WAI_MODEL_ROUTER=$(QWEN3_INSTRUCT_MODEL) WAI_MODEL_ANALYSIS=$(QWEN3_INSTRUCT_MODEL) \
+	WAI_EVAL_TIMEOUT_S=600 python3 golden/run_evals.py; \
+	cp golden/last_run.json "golden/last_run.$$(echo $(QWEN3_INSTRUCT_MODEL) | tr ':/' '--').json"
 
 test:
 	docker compose -f docker-compose.poc.yml run --rm --no-deps \

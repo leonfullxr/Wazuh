@@ -17,7 +17,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from .compiler import compile_opensearch
@@ -62,6 +62,20 @@ class Evidence:
             payload["served_from_cache"] = True  # honesty over freshness (D41)
         if self.zero_hit_diagnosis is not None:
             payload["zero_hit_diagnosis"] = self.zero_hit_diagnosis
+        if self.total == 0 and self.window.get("lte"):
+            try:
+                lte = datetime.fromisoformat(
+                    str(self.window["lte"]).replace("Z", "+00:00")
+                )
+                now = datetime.now(timezone.utc)
+                if (now - lte).total_seconds() > 3600:
+                    payload["time_range_stale_hint"] = (
+                        f"executed_window ends at {self.window['lte']}, but current "
+                        f"UTC is {now.isoformat()}. Re-call the tool with "
+                        f"time_range anchored to current UTC."
+                    )
+            except (TypeError, ValueError):
+                pass
         # Evidence compaction: drop hits until the payload fits.
         while (
             len(json.dumps(payload, default=str)) > CFG.evidence_budget_chars
