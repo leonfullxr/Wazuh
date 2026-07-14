@@ -45,12 +45,14 @@ class Evidence:
     zero_hit_diagnosis: Optional[dict] = None
     compiled_query: dict = field(default_factory=dict)
     from_cache: bool = False
+    window: dict = field(default_factory=dict)
 
     def to_tool_result(self) -> dict:
         """The JSON handed back to the model, kept inside the evidence budget."""
         payload = {
             "total_matching": self.total,
             "total_computed_by": self.total_computed_by,
+            "executed_window": self.window,
             "aggregations": self.aggregations,
             "veracity_checks_passed": self.checks_passed,
             "veracity_checks_skipped": self.checks_skipped,
@@ -209,6 +211,7 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
         zero_diag = await _diagnose_zero_hits(ir, user_jwt)
         checks_passed.append("zero_hit_diagnosis")
 
+    gte, lte = ir.time_range.iso()
     evidence = Evidence(
         total=total,
         total_computed_by="datastore",
@@ -218,6 +221,7 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
         checks_skipped=checks_skipped,
         zero_hit_diagnosis=zero_diag,
         compiled_query=dsl,
+        window={"gte": gte, "lte": lte},
     )
     if CFG.evidence_cache_ttl > 0:
         if len(_EVIDENCE_CACHE) > 512:  # cheap bound: drop expired entries

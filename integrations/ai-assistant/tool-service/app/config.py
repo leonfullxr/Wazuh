@@ -52,9 +52,14 @@ class Settings(BaseSettings):
     # bge-m3 on the ollama service works and is bilingual). Off by default.
     lane0_enabled: bool = False
     lane0_threshold: float = 0.80  # cosine floor; verify per embedding model
+    lane0_near_miss_floor: float = 0.65  # below threshold but above -> few-shot hint
     embed_base_url: str = "http://ollama:11434/v1"
     embed_model: str = "bge-m3"
     embed_api_key: str = ""
+
+    # Scope classifier (P1.2): active only when lane 0 is enabled (same embed endpoint).
+    scope_classifier_enabled: bool = True
+    scope_margin: float = 0.05  # refuse when out_score - in_score >= this
 
     # IR-keyed evidence cache (D41, README s3.5). 0 disables. When on, identical
     # query plans within the TTL are served from memory and labeled as such.
@@ -72,7 +77,7 @@ class Settings(BaseSettings):
     # Lanes and loop caps (D23/D32)
     lane2_enabled: bool = True
     max_tool_calls: int = 6
-    evidence_budget_chars: int = 24000
+    evidence_budget_chars: int = 8000
     max_output_tokens: int = 2048
 
     # Admission (a deliberately tiny D14: per-user single stream + per-tenant gate)

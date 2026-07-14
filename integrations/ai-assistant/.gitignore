@@ -2,6 +2,23 @@
 keys/*.pem
 .wazuh-docker/
 securityconfig/tmp/
+
+# Golden / eval artifacts (generated at runtime)
 golden/ground_truth.json
+golden/last_run.json
+golden/last_run.*.json
+
+# Python local env and test caches
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# MCP host-local install
+mcp/.venv/

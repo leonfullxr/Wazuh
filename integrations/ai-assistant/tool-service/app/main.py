@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import uuid
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field, ValidationError
@@ -24,6 +25,7 @@ from . import audit
 from .admission import BusyError
 from .auth import User, verify_jwt
 from .config import CFG
+from .knowledge import mitre_lookup
 from .loop import run_turn
 from .tools import REGISTRY
 from .veracity import VeracityError, execute_ir
@@ -48,6 +50,15 @@ def _effective_text(req: ChatRequest) -> str:
     if req.alert_id:
         return f"Explain the alert with id {req.alert_id}. {req.text}".strip()
     return req.text
+
+
+def _indexer_http_error(exc: httpx.HTTPStatusError) -> HTTPException:
+    """An indexer rejection mid-turn (expired turn JWT, revoked role) is an
+    auth problem, not a server bug - never a 500."""
+    status = exc.response.status_code
+    if status in (401, 403):
+        return HTTPException(401, "indexer rejected the turn credential (expired?)")
+    return HTTPException(502, f"indexer error {status}")
 
 
 @app.get("/healthz")
@@ -76,6 +87,9 @@ async def chat(req: ChatRequest, user: User = Depends(verify_jwt)):
                 yield {"event": ev["event"], "data": json.dumps(ev["data"])}
         except BusyError as exc:
             yield {"event": "error", "data": json.dumps({"code": "busy", "msg": str(exc)})}
+        except httpx.HTTPStatusError as exc:
+            err = _indexer_http_error(exc)
+            yield {"event": "error", "data": json.dumps({"code": "indexer", "msg": err.detail})}
 
     return EventSourceResponse(gen(), ping=15)  # SSE keepalive
 
@@ -97,6 +111,8 @@ async def chat_sync(req: ChatRequest, user: User = Depends(verify_jwt)) -> dict:
                 corrections.append(ev["data"])
     except BusyError as exc:
         raise HTTPException(429, str(exc)) from exc
+    except httpx.HTTPStatusError as exc:
+        raise _indexer_http_error(exc) from exc
     return {"answer": answer, **done}
 
 
@@ -124,12 +140,21 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
         raise HTTPException(404, f"unknown tool '{name}'")
     try:
         validated = tool.schema.model_validate(params)
+        if tool.knowledge:
+            if tool.name == "mitre_lookup":
+                payload = mitre_lookup(validated)
+            else:
+                raise HTTPException(404, f"unknown knowledge tool '{name}'")
+            audit.emit("http_knowledge_tool_executed", tool=name, sub=user.sub)
+            return payload
         ir = tool.to_ir(validated)
         evidence = await execute_ir(ir, user.raw_jwt)
     except ValidationError as exc:
         raise HTTPException(422, exc.errors()) from exc
     except VeracityError as exc:
         raise HTTPException(422, str(exc)) from exc
+    except httpx.HTTPStatusError as exc:
+        raise _indexer_http_error(exc) from exc
     audit.emit(
         "http_tool_executed",
         tool=name,

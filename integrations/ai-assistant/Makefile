@@ -8,7 +8,7 @@ WAZUH_DIR := .wazuh-docker/single-node
 OLLAMA_MODEL ?= qwen2.5:14b
 EMBED_MODEL ?= bge-m3
 
-.PHONY: keys wazuh securityconfig poc ollama embed airllm seed evals test logs down clean
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh bakeoff test logs down clean
 
 keys:
 	./keys/gen-keys.sh
@@ -35,6 +35,14 @@ ollama:
 	@echo "WAI_MODEL_* ids in .env (option B), then: make poc"
 	@echo "Sparse MoE upgrades (README s3.4): make ollama OLLAMA_MODEL=gpt-oss:20b"
 	@echo "(16 GB systems) or OLLAMA_MODEL=qwen3:30b-a3b (32 GB / 24 GB VRAM)"
+	@echo "Verify GPU: make ollama-gpu-verify"
+
+ollama-gpu-verify:
+	@echo "=== ollama ps (expect GPU/ROCm, not 100% CPU) ==="
+	@docker compose -f docker-compose.poc.yml exec ollama ollama ps 2>/dev/null || \
+	  echo "ollama not running - start with: make ollama"
+	@echo "=== rocm-smi (host, if installed) ==="
+	@rocm-smi --showuse 2>/dev/null || echo "rocm-smi not on PATH (optional host check)"
 
 embed:
 	docker compose -f docker-compose.poc.yml --profile ollama up -d ollama
@@ -53,6 +61,25 @@ seed:
 
 evals:
 	python3 golden/run_evals.py
+
+evals-fresh: seed evals
+
+# Three-model bake-off (section 7). Recreates tool-service per model so the
+# container actually answers with each candidate. Artifacts: golden/last_run.<model>.json
+BAKEOFF_MODELS ?= gpt-oss:20b qwen2.5:14b qwen3:30b-a3b
+bakeoff:
+	@set -e; \
+	for m in $(BAKEOFF_MODELS); do \
+	  echo "=== bake-off: $$m ==="; \
+	  docker compose -f docker-compose.poc.yml --profile ollama exec -T ollama ollama pull $$m; \
+	  WAI_LLM_PROVIDER=openai WAI_MODEL_ROUTER=$$m WAI_MODEL_ANALYSIS=$$m \
+	    docker compose -f docker-compose.poc.yml up -d --force-recreate tool-service; \
+	  until curl -sf http://localhost:8080/healthz >/dev/null 2>&1; do sleep 2; done; \
+	  WAI_LLM_PROVIDER=openai WAI_MODEL_ROUTER=$$m WAI_MODEL_ANALYSIS=$$m \
+	    python3 golden/run_evals.py; \
+	  cp golden/last_run.json "golden/last_run.$$m.json"; \
+	done; \
+	echo "artifacts: golden/last_run.*.json"
 
 test:
 	docker compose -f docker-compose.poc.yml run --rm --no-deps \

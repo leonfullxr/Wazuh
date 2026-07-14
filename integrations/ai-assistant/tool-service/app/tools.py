@@ -13,6 +13,7 @@ from typing import Callable, Literal, Optional
 from pydantic import BaseModel, Field
 
 from .config import CFG
+from .knowledge import MitreLookupParams
 from .models import IRAggregation, IRFilter, QueryIR, TimeRange
 
 
@@ -151,8 +152,13 @@ class ToolDef:
     name: str
     description: str
     schema: type[BaseModel]
-    to_ir: Callable[[BaseModel], QueryIR]
+    to_ir: Callable[[BaseModel], QueryIR] | None
     lane: int
+    knowledge: bool = False
+
+
+def _mitre_lookup_ir(_p: MitreLookupParams) -> QueryIR:
+    raise RuntimeError("knowledge tool - not an indexer query")
 
 
 REGISTRY: dict[str, ToolDef] = {
@@ -177,7 +183,8 @@ REGISTRY: dict[str, ToolDef] = {
         ToolDef(
             "count_alerts",
             "Exact count of matching alerts. Use for every 'how many' question. "
-            "Never count listed alerts yourself.",
+            "Never count listed alerts yourself. time_range defaults to the "
+            "last 24 hours - ALWAYS pass it explicitly to match the question.",
             CountAlertsParams,
             _count_alerts_ir,
             lane=1,
@@ -198,11 +205,24 @@ REGISTRY: dict[str, ToolDef] = {
         ),
         ToolDef(
             "auth_failures",
-            "Authentication failures grouped by user, source ip or agent, "
-            "with exact counts (brute-force triage).",
+            "Authentication failures / failed logins (fallos de autenticacion, "
+            "fallos de login) grouped by user, source ip or agent, with exact "
+            "counts (brute-force triage). ALWAYS use this for auth-failure "
+            "questions - it filters on rule.groups, never on free text.",
             AuthFailuresParams,
             _auth_failures_ir,
             lane=1,
+        ),
+        ToolDef(
+            "mitre_lookup",
+            "Look up a MITRE ATT&CK technique by exact id (e.g. T1110). "
+            "Returns tactic, name and description from the local catalog. "
+            "Does not query tenant alerts - use search_alerts with rule.mitre.id "
+            "to find alerts tagged with a technique.",
+            MitreLookupParams,
+            _mitre_lookup_ir,
+            lane=1,
+            knowledge=True,
         ),
     ]
 }

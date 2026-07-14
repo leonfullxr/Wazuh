@@ -22,16 +22,17 @@ the golden set: curated NL -> query pairs. One artifact, two jobs.
 """
 from __future__ import annotations
 
+import copy
+import json
 import math
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-import httpx
-
 from . import audit, metrics
 from .config import CFG
+from .embeddings import embed_corpus, embed_text
 
 # ---------------------------------------------------------------------------
 # Exemplar corpus (bilingual, D12). `params` is the template; `inject` maps
@@ -181,21 +182,9 @@ def _set_path(params: dict, dotted: str, value: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Embedding client + matcher (pure-python cosine: ~20 exemplars, trivial)
+# Embedding matcher (pure-python cosine: ~20 exemplars, trivial)
 # ---------------------------------------------------------------------------
-_http = httpx.AsyncClient(timeout=30.0)
 _ready = False
-
-
-async def _embed(texts: list[str]) -> list[list[float]]:
-    headers = {"Authorization": f"Bearer {CFG.embed_api_key}"} if CFG.embed_api_key else {}
-    r = await _http.post(
-        f"{CFG.embed_base_url.rstrip('/')}/embeddings",
-        json={"model": CFG.embed_model, "input": texts},
-        headers=headers,
-    )
-    r.raise_for_status()
-    return [d["embedding"] for d in r.json()["data"]]
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -209,7 +198,7 @@ async def _ensure_ready() -> None:
     global _ready
     if _ready:
         return
-    vectors = await _embed([e.text for e in EXEMPLARS])
+    vectors = await embed_corpus([e.text for e in EXEMPLARS])
     for exemplar, vec in zip(EXEMPLARS, vectors):
         exemplar.vector = vec
     _ready = True
@@ -222,30 +211,32 @@ class Lane0Match:
     params: dict
 
 
-async def match(text: str) -> Optional[Lane0Match]:
-    """Best exemplar above the threshold with all required slots filled,
-    or None (escalate to the model loop). Any failure here is a miss, never
-    an error: lane 0 must not be able to break the assistant."""
-    if not CFG.lane0_enabled:
-        return None
-    try:
-        await _ensure_ready()
-        qvec = (await _embed([text]))[0]
-    except Exception as exc:  # embeddings endpoint down -> silent escalation
-        audit.emit("lane0_unavailable", reason=str(exc)[:200])
-        metrics.LANE0.labels(result="unavailable").inc()
-        return None
+@dataclass
+class Lane0NearMiss:
+    """A close miss: inject the exemplar as a transient user hint in the model loop."""
 
+    exemplar: Exemplar
+    score: float
+    hint: str
+
+
+@dataclass
+class Lane0Analysis:
+    qvec: list[float]
+    match: Lane0Match | None
+    near_miss: Lane0NearMiss | None
+
+
+def _best_exemplar(qvec: list[float]) -> tuple[Exemplar | None, float]:
     best, best_score = None, -1.0
     for exemplar in EXEMPLARS:
         score = _cosine(qvec, exemplar.vector)
         if score > best_score:
             best, best_score = exemplar, score
-    if best is None or best_score < CFG.lane0_threshold:
-        audit.emit("lane0_miss", best=best.id if best else None, score=round(best_score, 3))
-        metrics.LANE0.labels(result="miss").inc()
-        return None
+    return best, best_score
 
+
+def _build_match(best: Exemplar, best_score: float, text: str) -> Lane0Match | None:
     slots = extract_slots(text)
     for required in best.require:
         if required not in slots:
@@ -253,14 +244,59 @@ async def match(text: str) -> Optional[Lane0Match]:
                        score=round(best_score, 3))
             metrics.LANE0.labels(result="slot_miss").inc()
             return None
-
-    import copy
-
     params = copy.deepcopy(best.params)
     for slot, path in best.inject.items():
         if slot in slots:
             _set_path(params, path, slots[slot])
     return Lane0Match(exemplar=best, score=best_score, params=params)
+
+
+def _build_near_miss(best: Exemplar, best_score: float) -> Lane0NearMiss | None:
+    if (
+        best_score >= CFG.lane0_threshold
+        or best_score < CFG.lane0_near_miss_floor
+    ):
+        return None
+    hint = (
+        f"Near-match template {best.id!r} (similarity {best_score:.2f}): "
+        f"for questions like {best.text!r}, prefer tool {best.tool!r} with "
+        f"params shaped like {json.dumps(best.params, default=str)}."
+    )
+    audit.emit("lane0_near_miss", template=best.id, score=round(best_score, 3))
+    return Lane0NearMiss(exemplar=best, score=best_score, hint=hint)
+
+
+async def analyze(text: str) -> Lane0Analysis | None:
+    """One embed per question: match, near-miss, and scope share the vector."""
+    if not CFG.lane0_enabled:
+        return None
+    try:
+        await _ensure_ready()
+        qvec = await embed_text(text)
+    except Exception as exc:
+        audit.emit("lane0_unavailable", reason=str(exc)[:200])
+        metrics.LANE0.labels(result="unavailable").inc()
+        return None
+
+    best, best_score = _best_exemplar(qvec)
+    match = None
+    near_miss = None
+    if best is not None and best_score >= CFG.lane0_threshold:
+        match = _build_match(best, best_score, text)
+        if match is None:
+            audit.emit("lane0_miss", best=best.id, score=round(best_score, 3))
+            metrics.LANE0.labels(result="miss").inc()
+    else:
+        audit.emit("lane0_miss", best=best.id if best else None, score=round(best_score, 3))
+        metrics.LANE0.labels(result="miss").inc()
+        if best is not None:
+            near_miss = _build_near_miss(best, best_score)
+    return Lane0Analysis(qvec=qvec, match=match, near_miss=near_miss)
+
+
+async def match(text: str) -> Optional[Lane0Match]:
+    analysis = await analyze(text)
+    return analysis.match if analysis else None
 
 
 # ---------------------------------------------------------------------------

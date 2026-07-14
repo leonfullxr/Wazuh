@@ -7,6 +7,9 @@ applies), and writes the exact ground truths to golden/ground_truth.json.
 The golden runner asserts the assistant's counts against those truths, which
 is the whole point: veracity is only a claim if it is measured (D33).
 
+Re-running is idempotent: previous synthetic documents (manager.name marker)
+are deleted before the new batch is indexed.
+
 Run from the host: python3 seed/seed_alerts.py
 """
 from __future__ import annotations
@@ -23,6 +26,7 @@ INDEXER = "https://localhost:9200"
 AUTH = ("admin", "SecretPassword")  # wazuh-docker single-node default - verify
 SEED = 20260708
 N_ALERTS = 2000
+SEED_MARKER = "wazuh-ai-seed"
 
 AGENTS = [
     ("001", "web-01"), ("002", "web-02"), ("003", "db-01"),
@@ -49,6 +53,17 @@ SRC_IPS = ["203.0.113.66", "198.51.100.23", "192.0.2.14", "10.0.7.5"]
 USERS = ["root", "admin", "svc-backup", "leon", "postgres"]
 
 
+def _delete_previous_synthetic(client: httpx.Client) -> int:
+    """Remove prior synthetic batches so re-seeding is idempotent."""
+    r = client.post(
+        f"{INDEXER}/wazuh-alerts-*/_delete_by_query",
+        json={"query": {"term": {"manager.name": SEED_MARKER}}},
+        params={"refresh": "true", "conflicts": "proceed"},
+    )
+    r.raise_for_status()
+    return r.json().get("deleted", 0)
+
+
 def main() -> None:
     rng = random.Random(SEED)
     now = datetime.now(timezone.utc)
@@ -65,7 +80,7 @@ def main() -> None:
                 **({"mitre": {"id": [mitre], "technique": [desc[:40]]}} if mitre else {}),
             },
             "agent": {"id": agent_id, "name": agent_name, "ip": f"10.0.0.{int(agent_id)}"},
-            "manager": {"name": "wazuh.manager"},
+            "manager": {"name": SEED_MARKER},
             "decoder": {"name": "sshd" if rule_id.startswith("57") else "web-accesslog"},
             "location": "/var/log/auth.log" if rule_id.startswith("57") else "/var/log/nginx/access.log",
             "data": {
@@ -76,8 +91,12 @@ def main() -> None:
         }
         docs.append(doc)
 
-    # Bulk index, one index per event date (stock template pattern).
     client = httpx.Client(verify=False, auth=AUTH, timeout=60.0)
+    removed = _delete_previous_synthetic(client)
+    if removed:
+        print(f"removed {removed} prior synthetic alerts")
+
+    # Bulk index, one index per event date (stock template pattern).
     lines: list[str] = []
     for doc in docs:
         day = doc["timestamp"][:10].replace("-", ".")
@@ -101,12 +120,13 @@ def main() -> None:
     # One known alert id for the citation test: fetch a real _id back.
     sample = client.post(
         f"{INDEXER}/wazuh-alerts-*/_search",
-        json={"size": 1, "query": {"term": {"rule.id": "31103"}}},
+        json={"size": 1, "query": {"term": {"manager.name": SEED_MARKER}}},
     ).json()
     sample_id = sample["hits"]["hits"][0]["_id"] if sample["hits"]["hits"] else None
 
     truths = {
         "generated_at": now.isoformat(),
+        "seed_marker": SEED_MARKER,
         "total_7d": len(docs),
         "auth_failures_24h": len(auth_failed_24),
         "high_severity_7d": high_sev_7d,

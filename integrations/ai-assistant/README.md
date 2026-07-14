@@ -328,7 +328,7 @@ Operational features that started as simplifications and are now closed with cod
 | `WAI_GUARDRAIL_ID` | empty | Attach a Bedrock Guardrail to every invocation when set (`bedrock` provider only) |
 | `WAI_LANE2_ENABLED` | true | Expose `run_query_ir`, the constrained builder |
 | `WAI_MAX_TOOL_CALLS` | 6 | Loop cap per turn |
-| `WAI_EVIDENCE_BUDGET_CHARS` | 24000 | Evidence compaction budget per tool result |
+| `WAI_EVIDENCE_BUDGET_CHARS` | 8000 | Evidence compaction budget per tool result |
 | `WAI_LANE0_ENABLED` / `WAI_LANE0_THRESHOLD` | false / 0.80 | Semantic fast path (D40, section 3.5): embedding-matched questions run curated templates with no model |
 | `WAI_EMBED_BASE_URL` / `WAI_EMBED_MODEL` | ollama / bge-m3 | Embedding endpoint for lane 0 (`make embed` pulls the model) |
 | `WAI_EVIDENCE_CACHE_TTL` | 0 (off) | IR-keyed evidence cache in seconds (D41), cached answers disclose `served_from_cache` |
