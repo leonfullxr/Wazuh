@@ -13,6 +13,12 @@ Workflows → … → Import from file → n8n/wazuh-ai-chat.workflow.json
 ```
 
 Activate the workflow, open the Chat Trigger's public URL, and ask questions.
+
+**Issuer note:** n8n calls Keycloak at `http://keycloak:8080` (in-network). Host
+tools (`make evals`, `make demo-storyline`) use `http://localhost:8085`. The
+auth-shim accepts tokens from either issuer; if exchange fails with 401, recreate
+the auth-shim after pulling the latest compose (`make poc`).
+
 The five-node chain (manual build reference):
 
 1. **Chat Trigger** node. This gives you the hosted chat UI.

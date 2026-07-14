@@ -53,6 +53,14 @@ with open(CFG.private_key_path, "rb") as fh:
     _PRIVATE_KEY = fh.read()
 
 
+def _allowed_issuers() -> set[str]:
+    """Host-minted tokens (localhost:8085) and in-network n8n (keycloak:8080)."""
+    issuers = {f"{CFG.kc_url.rstrip('/')}/realms/{CFG.kc_realm}"}
+    if CFG.kc_issuer:
+        issuers.add(CFG.kc_issuer.rstrip("/"))
+    return issuers
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     return {"ok": True, "tenant": CFG.tenant}
@@ -68,12 +76,19 @@ def exchange(authorization: str = Header(...)) -> dict:
             token,
             signing_key.key,
             algorithms=["RS256"],
-            issuer=CFG.kc_issuer or f"{CFG.kc_url}/realms/{CFG.kc_realm}",
-            # Keycloak access tokens default aud to "account"; we pin issuer +
-            # signature + azp instead. verify: tighten aud once the customer
-            # IdP's token shape is known.
-            options={"verify_aud": False},
+            # Issuer checked below: host-facing KC_ISSUER and in-network kc_url
+            # both appear in this PoC (n8n → keycloak:8080, host evals → :8085).
+            options={"verify_aud": False, "verify_iss": False},
         )
+        iss = (claims.get("iss") or "").rstrip("/")
+        allowed = {i.rstrip("/") for i in _allowed_issuers()}
+        if iss not in allowed:
+            raise HTTPException(
+                401,
+                f"OIDC token rejected: issuer {iss!r} not in {sorted(allowed)!r}",
+            )
+    except HTTPException:
+        raise
     except jwt.PyJWTError as exc:
         raise HTTPException(401, f"OIDC token rejected: {exc}") from exc
 
