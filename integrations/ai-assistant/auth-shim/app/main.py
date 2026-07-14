@@ -54,10 +54,13 @@ with open(CFG.private_key_path, "rb") as fh:
 
 
 def _allowed_issuers() -> set[str]:
-    """Host-minted tokens (localhost:8085) and in-network n8n (keycloak:8080)."""
+    """Host-minted tokens and in-network IdP URLs for this realm."""
     issuers = {f"{CFG.kc_url.rstrip('/')}/realms/{CFG.kc_realm}"}
     if CFG.kc_issuer:
         issuers.add(CFG.kc_issuer.rstrip("/"))
+    # Host-side evals / isolation suite use localhost Keycloak; n8n uses keycloak:8080.
+    issuers.add(f"http://localhost:8085/realms/{CFG.kc_realm}")
+    issuers.add(f"http://keycloak:8080/realms/{CFG.kc_realm}")
     return issuers
 
 

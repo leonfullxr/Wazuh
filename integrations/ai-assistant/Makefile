@@ -1,5 +1,6 @@
 # wazuh-ai local PoC harness - see README.md for the walkthrough
 SHELL := /bin/bash
+export PATH := $(CURDIR)/.bin:$(PATH)
 -include .env
 export
 
@@ -7,8 +8,10 @@ WAZUH_VERSION ?= 4.14.5
 WAZUH_DIR := .wazuh-docker/single-node
 OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
+KIND_CLUSTER ?= wazuh-ai
 
 .PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh evals-qwen3 bakeoff demo-storyline test logs down clean
+.PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
 keys:
 	./keys/gen-keys.sh
@@ -106,6 +109,39 @@ test:
 	docker compose -f docker-compose.poc.yml run --rm --no-deps \
 	  -v ./tool-service/tests:/app/tests:ro --entrypoint sh tool-service \
 	  -c "pip install -q pytest && python -m pytest -q tests"
+
+# ---- Track B: kind cluster + cross-tenant isolation (kind/README.md) ----------
+kind-prereqs:
+	chmod +x kind/install-prereqs.sh
+	./kind/install-prereqs.sh
+
+kind-up: kind-prereqs
+	chmod +x kind/*.sh kind/deploy-tenant.sh
+	@kind get clusters 2>/dev/null | grep -qx '$(KIND_CLUSTER)' || \
+		kind create cluster --name $(KIND_CLUSTER) --config kind/cluster.yaml
+	kubectl config use-context "kind-$(KIND_CLUSTER)"
+	kubectl wait --for=condition=Ready node --all --timeout=180s
+	docker compose -f docker-compose.poc.yml build auth-shim tool-service
+	kind load docker-image ai-assistant-auth-shim:latest --name $(KIND_CLUSTER)
+	kind load docker-image ai-assistant-tool-service:latest --name $(KIND_CLUSTER)
+	@echo "kind cluster $(KIND_CLUSTER) ready"
+
+kind-keys: keys
+	./keys/gen-keys.sh keys/tenant-b
+
+kind-tenants: kind-keys
+	docker compose -f docker-compose.poc.yml --profile ollama up -d keycloak ollama
+	@echo "waiting for Keycloak realm-b import..."
+	@sleep 20
+	HOST_GW=$$(./kind/host-gateway.sh) ./kind/deploy-tenant.sh tenant-a
+	HOST_GW=$$(./kind/host-gateway.sh) ./kind/deploy-tenant.sh tenant-b
+
+kind-isolation:
+	chmod +x kind/isolation_suite.sh
+	./kind/isolation_suite.sh
+
+kind-down:
+	kind delete cluster --name $(KIND_CLUSTER) || true
 
 logs:
 	docker compose -f docker-compose.poc.yml logs -f tool-service auth-shim

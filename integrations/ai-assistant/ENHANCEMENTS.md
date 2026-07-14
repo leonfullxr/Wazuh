@@ -288,6 +288,11 @@ features silently no-op (and with R2.3 fixed, that no-op is at least safe).
 
 ## Round 3 — Track B: kind cluster and the cross-tenant isolation suite
 
+**Status: done (July 2026).** `make kind-up kind-tenants kind-isolation` exits 0
+with the docker Wazuh stack on the host; all four assertions pass. kindnet
+(default CNI) enforces NetworkPolicy on this kernel — Calico install script
+remains optional (`kind/install-calico.sh`) if a stricter CNI is needed.
+
 Status of rounds 1–2: shipped and validated (golden 9/9 lane-0-on; bake-off
 matrix in `golden/last_run.*.json`; results note
 `Notes/Obsidian/Wazuh/wazuh-ai/15-local-validation-results.md`). Track B is
@@ -363,6 +368,7 @@ Assertions, each observable and audited:
 **Acceptance:** `make kind-up kind-tenants kind-isolation` exits 0 on this
 machine with the docker Wazuh stack running; each of the four assertions
 prints what it proved; `make kind-down` leaves the docker stack untouched.
+**Done** (July 2026).
 
 ### B0. Honest 503 when the inference backend is unreachable (small, do first)
 
@@ -386,3 +392,106 @@ a human-with-a-screen-recorder task. **Partially done:** committed
 `n8n/wazuh-ai-chat.workflow.json`, `make demo-storyline`, and
 `scripts/demo_storyline.py` for headless validation; `demo.gif` recording
 still manual.
+
+---
+
+## Round 4 — Track C: environment awareness and in-cluster embeddings
+
+Decision context (Leon, 2026-07-14). The n8n edge lacks environment context
+(dashboards, index state, agent inventory), and the question was whether to
+adopt ML Commons as the orchestrator (Dashboards chat → ML Commons agent →
+HTTP connector → an MCP-LLM gateway). Reviewed against the live stack and
+**rejected for orchestration**, adopted for two narrower jobs:
+
+- Measured facts: the Wazuh 4.14.5 indexer ships `opensearch-ml` 2.19.5; the
+  Wazuh dashboard fork ships NO `dashboards-assistant` plugin; ML Commons'
+  native MCP client is an OpenSearch 3.x feature.
+- **Version pin (Leon): Wazuh 4.8 through 4.16.x rides OpenSearch 2.19.x.**
+  Everything in Track C must work against the ML Commons 2.19 API surface;
+  3.x-only features (MCP client, built-in MCP server, assistant UI) are out
+  of scope and must not be designed against.
+- Architecture ruling: the "MCP-LLM gateway" already exists — it is the
+  tool-service. ML Commons as orchestrator would hold a standing credential
+  inside the cluster (breaks D11/D30: queries-as-the-analyst, no hop trusts
+  unverified identity) and re-couples orchestration to OpenSearch against the
+  ClickHouse pivot (note 09). The loop stays in the tool-service (D28).
+  If a future Wazuh rebases onto 3.x, the Dashboards Assistant may become an
+  *edge only* via an HTTP connector into `/v1/chat/sync`, gated on the
+  connector forwarding the analyst's own credential — tracked, not built.
+
+### C1. Environment tools (the actual gap)
+
+New read-only lane-1 tools, same registry, same audit, executed with the
+analyst's turn JWT. Two kinds:
+
+**C1a. `list_agents` — through the normal IR path.** Terms aggregation on
+`agent.name` over the window, plus last-seen. Requires one minimal IR
+extension: an optional `last_seen: bool` on `IRAggregation(kind="terms")`
+that compiles to a `max` sub-aggregation on `timestamp`; buckets gain a
+`last_seen` field. Validation unchanged (timestamp is not a caller-supplied
+field). Do NOT add a generic metric-agg system — one flag, one sub-agg.
+
+**C1b. `index_health` and `list_dashboards` — environment lookups.** These
+are not alerts-index IR queries, so they get a small `environment.py` module
+(the `knowledge.py` pattern): each tool calls ONE hardcoded indexer endpoint
+with the analyst JWT — no generic passthrough, the endpoint allowlist is the
+module.
+
+| Tool | Endpoint | Returns |
+|---|---|---|
+| `index_health` | `GET _cat/indices/wazuh-alerts-*?format=json&h=index,health,docs.count,store.size` | per-index health/docs/size |
+| `list_dashboards` | `POST <saved-objects index>/_search`, term-filtered to `type: dashboard\|visualization\|index-pattern`, `_source` projected to title/type/updated_at ONLY | the analyst-facing inventory |
+
+Both need explicit, scoped grants added to `wazuh_ai_analyst_role` in
+`securityconfig/`: `indices:monitor/*` on `wazuh-alerts-*` for the first,
+read on the dashboard saved-objects index for the second (verify the index
+name on the live fork — `.kibana*` on the wazuh-dashboard). Call the grants
+out in the securityconfig comments: still read-only, still index-scoped, and
+`list_dashboards` intentionally exposes shared dashboard *titles* only —
+projected fields are the privacy boundary.
+
+Loop integration mirrors the knowledge branch: `environment=True` on the
+ToolDef, results citable via the tool name, checks gain `environment_lookup`.
+
+**Golden set:** two new bilingual cases ("which agents are reporting?" /
+"que agentes reportan alertas?", and an index-health question), with live
+references where countable (agent list via `/v1/tools/list_agents`).
+
+**Acceptance:** both tools work through `/v1/chat/sync` and `/v1/tools/*`
+as the analyst; removing the securityconfig grants makes them fail closed
+with a tool error the model can relay honestly; golden set green at 11/11.
+
+### C2. Dashboard entry, thin (docs + one URL pattern)
+
+No plugin work. Document in `n8n/README.md`: the D34 deep link
+(`alert_id` webhook variant already sketched) plus the exact URL pattern for
+a Wazuh dashboard markdown/URL column on the alerts table that opens the
+chat pre-seeded with that alert. Execution is configuration in the dashboard
+UI, not code.
+
+**Acceptance:** clicking an alert row link opens the chat answering
+"Explain the alert with id <id>" with `[alert:...]` and `[kb:...]` citations.
+
+### C3. In-cluster embeddings via ML Commons (2.19)
+
+Replace the hard dependency on bge-m3-served-by-Ollama (whose container
+dying took every lane down on 2026-07-14) with an embeddings *port*:
+
+| File | Change |
+|---|---|
+| `tool-service/app/embeddings.py` | `WAI_EMBED_PROVIDER=openai` (default, unchanged) or `mlcommons` → `POST _plugins/_ml/models/{WAI_EMBED_ML_MODEL_ID}/_predict` (text_embedding), forwarding the analyst JWT |
+| `tool-service/app/config.py` | `embed_provider`, `embed_ml_model_id` |
+| `securityconfig/` | grant the ml predict action to `wazuh_ai_analyst_role` (per-user, no standing credential — verify the exact 2.19 action name) |
+| `scripts/mlcommons_embed_setup.sh` + Makefile `embed-mlcommons` | one-time admin setup: cluster settings (`plugins.ml_commons.only_run_on_ml_node: false`), register + deploy a pretrained BILINGUAL model — `huggingface/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` from the OpenSearch pretrained list (verify availability on 2.19.5) |
+
+Notes: lane-0/scope thresholds are calibrated per embedding model — re-verify
+`WAI_LANE0_THRESHOLD`/near-miss floor against the golden set after switching
+(the corpus vectors and question vectors change together, but absolute cosine
+ranges differ between bge-m3 and MiniLM). Mind the single-node JVM: the model
+adds ~0.5 GB to the indexer; document it. Fail-open behavior must be
+identical to the Ollama path (endpoint down → lane 0 miss, scope None).
+
+**Acceptance:** with the ollama *chat* model still serving but `WAI_EMBED_PROVIDER=mlcommons`,
+golden set stays green and `docker stop` of nothing breaks embeddings; with
+the ollama container stopped entirely, lane 0/scope still function (embedding
+in-cluster) and only model-loop cases fail with the honest 503 from B0.

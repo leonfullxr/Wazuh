@@ -37,11 +37,13 @@ import yaml
 
 from live_gt import load_and_refresh
 
-KC = "http://localhost:8085"
-SHIM = "http://localhost:8081"
-SVC = "http://localhost:8080"
-REALM, CLIENT = "wazuh-poc", "wazuh-ai"
-USER, PASSWORD = "analyst1", "analyst1"
+KC = os.environ.get("WAI_EVAL_KC_URL", "http://localhost:8085")
+SHIM = os.environ.get("WAI_EVAL_SHIM_URL", "http://localhost:8081")
+SVC = os.environ.get("WAI_EVAL_SVC_URL", "http://localhost:8080")
+REALM = os.environ.get("WAI_EVAL_KC_REALM", "wazuh-poc")
+CLIENT = os.environ.get("WAI_EVAL_KC_CLIENT", "wazuh-ai")
+USER = os.environ.get("WAI_EVAL_KC_USER", "analyst1")
+PASSWORD = os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
 
 TIMEOUT = float(os.environ.get("WAI_EVAL_TIMEOUT_S", "300"))
 RETRIES = int(os.environ.get("WAI_EVAL_RETRIES", "0"))
