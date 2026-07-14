@@ -120,6 +120,13 @@ def chat_sync(headers: dict, question: str) -> dict:
         if last.status_code == 429:
             time.sleep(20)
             continue
+        if last.status_code == 503:
+            detail = last.json().get("detail", last.text)
+            raise httpx.HTTPStatusError(
+                f"inference backend unreachable: {detail}",
+                request=last.request,
+                response=last,
+            )
         last.raise_for_status()
         return last.json()
     raise httpx.HTTPStatusError(

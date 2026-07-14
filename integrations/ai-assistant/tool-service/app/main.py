@@ -61,6 +61,28 @@ def _indexer_http_error(exc: httpx.HTTPStatusError) -> HTTPException:
     return HTTPException(502, f"indexer error {status}")
 
 
+def _llm_backend_label() -> str:
+    """Human-readable inference endpoint for audit and error messages."""
+    if CFG.analysis_base_url:
+        return CFG.analysis_base_url
+    if CFG.router_base_url and CFG.model_router != CFG.model_analysis:
+        return f"router={CFG.router_base_url} analysis={CFG.llm_base_url}"
+    return CFG.llm_base_url
+
+
+def _llm_unreachable_error(exc: httpx.HTTPError) -> HTTPException:
+    """Honest rejection when the inference backend cannot be reached (D14)."""
+    backend = _llm_backend_label()
+    audit.emit("llm_unreachable", backend=backend, reason=str(exc)[:300])
+    return HTTPException(
+        503,
+        f"inference backend unreachable ({backend})",
+    )
+
+
+_LLM_TRANSPORT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout)
+
+
 @app.get("/healthz")
 async def healthz() -> dict:
     return {
@@ -87,6 +109,21 @@ async def chat(req: ChatRequest, user: User = Depends(verify_jwt)):
                 yield {"event": ev["event"], "data": json.dumps(ev["data"])}
         except BusyError as exc:
             yield {"event": "error", "data": json.dumps({"code": "busy", "msg": str(exc)})}
+        except _LLM_TRANSPORT_ERRORS as exc:
+            audit.emit(
+                "llm_unreachable",
+                backend=_llm_backend_label(),
+                reason=str(exc)[:300],
+            )
+            yield {
+                "event": "error",
+                "data": json.dumps(
+                    {
+                        "code": "llm_unreachable",
+                        "msg": f"inference backend unreachable ({_llm_backend_label()})",
+                    }
+                ),
+            }
         except httpx.HTTPStatusError as exc:
             err = _indexer_http_error(exc)
             yield {"event": "error", "data": json.dumps({"code": "indexer", "msg": err.detail})}
@@ -111,6 +148,8 @@ async def chat_sync(req: ChatRequest, user: User = Depends(verify_jwt)) -> dict:
                 corrections.append(ev["data"])
     except BusyError as exc:
         raise HTTPException(429, str(exc)) from exc
+    except _LLM_TRANSPORT_ERRORS as exc:
+        raise _llm_unreachable_error(exc) from exc
     except httpx.HTTPStatusError as exc:
         raise _indexer_http_error(exc) from exc
     return {"answer": answer, **done}

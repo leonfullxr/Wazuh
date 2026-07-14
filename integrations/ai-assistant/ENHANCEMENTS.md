@@ -366,16 +366,16 @@ prints what it proved; `make kind-down` leaves the docker stack untouched.
 
 ### B0. Honest 503 when the inference backend is unreachable (small, do first)
 
-Observed live: with the ollama container down (OOM-killed during a large-model
-run), every chat turn surfaces `httpx.ConnectError` as a raw 500. The design's
-posture is honest rejection (D14): catch `httpx.ConnectError`/`ConnectTimeout`
+Observed live: with the ollama container stopped, every chat turn surfaces
+`httpx.ConnectError` as a raw 500. The design's posture is honest rejection (D14): catch `httpx.ConnectError`/`ConnectTimeout`
 from the provider in both chat surfaces (`main.py`, same pattern as
 `_indexer_http_error`) and return
 `503 "inference backend unreachable"` + an `llm_unreachable` audit event.
 
 **Acceptance:** stop the ollama container, ask a question → clean 503 with
 that message; audit event emitted; eval runner reports it as a transport
-failure naming the backend.
+failure naming the backend. **Done** (July 2026): verified with ollama
+stopped manually; audit emits `llm_unreachable`.
 
 ### B5. Demo refresh (docs, no code)
 
