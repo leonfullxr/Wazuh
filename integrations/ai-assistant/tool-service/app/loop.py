@@ -58,8 +58,13 @@ briefly and do not call tools.
 
 
 def system_prompt() -> str:
-    """System prelude with a live UTC clock so relative windows anchor correctly."""
-    now = datetime.now(timezone.utc)
+    """System prelude with a live UTC clock so relative windows anchor correctly.
+
+    Floored to the minute and stamped ONCE per turn (see run_turn): a per-step
+    microsecond timestamp would invalidate the byte-stable prefix that local
+    KV reuse (P1.2) and the Bedrock system cachePoint (P1.1) depend on.
+    """
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     return (
         f"{SYSTEM_PROMPT}\n"
         f"Current UTC time: {now.isoformat()}. Treat this as 'now' when you "
@@ -263,6 +268,9 @@ async def run_turn(
             {"role": "user", "content": [{"text": text}]}
         ]
         tool_specs = converse_tool_specs()
+        # One clock per turn: every step of this turn shares the byte-identical
+        # system prelude, so step N+1 reuses step N's prefill (P1.1/P1.2).
+        turn_system = system_prompt()
 
         lanes_used: set[int] = set()
         checks_all: set[str] = set()
@@ -278,7 +286,7 @@ async def run_turn(
             yield {"event": "progress", "data": {"step": step, "msg": "thinking"}}
             resp = None
             step_streamed = False
-            async for ev in _gated_stream(llm, model, messages, tool_specs):
+            async for ev in _gated_stream(llm, model, messages, tool_specs, turn_system):
                 if "text" in ev:
                     step_streamed = True
                     yield {"event": "token", "data": {"text": ev["text"]}}

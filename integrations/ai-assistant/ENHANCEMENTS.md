@@ -283,3 +283,103 @@ indexing races the delete: `params={"refresh": "true", "conflicts": "proceed"}`.
 The scope classifier and near-miss hints require embeddings: add `make embed`
 and `WAI_LANE0_ENABLED=true` to the test sequence before `make poc`, or both
 features silently no-op (and with R2.3 fixed, that no-op is at least safe).
+
+---
+
+## Round 3 — Track B: kind cluster and the cross-tenant isolation suite
+
+Status of rounds 1–2: shipped and validated (golden 9/9 lane-0-on; bake-off
+matrix in `golden/last_run.*.json`; results note
+`Notes/Obsidian/Wazuh/wazuh-ai/15-local-validation-results.md`). Track B is
+the notes' declared next stage (13 §7): move the SAME container images into a
+kind cluster with two tenant namespaces and prove the isolation story that
+Compose cannot express. Cursor implements; scope below is deliberately
+minimal — this demonstrates isolation primitives, not production packaging.
+
+### B1. Cluster and layout
+
+| File | Change |
+|---|---|
+| `kind/cluster.yaml` | Single-node kind cluster; `extraPortMappings` for the two tool-service NodePorts |
+| `kind/README.md` | Bring-up walkthrough + what each assertion proves |
+| `Makefile` | `kind-up`, `kind-tenants`, `kind-isolation`, `kind-down` targets |
+
+Keep the Wazuh stack and Ollama on the host (docker), reachable from kind via
+the host gateway — running Wazuh inside kind proves nothing new and costs
+10 GB. The cluster runs only what multi-tenancy changes: per-tenant auth-shim
+and tool-service.
+
+### B2. Two tenants, same images
+
+| File | Change |
+|---|---|
+| `kind/tenants/tenant-a/` and `tenant-b/` | Namespace, Deployments (auth-shim + tool-service), Services, Secrets |
+| `keys/gen-keys.sh` | Accept an output-dir argument so each tenant gets its OWN mint keypair |
+| `keycloak/realm-export.json` | Second realm (or a second client + role pair) so each tenant has its own IdP audience |
+
+Per tenant: own RSA keypair (the mint key is the tenant boundary, D30), own
+`WAI_TENANT` value, own `SHIM_KC_ISSUER`. The container images are the ones
+`docker compose build` produces — load them with `kind load docker-image`;
+zero image changes allowed (that is the point of D36's "same containers").
+
+Indexer note: the lab indexer's JWT auth domain trusts one public key. Give
+tenant-b's tool-service a syntactically valid but indexer-untrusted keypair
+and the isolation suite gains a free extra assertion: tenant-b can pass
+service-level auth yet still cannot read telemetry the indexer does not trust
+its key for. Document this asymmetry in `kind/README.md` — per-tenant
+indexers are an AWS-stage concern, deliberately out of scope.
+
+### B3. NetworkPolicy walls
+
+| File | Change |
+|---|---|
+| `kind/tenants/<t>/netpol.yaml` | Default-deny ingress+egress; allow DNS; allow same-namespace; allow egress to host indexer/Keycloak/Ollama CIDR; allow ingress from the NodePort |
+
+kind's default CNI (kindnetd) does not enforce NetworkPolicy — install a CNI
+that does (Calico is the boring choice) in `kind-up`, or the walls are
+decorative.
+
+### B4. The isolation suite (the deliverable)
+
+| File | Change |
+|---|---|
+| `kind/isolation_suite.sh` | Asserts, exit nonzero on any failure |
+
+Assertions, each observable and audited:
+
+1. **Happy path per tenant**: tenant-a analyst mints via tenant-a shim, asks
+   tenant-a tool-service, gets an answer (lane 0 acceptable).
+2. **Cross-tenant token**: tenant-a turn JWT presented to tenant-b
+   tool-service → 401/403 at signature or tenant-claim check, and the
+   `cross_tenant_token_rejected` audit event is emitted (assert on pod logs).
+3. **Cross-namespace network**: a curl pod in tenant-a cannot reach
+   `tool-service.tenant-b.svc` (connection timeout, not 403 — the wall, not
+   the guard).
+4. **Golden set still green**: `run_evals.py` pointed at tenant-a's NodePort
+   passes, proving the k8s move changed no behavior (parameterize the
+   runner's base urls via env: `WAI_EVAL_SVC_URL`, `WAI_EVAL_KC_URL`,
+   `WAI_EVAL_SHIM_URL`, defaults unchanged).
+
+**Acceptance:** `make kind-up kind-tenants kind-isolation` exits 0 on this
+machine with the docker Wazuh stack running; each of the four assertions
+prints what it proved; `make kind-down` leaves the docker stack untouched.
+
+### B0. Honest 503 when the inference backend is unreachable (small, do first)
+
+Observed live: with the ollama container down (OOM-killed during a large-model
+run), every chat turn surfaces `httpx.ConnectError` as a raw 500. The design's
+posture is honest rejection (D14): catch `httpx.ConnectError`/`ConnectTimeout`
+from the provider in both chat surfaces (`main.py`, same pattern as
+`_indexer_http_error`) and return
+`503 "inference backend unreachable"` + an `llm_unreachable` audit event.
+
+**Acceptance:** stop the ollama container, ask a question → clean 503 with
+that message; audit event emitted; eval runner reports it as a transport
+failure naming the backend.
+
+### B5. Demo refresh (docs, no code)
+
+`n8n/README.md` gains a "what the answer shows" section (labels for lane 0 /
+scope classifier / cache disclosure, corrections rendering) and a scripted
+demo storyline for re-recording `demo/demo.gif` — see the file; execution is
+a human-with-a-screen-recorder task.

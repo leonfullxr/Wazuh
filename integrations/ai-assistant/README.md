@@ -4,11 +4,11 @@ An AI security assistant for Wazuh where veracity is a property of the architect
 
 Everything in this directory is runnable configuration and code: a complete local harness (Wazuh single node, Keycloak as the IdP, n8n as the chat edge, an auth shim, and the tool service that owns the agent loop), plus a pluggable inference port covering Amazon Bedrock, fully local models via Ollama, and any OpenAI-compatible endpoint. The narrative writeup lives on my blog in [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) and [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/).
 
-The design in one paragraph: the model never writes a datastore query and never computes a number. Questions route through lanes ranked by verifiability. Lane 0 answers recurring questions from embedding-matched curated templates with no model in the loop. Lane 1 lets the model pick typed tools with schema-validated parameters. Lane 2 lets it emit a typed Query IR that is allowlist-checked and compiled to OpenSearch DSL server-side. Every query passes four veracity checks (mapping validation, dry-run, datastore-computed counts, zero-hit differential diagnosis), every claim in an answer must carry a citation that is verified against what was actually retrieved, and every answer states its verifiability label. Identity is a chain in which telemetry queries execute as the logged-in analyst through an indexer JWT auth domain, so the assistant can never show anyone more than their own permissions allow.
+The design in one paragraph: the model never writes a datastore query and never computes a number. Questions route through lanes ranked by verifiability. An embedding scope classifier refuses off-topic and injection-shaped questions before any model runs. Lane 0 answers recurring questions from embedding-matched curated templates with no model in the loop, and a near-miss below its threshold becomes a few-shot hint for the model instead of being discarded. Lane 1 lets the model pick typed tools with schema-validated parameters, including a local MITRE ATT&CK knowledge lookup that never touches tenant data. Lane 2 lets it emit a typed Query IR that is allowlist-checked and compiled to OpenSearch DSL server-side. Every query passes four veracity checks (mapping validation, dry-run, datastore-computed counts, zero-hit differential diagnosis), every claim in an answer must carry a citation that is verified against what was actually retrieved, every number standing next to a citation must equal a value the datastore actually returned, and every answer states its verifiability label. Identity is a chain in which telemetry queries execute as the logged-in analyst through an indexer JWT auth domain, so the assistant can never show anyone more than their own permissions allow.
 
 ## Architecture diagrams
 
-The eight diagrams below are the whole PoC at a glance, exported from an editable draw.io source at [`diagrams/wazuh-ai-poc-architecture.drawio`](diagrams/wazuh-ai-poc-architecture.drawio). The D-tags in the labels are defined in [section 9](#9-design-decision-tags).
+The eight diagrams below are the whole PoC at a glance, exported from an editable draw.io source at [`diagrams/wazuh-ai-poc-architecture.drawio`](diagrams/wazuh-ai-poc-architecture.drawio). The D-tags in the labels are defined in [section 9](#9-design-decision-tags). A second deck, [`diagrams/wazuh-ai-enhancements.drawio`](diagrams/wazuh-ai-enhancements.drawio), shows the as-built enhancement pass (scope classifier, near-miss few-shot, knowledge tool, prompt caching, the AMD local test harness) with the measured golden-set results.
 
 **1. What runs where** - the self-hosted stack on one machine and the pluggable inference port ([section 1](#1-what-runs-where)).
 
@@ -220,7 +220,11 @@ make embed                # pulls bge-m3 onto the ollama service
 
 On Bedrock, a lane 0 hit is a zero-token turn: the most frequent questions cost nothing and answer in tens of milliseconds.
 
-**The evidence cache (D41)** sits beside it: identical query plans within a TTL are served from memory, keyed by a hash of the canonical IR with time bounds floored to the TTL grid, so "last 24 hours" asked twice in the same minute is one query rather than two. Cached answers disclose `served_from_cache`, because an assistant built on verifiability does not get to hide its shortcuts. `WAI_EVIDENCE_CACHE_TTL` in seconds, 0 disables.
+The same embedding does two more jobs per question, so neither costs an extra call. **The scope classifier** compares the question against small in-scope and out-of-scope corpora and refuses clearly off-topic or injection-shaped questions with a canned bilingual reply before any model runs, labeled "scope classifier · out of scope · no model involved". It fails open: an ambiguous score or an unreachable embeddings endpoint escalates to the model, greetings bypass it entirely, and it only exists when lane 0 is enabled. In the golden set it converts the injection and out-of-scope cases from model restraint into structure. **The near-miss few-shot** rescues the band just under the lane 0 threshold (`WAI_LANE0_NEAR_MISS_FLOOR`, default 0.65): the closest exemplar is injected as a transient hint message, never stored in the conversation, which steers small local models toward the right tool and time window without constraining the answer.
+
+Two caching layers keep repeated work cheap and disclosed. **The evidence cache (D41)** sits beside it: identical query plans within a TTL are served from memory, keyed by a hash of the canonical IR with time bounds floored to the TTL grid, so "last 24 hours" asked twice in the same minute is one query rather than two. Cached answers disclose `served_from_cache` (lane 0 renders it into the answer label), because an assistant built on verifiability does not get to hide its shortcuts. `WAI_EVIDENCE_CACHE_TTL` in seconds, 0 disables.
+
+**Prompt caching** is the second layer. On Bedrock, `WAI_PROMPT_CACHE=true` places one `cachePoint` after the system prelude (covering the tool schemas and system text) and a second one that moves with the latest message, so each step of a multi-tool turn reads the previous step's prefix from cache instead of re-billing it; the usage dict surfaces `cacheReadInputTokens`/`cacheWriteInputTokens` so the claim is checkable (verify how cached tokens are billed before trusting the savings). Locally the same property comes for free: Ollama reuses the KV cache for identical prompt prefixes on its single slot (`OLLAMA_NUM_PARALLEL=1`), which is why the system prelude is byte-stable per turn - the injected UTC clock is floored to the minute and stamped once per turn, not per step.
 
 ### 3.6 Load balancing and failover with LiteLLM
 
@@ -263,7 +267,7 @@ sequenceDiagram
       TS->>TS: zero-hit diagnosis if total is 0 · compact evidence
     end
     LLM-->>TS: final answer, streamed token-by-token
-    TS->>TS: verify [alert:id] / [agg:name] citations · audit event
+    TS->>TS: verify [alert] / [agg] / [kb] citations + cited numbers · audit event
     TS-->>N: answer + verifiability label
   end
   N-->>A: answer, label rendered underneath
@@ -313,13 +317,17 @@ curl -s -X POST http://localhost:8080/v1/chat/sync \
 
 The response carries the answer plus the fields that make it checkable: `tools_called`, the `checks` that ran, `usage`, any citation `corrections`, and the `verifiability` label derived from the lane and checks. The count in the answer is trustworthy for a structural reason rather than a prompt reason. The `count_alerts` and `auth_failures` tools return the datastore's `total_matching` and aggregation buckets, the sampled alert list is explicitly truncated, and the system prompt receives numbers only as fields it must cite. The model never gets an unaggregated list where a count question is in play.
 
-Three scenarios show the four checks doing their jobs. Ask about an agent that does not exist, `Show me alerts from agent db-99 today`, and the zero-hit differential diagnosis probes the window and each filter individually, so the answer distinguishes "the window has 214 documents and none are from db-99" from "the query was wrong". Ask something the catalog cannot express and lane 2 engages: the model composes a `run_query_ir` plan, which is schema-validated against the field allowlist, checked against the live index mapping, dry-run by the datastore, and only then executed, with the label switching to "constrained query plan, verified by validation". And every claim in every answer must cite `[alert:<id>]` or `[agg:<name>]` identifiers that the service checks against what was actually retrieved, so an invented citation surfaces as a correction event rather than a confident lie.
+Three scenarios show the four checks doing their jobs. Ask about an agent that does not exist, `Show me alerts from agent db-99 today`, and the zero-hit differential diagnosis probes the window and each filter individually, so the answer distinguishes "the window has 214 documents and none are from db-99" from "the query was wrong". Ask something the catalog cannot express and lane 2 engages: the model composes a `run_query_ir` plan, which is schema-validated against the field allowlist, checked against the live index mapping, dry-run by the datastore, and only then executed, with the label switching to "constrained query plan, verified by validation". And every claim in every answer must cite `[alert:<id>]`, `[agg:<name>]` or `[kb:<technique>]` identifiers that the service checks against what was actually retrieved, so an invented citation surfaces as a correction event rather than a confident lie.
+
+Two verifications sit behind that sentence, not one. Citation verification checks that the *reference* was retrieved this turn. The grounded-number check goes further: any integer standing next to an `[agg:...]` citation must equal a value the datastore actually returned under that name - the total, a bucket count, or a zero-hit probe. A right-looking number with a valid citation but no matching evidence value emits a `number` correction. This caught its first real hallucination during the model bake-off: a model claimed 2,023 alerts while its own tool had returned 0, and the correction surfaced in the response instead of the lie standing.
+
+The knowledge side of answers rides the same rails. `mitre_lookup` is a lane 1 tool backed by a curated ATT&CK dataset shipped inside the image (`tool-service/app/knowledge/`): exact technique-id lookup, no embeddings, no tenant data, and its answers cite `[kb:T1110]`-style references that verify against what the lookup actually returned. Ask "explain this alert" about a seeded brute-force alert and the loop chains `get_alert`, `mitre_lookup` and a scoped search, each leg checked by its own pipeline.
 
 The golden runner wires all of this into a gate. It authenticates through the full chain, runs nine bilingual cases against the live stack, asserts tool selection, ground-truth counts, zero-hit honesty, injection resistance, and the absence of unverified citations, and exits nonzero on any failure. Point CI at `make evals` and prompt changes become physically unable to merge unevaluated (D33).
 
-## 6. The three surfaces
+## 6. The four surfaces
 
-The same hardened internals answer through three doors, which is the headless-core argument (D21) made concrete. `POST /v1/chat` is the SSE product API with keepalives and token streaming. `POST /v1/chat/sync` is the same turn as one JSON document, which is what the n8n workflow consumes. And `POST /v1/tools/{name}` executes exactly one validated tool with no model involved, returning the evidence JSON: the same HTTP shape a raw community-node workflow expects, but behind it sit the allowlist, the IR, the dry-run, the datastore-computed totals, and the audit event. The n8n build steps in [`n8n/README.md`](n8n/README.md) produce a chat that displays the verifiability label under every answer.
+The same hardened internals answer through four doors, which is the headless-core argument (D21) made concrete. `POST /v1/chat` is the SSE product API with keepalives and token streaming. `POST /v1/chat/sync` is the same turn as one JSON document, which is what the n8n workflow consumes. `POST /v1/tools/{name}` executes exactly one validated tool with no model involved, returning the evidence JSON: the same HTTP shape a raw community-node workflow expects, but behind it sit the allowlist, the IR, the dry-run, the datastore-computed totals, and the audit event. And [`mcp/server.py`](mcp/README.md) is the MCP door: a stdio adapter that exposes the tool catalog and the chat turn to any MCP host (Claude Desktop, Claude Code, Cursor), authenticating with the same turn JWT it mints on demand through the Keycloak-and-shim exchange and refreshing it before expiry - an external agent gets the veracity pipeline, never a raw datastore. The n8n build steps in [`n8n/README.md`](n8n/README.md) produce a chat that displays the verifiability label under every answer.
 
 Everything the service does is also observable. `make logs` tails structured JSON audit events, one per rejected token, per executed tool with its full IR, and per completed turn with usage and label. `GET /metrics` exposes Prometheus counters and histograms alongside them: turns by lane, tool calls by outcome, lane 0 hits and escalations, token usage by direction, and turn latency.
 
@@ -351,6 +359,9 @@ Operational features that started as simplifications and are now closed with cod
 | `WAI_MAX_TOOL_CALLS` | 6 | Loop cap per turn |
 | `WAI_EVIDENCE_BUDGET_CHARS` | 8000 | Evidence compaction budget per tool result |
 | `WAI_LANE0_ENABLED` / `WAI_LANE0_THRESHOLD` | false / 0.80 | Semantic fast path (D40, section 3.5): embedding-matched questions run curated templates with no model |
+| `WAI_LANE0_NEAR_MISS_FLOOR` | 0.65 | Scores in [floor, threshold) inject the closest exemplar as a transient few-shot hint (section 3.5) |
+| `WAI_SCOPE_CLASSIFIER_ENABLED` / `WAI_SCOPE_MARGIN` | true / 0.05 | Embedding scope gate (section 3.5): refuses clearly out-of-scope questions before any model; active only with lane 0, fails open |
+| `KC_ISSUER` (shim) | http://localhost:8085/realms/wazuh-poc | Expected OIDC issuer. Keycloak stamps `iss` from the request url, so host-minted tokens differ from the in-network JWKS url the shim fetches from |
 | `WAI_EMBED_BASE_URL` / `WAI_EMBED_MODEL` | ollama / bge-m3 | Embedding endpoint for lane 0 (`make embed` pulls the model) |
 | `WAI_EVIDENCE_CACHE_TTL` | 0 (off) | IR-keyed evidence cache in seconds (D41), cached answers disclose `served_from_cache` |
 | `WAI_STREAMING` | true | Token-by-token SSE from both providers, `false` falls back to one-shot answers |
@@ -398,7 +409,8 @@ Comments across the code carry `D<n>` tags referring to the design log this PoC 
 | Path | What it is |
 |---|---|
 | `docker-compose.poc.yml` | Overlay compose: keycloak, n8n, auth-shim, tool-service on the Wazuh network |
-| `tool-service/` | The core: agent loop, Query IR, OpenSearch compiler, 4 veracity checks, SSE + HTTP tool surfaces |
+| `tool-service/` | The core: agent loop, Query IR, OpenSearch compiler, 4 veracity checks, scope classifier, knowledge tools, SSE + HTTP tool surfaces |
+| `mcp/` | Stdio MCP adapter over the HTTP surfaces: turn-JWT auth with on-demand mint and refresh (section 6) |
 | `tool-service/tests/` | 26-case unit suite for the deterministic core (`make test`) |
 | `auth-shim/` | The minting sidecar: verifies Keycloak OIDC tokens, mints turn JWTs (D30) |
 | `keycloak/` | Realm export: test realm, client, analyst user and role |
@@ -408,7 +420,7 @@ Comments across the code carry `D<n>` tags referring to the design log this PoC 
 | `n8n/` | Instructions for the chat workflow that consumes the tool service |
 | `airllm-shim/` | EXPERIMENTAL batch depth lane: AirLLM layer streaming behind an OpenAI-compatible shim (section 3.4) |
 | `litellm/` | Load-balancing / failover proxy config (compose profile `litellm`, section 3.6) |
-| `diagrams/` | draw.io source (`wazuh-ai-poc-architecture.drawio`) and PNG exports of the eight architecture diagrams |
+| `diagrams/` | draw.io sources: the eight-diagram deck (`wazuh-ai-poc-architecture.drawio`, PNG exports) and the as-built enhancement deck (`wazuh-ai-enhancements.drawio`) |
 | `keys/` | Generated JWT keypair (gitignored) |
 
 `.wazuh-docker/` and `keys/` are generated, edit the scripts instead.
