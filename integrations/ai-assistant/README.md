@@ -87,6 +87,7 @@ make securityconfig     # add the JWT auth domain + analyst role to the live ind
 make poc                # build and start keycloak, n8n, auth-shim, tool-service
 make seed               # ~2000 synthetic alerts with exact ground truths
 make evals              # the bilingual golden set against the live stack
+make evals-fresh        # seed + evals (recommended before grading a model)
 make test               # unit suite: IR, compiler, lane 0 slots, cache keys
 ```
 
@@ -155,6 +156,23 @@ Three honest caveats. First, hardware sets the floor, and the best answer to a l
 
 The golden set turns this from a compromise into an instrument. Run `make evals` per candidate model and the pass rate is your model bake-off: a model that miscounts, invents citations, or fumbles the zero-hit diagnosis fails cases by construction, and you learn it in two minutes instead of in a demo. There is also a narrative payoff. With Ollama the entire loop is air-gapped, so the strongest sovereignty sentence, that neither questions nor evidence ever leave the machine, becomes literally true (D26).
 
+**Validated local models (July 2026, nine-case golden set on ROCm/Ollama).** Production demo posture uses lane 0 + evidence cache; model-only bake-offs turn lane 0 off so every case exercises tool calling.
+
+| Model | Lane 0 | Golden | Notes |
+|---|---|---|---|
+| `gpt-oss:20b` | on | 9/9 | Recommended demo default (`.env.example` option E) |
+| `qwen3:30b-a3b-instruct-2507-q4_K_M` | off | 9/9 | Non-thinking instruct build; `make evals-qwen3` |
+| `qwen3:30b-a3b` (thinking tag) | off | 3/9 | Training-cutoff time windows, thinking-token overflow |
+| `qwen2.5:14b` | off | 2/9 | Weak tool calling on count/citation cases |
+
+```bash
+make evals-fresh          # reseed + grade the stack in your .env (lane 0 on)
+make bakeoff              # gpt-oss:20b, qwen2.5:14b, qwen3:30b-a3b (lane 0 off)
+make evals-qwen3          # qwen3 instruct only: lane 0 off, 4096 output cap, 600s/turn
+```
+
+Model-only local runs need a live UTC clock in the system prompt (the tool service injects it) so relative phrases like "last 7 days" anchor to the seeded data. Raise `WAI_MAX_OUTPUT_TOKENS` (default 2048) for tool-heavy MoE models; `make evals-qwen3` sets 4096 automatically.
+
 ### 3.3 Groq and other OpenAI-compatible endpoints
 
 Create a key at console.groq.com and set option C in `.env`:
@@ -177,7 +195,7 @@ Whatever backend you choose, finish the switch the same way: `make evals`. The g
 
 Running a capable model on modest hardware is not one technique, it is a ladder, and the harness expresses every rung through configuration rather than code changes. The findings below were verified against upstream sources in July 2026 (the [AirLLM repository](https://github.com/lyogavin/airllm), the [Ollama FAQ](https://docs.ollama.com/faq) and model library, and the llama.cpp server documentation), because this is an area where folklore outruns facts.
 
-**Rung one is quantization**, and Ollama already stands on it: the default `Q4_K_M` tags cost roughly 0.6 GB of memory per billion parameters for the weights, which is why a 14b model fits in about 10 GB. **Rung two is the one most people miss: sparse mixture-of-experts models.** A MoE model stores many parameters but activates only a few per token, so it reads like a big model and computes like a small one, which is exactly the profile CPU and small-GPU serving wants. Two concrete, tool-capable options from the Ollama library: `gpt-oss:20b` (21B total, about 3.6B active, a 14 GB MXFP4 file that Ollama states runs on 16 GB systems) and `qwen3:30b-a3b` (30.5B total, about 3.3B active, 19 GB quantized, comfortable on a 32 GB machine or a 24 GB GPU). For this harness they are the recommended analysis-tier upgrades over dense 14b models, and `make ollama OLLAMA_MODEL=gpt-oss:20b` is the one-line switch.
+**Rung one is quantization**, and Ollama already stands on it: the default `Q4_K_M` tags cost roughly 0.6 GB of memory per billion parameters for the weights, which is why a 14b model fits in about 10 GB. **Rung two is the one most people miss: sparse mixture-of-experts models.** A MoE model stores many parameters but activates only a few per token, so it reads like a big model and computes like a small one, which is exactly the profile CPU and small-GPU serving wants. Two concrete, tool-capable options from the Ollama library: `gpt-oss:20b` (21B total, about 3.6B active, a 14 GB MXFP4 file that Ollama states runs on 16 GB systems) and `qwen3:30b-a3b-instruct-2507-q4_K_M` (30.5B total, about 3.3B active, 19 GB quantized, comfortable on a 32 GB machine or a 24 GB GPU). Prefer the **instruct** tag for this harness: the default `qwen3:30b-a3b` thinking build scores 3/9 on the golden set without lane 0. For this harness they are the recommended analysis-tier upgrades over dense 14b models, and `make ollama OLLAMA_MODEL=gpt-oss:20b` is the one-line switch.
 
 **Rung three is runtime tuning**, which the compose file ships by default on the `ollama` service: `OLLAMA_FLASH_ATTENTION=1` enables the quantized key-value cache, `OLLAMA_KV_CACHE_TYPE=q8_0` roughly halves the memory the context window consumes at negligible quality cost (`q4_0` quarters it, with more risk), `OLLAMA_MAX_LOADED_MODELS=2` keeps both tiers resident so routing never evicts analysis, and `OLLAMA_KEEP_ALIVE=30m` stops the model reloading between golden-set cases. Partial GPU offload is the same rung: Ollama and llama.cpp place as many layers as fit in VRAM and run the rest on CPU, so an 8 GB card accelerates a model it cannot hold.
 
@@ -187,7 +205,7 @@ Running a capable model on modest hardware is not one technique, it is a ladder,
 
 The harness wires that lane honestly. AirLLM ships no server, no chat templating and no tool calling, so `airllm-shim/` wraps it in the same OpenAI-compatible dialect the port already speaks: chat templates come from the model's own tokenizer, and tools ride a prompt-rendered convention where schemas are injected into the system prompt and a fenced `tool_call` JSON block in the output is parsed back into a standard tool-calls response. Large models usually follow the convention, smaller ones often do not, and the shim is marked experimental for exactly that reason. Bring it up with `make airllm`, bind the analysis tier to it with option D2, and raise the client timeout expectations accordingly. For completeness, the alternatives in this space were surveyed and rejected: FlexGen is unmaintained, DeepSpeed ZeRO-Inference is batch scripts without a server, and PowerInfer has pivoted toward its own hardware, so AirLLM behind a thin shim is the honest representative of the class.
 
-Reading the ladder as hardware guidance: a CPU-only 16 GB machine serves `qwen3:8b` comfortably and `gpt-oss:20b` marginally, a 32 GB machine serves the MoE pair well, an 8 GB GPU serves dense 7-8b fully offloaded or a MoE with partial offload, a 24 GB GPU holds `qwen3:30b-a3b` entirely, and every one of those configurations can additionally reach a 70B-class model through the depth lane if a question is worth waiting for. The loop, the IR, the veracity checks, the identity chain and the audit are identical on every rung, which is the whole point of keeping inference behind one port.
+Reading the ladder as hardware guidance: a CPU-only 16 GB machine serves `qwen3:8b` comfortably and `gpt-oss:20b` marginally, a 32 GB machine serves the MoE pair well, an 8 GB GPU serves dense 7-8b fully offloaded or a MoE with partial offload, a 24 GB GPU holds `qwen3:30b-a3b-instruct-2507-q4_K_M` entirely, and every one of those configurations can additionally reach a 70B-class model through the depth lane if a question is worth waiting for. The loop, the IR, the veracity checks, the identity chain and the audit are identical on every rung, which is the whole point of keeping inference behind one port.
 
 ### 3.5 Lane 0 and the evidence cache: whether a model runs at all
 
@@ -325,6 +343,9 @@ Operational features that started as simplifications and are now closed with cod
 | `WAI_ROUTER_*` / `WAI_ANALYSIS_*` (provider, base url, api key) | empty | Per-tier overrides (D39, section 3.4). Empty inherits the `WAI_LLM_*` globals |
 | `AIRLLM_MODEL_ID` / `AIRLLM_COMPRESSION` | Qwen2.5-7B-Instruct / 4bit | The depth-lane shim's HuggingFace model and layer compression (`make airllm`) |
 | `OLLAMA_MODEL` (make variable) | gpt-oss:20b | Model pulled by `make ollama` — validated local demo default (9/9 golden with lane 0) |
+| `QWEN3_INSTRUCT_MODEL` (make variable) | qwen3:30b-a3b-instruct-2507-q4_K_M | Model pulled and graded by `make evals-qwen3` (9/9 golden, lane 0 off) |
+| `WAI_MAX_OUTPUT_TOKENS` | 2048 | Per-turn completion cap; raise for tool-heavy local MoE models (4096 in `make evals-qwen3`) |
+| `WAI_EVAL_TIMEOUT_S` (host env) | 300 | Per-case timeout for `golden/run_evals.py`; raise for CPU-only or large MoE runs |
 | `WAI_GUARDRAIL_ID` | empty | Attach a Bedrock Guardrail to every invocation when set (`bedrock` provider only) |
 | `WAI_LANE2_ENABLED` | true | Expose `run_query_ir`, the constrained builder |
 | `WAI_MAX_TOOL_CALLS` | 6 | Loop cap per turn |
