@@ -8,7 +8,7 @@ WAZUH_DIR := .wazuh-docker/single-node
 OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh evals-qwen3 bakeoff test logs down clean
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh evals-qwen3 bakeoff demo-storyline test logs down clean
 
 keys:
 	./keys/gen-keys.sh
@@ -63,6 +63,9 @@ evals:
 	python3 golden/run_evals.py
 
 evals-fresh: seed evals
+
+demo-storyline:
+	python3 scripts/demo_storyline.py
 
 # Three-model bake-off (section 7). Recreates tool-service per model so the
 # container actually answers with each candidate. Artifacts: golden/last_run.<model>.json

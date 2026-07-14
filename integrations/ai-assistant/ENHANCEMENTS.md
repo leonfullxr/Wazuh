@@ -382,4 +382,7 @@ stopped manually; audit emits `llm_unreachable`.
 `n8n/README.md` gains a "what the answer shows" section (labels for lane 0 /
 scope classifier / cache disclosure, corrections rendering) and a scripted
 demo storyline for re-recording `demo/demo.gif` — see the file; execution is
-a human-with-a-screen-recorder task.
+a human-with-a-screen-recorder task. **Partially done:** committed
+`n8n/wazuh-ai-chat.workflow.json`, `make demo-storyline`, and
+`scripts/demo_storyline.py` for headless validation; `demo.gif` recording
+still manual.

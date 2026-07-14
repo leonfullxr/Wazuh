@@ -417,7 +417,7 @@ Comments across the code carry `D<n>` tags referring to the design log this PoC 
 | `securityconfig/` | Indexer JWT auth domain + role fragments and the apply script |
 | `seed/` | Synthetic alert generator with deterministic ground truths |
 | `golden/` | Bilingual golden set and the eval runner (the CI gate, D33) |
-| `n8n/` | Instructions for the chat workflow that consumes the tool service |
+| `n8n/` | Chat workflow JSON (`wazuh-ai-chat.workflow.json`) + import/build steps |
 | `airllm-shim/` | EXPERIMENTAL batch depth lane: AirLLM layer streaming behind an OpenAI-compatible shim (section 3.4) |
 | `litellm/` | Load-balancing / failover proxy config (compose profile `litellm`, section 3.6) |
 | `diagrams/` | draw.io sources: the eight-diagram deck (`wazuh-ai-poc-architecture.drawio`, PNG exports) and the as-built enhancement deck (`wazuh-ai-enhancements.drawio`) |

@@ -5,8 +5,15 @@ service, answer out. The brain lives in the tool service. These are manual
 build steps because a hand-written workflow JSON tends to break across n8n
 versions. Once you build it, export it and commit the JSON here.
 
-Open n8n at http://localhost:5678, create an owner account, then build a
-five-node workflow:
+Open n8n at http://localhost:5678, create an owner account, then either
+**import** the committed workflow or build it by hand:
+
+```text
+Workflows → … → Import from file → n8n/wazuh-ai-chat.workflow.json
+```
+
+Activate the workflow, open the Chat Trigger's public URL, and ask questions.
+The five-node chain (manual build reference):
 
 1. **Chat Trigger** node. This gives you the hosted chat UI.
 
@@ -73,7 +80,8 @@ visible, so know what each shape means before demoing:
 ## Demo storyline (re-recording demo.gif)
 
 Six questions, in this order, on a freshly seeded stack (`make evals-fresh`
-first so the counts are honest). Each one shows a different guarantee:
+first so the counts are honest). Validate headlessly with `make demo-storyline`
+(same API chain as n8n, no UI). Each question shows a different guarantee:
 
 1. `How many alerts did we get in the last 24 hours?` - lane 0, tens of
    milliseconds, "no model involved".
