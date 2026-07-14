@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     tenant: str = "lab"
     kc_url: str = "http://keycloak:8080"
     kc_realm: str = "wazuh-poc"
+    # Expected token issuer. Keycloak derives iss from the REQUEST url, so
+    # tokens minted from the host (localhost:8085) carry a different issuer
+    # than the in-network kc_url the shim fetches JWKS from. Empty = derive
+    # from kc_url (single-url deployments).
+    kc_issuer: str = ""
     jwt_issuer: str = "wazuh-ai-shim.lab"
     backend_audience: str = "wazuh-ai-backend.lab"
     indexer_audience: str = "wazuh-indexer.lab"
@@ -63,7 +68,7 @@ def exchange(authorization: str = Header(...)) -> dict:
             token,
             signing_key.key,
             algorithms=["RS256"],
-            issuer=f"{CFG.kc_url}/realms/{CFG.kc_realm}",
+            issuer=CFG.kc_issuer or f"{CFG.kc_url}/realms/{CFG.kc_realm}",
             # Keycloak access tokens default aud to "account"; we pin issuer +
             # signature + azp instead. verify: tighten aud once the customer
             # IdP's token shape is known.

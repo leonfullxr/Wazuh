@@ -21,7 +21,9 @@ cases:
   - id: auth-failures-es
     lang: es
     question: "Cuantos fallos de autenticacion hemos tenido en las ultimas 24 horas?"
-    tools_any: [count_alerts, auth_failures, search_alerts]
+    # run_query_ir: lane 0's auth-fail-count template compiles to it by design
+    # (count_alerts cannot filter rule.groups).
+    tools_any: [count_alerts, auth_failures, search_alerts, run_query_ir]
     answer_has_count: auth_failures_24h
 
   - id: top-rule-en

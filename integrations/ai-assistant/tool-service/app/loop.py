@@ -36,6 +36,10 @@ Hard rules:
 - Every claim about specific data must cite evidence inline as [alert:<_id>] \
 for a document, [agg:<name>] for an aggregation result you received, or \
 [kb:<technique_id>] for a MITRE technique returned by mitre_lookup.
+- Citation format examples: "301 alerts [agg:total_matching]", \
+"rule 5710 [agg:by]", "[alert:abc123]". Use the aggregation key exactly as \
+returned (e.g. total_matching, by, over_time). Never invent syntax like \
+[agg:total_matching=301] or [agg:count_alerts].
 - Any number of alerts MUST come from a tool's total_matching field or an \
 aggregation value. Never count the listed alerts yourself: the list is a \
 truncated sample, the total is exact.
@@ -179,8 +183,9 @@ async def run_turn(
                     evidence = await execute_ir(ir, user.raw_jwt)
                     answer = lane0.render_local(l0, ir, evidence)
                     checks = sorted(evidence.checks_passed)
+                    cache_note = " · served from cache" if evidence.from_cache else ""
                     label = (f"lane 0 · template {l0.exemplar.id} "
-                             f"(similarity {l0.score:.2f}) · no model involved · "
+                             f"(similarity {l0.score:.2f}) · no model involved{cache_note} · "
                              f"checks: {', '.join(checks)}")
                     audit.emit("lane0_executed", template=l0.exemplar.id,
                                sub=user.sub, score=round(l0.score, 3),

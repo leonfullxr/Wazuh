@@ -324,7 +324,7 @@ Operational features that started as simplifications and are now closed with cod
 | `WAI_MODEL_ROUTER` / `WAI_MODEL_ANALYSIS` | placeholders | The two model tiers (D37). Bedrock profile ids, or the endpoint's model names on `openai` |
 | `WAI_ROUTER_*` / `WAI_ANALYSIS_*` (provider, base url, api key) | empty | Per-tier overrides (D39, section 3.4). Empty inherits the `WAI_LLM_*` globals |
 | `AIRLLM_MODEL_ID` / `AIRLLM_COMPRESSION` | Qwen2.5-7B-Instruct / 4bit | The depth-lane shim's HuggingFace model and layer compression (`make airllm`) |
-| `OLLAMA_MODEL` (make variable) | qwen2.5:14b | Model pulled by `make ollama` (MoE upgrades: `gpt-oss:20b`, `qwen3:30b-a3b`) |
+| `OLLAMA_MODEL` (make variable) | gpt-oss:20b | Model pulled by `make ollama` — validated local demo default (9/9 golden with lane 0) |
 | `WAI_GUARDRAIL_ID` | empty | Attach a Bedrock Guardrail to every invocation when set (`bedrock` provider only) |
 | `WAI_LANE2_ENABLED` | true | Expose `run_query_ir`, the constrained builder |
 | `WAI_MAX_TOOL_CALLS` | 6 | Loop cap per turn |

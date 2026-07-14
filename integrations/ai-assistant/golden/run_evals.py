@@ -199,7 +199,9 @@ def run_suite(gt: dict, spec: dict) -> tuple[int, int, list[dict]]:
             try:
                 headers = {"Authorization": f"Bearer {get_turn_jwt()}"}
                 before = live_counts(headers, key) if key in REF_TOOLS else None
+                t0 = time.monotonic()
                 result = chat_sync(headers, question)
+                record["seconds"] = round(time.monotonic() - t0, 1)
                 counts = set(range(before[0], before[1] + 1)) if before else None
                 failures = check_case(case, result, gt, counts)
                 if failures and before and any("lacks expected count" in f for f in failures):

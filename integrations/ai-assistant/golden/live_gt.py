@@ -12,7 +12,10 @@ from typing import Any
 
 import httpx
 
-INDEXER = os.environ.get("WAI_INDEXER_URL", "https://localhost:9200")
+# Host-side by definition (the runner executes on the host): WAI_INDEXER_URL
+# from .env is the in-network hostname and must not leak in via `make`'s
+# export, so this uses its own knob.
+INDEXER = os.environ.get("WAI_EVAL_INDEXER_URL", "https://localhost:9200")
 AUTH = (
     os.environ.get("INDEXER_ADMIN_USER", "admin"),
     os.environ.get("INDEXER_ADMIN_PASSWORD", "SecretPassword"),

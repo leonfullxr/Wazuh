@@ -5,7 +5,7 @@ export
 
 WAZUH_VERSION ?= 4.14.5
 WAZUH_DIR := .wazuh-docker/single-node
-OLLAMA_MODEL ?= qwen2.5:14b
+OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
 
 .PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh bakeoff test logs down clean
@@ -76,8 +76,8 @@ bakeoff:
 	    docker compose -f docker-compose.poc.yml up -d --force-recreate tool-service; \
 	  until curl -sf http://localhost:8080/healthz >/dev/null 2>&1; do sleep 2; done; \
 	  WAI_LLM_PROVIDER=openai WAI_MODEL_ROUTER=$$m WAI_MODEL_ANALYSIS=$$m \
-	    python3 golden/run_evals.py; \
-	  cp golden/last_run.json "golden/last_run.$$m.json"; \
+	    python3 golden/run_evals.py || true; \
+	  cp golden/last_run.json "golden/last_run.$$(echo $$m | tr ':/' '--').json"; \
 	done; \
 	echo "artifacts: golden/last_run.*.json"
 

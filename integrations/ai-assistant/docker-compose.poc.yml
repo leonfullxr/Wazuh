@@ -24,6 +24,10 @@ services:
       SHIM_TENANT: ${WAI_TENANT:-lab}
       SHIM_KC_URL: ${KC_URL:-http://keycloak:8080}
       SHIM_KC_REALM: ${KC_REALM:-wazuh-poc}
+      # Host-facing issuer: Keycloak stamps iss from the request url, and the
+      # analyst/evals authenticate via localhost:8085 while JWKS is fetched
+      # in-network via KC_URL.
+      SHIM_KC_ISSUER: ${KC_ISSUER:-http://localhost:8085/realms/wazuh-poc}
       SHIM_JWT_ISSUER: ${WAI_JWT_ISSUER:-wazuh-ai-shim.lab}
       SHIM_BACKEND_AUDIENCE: ${WAI_JWT_AUDIENCE:-wazuh-ai-backend.lab}
       SHIM_INDEXER_AUDIENCE: ${WAI_JWT_INDEXER_AUDIENCE:-wazuh-indexer.lab}
