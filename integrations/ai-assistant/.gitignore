@@ -2,6 +2,7 @@
 keys/**/*.pem
 .wazuh-docker/
 securityconfig/tmp/
+securityconfig/tmp-*/
 
 # Golden / eval artifacts (generated at runtime)
 golden/ground_truth.json
@@ -25,3 +26,6 @@ mcp/.venv/
 
 # kind local binaries
 .bin/
+
+# ML Commons model id (host-local)
+.mlcommons-embed-model-id

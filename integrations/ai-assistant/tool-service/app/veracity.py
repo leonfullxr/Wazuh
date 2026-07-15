@@ -210,10 +210,17 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
     aggregations: dict = {}
     for name, agg in res.get("aggregations", {}).items():
         if "buckets" in agg:
-            aggregations[name] = [
-                {"key": b.get("key_as_string", b["key"]), "count": b["doc_count"]}
-                for b in agg["buckets"]
-            ]
+            buckets = []
+            for b in agg["buckets"]:
+                row = {
+                    "key": b.get("key_as_string", b["key"]),
+                    "count": b["doc_count"],
+                }
+                if "last_seen" in b:
+                    ls = b["last_seen"]
+                    row["last_seen"] = ls.get("value_as_string") or ls.get("value")
+                buckets.append(row)
+            aggregations[name] = buckets
         elif "value" in agg:
             aggregations[name] = agg["value"]
 

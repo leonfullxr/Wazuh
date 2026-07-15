@@ -116,6 +116,11 @@ EXEMPLARS: list[Exemplar] = [
     Exemplar("high-sev-count", "es", "cuantas alertas de severidad alta en los ultimos 7 dias",
              "count_alerts", {"severity_gte": 10},
              inject={"time_range": "time_range", "severity": "severity_gte"}),
+    # agents reporting in a window (C1 list_agents)
+    Exemplar("list-agents", "en", "which agents are reporting alerts in the last 7 days",
+             "list_agents", {}, inject={"time_range": "time_range"}),
+    Exemplar("list-agents", "es", "que agentes estan reportando alertas en los ultimos 7 dias",
+             "list_agents", {}, inject={"time_range": "time_range"}),
     # latest alerts for one agent (agent slot REQUIRED)
     Exemplar("agent-alerts", "en", "show me the latest alerts from the agent web-01",
              "search_alerts", {}, inject={"time_range": "time_range", "agent": "agent_names",
@@ -332,7 +337,11 @@ def render_local(match_: Lane0Match, ir, evidence) -> str:
     buckets = evidence.aggregations.get("by")
     if buckets is not None:
         lines = [lang["terms"].format(n=len(buckets), gte=gte, lte=lte)]
-        lines += [f"{i + 1}. {b['key']} ({b['count']})" for i, b in enumerate(buckets)]
+        for i, b in enumerate(buckets):
+            line = f"{i + 1}. {b['key']} ({b['count']})"
+            if b.get("last_seen"):
+                line += f" · last seen {b['last_seen']}"
+            lines.append(line)
         return "\n".join(lines)
 
     over_time = evidence.aggregations.get("over_time")

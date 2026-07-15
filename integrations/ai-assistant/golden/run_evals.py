@@ -179,11 +179,11 @@ def check_case(
         if not any(v in answer for v in variants):
             expected = str(min(ns)) if len(ns) == 1 else f"{min(ns)}..{max(ns)}"
             failures.append(f"answer lacks expected count {expected} ({key})")
-    for needle in case.get("answer_any", []):
-        needle = substitute(needle, gt)
-        if needle.casefold() not in answer_cf:
-            failures.append(f"answer missing expected text: {needle!r}")
-            break
+    if needles := case.get("answer_any"):
+        if not any(
+            substitute(needle, gt).casefold() in answer_cf for needle in needles
+        ):
+            failures.append(f"answer missing any of {needles!r}")
     for needle in case.get("answer_none", []):
         if needle.casefold() in answer_cf:
             failures.append(f"answer contains forbidden text: {needle!r}")

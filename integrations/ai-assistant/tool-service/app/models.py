@@ -110,9 +110,12 @@ class IRAggregation(BaseModel):
     field: Optional[str] = None
     interval: Literal["1h", "3h", "12h", "1d"] = "1d"
     size: int = Field(10, ge=1, le=MAX_SIZE)
+    last_seen: bool = False  # terms only: max(timestamp) per bucket (C1a)
 
     @model_validator(mode="after")
     def _check(self) -> "IRAggregation":
+        if self.last_seen and self.kind != "terms":
+            raise ValueError("last_seen is only valid on terms aggregations")
         if self.kind in ("terms", "cardinality"):
             if self.field is None:
                 raise ValueError(f"aggregation '{self.kind}' requires a field")

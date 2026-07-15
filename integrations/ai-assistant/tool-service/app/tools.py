@@ -13,6 +13,14 @@ from typing import Callable, Literal, Optional
 from pydantic import BaseModel, Field
 
 from .config import CFG
+from .environment import (
+    IndexHealthParams,
+    ListAgentsParams,
+    ListDashboardsParams,
+    index_health,
+    list_agents_ir,
+    list_dashboards,
+)
 from .knowledge import MitreLookupParams
 from .models import IRAggregation, IRFilter, QueryIR, TimeRange
 
@@ -69,8 +77,9 @@ def _get_alert_ir(p: GetAlertParams) -> QueryIR:
 
 
 class CountAlertsParams(BaseModel):
-    """Exact count of matching alerts, computed by the datastore. ALWAYS use
-    this (or another aggregation tool) for any 'how many' question."""
+    """Exact count of matching alerts, computed by the datastore. Use for
+    'how many' questions. Do NOT use when the user asks which agents are
+    reporting or active — use list_agents instead."""
 
     time_range: TimeRange = Field(default_factory=TimeRange)
     rule_ids: Optional[list[str]] = None
@@ -155,10 +164,19 @@ class ToolDef:
     to_ir: Callable[[BaseModel], QueryIR] | None
     lane: int
     knowledge: bool = False
+    environment: bool = False
 
 
 def _mitre_lookup_ir(_p: MitreLookupParams) -> QueryIR:
     raise RuntimeError("knowledge tool - not an indexer query")
+
+
+def _list_dashboards_ir(_p: ListDashboardsParams) -> QueryIR:
+    raise RuntimeError("environment tool - not an alerts-index IR query")
+
+
+def _index_health_ir(_p: IndexHealthParams) -> QueryIR:
+    raise RuntimeError("environment tool - not an alerts-index IR query")
 
 
 REGISTRY: dict[str, ToolDef] = {
@@ -223,6 +241,34 @@ REGISTRY: dict[str, ToolDef] = {
             _mitre_lookup_ir,
             lane=1,
             knowledge=True,
+        ),
+        ToolDef(
+            "list_agents",
+            "List Wazuh agents that produced alerts in the time window, with "
+            "exact alert counts and last-seen timestamps per agent. Use when "
+            "the question asks which agents are reporting, active, or sending "
+            "alerts — not count_alerts.",
+            ListAgentsParams,
+            list_agents_ir,
+            lane=1,
+        ),
+        ToolDef(
+            "index_health",
+            "Read-only health, document count and store size for each "
+            "wazuh-alerts-* index in this cluster.",
+            IndexHealthParams,
+            _index_health_ir,
+            lane=1,
+            environment=True,
+        ),
+        ToolDef(
+            "list_dashboards",
+            "Inventory of shared dashboards, visualizations and index patterns "
+            "(titles and types only — not saved object bodies).",
+            ListDashboardsParams,
+            _list_dashboards_ir,
+            lane=1,
+            environment=True,
         ),
     ]
 }

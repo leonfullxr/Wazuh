@@ -67,3 +67,17 @@ cases:
     lang: es
     question: "Que tiempo va a hacer manana en Granada?"
     tools_none: true
+
+  - id: list-agents-en
+    lang: en
+    question: "Which agents are reporting alerts in the last 7 days?"
+    tools_any: [list_agents]
+    answer_any: ["web-01", "vpn-01"]
+    checks_any: [datastore_computed_counts]
+
+  - id: index-health-en
+    lang: en
+    question: "What is the health of our Wazuh alert indices?"
+    tools_any: [index_health]
+    checks_any: [environment_lookup]
+    answer_any: ["wazuh-alerts", "green", "healthy"]

@@ -52,6 +52,25 @@ class Indexer:
         r.raise_for_status()
         return r.json()
 
+    async def cat_indices_as_user(self, user_jwt: str, path: str) -> list[dict[str, Any]]:
+        r = await self.http.get(path, headers=self._headers(user_jwt))
+        if r.status_code in (401, 403):
+            raise IndexerError("indexer rejected the turn token for index health")
+        r.raise_for_status()
+        return r.json()
+
+    async def saved_objects_search_as_user(self, user_jwt: str, body: dict) -> dict:
+        index = CFG.saved_objects_index
+        r = await self.http.post(
+            f"/{index}/_search",
+            json=body,
+            headers=self._headers(user_jwt),
+        )
+        if r.status_code in (401, 403):
+            raise IndexerError("indexer rejected the turn token for saved objects")
+        r.raise_for_status()
+        return r.json()
+
     async def get_mapping(self, user_jwt: str) -> Optional[dict]:
         """Live mapping for veracity check 1 (D24), cached 5 minutes. Returns
         None when the user's role cannot read mappings, and the check is then

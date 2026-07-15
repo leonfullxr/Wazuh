@@ -53,9 +53,14 @@ class Settings(BaseSettings):
     lane0_enabled: bool = False
     lane0_threshold: float = 0.80  # cosine floor; verify per embedding model
     lane0_near_miss_floor: float = 0.65  # below threshold but above -> few-shot hint
+    embed_provider: str = "openai"  # openai | mlcommons (C3)
     embed_base_url: str = "http://ollama:11434/v1"
     embed_model: str = "bge-m3"
     embed_api_key: str = ""
+    embed_ml_model_id: str = ""  # ML Commons deployed model id when provider=mlcommons
+
+    # Saved-objects index for list_dashboards (C1); verify on your Wazuh fork.
+    saved_objects_index: str = ".kibana"
 
     # Scope classifier (P1.2): active only when lane 0 is enabled (same embed endpoint).
     scope_classifier_enabled: bool = True

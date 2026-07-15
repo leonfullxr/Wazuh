@@ -29,6 +29,8 @@ _IN_SCOPE = [
     "sql injection attempts detected",
     "brute force login failures",
     "top noisy agents",
+    "which agents are reporting alerts",
+    "index health of wazuh alert indices",
     "alert volume trend over the last week",
     "mitre technique T1110 in our alerts",
 ]

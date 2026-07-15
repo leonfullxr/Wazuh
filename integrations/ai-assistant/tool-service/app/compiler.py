@@ -69,7 +69,16 @@ def compile_opensearch(ir: QueryIR) -> dict:
     if agg.kind == "count":
         pass  # track_total_hits already computes it
     elif agg.kind == "terms":
-        body["aggs"] = {"by": {"terms": {"field": agg.field, "size": agg.size}}}
+        terms = {"terms": {"field": agg.field, "size": agg.size}}
+        if agg.last_seen:
+            body["aggs"] = {
+                "by": {
+                    "terms": terms["terms"],
+                    "aggs": {"last_seen": {"max": {"field": "timestamp"}}},
+                }
+            }
+        else:
+            body["aggs"] = {"by": terms}
     elif agg.kind == "cardinality":
         body["aggs"] = {"distinct": {"cardinality": {"field": agg.field}}}
     elif agg.kind == "date_histogram":

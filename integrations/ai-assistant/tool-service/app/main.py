@@ -26,6 +26,7 @@ from .admission import BusyError
 from .auth import User, verify_jwt
 from .config import CFG
 from .knowledge import mitre_lookup
+from .environment import index_health, list_dashboards
 from .loop import run_turn
 from .tools import REGISTRY
 from .veracity import VeracityError, execute_ir
@@ -185,6 +186,15 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
             else:
                 raise HTTPException(404, f"unknown knowledge tool '{name}'")
             audit.emit("http_knowledge_tool_executed", tool=name, sub=user.sub)
+            return payload
+        if tool.environment:
+            if tool.name == "index_health":
+                payload = await index_health(user.raw_jwt, validated)
+            elif tool.name == "list_dashboards":
+                payload = await list_dashboards(user.raw_jwt, validated)
+            else:
+                raise HTTPException(404, f"unknown environment tool '{name}'")
+            audit.emit("http_environment_tool_executed", tool=name, sub=user.sub)
             return payload
         ir = tool.to_ir(validated)
         evidence = await execute_ir(ir, user.raw_jwt)

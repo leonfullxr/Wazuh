@@ -24,6 +24,7 @@ from .admission import ADMISSION, BusyError
 from .auth import User
 from .config import CFG
 from .knowledge import mitre_lookup
+from .environment import index_health, list_dashboards
 from .llm import ANALYSIS_LLM, ROUTER_LLM
 from .tools import REGISTRY, converse_tool_specs
 from .veracity import VeracityError, execute_ir
@@ -196,7 +197,7 @@ async def run_turn(
 ) -> AsyncIterator[dict]:
     """Yields SSE-shaped events: progress, token, correction, error, done."""
     started = time.monotonic()
-    embeddings.begin_turn()
+    embeddings.begin_turn(user.raw_jwt)
     async with ADMISSION.acquire(user.sub):
         analysis = await lane0.analyze(text)
         l0 = analysis.match if analysis else None
@@ -333,6 +334,31 @@ async def run_turn(
                         checks_all.add("knowledge_lookup")
                         agg_names.add(name)
                         audit.emit("knowledge_tool_executed", tool=name, sub=user.sub)
+                        metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
+                        results.append(
+                            {
+                                "toolResult": {
+                                    "toolUseId": call["toolUseId"],
+                                    "content": [{"json": payload}],
+                                }
+                            }
+                        )
+                        continue
+                    if tool.environment:
+                        if tool.name == "index_health":
+                            payload = await index_health(user.raw_jwt, params)
+                        elif tool.name == "list_dashboards":
+                            payload = await list_dashboards(user.raw_jwt, params)
+                        else:
+                            payload = {"error": f"unknown environment tool '{name}'"}
+                        lanes_used.add(tool.lane)
+                        checks_all.add("environment_lookup")
+                        agg_names.add(name)
+                        if tool.name == "index_health":
+                            agg_names.update({"indices", "count", "index_names", "summary"})
+                        elif tool.name == "list_dashboards":
+                            agg_names.update({"objects", "count", "saved_objects_index"})
+                        audit.emit("environment_tool_executed", tool=name, sub=user.sub)
                         metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
                         results.append(
                             {

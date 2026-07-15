@@ -10,7 +10,7 @@ OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
 KIND_CLUSTER ?= wazuh-ai
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed airllm seed evals evals-fresh evals-qwen3 bakeoff demo-storyline test logs down clean
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 bakeoff demo-storyline test logs down clean
 .PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
 keys:
@@ -23,6 +23,7 @@ wazuh:
 	cd $(WAZUH_DIR) && docker compose -f generate-indexer-certs.yml run --rm generator
 	cd $(WAZUH_DIR) && docker compose up -d
 	@echo "Wazuh single-node starting. Dashboard: https://localhost:443 (admin / $(INDEXER_ADMIN_PASSWORD))"
+	@echo "Indexer needs ~1-3 min to boot; make securityconfig waits automatically."
 
 securityconfig:
 	./securityconfig/apply.sh
@@ -52,6 +53,12 @@ embed:
 	docker compose -f docker-compose.poc.yml exec ollama ollama pull $(EMBED_MODEL)
 	@echo "$(EMBED_MODEL) ready. Enable lane 0 with WAI_LANE0_ENABLED=true in .env"
 	@echo "(README s3.5), then recreate the tool service."
+
+embed-mlcommons:
+	chmod +x scripts/mlcommons_embed_setup.sh
+	./scripts/mlcommons_embed_setup.sh
+	@echo "Set WAI_EMBED_PROVIDER=mlcommons and WAI_EMBED_ML_MODEL_ID from .mlcommons-embed-model-id"
+	@echo "Then: make securityconfig && make poc"
 
 airllm:
 	docker compose -f docker-compose.poc.yml --profile airllm up -d --build airllm-shim
