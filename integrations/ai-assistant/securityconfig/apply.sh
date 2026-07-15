@@ -10,6 +10,16 @@
 # Host requirement: python3 + pyyaml (pip install -r ../requirements-host.txt)
 set -euo pipefail
 cd "$(dirname "$0")"
+ROOT="$(cd .. && pwd)"
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
+INDEXER_URL="${INDEXER_URL:-https://localhost:9200}"
+INDEXER_ADMIN_USER="${INDEXER_ADMIN_USER:-admin}"
+INDEXER_ADMIN_PASSWORD="${INDEXER_ADMIN_PASSWORD:-SecretPassword}"
 
 CONTAINER="${CONTAINER:-single-node-wazuh.indexer-1}"   # verify: docker ps
 SC_DIR="${SC_DIR:-/usr/share/wazuh-indexer/config/opensearch-security}"
@@ -21,17 +31,15 @@ wait_for_indexer() {
   local delay="${INDEXER_WAIT_DELAY_S:-5}"
   echo "waiting for indexer to accept connections (up to $((tries * delay))s)..."
   for ((i = 1; i <= tries; i++)); do
-    if docker exec "$CONTAINER" curl -sk \
-      --cert "$CERTS/admin.pem" \
-      --key "$CERTS/admin-key.pem" \
-      "https://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s" \
+    if curl -sk -u "${INDEXER_ADMIN_USER}:${INDEXER_ADMIN_PASSWORD}" \
+      "${INDEXER_URL}/_cluster/health?wait_for_status=yellow&timeout=5s" \
       2>/dev/null | grep -qE '"status":"(yellow|green)"'; then
       echo "indexer ready (attempt $i/$tries)"
       return 0
     fi
     sleep "$delay"
   done
-  echo "indexer not ready on $CONTAINER — check: docker logs $CONTAINER" >&2
+  echo "indexer not ready at $INDEXER_URL — check: docker logs $CONTAINER" >&2
   return 1
 }
 
