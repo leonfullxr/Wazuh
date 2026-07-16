@@ -204,8 +204,9 @@ and the stdio MCP adapter (`mcp/`). Full configuration knob reference is in
 | Actions design + Round-6 review findings | `ARCHITECTURE-V3.5-ACTIONS.md` |
 | Language fix, Keycloak removal, conversational confirm | `ARCHITECTURE-V3.8-UX.md` |
 | Pre-v3 enhancement passes (lanes, RAG posture, local models, kind) | `ENHANCEMENTS.md` |
-| Topology diagram | `diagrams/wazuh-ai-v3-gateway.drawio` |
-| Turn-workflow diagram | `diagrams/wazuh-ai-v3-workflow.drawio` |
+| Topology diagram (labelled) | `diagrams/wazuh-ai-v3-gateway.drawio` |
+| Turn-workflow diagram (labelled) | `diagrams/wazuh-ai-v3-workflow.drawio` |
+| Icon-forward topology + turn flow | `diagrams/wazuh-ai-v3-icons.drawio` |
 | Original self-hosted PoC decks (historical) | `diagrams/wazuh-ai-poc-architecture.drawio`, `wazuh-ai-enhancements.drawio` |
 
 ## 10. Deferred / roadmap
