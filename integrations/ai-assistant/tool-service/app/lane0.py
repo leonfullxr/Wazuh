@@ -74,6 +74,22 @@ def _auth_fail_count_ir() -> dict:
     }
 
 
+def _top_srcips_ir(size: int = 10) -> dict:
+    return {
+        "filters": [],
+        "aggregation": {"kind": "terms", "field": "data.srcip", "size": size},
+        "limit": 0,
+    }
+
+
+def _high_sev_by_agent_ir(size: int = 10) -> dict:
+    return {
+        "filters": [{"field": "rule.level", "op": "gte", "value": 10}],
+        "aggregation": {"kind": "terms", "field": "agent.name", "size": size},
+        "limit": 0,
+    }
+
+
 EXEMPLARS: list[Exemplar] = [
     # noisiest agents (needs a template lane 1 has no tool for - run_query_ir)
     Exemplar("noisy-agents", "en", "what are the top 5 noisiest agents",
@@ -142,6 +158,40 @@ EXEMPLARS: list[Exemplar] = [
     Exemplar("rule-alerts", "es", "muestrame las alertas de la regla 5710",
              "search_alerts", {}, inject={"time_range": "time_range", "rule": "rule_ids",
                                           "size": "size"}, require=["rule"]),
+    # top source IPs
+    Exemplar("top-srcips", "en", "what are the top source ips this week",
+             "run_query_ir", _top_srcips_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    Exemplar("top-srcips", "es", "cuales son las ips de origen mas frecuentes esta semana",
+             "run_query_ir", _top_srcips_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    # high severity by agent
+    Exemplar("high-sev-by-agent", "en", "which agents have the most high severity alerts",
+             "run_query_ir", _high_sev_by_agent_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    Exemplar("high-sev-by-agent", "es", "que agentes tienen mas alertas de severidad alta",
+             "run_query_ir", _high_sev_by_agent_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    # most frequent MITRE technique
+    Exemplar("top-mitre", "en", "what is the most frequent mitre technique this week",
+             "mitre_coverage", {}, inject={"time_range": "time_range", "size": "size"}),
+    Exemplar("top-mitre", "es", "cual es la tecnica mitre mas frecuente esta semana",
+             "mitre_coverage", {}, inject={"time_range": "time_range", "size": "size"}),
+    # vulnerability count
+    Exemplar("vuln-count", "en", "how many vulnerabilities were detected in the last 30 days",
+             "count_vulnerabilities", {}, inject={"time_range": "time_range"}),
+    Exemplar("vuln-count", "es", "cuantas vulnerabilidades se detectaron en los ultimos 30 dias",
+             "count_vulnerabilities", {}, inject={"time_range": "time_range"}),
+    # agents with last-seen (stopped reporting / fleet posture approximation)
+    Exemplar("agents-last-seen", "en", "which agents stopped reporting or have stale last seen",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
+    Exemplar("agents-last-seen", "es", "que agentes dejaron de reportar o tienen last seen antiguo",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
+    # new / newly active agents in window
+    Exemplar("new-agents", "en", "which new agents reported alerts this week",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
+    Exemplar("new-agents", "es", "que agentes nuevos reportaron alertas esta semana",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
 ]
 
 # ---------------------------------------------------------------------------
