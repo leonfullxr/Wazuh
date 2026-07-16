@@ -106,7 +106,9 @@ def _fallback_lab() -> EnvConfig:
         embed_ml_model_id=CFG.embed_ml_model_id,
         alerts_index=CFG.alerts_index,
         saved_objects_index=CFG.saved_objects_index,
-        dashboard_api_url=_env_or("WAI_ENV_LAB_DASHBOARD_API_URL", "https://localhost:5601"),
+        dashboard_api_url=_env_or(
+            "WAI_ENV_LAB_DASHBOARD_API_URL", "https://wazuh.dashboard:5601"
+        ),
         dashboard_executor_basic=dash_exec,
         manager_api_url=_env_or("WAI_ENV_LAB_MANAGER_URL", "https://wazuh.manager:55000"),
         manager_ca_path=_env_or("WAI_ENV_LAB_MANAGER_CA_PATH", CFG.indexer_ca_path),

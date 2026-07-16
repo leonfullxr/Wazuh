@@ -100,19 +100,27 @@ async def _write_saved_objects(
         "osd-xsrf": "true",
     }
     bulk = [_to_saved_object_bulk(obj) for obj in objects]
-    async with httpx.AsyncClient(base_url=base, verify=verify, timeout=30.0) as client:
-        r = await client.post(
-            "/api/saved_objects/_bulk_create?overwrite=true",
-            json=bulk,
-            headers=headers,
-        )
-        if r.status_code not in (200, 201):
-            return ActionResult(
-                ok=False,
-                status="dashboard_api_error",
-                message=f"saved object bulk create failed: HTTP {r.status_code}",
-                details={"body": r.text[:500]},
+    try:
+        async with httpx.AsyncClient(base_url=base, verify=verify, timeout=30.0) as client:
+            r = await client.post(
+                "/api/saved_objects/_bulk_create?overwrite=true",
+                json=bulk,
+                headers=headers,
             )
+    except httpx.HTTPError as exc:
+        return ActionResult(
+            ok=False,
+            status="dashboard_api_unreachable",
+            message=f"could not reach dashboard API at {base}: {exc}",
+            details={"dashboard_api_url": base},
+        )
+    if r.status_code not in (200, 201):
+        return ActionResult(
+            ok=False,
+            status="dashboard_api_error",
+            message=f"saved object bulk create failed: HTTP {r.status_code}",
+            details={"body": r.text[:500], "dashboard_api_url": base},
+        )
     dash = objects[-1]
     title = dash["document"].get("dashboard", {}).get("title", "")
     dash_uuid = dash["id"].split(":", 1)[-1]
