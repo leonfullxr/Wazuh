@@ -20,6 +20,19 @@ class User:
     sub: str
     roles: list[str]
     raw_jwt: str
+    env_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.env_id:
+            object.__setattr__(self, "env_id", CFG.tenant)
+
+    @property
+    def admission_key(self) -> str:
+        return self.sub
+
+    @property
+    def edge(self) -> str:
+        return "direct"
 
 
 async def verify_jwt(authorization: str = Header(...)) -> User:
@@ -43,4 +56,9 @@ async def verify_jwt(authorization: str = Header(...)) -> User:
     if CFG.access_role not in claims.get("backend_roles", []):
         raise HTTPException(403, f"missing role {CFG.access_role}")
 
-    return User(sub=claims["sub"], roles=claims["backend_roles"], raw_jwt=token)
+    return User(
+        sub=claims["sub"],
+        roles=claims["backend_roles"],
+        raw_jwt=token,
+        env_id=CFG.tenant,
+    )

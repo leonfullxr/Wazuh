@@ -11,12 +11,14 @@ from datetime import datetime, timezone
 from .config import CFG
 
 
-def emit(event: str, **fields) -> None:
+def emit(event: str, *, env: str | None = None, **fields) -> None:
     record = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "tenant": CFG.tenant,
         "event": event,
         **fields,
     }
+    if env is not None:
+        record["env"] = env
     sys.stdout.write(json.dumps(record, default=str) + "\n")
     sys.stdout.flush()

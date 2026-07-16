@@ -1,9 +1,10 @@
-"""The three surfaces of the headless tool service (D21/D28), lab edition:
+"""The surfaces of the headless tool service (D21/D28), lab edition:
 
-  POST /v1/chat          SSE chat surface (the product API)
-  POST /v1/chat/sync     same turn, single JSON response (n8n-friendly)
-  GET  /v1/tools         the typed catalog, self-describing
-  POST /v1/tools/{name}  HTTP tool surface - one validated tool call, no model
+  POST /v1/chat              SSE chat surface (the product API)
+  POST /v1/chat/sync         same turn, single JSON response (n8n-friendly)
+  POST /v1/connector/analyze ML Commons connector edge (V3.1, D42)
+  GET  /v1/tools             the typed catalog, self-describing
+  POST /v1/tools/{name}      HTTP tool surface - one validated tool call, no model
 
 The MCP surface is a later adapter over the same internals. Every surface
 authenticates with the same turn JWT and funnels through the same IR,
@@ -12,11 +13,13 @@ which door it came through.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field, ValidationError
 from sse_starlette.sse import EventSourceResponse
@@ -25,19 +28,59 @@ from . import audit
 from .admission import BusyError
 from .auth import User, verify_jwt
 from .config import CFG
+from .env_registry import resolve_by_key
 from .knowledge import mitre_lookup
-from .environment import index_health, list_dashboards
+from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .loop import run_turn
+from .principal import EnvPrincipal
+from .actions import (
+    confirm_proposal,
+    create_proposal,
+    create_proposal_by_action,
+    get_proposal,
+    reject_proposal,
+)
+from .actions.registry import ACTION_REGISTRY, get_action
+from .actions.cards import embed_action_cards
+from .actions.run import execute_action_by_name
+from .actions.ui_static import INJECT_JS, UI_PAGE_HTML
 from .tools import REGISTRY
 from .veracity import VeracityError, execute_ir
 
 app = FastAPI(title="wazuh-ai tool service", version="0.2.0")
+
+_origins = [o.strip() for o in CFG.actions_cors_origins.split(",") if o.strip()]
+if _origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+
+
+def _actions_ui_config() -> dict:
+    return {
+        "toolServiceUrl": CFG.ui_public_base_url.rstrip("/"),
+        "shimUrl": CFG.actions_shim_public_url.rstrip("/"),
+        "kcUrl": CFG.actions_kc_public_url.rstrip("/"),
+        "kcRealm": CFG.actions_kc_realm,
+        "kcClient": CFG.actions_kc_client,
+    }
 
 
 class ChatRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     conversation_id: str | None = None  # multi-turn context (state.py)
     alert_id: str | None = None  # explain-this-alert entry point (D34)
+
+
+class ConnectorRequest(BaseModel):
+    parameters: dict
+
+
+ENV_SCOPED_SUFFIX = "· environment-scoped identity"
 
 
 def _kill_switch() -> None:
@@ -91,6 +134,9 @@ async def healthz() -> dict:
         "enabled": CFG.service_enabled,
         "tenant": CFG.tenant,
         "tools": sorted(REGISTRY),
+        "actions_enabled": CFG.actions_enabled,
+        "actions_direct": CFG.actions_direct,
+        "action_tools": sorted(ACTION_REGISTRY) if CFG.actions_enabled else [],
     }
 
 
@@ -132,6 +178,84 @@ async def chat(req: ChatRequest, user: User = Depends(verify_jwt)):
     return EventSourceResponse(gen(), ping=15)  # SSE keepalive
 
 
+def _env_kill_switch(env) -> None:
+    if not env.enabled:
+        raise HTTPException(
+            503, f"wazuh-ai is disabled for environment {env.env_id} (kill switch)"
+        )
+
+
+async def _collect_turn(text: str, principal, timeout_s: float | None = None) -> tuple[str, dict, list]:
+    """Drain run_turn into answer text + done payload + corrections."""
+    answer_parts: list[str] = []
+    done: dict = {}
+    corrections: list = []
+    budget_note = (
+        "I hit the time budget for this turn before finishing. "
+        "Here is what I have so far."
+    )
+
+    async def _consume():
+        nonlocal done, corrections
+        async for ev in run_turn(text, principal, None):
+            if ev["event"] == "token":
+                answer_parts.append(ev["data"]["text"])
+            elif ev["event"] == "done":
+                done = ev["data"]
+            elif ev["event"] == "correction":
+                corrections.append(ev["data"])
+
+    try:
+        if timeout_s is not None:
+            await asyncio.wait_for(_consume(), timeout=timeout_s)
+        else:
+            await _consume()
+    except asyncio.TimeoutError:
+        answer_parts.append(budget_note)
+        done.setdefault("verifiability", "connector timeout · partial answer")
+    answer = "".join(answer_parts).strip()
+    return answer, done, corrections
+
+
+@app.post("/v1/connector/analyze")
+async def connector_analyze(
+    req: ConnectorRequest,
+    x_env_key: str = Header(..., alias="X-Env-Key"),
+) -> dict:
+    """ML Commons HTTP connector surface (V3.1b, D42)."""
+    if not CFG.service_enabled:
+        raise HTTPException(503, "wazuh-ai is disabled for this tenant (kill switch)")
+
+    env = resolve_by_key(x_env_key.strip())
+    if env is None:
+        audit.emit("env_key_rejected", env=None)
+        raise HTTPException(401, "invalid environment key")
+    _env_kill_switch(env)
+
+    prompt = str((req.parameters or {}).get("prompt", "")).strip()
+    if not prompt:
+        raise HTTPException(422, "parameters.prompt is required")
+
+    principal = EnvPrincipal(env.env_id)
+    try:
+        answer, done, _corrections = await _collect_turn(
+            prompt, principal, timeout_s=CFG.connector_timeout_s
+        )
+    except BusyError as exc:
+        raise HTTPException(429, str(exc)) from exc
+    label = done.get("verifiability", "")
+    actions = done.get("actions") or []
+    if actions and not CFG.actions_direct:
+        answer = embed_action_cards(
+            answer, actions, ui_base=CFG.ui_public_base_url
+        )
+    if label:
+        message = f"{answer}\n\n_{label} {ENV_SCOPED_SUFFIX}_"
+    else:
+        message = f"{answer}\n\n_{ENV_SCOPED_SUFFIX}_"
+    return {"output": {"message": message}}
+
+
 @app.post("/v1/chat/sync")
 async def chat_sync(req: ChatRequest, user: User = Depends(verify_jwt)) -> dict:
     """The whole turn as one JSON document - what the n8n workflow consumes
@@ -143,6 +267,8 @@ async def chat_sync(req: ChatRequest, user: User = Depends(verify_jwt)) -> dict:
         async for ev in run_turn(_effective_text(req), user, conversation_id):
             if ev["event"] == "token":
                 answer += ev["data"]["text"]
+            elif ev["event"] == "action_proposed":
+                pass  # included in done.actions
             elif ev["event"] == "done":
                 done = ev["data"]
             elif ev["event"] == "correction":
@@ -154,6 +280,28 @@ async def chat_sync(req: ChatRequest, user: User = Depends(verify_jwt)) -> dict:
     except httpx.HTTPStatusError as exc:
         raise _indexer_http_error(exc) from exc
     return {"answer": answer, **done}
+
+
+@app.get("/v1/actions/ui/config")
+async def actions_ui_config() -> dict:
+    """Browser-facing URLs for the dashboard confirm card (V3.5c)."""
+    return _actions_ui_config()
+
+
+@app.get("/v1/actions/ui/inject.js")
+async def actions_ui_inject() -> Response:
+    cfg = json.dumps(_actions_ui_config())
+    body = f"window.WAZUH_AI_ACTIONS_CONFIG = {cfg};\n{INJECT_JS}"
+    return Response(body, media_type="application/javascript")
+
+
+@app.get("/v1/actions/ui/{proposal_id}")
+async def actions_ui_page(proposal_id: str) -> Response:
+    html = (
+        UI_PAGE_HTML.replace("__CONFIG_JSON__", json.dumps(_actions_ui_config()))
+        .replace("__PROPOSAL_ID_JSON__", json.dumps(proposal_id))
+    )
+    return Response(html, media_type="text/html")
 
 
 @app.get("/v1/tools")
@@ -189,15 +337,19 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
             return payload
         if tool.environment:
             if tool.name == "index_health":
-                payload = await index_health(user.raw_jwt, validated)
+                payload = await index_health(user, validated)
             elif tool.name == "list_dashboards":
-                payload = await list_dashboards(user.raw_jwt, validated)
+                payload = await list_dashboards(user, validated)
+            elif tool.name == "list_alert_fields":
+                payload = await list_alert_fields(user, validated)
+            elif tool.name == "dashboard_design_guide":
+                payload = await dashboard_design_guide(user, validated)
             else:
                 raise HTTPException(404, f"unknown environment tool '{name}'")
             audit.emit("http_environment_tool_executed", tool=name, sub=user.sub)
             return payload
         ir = tool.to_ir(validated)
-        evidence = await execute_ir(ir, user.raw_jwt)
+        evidence = await execute_ir(ir, user)
     except ValidationError as exc:
         raise HTTPException(422, exc.errors()) from exc
     except VeracityError as exc:
@@ -213,3 +365,67 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
         total=evidence.total,
     )
     return evidence.to_tool_result()
+
+
+class ConfirmActionRequest(BaseModel):
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class ProposeActionRequest(BaseModel):
+    action: str = Field(min_length=1, max_length=64)
+    params: dict = Field(default_factory=dict)
+
+
+@app.post("/v1/actions/propose")
+async def propose_action(req: ProposeActionRequest, user: User = Depends(verify_jwt)) -> dict:
+    """Create a pending proposal, or execute immediately when actions_direct=true."""
+    _kill_switch()
+    if not CFG.actions_enabled:
+        raise HTTPException(503, "actions disabled (set WAI_ACTIONS_ENABLED=true)")
+    if CFG.actions_direct:
+        return await execute_action_by_name(req.action, req.params, user)
+    return create_proposal_by_action(req.action, req.params, user)
+
+
+@app.get("/v1/actions/{proposal_id}")
+async def get_action_proposal(proposal_id: str, user: User = Depends(verify_jwt)) -> dict:
+    """Fetch a pending action proposal (for UI confirm cards, D20)."""
+    _kill_switch()
+    prop = get_proposal(proposal_id)
+    if prop is None:
+        raise HTTPException(404, "proposal not found")
+    if prop.env_id != user.env_id:
+        raise HTTPException(403, "proposal belongs to another environment")
+    return prop.to_public_dict()
+
+
+@app.post("/v1/actions/{proposal_id}/confirm")
+async def confirm_action_proposal(
+    proposal_id: str,
+    req: ConfirmActionRequest,
+    user: User = Depends(verify_jwt),
+) -> dict:
+    """Execute a proposed action after operator confirmation (D20/D48)."""
+    _kill_switch()
+    try:
+        prop, result = await confirm_proposal(proposal_id, user, req.idempotency_key)
+    except HTTPException:
+        raise
+    return {
+        "proposal": prop.to_public_dict(),
+        "result": {
+            "ok": result.ok,
+            "status": result.status,
+            "message": result.message,
+            "details": result.details,
+        },
+    }
+
+
+@app.post("/v1/actions/{proposal_id}/reject")
+async def reject_action_proposal(
+    proposal_id: str, user: User = Depends(verify_jwt)
+) -> dict:
+    _kill_switch()
+    prop = reject_proposal(proposal_id, user)
+    return prop.to_public_dict()

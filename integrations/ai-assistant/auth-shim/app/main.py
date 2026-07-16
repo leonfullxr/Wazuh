@@ -18,6 +18,7 @@ import uuid
 
 import jwt
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from jwt import PyJWKClient
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -39,10 +40,24 @@ class Settings(BaseSettings):
     ttl_seconds: int = 600  # <= 10 min, one turn
     required_role: str = "wazuh_ai_analyst"
     private_key_path: str = "/keys/jwt-private.pem"
+    cors_origins: str = (
+        "https://localhost,http://localhost:5601,https://localhost:5601,"
+        "http://localhost:8080"
+    )
 
 
 CFG = Settings()
 app = FastAPI(title="wazuh-ai auth shim")
+
+_origins = [o.strip() for o in CFG.cors_origins.split(",") if o.strip()]
+if _origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
 _jwks = PyJWKClient(
     f"{CFG.kc_url}/realms/{CFG.kc_realm}/protocol/openid-connect/certs",

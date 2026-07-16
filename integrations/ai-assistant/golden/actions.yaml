@@ -1,0 +1,62 @@
+# Golden cases for the V3.5 actions framework (propose → confirm).
+# Bilingual set (V3.5d) — exercises HTTP surface directly, no LLM.
+#
+# assertion keys:
+#   propose_status   expected HTTP status from POST /v1/actions/propose
+#   confirm_status   expected HTTP status from POST .../confirm
+#   result_ok        expected result.ok after confirm (true/false)
+#   result_status    expected result.status string after confirm
+#   dashboard_title  title substring verified after confirm
+#   skip_confirm     if true, only test propose (e.g. reject flow)
+#   reject_after_propose  call reject instead of confirm
+#   confirm_user     Keycloak user override (default analyst1)
+#   confirm_password password override
+#   expect_operator  if false, confirm should 403 (analyst without operator role)
+
+cases:
+  - id: brute-force-geoip-dashboard-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Wazuh AI Brute Force GeoIP"
+      template: brute_force_geoip
+      description: "Golden eval — authentication failures with GeoIP triage"
+    propose_status: 200
+    confirm_status: 200
+    result_ok: true
+    result_status: created
+    dashboard_title: "Wazuh AI Brute Force GeoIP"
+
+  - id: brute-force-geoip-dashboard-es
+    lang: es
+    action: create_dashboard
+    params:
+      title: "Panel GeoIP fuerza bruta Wazuh AI"
+      template: brute_force_geoip
+      description: "Evaluacion golden — fallos de autenticacion con GeoIP"
+    propose_status: 200
+    confirm_status: 200
+    result_ok: true
+    result_status: created
+    dashboard_title: "Panel GeoIP fuerza bruta Wazuh AI"
+
+  - id: reject-proposal-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Rejected dashboard proposal"
+      template: auth_failures_top_users
+    propose_status: 200
+    reject_after_propose: true
+
+  - id: confirm-requires-operator-es
+    lang: es
+    action: create_dashboard
+    params:
+      title: "Solo analista sin operador"
+      template: auth_failures_top_users
+    propose_status: 200
+    confirm_status: 403
+    confirm_user: analyst_no_op
+    confirm_password: analyst_no_op
+    expect_operator: false

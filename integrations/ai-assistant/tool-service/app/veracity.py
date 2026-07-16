@@ -22,8 +22,9 @@ from typing import Any, Optional
 
 from .compiler import compile_opensearch
 from .config import CFG
-from .indexer import INDEXER
+from .indexer import Indexer, get_indexer
 from .models import ALLOWED_FIELDS, QueryIR
+from .principal import Principal, env_id_for, indexer_headers
 
 
 class VeracityError(Exception):
@@ -110,9 +111,11 @@ def _flatten_hit(hit: dict) -> dict:
     }
 
 
-async def _check_mapping(ir: QueryIR, user_jwt: str) -> Optional[str]:
+async def _check_mapping(
+    ir: QueryIR, indexer: Indexer, headers: dict[str, str]
+) -> Optional[str]:
     """Check 1. Returns the check name if it ran, None if it was skipped."""
-    mapping = await INDEXER.get_mapping(user_jwt)
+    mapping = await indexer.get_mapping(headers)
     if mapping is None:
         return None
     fields_used = [f.field for f in ir.filters if f.field != "_id"]
@@ -134,21 +137,21 @@ async def _check_mapping(ir: QueryIR, user_jwt: str) -> Optional[str]:
     return "mapping_validation"
 
 
-async def _diagnose_zero_hits(ir: QueryIR, user_jwt: str) -> dict:
+async def _diagnose_zero_hits(
+    ir: QueryIR, indexer: Indexer, headers: dict[str, str]
+) -> dict:
     """Check 4. A zero-result query is ambiguous between 'no such events' and
     'wrong query'. Probe the window and each filter individually so the answer
     can be precise instead of hopeful."""
     window_ir = QueryIR(time_range=ir.time_range, filters=[], limit=0)
-    window_res = await INDEXER.search_as_user(
-        user_jwt, compile_opensearch(window_ir)
-    )
+    window_res = await indexer.search(headers, compile_opensearch(window_ir))
     diagnosis: dict = {
         "documents_in_time_window": window_res["hits"]["total"]["value"],
         "per_filter_matches": {},
     }
     for f in ir.filters:
         probe = QueryIR(time_range=ir.time_range, filters=[f], limit=0)
-        res = await INDEXER.search_as_user(user_jwt, compile_opensearch(probe))
+        res = await indexer.search(headers, compile_opensearch(probe))
         key = f"{f.field} {f.op} {f.value}"
         diagnosis["per_filter_matches"][key] = res["hits"]["total"]["value"]
     diagnosis["interpretation"] = (
@@ -176,19 +179,22 @@ def _cache_key(ir: QueryIR) -> str:
     return hashlib.sha256(json.dumps(doc, sort_keys=True).encode()).hexdigest()
 
 
-async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
+async def execute_ir(ir: QueryIR, principal: Principal) -> Evidence:
     """The full pipeline. Every lane funnels through here."""
+    env_id = env_id_for(principal)
+    indexer = get_indexer(env_id)
+    headers = indexer_headers(principal)
+    cache_slot: str | None = None
     if CFG.evidence_cache_ttl > 0:
-        key = _cache_key(ir)
-        entry = _EVIDENCE_CACHE.get(key)
+        cache_slot = f"{env_id}:{_cache_key(ir)}"
+        entry = _EVIDENCE_CACHE.get(cache_slot)
         if entry and entry[0] > time.monotonic():
             return replace(entry[1], from_cache=True)
 
     checks_passed: list[str] = []
     checks_skipped: list[str] = []
 
-    # 1. mapping-aware validation
-    ran = await _check_mapping(ir, user_jwt)
+    ran = await _check_mapping(ir, indexer, headers)
     if ran:
         checks_passed.append(ran)
     else:
@@ -197,13 +203,13 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
     dsl = compile_opensearch(ir)
 
     # 2. pre-execution dry-run
-    validation = await INDEXER.dry_run_as_user(user_jwt, dsl)
+    validation = await indexer.dry_run(headers, dsl)
     if not validation.get("valid", False):
         raise VeracityError(f"compiled query failed validation: {validation}")
     checks_passed.append("dry_run")
 
     # 3. execute as the analyst
-    res = await INDEXER.search_as_user(user_jwt, dsl)
+    res = await indexer.search(headers, dsl)
     total = res["hits"]["total"]["value"]
     checks_passed.append("datastore_computed_counts")
 
@@ -229,7 +235,7 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
     # 4. zero-hit differential diagnosis
     zero_diag = None
     if total == 0:
-        zero_diag = await _diagnose_zero_hits(ir, user_jwt)
+        zero_diag = await _diagnose_zero_hits(ir, indexer, headers)
         checks_passed.append("zero_hit_diagnosis")
 
     gte, lte = ir.time_range.iso()
@@ -244,10 +250,13 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
         compiled_query=dsl,
         window={"gte": gte, "lte": lte},
     )
-    if CFG.evidence_cache_ttl > 0:
-        if len(_EVIDENCE_CACHE) > 512:  # cheap bound: drop expired entries
+    if CFG.evidence_cache_ttl > 0 and cache_slot is not None:
+        if len(_EVIDENCE_CACHE) > 512:
             now = time.monotonic()
             for stale in [k for k, v in _EVIDENCE_CACHE.items() if v[0] <= now]:
                 del _EVIDENCE_CACHE[stale]
-        _EVIDENCE_CACHE[key] = (time.monotonic() + CFG.evidence_cache_ttl, evidence)
+        _EVIDENCE_CACHE[cache_slot] = (
+            time.monotonic() + CFG.evidence_cache_ttl,
+            evidence,
+        )
     return evidence

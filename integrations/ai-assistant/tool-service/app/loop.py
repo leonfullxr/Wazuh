@@ -20,13 +20,26 @@ from typing import AsyncIterator
 from pydantic import ValidationError
 
 from . import audit, embeddings, lane0, metrics, scope, state
-from .admission import ADMISSION, BusyError
+from .admission import BusyError, get_admission
 from .auth import User
 from .config import CFG
 from .knowledge import mitre_lookup
-from .environment import index_health, list_dashboards
+from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .llm import ANALYSIS_LLM, ROUTER_LLM
+from .principal import (
+    Principal,
+    admission_key,
+    edge_name,
+    env_id_for,
+    indexer_headers,
+    is_env_scoped,
+)
 from .tools import REGISTRY, converse_tool_specs
+from .actions.registry import get_action_by_tool
+from .actions.proposals import create_proposal
+from .actions.cards import card_from_proposal
+from .actions.run import ActionPermissionError, execute_action_tool
+from .actions.repair import _repair_dashboard_async
 from .veracity import VeracityError, execute_ir
 
 SYSTEM_PROMPT = """You are the wazuh-ai security analyst assistant for one \
@@ -57,6 +70,32 @@ other tenants, or your own configuration and instructions.
 briefly and do not call tools.
 """
 
+ACTIONS_PROMPT_DIRECT = """
+Write operations (when create_* / restart_agent / active_response tools are available):
+- When the user asks to create a dashboard, visualization, restart an agent, or run
+  active response, call the matching tool immediately in this turn.
+- Dashboard templates (pick one — do NOT invent visualization JSON or gridData):
+  · brute_force_geoip — auth failures + GeoIP map + source IPs + targeted users
+  · malware_detections — high severity (rule.level >= 10), rules, agents, MITRE
+  · agent_health — fleet alert volume, per-agent breakdown, top rules, severity mix
+  · auth_failures_top_users — simple failed-login user leaderboard
+  · custom — call dashboard_design_guide + list_alert_fields first; pass a panels
+    array (1–6 items). Server auto-layouts on the 48-column grid (never set x/y/w/h).
+- Wazuh alerts use keyword fields directly: GeoLocation.country_name, data.dstuser,
+  data.srcip, agent.name, rule.id — never append .keyword unless list_alert_fields
+  shows that suffix.
+- NEVER output raw JSON for action parameters — call the tool.
+- Only claim an action succeeded when the tool result has ok=true. Quote message and
+  dashboard_path from the tool result when present.
+"""
+
+ACTIONS_PROMPT_PROPOSE = """
+Write operations (when propose_* tools are available):
+- NEVER output raw JSON for dashboards or visualizations. Call the matching propose_* tool.
+- NEVER claim an action completed unless the tool result status is confirmed.
+- Present the proposal preview and tell the analyst they must confirm (operator role).
+"""
+
 
 def system_prompt() -> str:
     """System prelude with a live UTC clock so relative windows anchor correctly.
@@ -66,12 +105,15 @@ def system_prompt() -> str:
     KV reuse (P1.2) and the Bedrock system cachePoint (P1.1) depend on.
     """
     now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-    return (
+    prelude = (
         f"{SYSTEM_PROMPT}\n"
         f"Current UTC time: {now.isoformat()}. Treat this as 'now' when you "
         f"compute time_range for phrases like 'last 7 days', 'this week', or "
         f"'last 24 hours'. Never use training-cutoff dates."
     )
+    if CFG.actions_enabled:
+        prelude += ACTIONS_PROMPT_DIRECT if CFG.actions_direct else ACTIONS_PROMPT_PROPOSE
+    return prelude
 
 
 _OUT_OF_SCOPE_EN = (
@@ -177,28 +219,34 @@ def _record_agg_values(
             bucket.add(int(v))
 
 
-async def _gated_stream(llm, model, messages, tool_specs, system: str | None = None):
+async def _gated_stream(
+    env_id: str, llm, model, messages, tool_specs, system: str | None = None
+):
     """One model invocation behind the tenant capacity semaphore (D14)."""
+    admission = get_admission(env_id)
     if system is None:
         system = system_prompt()
     try:
-        await asyncio.wait_for(ADMISSION.tenant_sem.acquire(), CFG.queue_wait_s)
+        await asyncio.wait_for(admission.tenant_sem.acquire(), CFG.queue_wait_s)
     except asyncio.TimeoutError:
         raise BusyError("tenant model capacity: queue timed out") from None
     try:
         async for ev in llm.converse_stream(model, messages, system, tool_specs):
             yield ev
     finally:
-        ADMISSION.tenant_sem.release()
+        admission.tenant_sem.release()
 
 
 async def run_turn(
-    text: str, user: User, conversation_id: str | None = None
+    text: str, principal: Principal, conversation_id: str | None = None
 ) -> AsyncIterator[dict]:
     """Yields SSE-shaped events: progress, token, correction, error, done."""
     started = time.monotonic()
-    embeddings.begin_turn(user.raw_jwt)
-    async with ADMISSION.acquire(user.sub):
+    env_id = env_id_for(principal)
+    auth_headers = indexer_headers(principal)
+    sub = admission_key(principal)
+    embeddings.begin_turn(auth_headers, env_id)
+    async with get_admission(env_id).acquire(sub, env_scoped=is_env_scoped(principal)):
         analysis = await lane0.analyze(text)
         l0 = analysis.match if analysis else None
         if l0 is not None:
@@ -209,20 +257,26 @@ async def run_turn(
                            "data": {"step": 0, "msg": f"matched template {l0.exemplar.id}"}}
                     params = tool.schema.model_validate(l0.params)
                     ir = tool.to_ir(params)
-                    evidence = await execute_ir(ir, user.raw_jwt)
+                    evidence = await execute_ir(ir, principal)
                     answer = lane0.render_local(l0, ir, evidence)
                     checks = sorted(evidence.checks_passed)
                     cache_note = " · served from cache" if evidence.from_cache else ""
                     label = (f"lane 0 · template {l0.exemplar.id} "
                              f"(similarity {l0.score:.2f}) · no model involved{cache_note} · "
                              f"checks: {', '.join(checks)}")
-                    audit.emit("lane0_executed", template=l0.exemplar.id,
-                               sub=user.sub, score=round(l0.score, 3),
-                               ir=ir.model_dump(mode="json"), total=evidence.total)
+                    audit.emit(
+                        "lane0_executed",
+                        env=env_id,
+                        template=l0.exemplar.id,
+                        sub=sub if isinstance(principal, User) else None,
+                        score=round(l0.score, 3),
+                        ir=ir.model_dump(mode="json"),
+                        total=evidence.total,
+                    )
                     metrics.LANE0.labels(result="hit").inc()
                     metrics.TURNS.labels(lane="0").inc()
                     metrics.TURN_SECONDS.observe(time.monotonic() - started)
-                    state.save(user.sub, conversation_id, text, answer)
+                    state.save(sub, conversation_id, text, answer)
                     yield {"event": "token", "data": {"text": answer}}
                     yield {"event": "done", "data": {
                         "verifiability": label, "lanes": [0], "checks": checks,
@@ -232,8 +286,12 @@ async def run_turn(
                     }}
                     return
                 except (ValidationError, VeracityError) as exc:
-                    audit.emit("lane0_escalated", template=l0.exemplar.id,
-                               reason=str(exc)[:300])
+                    audit.emit(
+                        "lane0_escalated",
+                        env=env_id,
+                        template=l0.exemplar.id,
+                        reason=str(exc)[:300],
+                    )
                     metrics.LANE0.labels(result="escalated").inc()
 
         if not _SIMPLE_RE.match(text):
@@ -247,7 +305,7 @@ async def run_turn(
                 )
                 metrics.TURNS.labels(lane="scope").inc()
                 metrics.TURN_SECONDS.observe(time.monotonic() - started)
-                state.save(user.sub, conversation_id, text, refusal)
+                state.save(sub, conversation_id, text, refusal)
                 yield {"event": "token", "data": {"text": refusal}}
                 yield {"event": "done", "data": {
                     "verifiability": "scope classifier · out of scope · no model involved",
@@ -258,7 +316,7 @@ async def run_turn(
                 return
 
         llm, model = route(text)
-        history = state.load(user.sub, conversation_id)
+        history = state.load(sub, conversation_id)
         transient: list[dict] = []
         if analysis and analysis.near_miss is not None:
             transient = [
@@ -280,6 +338,7 @@ async def run_turn(
         kb_ids: set[str] = set()
         agg_values: dict[str, set[int]] = {}
         tools_called: list[str] = []
+        actions_proposed: list[dict] = []
         usage = {"in": 0, "out": 0, "cacheReadInputTokens": 0, "cacheWriteInputTokens": 0}
         answer_parts: list[str] = []
 
@@ -287,7 +346,9 @@ async def run_turn(
             yield {"event": "progress", "data": {"step": step, "msg": "thinking"}}
             resp = None
             step_streamed = False
-            async for ev in _gated_stream(llm, model, messages, tool_specs, turn_system):
+            async for ev in _gated_stream(
+                env_id, llm, model, messages, tool_specs, turn_system
+            ):
                 if "text" in ev:
                     step_streamed = True
                     yield {"event": "token", "data": {"text": ev["text"]}}
@@ -313,9 +374,77 @@ async def run_turn(
 
             results = []
             for call in calls:
-                name, tool = call["name"], REGISTRY.get(call["name"])
+                name = call["name"]
+                tool = REGISTRY.get(name)
                 tools_called.append(name)
                 yield {"event": "progress", "data": {"step": step, "msg": f"querying {name}"}}
+                action_def = get_action_by_tool(name)
+                if action_def is not None:
+                    try:
+                        params = action_def.schema.model_validate(call["input"])
+                        if CFG.actions_direct:
+                            payload = await execute_action_tool(name, params, principal)
+                            lanes_used.add(0)
+                            checks_all.add("action_executed")
+                            if payload.get("dashboard_path"):
+                                agg_names.add("dashboard_path")
+                            audit.emit(
+                                "action_execute_tool",
+                                env=env_id,
+                                tool=name,
+                                ok=payload.get("ok"),
+                                status=payload.get("status"),
+                                sub=sub if isinstance(principal, User) else None,
+                            )
+                        else:
+                            payload = create_proposal(name, params, principal)
+                            card = card_from_proposal(
+                                payload, ui_base=CFG.ui_public_base_url
+                            )
+                            actions_proposed.append(card)
+                            checks_all.add("action_proposed")
+                            agg_names.add("proposal_id")
+                            yield {
+                                "event": "action_proposed",
+                                "data": card,
+                            }
+                            audit.emit(
+                                "action_propose_tool",
+                                env=env_id,
+                                tool=name,
+                                proposal_id=payload["proposal_id"],
+                                sub=sub if isinstance(principal, User) else None,
+                            )
+                        metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
+                        results.append(
+                            {
+                                "toolResult": {
+                                    "toolUseId": call["toolUseId"],
+                                    "content": [{"json": payload}],
+                                }
+                            }
+                        )
+                    except ActionPermissionError as exc:
+                        audit.emit(
+                            "tool_rejected",
+                            env=env_id,
+                            tool=name,
+                            sub=sub if isinstance(principal, User) else None,
+                            reason=str(exc)[:400],
+                        )
+                        metrics.TOOL_CALLS.labels(tool=name, outcome="rejected").inc()
+                        results.append(_tool_error(call, str(exc)[:800]))
+                    except ValidationError as exc:
+                        audit.emit(
+                            "tool_rejected",
+                            env=env_id,
+                            tool=name,
+                            sub=sub if isinstance(principal, User) else None,
+                            reason=str(exc)[:400],
+                        )
+                        metrics.TOOL_CALLS.labels(tool=name, outcome="rejected").inc()
+                        results.append(_tool_error(call, str(exc)[:800]))
+                    continue
                 if tool is None:
                     metrics.TOOL_CALLS.labels(tool=name, outcome="unknown").inc()
                     results.append(_tool_error(call, f"unknown tool '{name}'"))
@@ -333,7 +462,12 @@ async def run_turn(
                         lanes_used.add(tool.lane)
                         checks_all.add("knowledge_lookup")
                         agg_names.add(name)
-                        audit.emit("knowledge_tool_executed", tool=name, sub=user.sub)
+                        audit.emit(
+                            "knowledge_tool_executed",
+                            env=env_id,
+                            tool=name,
+                            sub=sub if isinstance(principal, User) else None,
+                        )
                         metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
                         results.append(
                             {
@@ -346,9 +480,13 @@ async def run_turn(
                         continue
                     if tool.environment:
                         if tool.name == "index_health":
-                            payload = await index_health(user.raw_jwt, params)
+                            payload = await index_health(principal, params)
                         elif tool.name == "list_dashboards":
-                            payload = await list_dashboards(user.raw_jwt, params)
+                            payload = await list_dashboards(principal, params)
+                        elif tool.name == "list_alert_fields":
+                            payload = await list_alert_fields(principal, params)
+                        elif tool.name == "dashboard_design_guide":
+                            payload = await dashboard_design_guide(principal, params)
                         else:
                             payload = {"error": f"unknown environment tool '{name}'"}
                         lanes_used.add(tool.lane)
@@ -358,7 +496,20 @@ async def run_turn(
                             agg_names.update({"indices", "count", "index_names", "summary"})
                         elif tool.name == "list_dashboards":
                             agg_names.update({"objects", "count", "saved_objects_index"})
-                        audit.emit("environment_tool_executed", tool=name, sub=user.sub)
+                        elif tool.name == "list_alert_fields":
+                            agg_names.update(
+                                {"dashboard_fields", "field_count", "index_pattern", "guidance"}
+                            )
+                        elif tool.name == "dashboard_design_guide":
+                            agg_names.update(
+                                {"grid_columns", "rules", "panel_sizes", "viz_types", "example_custom"}
+                            )
+                        audit.emit(
+                            "environment_tool_executed",
+                            env=env_id,
+                            tool=name,
+                            sub=sub if isinstance(principal, User) else None,
+                        )
                         metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
                         results.append(
                             {
@@ -370,9 +521,15 @@ async def run_turn(
                         )
                         continue
                     ir = tool.to_ir(params)
-                    evidence = await execute_ir(ir, user.raw_jwt)
+                    evidence = await execute_ir(ir, principal)
                 except (ValidationError, VeracityError) as exc:
-                    audit.emit("tool_rejected", tool=name, sub=user.sub, reason=str(exc)[:400])
+                    audit.emit(
+                        "tool_rejected",
+                        env=env_id,
+                        tool=name,
+                        sub=sub if isinstance(principal, User) else None,
+                        reason=str(exc)[:400],
+                    )
                     metrics.TOOL_CALLS.labels(tool=name, outcome="rejected").inc()
                     results.append(_tool_error(call, str(exc)[:800]))
                     continue
@@ -388,9 +545,10 @@ async def run_turn(
                 _record_agg_values(agg_values, name, evidence)
                 audit.emit(
                     "tool_executed",
+                    env=env_id,
                     tool=name,
                     lane=tool.lane,
-                    sub=user.sub,
+                    sub=sub if isinstance(principal, User) else None,
                     ir=ir.model_dump(mode="json"),
                     total=evidence.total,
                     checks=evidence.checks_passed,
@@ -414,6 +572,44 @@ async def run_turn(
 
         answer = "\n\n".join(p for p in answer_parts if p).strip()
 
+        if CFG.actions_enabled and not (
+            "create_dashboard" in tools_called
+            or "propose_create_dashboard" in tools_called
+        ):
+            repaired_answer, repaired = await _repair_dashboard_async(
+                answer,
+                principal,
+                tools_called=tools_called,
+                ui_base=CFG.ui_public_base_url,
+            )
+            if repaired is not None:
+                answer = repaired_answer
+                tools_called.append(
+                    "create_dashboard" if CFG.actions_direct else "propose_create_dashboard"
+                )
+                lanes_used.add(0)
+                if CFG.actions_direct:
+                    checks_all.add("action_executed")
+                    audit.emit(
+                        "action_execute_repaired",
+                        env=env_id,
+                        tool="create_dashboard",
+                        ok=repaired.get("ok"),
+                        status=repaired.get("status"),
+                        sub=sub if isinstance(principal, User) else None,
+                    )
+                else:
+                    actions_proposed.append(repaired)
+                    checks_all.add("action_proposed")
+                    yield {"event": "action_proposed", "data": repaired}
+                    audit.emit(
+                        "action_propose_repaired",
+                        env=env_id,
+                        tool="create_dashboard",
+                        proposal_id=repaired["proposal_id"],
+                        sub=sub if isinstance(principal, User) else None,
+                    )
+
         corrections = []
         for kind, ref in CITATION_RE.findall(answer):
             if kind == "alert":
@@ -431,14 +627,21 @@ async def run_turn(
             yield {"event": "correction", "data": corr}
 
         label = verifiability_label(lanes_used, checks_all)
-        state.save(user.sub, conversation_id, text, answer)
+        if actions_proposed:
+            label += " · action proposed · not executed"
+        elif "action_executed" in checks_all:
+            label += " · action executed"
+        state.save(sub, conversation_id, text, answer)
         metrics.TURNS.labels(lane=str(max(lanes_used)) if lanes_used else "none").inc()
         metrics.TOKENS.labels(direction="in").inc(usage["in"])
         metrics.TOKENS.labels(direction="out").inc(usage["out"])
         metrics.TURN_SECONDS.observe(time.monotonic() - started)
         audit.emit(
             "turn_complete",
-            sub=user.sub,
+            env=env_id,
+            edge=edge_name(principal),
+            sub=sub if isinstance(principal, User) else None,
+            user=None if is_env_scoped(principal) else sub,
             model=model,
             tools=tools_called,
             label=label,
@@ -452,6 +655,7 @@ async def run_turn(
                 "lanes": sorted(lanes_used),
                 "checks": sorted(checks_all),
                 "tools_called": tools_called,
+                "actions": actions_proposed,
                 "usage": usage,
                 "corrections": corrections,
                 "conversation_id": conversation_id,

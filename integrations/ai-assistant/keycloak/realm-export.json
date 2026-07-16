@@ -4,7 +4,8 @@
   "sslRequired": "none",
   "roles": {
     "realm": [
-      { "name": "wazuh_ai_analyst", "description": "May use the wazuh-ai assistant (mirrors the opt-in wazuh_ai_user role, D18)" }
+      { "name": "wazuh_ai_analyst", "description": "May use the wazuh-ai assistant (mirrors the opt-in wazuh_ai_user role, D18)" },
+      { "name": "wazuh_ai_operator", "description": "May confirm wazuh-ai proposed write actions (D20)" }
     ]
   },
   "clients": [
@@ -30,6 +31,18 @@
       "email": "analyst1@example.test",
       "credentials": [
         { "type": "password", "value": "analyst1", "temporary": false }
+      ],
+      "realmRoles": ["wazuh_ai_analyst", "wazuh_ai_operator", "default-roles-wazuh-poc"]
+    },
+    {
+      "username": "analyst_no_op",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "No",
+      "lastName": "Operator",
+      "email": "analyst_no_op@example.test",
+      "credentials": [
+        { "type": "password", "value": "analyst_no_op", "temporary": false }
       ],
       "realmRoles": ["wazuh_ai_analyst", "default-roles-wazuh-poc"]
     },

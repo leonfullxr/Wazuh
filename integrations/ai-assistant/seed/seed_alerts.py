@@ -49,7 +49,44 @@ RULES = [
 ]
 # Weights make auth failures dominate, like a real perimeter box.
 WEIGHTS = [0.32, 0.28, 0.12, 0.08, 0.17, 0.03]
-SRC_IPS = ["203.0.113.66", "198.51.100.23", "192.0.2.14", "10.0.7.5"]
+SRC_IPS = [
+    (
+        "203.0.113.66",
+        {
+            "country_name": "United States",
+            "city_name": "Chicago",
+            "region_name": "Illinois",
+            "location": {"lat": 41.8781, "lon": -87.6298},
+        },
+    ),
+    (
+        "198.51.100.23",
+        {
+            "country_name": "Germany",
+            "city_name": "Berlin",
+            "region_name": "Berlin",
+            "location": {"lat": 52.52, "lon": 13.405},
+        },
+    ),
+    (
+        "192.0.2.14",
+        {
+            "country_name": "Brazil",
+            "city_name": "Sao Paulo",
+            "region_name": "Sao Paulo",
+            "location": {"lat": -23.5505, "lon": -46.6333},
+        },
+    ),
+    (
+        "185.220.101.42",
+        {
+            "country_name": "Netherlands",
+            "city_name": "Amsterdam",
+            "region_name": "North Holland",
+            "location": {"lat": 52.3676, "lon": 4.9041},
+        },
+    ),
+]
 USERS = ["root", "admin", "svc-backup", "leon", "postgres"]
 
 
@@ -72,6 +109,7 @@ def main() -> None:
         ts = now - timedelta(seconds=rng.randint(0, 7 * 24 * 3600))
         agent_id, agent_name = rng.choice(AGENTS)
         rule_id, level, desc, groups, mitre = rng.choices(RULES, WEIGHTS)[0]
+        src_ip, geo = rng.choice(SRC_IPS)
         doc = {
             "timestamp": ts.isoformat(),
             "rule": {
@@ -84,11 +122,18 @@ def main() -> None:
             "decoder": {"name": "sshd" if rule_id.startswith("57") else "web-accesslog"},
             "location": "/var/log/auth.log" if rule_id.startswith("57") else "/var/log/nginx/access.log",
             "data": {
-                "srcip": rng.choice(SRC_IPS),
+                "srcip": src_ip,
                 "dstuser": rng.choice(USERS),
             },
             "full_log": f"synthetic event rule={rule_id} on {agent_name}",
         }
+        if "authentication_failed" in groups:
+            doc["GeoLocation"] = {
+                "country_name": geo["country_name"],
+                "city_name": geo["city_name"],
+                "region_name": geo["region_name"],
+                "location": geo["location"],
+            }
         docs.append(doc)
 
     client = httpx.Client(verify=False, auth=AUTH, timeout=60.0)

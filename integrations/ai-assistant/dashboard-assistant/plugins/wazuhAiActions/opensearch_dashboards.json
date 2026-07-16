@@ -1,0 +1,9 @@
+{
+  "id": "wazuhAiActions",
+  "version": "1.0.0-01",
+  "opensearchDashboardsVersion": "opensearchDashboards",
+  "server": false,
+  "ui": true,
+  "requiredPlugins": [],
+  "optionalPlugins": ["assistantDashboards"]
+}

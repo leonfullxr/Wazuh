@@ -36,10 +36,15 @@ import httpx
 import yaml
 
 from live_gt import load_and_refresh
+from connector_parse import parse_agent_message, split_connector_message
 
 KC = os.environ.get("WAI_EVAL_KC_URL", "http://localhost:8085")
 SHIM = os.environ.get("WAI_EVAL_SHIM_URL", "http://localhost:8081")
 SVC = os.environ.get("WAI_EVAL_SVC_URL", "http://localhost:8080")
+INDEXER = os.environ.get("WAI_EVAL_INDEXER_URL", "https://localhost:9200")
+INDEXER_USER = os.environ.get("INDEXER_ADMIN_USER", "admin")
+INDEXER_PASSWORD = os.environ.get("INDEXER_ADMIN_PASSWORD", "SecretPassword")
+EVAL_EDGE = os.environ.get("WAI_EVAL_EDGE", "direct")
 REALM = os.environ.get("WAI_EVAL_KC_REALM", "wazuh-poc")
 CLIENT = os.environ.get("WAI_EVAL_KC_CLIENT", "wazuh-ai")
 USER = os.environ.get("WAI_EVAL_KC_USER", "analyst1")
@@ -49,6 +54,8 @@ TIMEOUT = float(os.environ.get("WAI_EVAL_TIMEOUT_S", "300"))
 RETRIES = int(os.environ.get("WAI_EVAL_RETRIES", "0"))
 
 HERE = Path(__file__).resolve().parent
+AGENT_ID_FILE = HERE.parent / ".dashboard-assistant-agent-id"
+ENV_SCOPED = "environment-scoped identity"
 
 
 def _window(hours: int, floor: bool = False) -> dict:
@@ -136,6 +143,55 @@ def chat_sync(headers: dict, question: str) -> dict:
     )
 
 
+def _parse_agent_message(data: dict) -> str:
+    return parse_agent_message(data)
+
+
+def _split_connector_message(message: str) -> tuple[str, str]:
+    return split_connector_message(message)
+
+
+def agent_execute(question: str) -> dict:
+    if not AGENT_ID_FILE.exists():
+        sys.exit(f"{AGENT_ID_FILE.name} missing - run `make assistant-setup` first")
+    agent_id = AGENT_ID_FILE.read_text().strip()
+    last = None
+    for _ in range(8):
+        last = httpx.post(
+            f"{INDEXER}/_plugins/_ml/agents/{agent_id}/_execute",
+            json={"parameters": {"question": question}},
+            auth=(INDEXER_USER, INDEXER_PASSWORD),
+            verify=False,
+            timeout=TIMEOUT,
+        )
+        if last.status_code in (429, 500):
+            time.sleep(20 if last.status_code == 429 else 5)
+            continue
+        last.raise_for_status()
+        raw = last.json()
+        message = _parse_agent_message(raw)
+        answer, label = _split_connector_message(message)
+        return {
+            "answer": answer,
+            "verifiability": label,
+            "tools_called": [],
+            "checks": [],
+            "corrections": [],
+            "usage": {},
+            "raw_agent": raw,
+        }
+    raise httpx.HTTPStatusError(
+        "still 429 after retries", request=last.request, response=last
+    )
+
+
+def run_turn(question: str, headers: dict | None) -> dict:
+    if EVAL_EDGE == "connector":
+        return agent_execute(question)
+    assert headers is not None
+    return chat_sync(headers, question)
+
+
 def substitute(text: str, gt: dict) -> str:
     return re.sub(r"\{\{gt\.(\w+)\}\}", lambda m: str(gt.get(m.group(1), "")), text)
 
@@ -155,22 +211,42 @@ def _normalize(s: str) -> str:
 
 
 def check_case(
-    case: dict, result: dict, gt: dict, counts: set[int] | None = None
+    case: dict,
+    result: dict,
+    gt: dict,
+    counts: set[int] | None = None,
+    *,
+    connector_edge: bool = False,
 ) -> list[str]:
     failures: list[str] = []
     answer = _normalize(result.get("answer", ""))
     answer_cf = answer.casefold()
     tools = result.get("tools_called", [])
     checks = result.get("checks", [])
+    verifiability = result.get("verifiability", "")
 
-    if case.get("tools_any") and not set(case["tools_any"]) & set(tools):
-        failures.append(f"expected one of {case['tools_any']}, tools called: {tools}")
-    if case.get("tools_none") and tools:
+    if connector_edge:
+        label_text = f"{verifiability} {answer}"
+        if ENV_SCOPED not in label_text:
+            failures.append(f"connector label missing {ENV_SCOPED!r}")
+        if case.get("identity_only"):
+            print(f"SKIPPED (env-scoped edge) {case['id']}: identity_only case")
+            return failures
+
+    if case.get("tools_any") and not connector_edge:
+        if not set(case["tools_any"]) & set(tools):
+            failures.append(f"expected one of {case['tools_any']}, tools called: {tools}")
+    elif case.get("tools_any") and connector_edge:
+        print(f"SKIPPED (env-scoped edge) {case['id']}: tools_any assertion")
+    if case.get("tools_none") and not connector_edge and tools:
         failures.append(f"expected no tool calls, got {tools}")
-    if case.get("checks_any") and not set(case["checks_any"]) & set(checks):
-        failures.append(f"expected one of {case['checks_any']}, checks ran: {checks}")
+    if case.get("checks_any") and not connector_edge:
+        if not set(case["checks_any"]) & set(checks):
+            failures.append(f"expected one of {case['checks_any']}, checks ran: {checks}")
+    elif case.get("checks_any") and connector_edge:
+        print(f"SKIPPED (env-scoped edge) {case['id']}: checks_any assertion")
     if key := case.get("answer_has_count"):
-        if "datastore_computed_counts" not in checks:
+        if not connector_edge and "datastore_computed_counts" not in checks:
             failures.append("count asserted but datastore_computed_counts never ran")
         ns = counts if counts is not None else {int(gt[key])}
         variants: set[str] = set()
@@ -188,7 +264,7 @@ def check_case(
         if needle.casefold() in answer_cf:
             failures.append(f"answer contains forbidden text: {needle!r}")
 
-    if result.get("corrections"):
+    if result.get("corrections") and not connector_edge:
         failures.append(f"unverified citations: {result['corrections']}")
     return failures
 
@@ -196,6 +272,9 @@ def check_case(
 def run_suite(gt: dict, spec: dict) -> tuple[int, int, list[dict]]:
     passed, failed = 0, 0
     case_results: list[dict] = []
+    connector_edge = EVAL_EDGE == "connector"
+    if connector_edge:
+        print(f"eval edge: connector (agent id from {AGENT_ID_FILE.name})")
 
     for case in spec["cases"]:
         question = substitute(case["question"], gt)
@@ -206,17 +285,32 @@ def run_suite(gt: dict, spec: dict) -> tuple[int, int, list[dict]]:
 
         for _attempt in range(RETRIES + 1):
             try:
-                headers = {"Authorization": f"Bearer {get_turn_jwt()}"}
-                before = live_counts(headers, key) if key in REF_TOOLS else None
+                ref_headers = {"Authorization": f"Bearer {get_turn_jwt()}"}
+                headers = None if connector_edge else ref_headers
+                before = (
+                    live_counts(ref_headers, key) if key in REF_TOOLS else None
+                )
                 t0 = time.monotonic()
-                result = chat_sync(headers, question)
+                result = run_turn(question, headers)
                 record["seconds"] = round(time.monotonic() - t0, 1)
                 counts = set(range(before[0], before[1] + 1)) if before else None
-                failures = check_case(case, result, gt, counts)
-                if failures and before and any("lacks expected count" in f for f in failures):
-                    after = live_counts(headers, key)
+                failures = check_case(
+                    case, result, gt, counts, connector_edge=connector_edge
+                )
+                if (
+                    failures
+                    and before
+                    and any("lacks expected count" in f for f in failures)
+                ):
+                    after = live_counts(ref_headers, key)
                     lo, hi = min(before[0], after[0]), max(before[1], after[1])
-                    failures = check_case(case, result, gt, set(range(lo, hi + 1)))
+                    failures = check_case(
+                        case,
+                        result,
+                        gt,
+                        set(range(lo, hi + 1)),
+                        connector_edge=connector_edge,
+                    )
             except httpx.HTTPError as exc:
                 failures = [f"transport/HTTP failure: {exc}"]
                 result = {}
@@ -265,6 +359,7 @@ def write_last_run(
         "model_router": os.environ.get("WAI_MODEL_ROUTER", ""),
         "model_analysis": os.environ.get("WAI_MODEL_ANALYSIS", ""),
         "llm_provider": os.environ.get("WAI_LLM_PROVIDER", ""),
+        "eval_edge": EVAL_EDGE,
         "passed": passed,
         "failed": failed,
         "total": passed + failed,

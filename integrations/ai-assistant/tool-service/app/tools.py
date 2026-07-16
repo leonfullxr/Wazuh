@@ -14,11 +14,15 @@ from pydantic import BaseModel, Field
 
 from .config import CFG
 from .environment import (
+    DashboardDesignGuideParams,
     IndexHealthParams,
     ListAgentsParams,
+    ListAlertFieldsParams,
     ListDashboardsParams,
+    dashboard_design_guide,
     index_health,
     list_agents_ir,
+    list_alert_fields,
     list_dashboards,
 )
 from .knowledge import MitreLookupParams
@@ -179,6 +183,14 @@ def _index_health_ir(_p: IndexHealthParams) -> QueryIR:
     raise RuntimeError("environment tool - not an alerts-index IR query")
 
 
+def _list_alert_fields_ir(_p: ListAlertFieldsParams) -> QueryIR:
+    raise RuntimeError("environment tool - not an alerts-index IR query")
+
+
+def _dashboard_design_guide_ir(_p: DashboardDesignGuideParams) -> QueryIR:
+    raise RuntimeError("environment tool - not an alerts-index IR query")
+
+
 REGISTRY: dict[str, ToolDef] = {
     t.name: t
     for t in [
@@ -270,6 +282,26 @@ REGISTRY: dict[str, ToolDef] = {
             lane=1,
             environment=True,
         ),
+        ToolDef(
+            "list_alert_fields",
+            "List dashboard-safe field names on wazuh-alerts-* (from the live "
+            "index pattern). Call before custom visualizations; curated "
+            "create_dashboard templates already use validated fields.",
+            ListAlertFieldsParams,
+            _list_alert_fields_ir,
+            lane=1,
+            environment=True,
+        ),
+        ToolDef(
+            "dashboard_design_guide",
+            "How to build custom dashboards: 48-column grid rules, panel schema, "
+            "viz types, and an example create_dashboard custom payload. Call before "
+            "template=custom — never invent gridData coordinates.",
+            DashboardDesignGuideParams,
+            _dashboard_design_guide_ir,
+            lane=1,
+            environment=True,
+        ),
     ]
 }
 
@@ -288,6 +320,8 @@ if CFG.lane2_enabled:
 
 def converse_tool_specs() -> list[dict]:
     """pydantic schemas -> Bedrock Converse toolSpec list."""
+    from .actions.registry import action_tool_specs
+
     specs = []
     for t in REGISTRY.values():
         specs.append(
@@ -299,4 +333,5 @@ def converse_tool_specs() -> list[dict]:
                 }
             }
         )
+    specs.extend(action_tool_specs())
     return specs

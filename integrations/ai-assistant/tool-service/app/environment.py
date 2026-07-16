@@ -1,7 +1,4 @@
-"""Environment lookup tools (C1b) — hardcoded indexer endpoints, analyst JWT.
-
-Each function maps to exactly one allowed URL. No generic passthrough.
-"""
+"""Environment lookup tools (C1b) — hardcoded indexer endpoints, principal auth."""
 from __future__ import annotations
 
 from typing import Any
@@ -9,8 +6,9 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from .config import CFG
-from .indexer import INDEXER, IndexerError
+from .indexer import IndexerError, get_indexer
 from .models import IRAggregation, QueryIR, TimeRange
+from .principal import Principal, env_id_for, indexer_headers
 
 
 class ListAgentsParams(BaseModel):
@@ -36,13 +34,17 @@ class IndexHealthParams(BaseModel):
     pass
 
 
-async def index_health(user_jwt: str, _params: IndexHealthParams) -> dict[str, Any]:
+async def index_health(
+    principal: Principal, _params: IndexHealthParams
+) -> dict[str, Any]:
+    indexer = get_indexer(env_id_for(principal))
+    headers = indexer_headers(principal)
     path = (
         "/_cat/indices/wazuh-alerts-*"
         "?format=json&h=index,health,docs.count,store.size"
     )
     try:
-        rows = await INDEXER.cat_indices_as_user(user_jwt, path)
+        rows = await indexer.cat_indices(headers, path)
     except IndexerError as exc:
         return {"error": str(exc), "indices": []}
     names = [row.get("index", "") for row in rows if row.get("index")]
@@ -63,7 +65,23 @@ class ListDashboardsParams(BaseModel):
     size: int = Field(30, ge=1, le=100)
 
 
-async def list_dashboards(user_jwt: str, params: ListDashboardsParams) -> dict[str, Any]:
+class ListAlertFieldsParams(BaseModel):
+    """Dashboard-relevant fields on wazuh-alerts-* (from index pattern + mapping)."""
+
+    index_pattern: str = Field(default="wazuh-alerts-*", max_length=120)
+
+
+class DashboardDesignGuideParams(BaseModel):
+    """How to build custom dashboards (grid layout, panel schema, examples)."""
+
+    pass
+
+
+async def list_dashboards(
+    principal: Principal, params: ListDashboardsParams
+) -> dict[str, Any]:
+    indexer = get_indexer(env_id_for(principal))
+    headers = indexer_headers(principal)
     body = {
         "size": params.size,
         "query": {
@@ -77,10 +95,16 @@ async def list_dashboards(user_jwt: str, params: ListDashboardsParams) -> dict[s
                 ]
             }
         },
-        "_source": ["type", "dashboard.title", "visualization.title", "index-pattern.title", "updated_at"],
+        "_source": [
+            "type",
+            "dashboard.title",
+            "visualization.title",
+            "index-pattern.title",
+            "updated_at",
+        ],
     }
     try:
-        res = await INDEXER.saved_objects_search_as_user(user_jwt, body)
+        res = await indexer.saved_objects_search(headers, body)
     except IndexerError as exc:
         return {"error": str(exc), "objects": []}
 
@@ -105,3 +129,32 @@ async def list_dashboards(user_jwt: str, params: ListDashboardsParams) -> dict[s
         "count": len(objects),
         "saved_objects_index": CFG.saved_objects_index,
     }
+
+
+async def list_alert_fields(
+    principal: Principal, params: ListAlertFieldsParams
+) -> dict[str, Any]:
+    from .actions.field_resolver import catalog_for_model, load_known_fields
+
+    indexer = get_indexer(env_id_for(principal))
+    headers = indexer_headers(principal)
+    known = await load_known_fields(indexer, headers, params.index_pattern)
+    catalog = catalog_for_model(known)
+    return {
+        "index_pattern": params.index_pattern,
+        "field_count": len(known),
+        "dashboard_fields": catalog,
+        "guidance": (
+            "Use these exact field names in dashboards. Wazuh alerts use keyword "
+            "fields directly (e.g. data.dstuser, GeoLocation.country_name) — do NOT "
+            "append .keyword unless list_alert_fields shows that suffix."
+        ),
+    }
+
+
+async def dashboard_design_guide(
+    _principal: Principal, _params: DashboardDesignGuideParams
+) -> dict[str, Any]:
+    from .actions.dashboard_layout import DESIGN_GUIDE
+
+    return DESIGN_GUIDE

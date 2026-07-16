@@ -1,5 +1,10 @@
 # wazuh-ai enhancements — implementation spec
 
+> **Round 5 (2026-07-15) lives in its own file: [`ARCHITECTURE-V3.md`](ARCHITECTURE-V3.md)**
+> — the Dashboard Assistant edge (ML Commons connector) and the
+> multi-environment MCP-LLM gateway redesign. Implement V3.1 from that file;
+> diagrams in `diagrams/wazuh-ai-v3-gateway.drawio`.
+
 Review output for the local AMD test harness. **Cursor applies P0 + P1** (decision
 1). MCP is item **P1.8**. Model bake-off covers **all three models** (decision 3).
 

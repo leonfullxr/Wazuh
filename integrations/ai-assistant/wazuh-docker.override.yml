@@ -1,0 +1,5 @@
+# Override wazuh-docker single-node dashboard image with assistant plugins baked in.
+# Used by: make dashboard-assistant
+services:
+  wazuh.dashboard:
+    image: ${WAZUH_DASHBOARD_IMAGE:-wazuh-ai-dashboard:4.14.5}

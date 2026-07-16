@@ -79,11 +79,28 @@ class Settings(BaseSettings):
     indexer_ca_path: str = ""       # pin the tenant root CA instead of verify=off
     prompt_cache: bool = False      # Bedrock cachePoint on the prelude (verify, Q4)
 
+    # Actions v1.5 (D20/D35) — write operations
+    actions_enabled: bool = False
+    actions_direct: bool = True  # execute on tool call; false = propose/confirm UI flow
+    action_proposal_ttl_s: int = 900
+    operator_role: str = "wazuh_ai_operator"
+    # Browser confirm UI (V3.5c) — host-facing URLs for dashboard + auth-shim
+    ui_public_base_url: str = "http://localhost:8080"
+    actions_shim_public_url: str = "http://localhost:8081"
+    actions_kc_public_url: str = "http://localhost:8085"
+    actions_kc_realm: str = "wazuh-poc"
+    actions_kc_client: str = "wazuh-ai"
+    actions_cors_origins: str = (
+        "https://localhost,http://localhost:5601,https://localhost:5601"
+    )
+
     # Lanes and loop caps (D23/D32)
     lane2_enabled: bool = True
     max_tool_calls: int = 6
     evidence_budget_chars: int = 8000
     max_output_tokens: int = 2048
+    connector_timeout_s: float = 110.0
+    envs_file: str = ""
 
     # Admission (a deliberately tiny D14: per-user single stream + per-tenant gate)
     tenant_concurrent: int = 2

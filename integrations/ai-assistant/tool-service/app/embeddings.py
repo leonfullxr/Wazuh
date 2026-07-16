@@ -1,13 +1,4 @@
-"""Shared embedding client (R2.4 / C3).
-
-Lane 0 and the scope classifier share a per-turn text→vector cache so the same
-question is never embedded more than once.
-
-Providers:
-  openai     — any OpenAI-compatible /v1/embeddings endpoint (default: Ollama bge-m3)
-  mlcommons  — in-cluster ML Commons on the Wazuh indexer; forwards the analyst
-               turn JWT so embedding calls stay per-user (D11).
-"""
+"""Shared embedding client (R2.4 / C3), per-environment model id (D43)."""
 from __future__ import annotations
 
 from contextvars import ContextVar
@@ -15,18 +6,23 @@ from contextvars import ContextVar
 import httpx
 
 from .config import CFG
-from .indexer import INDEXER
+from .env_registry import get_env
+from .indexer import get_indexer
 
 _http = httpx.AsyncClient(timeout=60.0)
 _turn_cache: ContextVar[dict[str, list[float]] | None] = ContextVar(
     "embed_turn_cache", default=None
 )
-_turn_jwt: ContextVar[str | None] = ContextVar("embed_turn_jwt", default=None)
+_turn_headers: ContextVar[dict[str, str] | None] = ContextVar(
+    "embed_turn_headers", default=None
+)
+_turn_env_id: ContextVar[str | None] = ContextVar("embed_turn_env_id", default=None)
 
 
-def begin_turn(user_jwt: str | None = None) -> None:
+def begin_turn(headers: dict[str, str], env_id: str) -> None:
     _turn_cache.set({})
-    _turn_jwt.set(user_jwt)
+    _turn_headers.set(headers)
+    _turn_env_id.set(env_id)
 
 
 def _cache() -> dict[str, list[float]]:
@@ -60,19 +56,23 @@ async def _embed_openai(texts: list[str]) -> list[list[float]]:
 
 
 async def _embed_mlcommons(texts: list[str]) -> list[list[float]]:
-    jwt = _turn_jwt.get()
-    if not jwt:
-        raise RuntimeError("mlcommons embeddings require analyst turn JWT")
-    if not CFG.embed_ml_model_id:
+    headers = _turn_headers.get()
+    env_id = _turn_env_id.get()
+    if not headers or not env_id:
+        raise RuntimeError("mlcommons embeddings require turn indexer headers")
+    env = get_env(env_id)
+    model_id = env.embed_ml_model_id or CFG.embed_ml_model_id
+    if not model_id:
         raise RuntimeError("WAI_EMBED_ML_MODEL_ID is required for mlcommons provider")
-    r = await INDEXER.http.post(
-        f"/_plugins/_ml/models/{CFG.embed_ml_model_id}/_predict",
+    indexer = get_indexer(env_id)
+    r = await indexer.http.post(
+        f"/_plugins/_ml/models/{model_id}/_predict",
         json={
             "text_docs": texts,
             "return_number": True,
             "target_response": ["sentence_embedding"],
         },
-        headers=INDEXER._headers(jwt),
+        headers=headers,
     )
     r.raise_for_status()
     results = r.json().get("inference_results") or []

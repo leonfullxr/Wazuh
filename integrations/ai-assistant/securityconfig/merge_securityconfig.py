@@ -16,6 +16,30 @@ ISSUER = f"wazuh-ai-shim.{TENANT}"
 AUDIENCE = f"wazuh-indexer.{TENANT}"
 SAVED_OBJECTS_INDEX = os.environ.get("WAI_SAVED_OBJECTS_INDEX", ".kibana")
 
+
+def _saved_objects_patterns() -> list[str]:
+    """Fresh list each call — PyYAML must not alias index_patterns across roles."""
+    return [
+        SAVED_OBJECTS_INDEX,
+        f"{SAVED_OBJECTS_INDEX}*",
+        f"{SAVED_OBJECTS_INDEX}_*",
+        ".opensearch_dashboards",
+        ".opensearch_dashboards*",
+        ".opensearch_dashboards_*",
+    ]
+ENV_READER_USER = os.environ.get("WAI_ENV_READER_USER", "wazuh_ai_env_reader")
+DASHBOARD_WRITER_USER = os.environ.get(
+    "WAI_DASHBOARD_WRITER_USER", "wazuh_ai_dashboard_writer"
+)
+DASHBOARD_WRITER_PASSWORD_HASH = os.environ.get(
+    "WAI_DASHBOARD_WRITER_PASSWORD_HASH",
+    "$2b$12$OY5xZu30A.2oay3gJCEjQeNIsV/Bxyr.pAG5G7mwo9fB/5KVljfha",
+)
+ENV_READER_PASSWORD_HASH = os.environ.get(
+    "WAI_ENV_READER_PASSWORD_HASH",
+    "$2a$12$hsVmOpZVO2Kn7v8HO4eMseUBesSEHxVrKKnmeuqVBhm5l0qIzKkp6",
+)
+
 JWT_BLOCK_TEMPLATE = """\
       wazuh_ai_jwt_auth_domain:
         description: wazuh-ai turn JWTs minted by the auth shim (D30)
@@ -102,7 +126,61 @@ def main() -> None:
                 ],
             },
             {
-                "index_patterns": [SAVED_OBJECTS_INDEX, f"{SAVED_OBJECTS_INDEX}*"],
+                "index_patterns": _saved_objects_patterns(),
+                "allowed_actions": ["read"],
+            },
+        ],
+    }
+    roles["wazuh_ai_env_reader_role"] = {
+        "reserved": False,
+        "description": (
+            "wazuh-ai connector edge: read-only alerts, C1 monitor grants, C3 ml predict (D42)"
+        ),
+        "cluster_permissions": [
+            "cluster_composite_ops_ro",
+            "cluster:admin/opensearch/ml/predict",
+            "cluster:monitor/state",
+            "cluster:monitor/health",
+        ],
+        "index_permissions": [
+            {
+                "index_patterns": ["wazuh-alerts-*"],
+                "allowed_actions": [
+                    "read",
+                    "indices:admin/mappings/get",
+                    "indices:admin/validate/query",
+                    "indices:monitor/settings/get",
+                    "indices:monitor/stats",
+                ],
+            },
+            {
+                "index_patterns": _saved_objects_patterns(),
+                "allowed_actions": ["read"],
+            },
+        ],
+    }
+    # Actions v3.5 (D35): dashboard saved-objects writer — used by gateway executor only
+    roles["wazuh_ai_dashboard_writer_role"] = {
+        "reserved": False,
+        "description": "wazuh-ai dashboard executor: write saved objects only (D35)",
+        "cluster_permissions": ["cluster_composite_ops_ro"],
+        "index_permissions": [
+            {
+                "index_patterns": _saved_objects_patterns(),
+                "allowed_actions": [
+                    "indices_all",
+                ],
+            },
+        ],
+    }
+    # App-level operator role (confirm gate). Manager/AR executors use Wazuh API creds.
+    roles["wazuh_ai_operator_role"] = {
+        "reserved": False,
+        "description": "wazuh-ai operator: may confirm proposed actions (D20)",
+        "cluster_permissions": ["cluster_composite_ops_ro"],
+        "index_permissions": [
+            {
+                "index_patterns": ["wazuh-alerts-*"],
                 "allowed_actions": ["read"],
             },
         ],
@@ -116,9 +194,39 @@ def main() -> None:
         "backend_roles": ["wazuh_ai_analyst"],
         "description": "JWT backend_roles claim -> wazuh-ai analyst role",
     }
+    mapping["wazuh_ai_env_reader_role"] = {
+        "reserved": False,
+        "users": [ENV_READER_USER],
+        "description": "Dashboard connector env-scoped reader (D42)",
+    }
+    mapping["wazuh_ai_operator_role"] = {
+        "reserved": False,
+        "backend_roles": ["wazuh_ai_operator"],
+        "description": "JWT backend_roles claim -> wazuh-ai operator (confirm actions, D20)",
+    }
+    mapping["wazuh_ai_dashboard_writer_role"] = {
+        "reserved": False,
+        "users": [DASHBOARD_WRITER_USER],
+        "description": "Dashboard executor internal user (D35)",
+    }
     map_path.write_text(yaml.safe_dump(mapping, sort_keys=False))
 
-    print("merged: config.yml, roles.yml, roles_mapping.yml")
+    users_path = workdir / "internal_users.yml"
+    if users_path.exists():
+        users = yaml.safe_load(users_path.read_text()) or {}
+        users[ENV_READER_USER] = {
+            "hash": ENV_READER_PASSWORD_HASH,
+            "reserved": False,
+            "description": "wazuh-ai environment reader for dashboard connector (D42)",
+        }
+        users[DASHBOARD_WRITER_USER] = {
+            "hash": DASHBOARD_WRITER_PASSWORD_HASH,
+            "reserved": False,
+            "description": "wazuh-ai dashboard executor (D35) — gateway only",
+        }
+        users_path.write_text(yaml.safe_dump(users, sort_keys=False))
+
+    print("merged: config.yml, roles.yml, roles_mapping.yml, internal_users.yml")
 
 
 if __name__ == "__main__":

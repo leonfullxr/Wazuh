@@ -10,7 +10,8 @@ OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
 KIND_CLUSTER ?= wazuh-ai
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 bakeoff demo-storyline test logs down clean
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions bakeoff demo-storyline test logs down clean
+.PHONY: dashboard-assistant assistant-setup
 .PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
 keys:
@@ -71,6 +72,31 @@ seed:
 
 evals:
 	python3 golden/run_evals.py
+
+evals-connector:
+	WAI_EVAL_EDGE=connector python3 golden/run_evals.py
+
+evals-actions:
+	python3 golden/run_evals_actions.py
+
+dashboard-assistant:
+	docker build -t wazuh-ai-dashboard:$(WAZUH_VERSION) \
+	  --build-arg WAZUH_VERSION=$(WAZUH_VERSION) \
+	  -f dashboard-assistant/Dockerfile .
+	@if ! grep -q '^assistant.chat.enabled:' $(WAZUH_DIR)/config/wazuh_dashboard/opensearch_dashboards.yml 2>/dev/null; then \
+	  echo 'assistant.chat.enabled: true' >> $(WAZUH_DIR)/config/wazuh_dashboard/opensearch_dashboards.yml; \
+	else \
+	  sed -i 's/^assistant.chat.enabled:.*/assistant.chat.enabled: true/' \
+	    $(WAZUH_DIR)/config/wazuh_dashboard/opensearch_dashboards.yml; \
+	fi
+	cd $(WAZUH_DIR) && WAZUH_DASHBOARD_IMAGE=wazuh-ai-dashboard:$(WAZUH_VERSION) \
+	  docker compose -f docker-compose.yml -f ../../wazuh-docker.override.yml \
+	  up -d --force-recreate wazuh.dashboard
+	@echo "Dashboard with Assistant: https://localhost (admin / $(INDEXER_ADMIN_PASSWORD))"
+
+assistant-setup:
+	chmod +x scripts/dashboard_assistant_setup.sh
+	./scripts/dashboard_assistant_setup.sh
 
 evals-fresh: seed evals
 
