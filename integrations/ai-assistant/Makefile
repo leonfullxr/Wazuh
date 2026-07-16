@@ -14,7 +14,7 @@ COMPOSE := docker compose -f docker-compose.poc.yml
 # Profiled GPU/LLM backends are not stopped by a plain `compose down`.
 COMPOSE_ALL := $(COMPOSE) --profile ollama --profile airllm --profile litellm
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions evals-isolation bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions evals-isolation bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors diagrams-png
 .PHONY: dashboard-assistant assistant-setup
 .PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
@@ -164,6 +164,9 @@ test:
 	  -v ./keys:/keys:ro \
 	  -v ./auth-shim/tests:/app/tests:ro --entrypoint sh auth-shim \
 	  -c "pip install -q pytest && python -m pytest -q tests"
+
+diagrams-png:
+	python3 diagrams/export_png.py
 
 # ---- Track B: kind cluster + cross-tenant isolation (kind/README.md) ----------
 kind-prereqs:
