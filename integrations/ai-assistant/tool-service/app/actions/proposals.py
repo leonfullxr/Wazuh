@@ -192,7 +192,10 @@ class ProposalStore:
     def _validate_confirm_target(
         self, prop: ActionProposal, confirm_target: dict[str, Any] | None
     ) -> None:
-        if prop.risk != ActionRisk.HIGH:
+        needs_echo = prop.risk == ActionRisk.HIGH or prop.action_name in {
+            "add_agent_to_group",
+        }
+        if not needs_echo:
             return
         if prop.action_name == "active_response":
             expected = {
@@ -201,6 +204,13 @@ class ProposalStore:
             }
         elif prop.action_name == "restart_agent":
             expected = {"agent_id": prop.params.get("agent_id")}
+        elif prop.action_name == "add_agent_to_group":
+            expected = {
+                "agent_id": prop.params.get("agent_id"),
+                "group": prop.params.get("group"),
+            }
+        elif prop.action_name == "suppress_noisy_rule":
+            expected = {"rule_id": str(prop.params.get("rule_id"))}
         else:
             return
         if confirm_target != expected:

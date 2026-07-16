@@ -66,6 +66,10 @@ def extract_confirm_target(text: str, action_name: str) -> dict | None:
                 "restart" in t and "ossec" in t
             ):
                 cmd = "restart-ossec"
+            if t in {"firewall-drop", "firewall_drop"}:
+                cmd = "firewall-drop"
+            if t in {"disable-account", "disable_account"}:
+                cmd = "disable-account"
             if t.isdigit() and len(t) <= 4:
                 agent = t.zfill(3) if len(t) < 3 else t
             if t.startswith("00") and t.isdigit():
@@ -86,13 +90,40 @@ def extract_confirm_target(text: str, action_name: str) -> dict | None:
         if m:
             return {"agent_id": m.group(1).zfill(3)}
         return None
+    if action_name == "add_agent_to_group":
+        agent = None
+        group = None
+        for t in tokens:
+            if t.isdigit() and len(t) <= 4:
+                agent = t.zfill(3) if len(t) < 3 else t
+            elif t not in _AFFIRM and t not in {
+                "on",
+                "to",
+                "group",
+                "agent",
+                "en",
+                "grupo",
+                "agente",
+            }:
+                group = t
+        if agent and group:
+            return {"agent_id": agent, "group": group}
+        return None
+    if action_name == "suppress_noisy_rule":
+        for t in tokens:
+            if t.isdigit() and 2 <= len(t) <= 7:
+                return {"rule_id": t}
+        m = re.search(r"(?:rule|regla)\s*(\d{2,7})", " ".join(tokens))
+        if m:
+            return {"rule_id": m.group(1)}
+        return None
     return None
 
 
 def confirm_instruction(
     lang: str, risk: ActionRisk, action_name: str, params: dict
 ) -> str:
-    if risk == ActionRisk.HIGH:
+    if action_name == "suppress_noisy_rule" or risk == ActionRisk.HIGH:
         if action_name == "active_response":
             cmd = params.get("command", "restart-ossec")
             agent = params.get("agent_id", "001")
@@ -101,10 +132,28 @@ def confirm_instruction(
                     f'Responde **sí {cmd} en {agent}** para confirmar o **no** para cancelar.'
                 )
             return f'Reply **yes {cmd} on {agent}** to confirm or **no** to cancel.'
+        if action_name == "suppress_noisy_rule":
+            rid = params.get("rule_id", "5710")
+            if lang == "es":
+                return (
+                    f"Responde **sí regla {rid}** para confirmar o **no** para cancelar."
+                )
+            return f"Reply **yes rule {rid}** to confirm or **no** to cancel."
         agent = params.get("agent_id", "001")
         if lang == "es":
             return f"Responde **sí en {agent}** para confirmar o **no** para cancelar."
         return f"Reply **yes on {agent}** to confirm or **no** to cancel."
+    if action_name == "add_agent_to_group":
+        agent = params.get("agent_id", "001")
+        group = params.get("group", "default")
+        if lang == "es":
+            return (
+                f"Responde **sí {agent} grupo {group}** para confirmar "
+                f"o **no** para cancelar."
+            )
+        return (
+            f"Reply **yes {agent} group {group}** to confirm or **no** to cancel."
+        )
     if lang == "es":
         return "Responde **sí** para confirmar o **no** para cancelar."
     return "Reply **yes** to confirm or **no** to cancel."

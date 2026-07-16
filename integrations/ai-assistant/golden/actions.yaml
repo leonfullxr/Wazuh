@@ -164,3 +164,38 @@ cases:
       reason: "Golden eval tier denial at propose"
     propose_status: 403
     skip_if_tier_enabled: manager
+
+  - id: propose-indexer-monitor-en
+    lang: en
+    action: create_indexer_monitor
+    params:
+      title: "Wazuh AI auth failure monitor"
+      template: auth_failures
+      schedule_minutes: 5
+      reason: "Golden eval curated monitor proposal"
+    propose_status: 200
+    skip_confirm: true
+    preview_any: ["auth_failures", "monitor"]
+
+  - id: propose-add-agent-group-en
+    lang: en
+    action: add_agent_to_group
+    params:
+      agent_id: "001"
+      group: default
+      reason: "Golden eval add agent to group proposal"
+    propose_status: 200
+    skip_confirm: true
+    preview_any: ["001", "default"]
+    require_tier: manager
+
+  - id: conv-suppress-rule-bare-yes-en
+    mode: conversational
+    lang: en
+    action: suppress_noisy_rule
+    params:
+      rule_id: "5710"
+      reason: "Golden eval high-risk suppress requires target echo of rule id"
+    chat_text: "yes"
+    checks: ["confirm_target_required"]
+    require_tier: manager

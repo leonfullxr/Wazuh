@@ -91,3 +91,35 @@ class ActiveResponseParams(BaseModel):
     alert_id: Optional[str] = Field(
         None, description="Optional triggering alert document id"
     )
+
+
+class AddAgentToGroupParams(BaseModel):
+    """Proposal: assign a Wazuh agent to a manager group."""
+
+    agent_id: str = Field(min_length=1, max_length=32)
+    group: str = Field(
+        min_length=1,
+        max_length=64,
+        description="Existing manager group name (e.g. default, linux)",
+    )
+    reason: str = Field(min_length=10, max_length=500)
+
+
+class CreateIndexerMonitorParams(BaseModel):
+    """Proposal: create a curated OpenSearch Alerting monitor (not free-form)."""
+
+    title: str = Field(min_length=1, max_length=120)
+    template: Literal["auth_failures", "high_severity"] = "auth_failures"
+    schedule_minutes: int = Field(5, ge=1, le=60)
+    reason: str = Field(min_length=10, max_length=500)
+
+
+class SuppressNoisyRuleParams(BaseModel):
+    """Proposal: suppress a noisy rule via a curated local_rules override (high risk)."""
+
+    rule_id: str = Field(
+        min_length=1,
+        max_length=16,
+        description="Wazuh rule id to suppress (e.g. 5710)",
+    )
+    reason: str = Field(min_length=20, max_length=500)

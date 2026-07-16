@@ -13,6 +13,8 @@
     # - active_response
   dashboard_api_url: ${WAI_ENV_LAB_DASHBOARD_API_URL}
   dashboard_executor_basic: ${WAI_ENV_LAB_DASHBOARD_EXECUTOR}
+  # create_indexer_monitor writes via indexer Alerting API using
+  # dashboard_executor_basic (or reader_basic as fallback).
   manager_api_url: https://wazuh.manager:55000
   manager_ca_path: ""
   manager_executor_basic: ${WAI_ENV_LAB_MANAGER_EXECUTOR}

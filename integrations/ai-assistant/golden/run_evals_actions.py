@@ -345,6 +345,17 @@ def run_case_conversational(case: dict, headers: dict, health: dict) -> dict:
                 "reason": f"tier {skip_tier!r} enabled on lab env",
             }
         )
+    require_tier = case.get("require_tier")
+    if require_tier and require_tier not in (health.get("action_tiers") or []):
+        return _finalize_case(
+            {
+                "id": case["id"],
+                "lang": case.get("lang", "en"),
+                "ok": True,
+                "skipped": True,
+                "reason": f"tier {require_tier!r} not enabled on lab env",
+            }
+        )
 
     conv_id = f"golden-{case['id']}-{uuid.uuid4().hex[:8]}"
     propose_conv_id = None if edge == "connector" else conv_id
@@ -463,8 +474,36 @@ def main() -> None:
     for c in cases:
         if c.get("mode") == "conversational":
             results.append(run_case_conversational(c, headers, health))
-        else:
-            results.append(runner(c, headers))
+            continue
+        skip_tier = c.get("skip_if_tier_enabled")
+        if skip_tier and skip_tier in (health.get("action_tiers") or []):
+            results.append(
+                _finalize_case(
+                    {
+                        "id": c["id"],
+                        "lang": c.get("lang", "en"),
+                        "ok": True,
+                        "skipped": True,
+                        "reason": f"tier {skip_tier!r} enabled on lab env",
+                    }
+                )
+            )
+            continue
+        require_tier = c.get("require_tier")
+        if require_tier and require_tier not in (health.get("action_tiers") or []):
+            results.append(
+                _finalize_case(
+                    {
+                        "id": c["id"],
+                        "lang": c.get("lang", "en"),
+                        "ok": True,
+                        "skipped": True,
+                        "reason": f"tier {require_tier!r} not enabled on lab env",
+                    }
+                )
+            )
+            continue
+        results.append(runner(c, headers))
     passed = sum(1 for r in results if r.get("passed"))
     skipped = sum(1 for r in results if r.get("skipped"))
     report = {

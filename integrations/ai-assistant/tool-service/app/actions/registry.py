@@ -10,9 +10,12 @@ from ..config import CFG
 from .dashboard_templates import template_panel_summary
 from .schemas import (
     ActiveResponseParams,
+    AddAgentToGroupParams,
     CreateDashboardParams,
+    CreateIndexerMonitorParams,
     CreateVisualizationParams,
     RestartAgentParams,
+    SuppressNoisyRuleParams,
 )
 from .types import ActionRisk, ActionTier
 
@@ -87,6 +90,31 @@ def _preview_active_response(p: BaseModel) -> str:
     )
 
 
+def _preview_add_agent_to_group(p: BaseModel) -> str:
+    params = AddAgentToGroupParams.model_validate(p.model_dump())
+    return (
+        f"Add agent **{params.agent_id}** to group **{params.group}**.\n"
+        f"Reason: {params.reason}"
+    )
+
+
+def _preview_create_indexer_monitor(p: BaseModel) -> str:
+    params = CreateIndexerMonitorParams.model_validate(p.model_dump())
+    return (
+        f"Create indexer monitor **{params.title}** "
+        f"(template `{params.template}`, every {params.schedule_minutes}m).\n"
+        f"Reason: {params.reason}"
+    )
+
+
+def _preview_suppress_noisy_rule(p: BaseModel) -> str:
+    params = SuppressNoisyRuleParams.model_validate(p.model_dump())
+    return (
+        f"Suppress noisy rule **{params.rule_id}** via local_rules override "
+        f"(level 0).\nReason: {params.reason}"
+    )
+
+
 _ACTION_DEFS = [
     ActionDef(
         name="create_dashboard",
@@ -124,6 +152,22 @@ _ACTION_DEFS = [
         preview=_preview_create_visualization,
     ),
     ActionDef(
+        name="create_indexer_monitor",
+        propose_tool_name="propose_create_indexer_monitor",
+        direct_description=(
+            "Create a curated OpenSearch Alerting monitor immediately "
+            "(templates: auth_failures, high_severity). Not free-form."
+        ),
+        propose_description=(
+            "Propose a curated OpenSearch Alerting monitor (auth_failures or "
+            "high_severity). Requires analyst confirmation."
+        ),
+        schema=CreateIndexerMonitorParams,
+        tier=ActionTier.DASHBOARD,
+        risk=ActionRisk.LOW,
+        preview=_preview_create_indexer_monitor,
+    ),
+    ActionDef(
         name="restart_agent",
         propose_tool_name="propose_restart_agent",
         direct_description=(
@@ -139,6 +183,22 @@ _ACTION_DEFS = [
         preview=_preview_restart_agent,
     ),
     ActionDef(
+        name="add_agent_to_group",
+        propose_tool_name="propose_add_agent_to_group",
+        direct_description=(
+            "Assign a Wazuh agent to a manager group. Requires reason. "
+            "Confirm with target echo (agent id + group)."
+        ),
+        propose_description=(
+            "Propose assigning an agent to a manager group. Requires confirmation "
+            "with target echo (agent id + group)."
+        ),
+        schema=AddAgentToGroupParams,
+        tier=ActionTier.MANAGER,
+        risk=ActionRisk.MEDIUM,
+        preview=_preview_add_agent_to_group,
+    ),
+    ActionDef(
         name="active_response",
         propose_tool_name="propose_active_response",
         direct_description=(
@@ -152,6 +212,22 @@ _ACTION_DEFS = [
         tier=ActionTier.ACTIVE_RESPONSE,
         risk=ActionRisk.HIGH,
         preview=_preview_active_response,
+    ),
+    ActionDef(
+        name="suppress_noisy_rule",
+        propose_tool_name="propose_suppress_noisy_rule",
+        direct_description=(
+            "Suppress a noisy Wazuh rule via curated local_rules override (level 0). "
+            "High risk — requires reason and target echo of the rule id."
+        ),
+        propose_description=(
+            "Propose suppressing a noisy rule (local_rules level-0 override). "
+            "High risk — requires confirmation with rule-id target echo."
+        ),
+        schema=SuppressNoisyRuleParams,
+        tier=ActionTier.MANAGER,
+        risk=ActionRisk.HIGH,
+        preview=_preview_suppress_noisy_rule,
     ),
 ]
 

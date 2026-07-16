@@ -25,11 +25,15 @@ from .index_pattern_fields import (
 )
 from .schemas import (
     ActiveResponseParams,
+    AddAgentToGroupParams,
     CreateDashboardParams,
+    CreateIndexerMonitorParams,
     CreateVisualizationParams,
     RestartAgentParams,
+    SuppressNoisyRuleParams,
 )
 from .types import ActionResult, ActionTier
+from .monitor_templates import build_monitor_body
 
 
 def _basic_header(user_pass: str) -> dict[str, str]:
@@ -209,6 +213,8 @@ async def execute_dashboard_action(
         field_err = await _prepare_dashboard_objects(env, objects)
         if field_err is not None:
             return field_err
+    elif action_name == "create_indexer_monitor":
+        return await _create_indexer_monitor(params, env, operator)
     else:
         return ActionResult(
             ok=False,
@@ -220,6 +226,63 @@ async def execute_dashboard_action(
     if result.ok:
         result.details["confirmed_by"] = operator.sub
     return result
+
+
+async def _create_indexer_monitor(
+    params: BaseModel, env: EnvConfig, operator: User
+) -> ActionResult:
+    """Write curated OpenSearch Alerting monitor via indexer HTTP API."""
+    cred = env.dashboard_executor_basic or env.reader_basic
+    if not cred or ":" not in cred:
+        return ActionResult(
+            ok=False,
+            status="not_configured",
+            message=(
+                "indexer monitor write needs dashboard_executor_basic "
+                "(or reader_basic) on this environment"
+            ),
+            details={"env_id": env.env_id},
+        )
+    p = CreateIndexerMonitorParams.model_validate(params.model_dump())
+    body = build_monitor_body(p)
+    # Strip internal metadata keys the Alerting API does not accept.
+    body.pop("wazuh_ai_template", None)
+    body.pop("wazuh_ai_reason", None)
+    verify: object = env.indexer_ca_path or CFG.indexer_verify_ssl
+    base = env.indexer_url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(base_url=base, verify=verify, timeout=30.0) as client:
+            r = await client.post(
+                "/_plugins/_alerting/monitors",
+                json=body,
+                headers={**_basic_header(cred), "Content-Type": "application/json"},
+            )
+    except httpx.HTTPError as exc:
+        return ActionResult(
+            ok=False,
+            status="indexer_unreachable",
+            message=f"could not reach indexer alerting API: {exc}",
+            details={"indexer_url": base},
+        )
+    if r.status_code not in (200, 201):
+        return ActionResult(
+            ok=False,
+            status="alerting_error",
+            message=f"create monitor failed: HTTP {r.status_code}",
+            details={"body": r.text[:500], "template": p.template},
+        )
+    data = r.json() if r.content else {}
+    return ActionResult(
+        ok=True,
+        status="created",
+        message=f"Monitor '{p.title}' created (template {p.template})",
+        details={
+            "monitor_id": data.get("_id") or data.get("id"),
+            "title": p.title,
+            "template": p.template,
+            "confirmed_by": operator.sub,
+        },
+    )
 
 
 def _single_visualization_object(p: CreateVisualizationParams) -> dict[str, Any]:
@@ -295,47 +358,165 @@ async def execute_manager_action(
             details={"action": action_name, "env_id": env.env_id},
         )
 
-    if action_name != "restart_agent":
+    if action_name == "restart_agent":
+        p = RestartAgentParams.model_validate(params.model_dump())
+        try:
+            agent_id = _require_agent_id(p.agent_id)
+        except ValueError as exc:
+            return ActionResult(ok=False, status="invalid_target", message=str(exc))
+
+        try:
+            token = await _wazuh_api_token(env, env.manager_executor_basic)
+        except httpx.HTTPError as exc:
+            return ActionResult(
+                ok=False,
+                status="manager_auth_error",
+                message=f"Wazuh API authentication failed: {exc}",
+            )
+
+        verify = _manager_verify(env)
+        url = f"{env.manager_api_url.rstrip('/')}/agents/{agent_id}/restart"
+        async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
+            r = await client.put(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+            )
+        if r.status_code not in (200, 201):
+            return ActionResult(
+                ok=False,
+                status="manager_error",
+                message=f"agent restart failed: HTTP {r.status_code}",
+                details={"body": r.text[:500], "agent_id": agent_id},
+            )
         return ActionResult(
-            ok=False,
-            status="unknown_action",
-            message=f"unknown manager action {action_name}",
+            ok=True,
+            status="restarted",
+            message=f"Agent {agent_id} restart requested",
+            details={
+                "agent_id": agent_id,
+                "reason": p.reason,
+                "confirmed_by": operator.sub,
+            },
         )
 
-    p = RestartAgentParams.model_validate(params.model_dump())
-    try:
-        agent_id = _require_agent_id(p.agent_id)
-    except ValueError as exc:
-        return ActionResult(ok=False, status="invalid_target", message=str(exc))
-
-    try:
-        token = await _wazuh_api_token(env, env.manager_executor_basic)
-    except httpx.HTTPError as exc:
+    if action_name == "add_agent_to_group":
+        p = AddAgentToGroupParams.model_validate(params.model_dump())
+        try:
+            agent_id = _require_agent_id(p.agent_id)
+        except ValueError as exc:
+            return ActionResult(ok=False, status="invalid_target", message=str(exc))
+        group = (p.group or "").strip()
+        if not group:
+            return ActionResult(
+                ok=False, status="invalid_target", message="group is required"
+            )
+        try:
+            token = await _wazuh_api_token(env, env.manager_executor_basic)
+        except httpx.HTTPError as exc:
+            return ActionResult(
+                ok=False,
+                status="manager_auth_error",
+                message=f"Wazuh API authentication failed: {exc}",
+            )
+        verify = _manager_verify(env)
+        url = f"{env.manager_api_url.rstrip('/')}/agents/{agent_id}/group/{group}"
+        async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
+            r = await client.put(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+            )
+        if r.status_code not in (200, 201):
+            return ActionResult(
+                ok=False,
+                status="manager_error",
+                message=f"add agent to group failed: HTTP {r.status_code}",
+                details={
+                    "body": r.text[:500],
+                    "agent_id": agent_id,
+                    "group": group,
+                },
+            )
         return ActionResult(
-            ok=False,
-            status="manager_auth_error",
-            message=f"Wazuh API authentication failed: {exc}",
+            ok=True,
+            status="grouped",
+            message=f"Agent {agent_id} added to group {group}",
+            details={
+                "agent_id": agent_id,
+                "group": group,
+                "reason": p.reason,
+                "confirmed_by": operator.sub,
+            },
         )
 
-    verify = _manager_verify(env)
-    url = f"{env.manager_api_url.rstrip('/')}/agents/{agent_id}/restart"
-    async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
-        r = await client.put(
-            url,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    if action_name == "suppress_noisy_rule":
+        p = SuppressNoisyRuleParams.model_validate(params.model_dump())
+        rule_id = (p.rule_id or "").strip()
+        if not rule_id.isdigit():
+            return ActionResult(
+                ok=False,
+                status="invalid_target",
+                message="rule_id must be numeric",
+            )
+        try:
+            token = await _wazuh_api_token(env, env.manager_executor_basic)
+        except httpx.HTTPError as exc:
+            return ActionResult(
+                ok=False,
+                status="manager_auth_error",
+                message=f"Wazuh API authentication failed: {exc}",
+            )
+        # Curated local_rules override: if_sid → level 0 (never free-form rule XML).
+        xml = (
+            f"<!-- wazuh-ai suppress {rule_id}: {p.reason[:80]} -->\n"
+            f'<group name="wazuh_ai_suppress,">\n'
+            f'  <rule id="9{rule_id.zfill(5)[-5:]}" level="0">\n'
+            f"    <if_sid>{rule_id}</if_sid>\n"
+            f"    <description>Wazuh AI suppressed noisy rule {rule_id}</description>\n"
+            f"  </rule>\n"
+            f"</group>\n"
         )
-    if r.status_code not in (200, 201):
+        verify = _manager_verify(env)
+        path = f"etc/rules/local_rules_wazuh_ai_{rule_id}.xml"
+        url = f"{env.manager_api_url.rstrip('/')}/manager/files"
+        async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
+            r = await client.put(
+                url,
+                params={"path": path, "overwrite": "true"},
+                content=xml.encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/octet-stream",
+                },
+            )
+        if r.status_code not in (200, 201):
+            return ActionResult(
+                ok=False,
+                status="manager_error",
+                message=f"suppress rule failed: HTTP {r.status_code}",
+                details={"body": r.text[:500], "rule_id": rule_id},
+            )
         return ActionResult(
-            ok=False,
-            status="manager_error",
-            message=f"agent restart failed: HTTP {r.status_code}",
-            details={"body": r.text[:500], "agent_id": agent_id},
+            ok=True,
+            status="suppressed",
+            message=f"Rule {rule_id} suppressed via {path}",
+            details={
+                "rule_id": rule_id,
+                "path": path,
+                "reason": p.reason,
+                "confirmed_by": operator.sub,
+            },
         )
+
     return ActionResult(
-        ok=True,
-        status="restarted",
-        message=f"Agent {agent_id} restart requested",
-        details={"agent_id": agent_id, "reason": p.reason, "confirmed_by": operator.sub},
+        ok=False,
+        status="unknown_action",
+        message=f"unknown manager action {action_name}",
     )
 
 
