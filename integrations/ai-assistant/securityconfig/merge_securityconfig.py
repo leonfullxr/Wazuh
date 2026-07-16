@@ -139,6 +139,16 @@ def main() -> None:
                 ],
             },
             {
+                "index_patterns": ["wazuh-states-vulnerabilities-*"],
+                "allowed_actions": [
+                    "read",
+                    "indices:admin/mappings/get",
+                    "indices:admin/validate/query",
+                    "indices:monitor/settings/get",
+                    "indices:monitor/stats",
+                ],
+            },
+            {
                 "index_patterns": _saved_objects_patterns(),
                 "allowed_actions": ["read"],
             },
@@ -158,6 +168,16 @@ def main() -> None:
         "index_permissions": [
             {
                 "index_patterns": ["wazuh-alerts-*"],
+                "allowed_actions": [
+                    "read",
+                    "indices:admin/mappings/get",
+                    "indices:admin/validate/query",
+                    "indices:monitor/settings/get",
+                    "indices:monitor/stats",
+                ],
+            },
+            {
+                "index_patterns": ["wazuh-states-vulnerabilities-*"],
                 "allowed_actions": [
                     "read",
                     "indices:admin/mappings/get",

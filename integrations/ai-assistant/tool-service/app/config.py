@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     indexer_url: str = "https://wazuh.indexer:9200"
     indexer_verify_ssl: bool = False  # lab only - prod pins the tenant CA
     alerts_index: str = "wazuh-alerts-*"
+    vulnerabilities_index: str = "wazuh-states-vulnerabilities-*"
 
     # Inference backend (README s3): "bedrock" (default) or "openai" for any
     # OpenAI-compatible chat-completions endpoint (Ollama, Groq, LiteLLM, ...)

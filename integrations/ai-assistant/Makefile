@@ -69,6 +69,7 @@ airllm:
 
 seed:
 	python3 seed/seed_alerts.py
+	python3 seed/seed_vulnerabilities.py
 
 evals:
 	python3 golden/run_evals.py

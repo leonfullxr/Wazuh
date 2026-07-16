@@ -29,6 +29,13 @@ from .environment import (
 )
 from .knowledge import MitreLookupParams
 from .models import IRAggregation, IRFilter, QueryIR, TimeRange
+from .states_models import StatesQueryIR
+from .states_tools import (
+    CountVulnerabilitiesParams,
+    VulnerabilitiesBySeverityParams,
+    count_vulnerabilities_ir,
+    vulnerabilities_by_severity_ir,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -173,11 +180,12 @@ class ToolDef:
     name: str
     description: str
     schema: type[BaseModel]
-    to_ir: Callable[[BaseModel], QueryIR] | None
+    to_ir: Callable[[BaseModel], QueryIR | StatesQueryIR] | None
     lane: int
     knowledge: bool = False
     environment: bool = False
     composite: bool = False
+    states: bool = False
 
 
 def _mitre_lookup_ir(_p: MitreLookupParams) -> QueryIR:
@@ -325,6 +333,25 @@ REGISTRY: dict[str, ToolDef] = {
             _dashboard_design_guide_ir,
             lane=1,
             environment=True,
+        ),
+        ToolDef(
+            "count_vulnerabilities",
+            "Exact count of vulnerability state records on wazuh-states-vulnerabilities-* "
+            "(detected-at window). Use for 'how many vulnerabilities' questions — not "
+            "count_alerts.",
+            CountVulnerabilitiesParams,
+            count_vulnerabilities_ir,
+            lane=1,
+            states=True,
+        ),
+        ToolDef(
+            "vulnerabilities_by_severity",
+            "Vulnerability counts grouped by severity (low/medium/high/critical) with "
+            "exact per-bucket counts from the states index.",
+            VulnerabilitiesBySeverityParams,
+            vulnerabilities_by_severity_ir,
+            lane=1,
+            states=True,
         ),
     ]
 }

@@ -22,6 +22,9 @@ class Indexer:
     def __init__(self, env: EnvConfig) -> None:
         self.env_id = env.env_id
         self.alerts_index = env.alerts_index or CFG.alerts_index
+        self.vulnerabilities_index = (
+            env.vulnerabilities_index or CFG.vulnerabilities_index
+        )
         self.saved_objects_index = env.saved_objects_index or CFG.saved_objects_index
         verify: object = env.indexer_ca_path or CFG.indexer_verify_ssl
         self.http = httpx.AsyncClient(
@@ -29,11 +32,16 @@ class Indexer:
             verify=verify,
             timeout=10.0,
         )
-        self._mapping_cache: Optional[tuple[float, dict]] = None
+        self._mapping_cache: dict[str, tuple[float, dict]] = {}
 
     async def search(self, headers: dict[str, str], body: dict) -> dict:
+        return await self.search_index(self.alerts_index, headers, body)
+
+    async def search_index(
+        self, index_pattern: str, headers: dict[str, str], body: dict
+    ) -> dict:
         r = await self.http.post(
-            f"/{self.alerts_index}/_search",
+            f"/{index_pattern}/_search",
             json=body,
             headers=headers,
         )
@@ -45,8 +53,13 @@ class Indexer:
         return r.json()
 
     async def dry_run(self, headers: dict[str, str], body: dict) -> dict:
+        return await self.dry_run_index(self.alerts_index, headers, body)
+
+    async def dry_run_index(
+        self, index_pattern: str, headers: dict[str, str], body: dict
+    ) -> dict:
         r = await self.http.post(
-            f"/{self.alerts_index}/_validate/query?explain=true",
+            f"/{index_pattern}/_validate/query?explain=true",
             json={"query": body["query"]},
             headers=headers,
         )
@@ -72,12 +85,16 @@ class Indexer:
         return r.json()
 
     async def get_mapping(self, headers: dict[str, str]) -> Optional[dict]:
+        return await self.get_mapping_index(self.alerts_index, headers)
+
+    async def get_mapping_index(
+        self, index_pattern: str, headers: dict[str, str]
+    ) -> Optional[dict]:
         now = time.monotonic()
-        if self._mapping_cache and now - self._mapping_cache[0] < 300:
-            return self._mapping_cache[1]
-        r = await self.http.get(
-            f"/{self.alerts_index}/_mapping", headers=headers
-        )
+        cached = self._mapping_cache.get(index_pattern)
+        if cached and now - cached[0] < 300:
+            return cached[1]
+        r = await self.http.get(f"/{index_pattern}/_mapping", headers=headers)
         if r.status_code in (401, 403):
             return None
         r.raise_for_status()
@@ -95,7 +112,7 @@ class Indexer:
 
         for index_body in r.json().values():
             walk(index_body.get("mappings", {}).get("properties", {}), "")
-        self._mapping_cache = (now, flat)
+        self._mapping_cache[index_pattern] = (now, flat)
         return flat
 
 

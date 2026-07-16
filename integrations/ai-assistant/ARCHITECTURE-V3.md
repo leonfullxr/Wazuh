@@ -363,3 +363,43 @@ force dashboard" proposal preview lists metric+timeline+top-N+geo panels
 comparable to the upstream reference; prompt-cache prefix stability
 verified unchanged (static modules extend the prelude; the env card rides as
 a message).
+
+---
+
+## Phase V3.4 — states indices (vulnerabilities first)
+
+Deferred from §8 until the connector edge and V3.7 domain context were green.
+Upstream answers SCA/vuln/hygiene questions against `wazuh-states-vulnerabilities-*`
+and `wazuh-states-inventory-*`. Our ruling: **never widen the alerts
+`ALLOWED_FIELDS` table** — each index family gets its own IR, compiler, and
+veracity path (same D4/D24 guarantees, separate seam).
+
+### V3.4a Vulnerability states (first family)
+
+| Item | Change |
+|---|---|
+| `index_families.py` | `IndexFamily` enum, per-family index patterns, allowlists, time fields, `_source` projections |
+| `states_models.py` | `StatesQueryIR` + validators against `VULN_ALLOWED_FIELDS` only |
+| `states_compiler.py` | IR → OpenSearch DSL for `wazuh-states-vulnerabilities-*` (`vulnerability.detected_at` window) |
+| `states_veracity.py` | Same four checks as alerts, keyed on the vuln index mapping |
+| `indexer.py` | `search_index(pattern, …)` + `get_mapping(pattern, …)` — alerts path unchanged |
+| Lane-1 tools | `count_vulnerabilities`, `vulnerabilities_by_severity` (terms on `vulnerability.severity`) |
+| `config.py` / env registry | `vulnerabilities_index` default `wazuh-states-vulnerabilities-*` |
+| `seed/seed_vulnerabilities.py` | Idempotent sample CVE rows for golden cases (marker `wazuh-ai-seed-vuln`) |
+| `prompts/domain.md` | One paragraph: states indices are snapshot inventory, not alert streams |
+
+### V3.4b Inventory states (second family, after vuln evals green)
+
+`wazuh-states-inventory-*` (packages, ports, processes, hotfixes) — same
+pattern: own allowlist, own tools (`inventory_packages`, …), own golden cases.
+Do not start until V3.4a evals pass.
+
+### V3.4c Eval additions
+
+Golden: total vulnerability count; top severity breakdown; agent-scoped vuln
+count. Connector-edge cases skip user-scoped negatives; env reader must have
+read on the states index pattern in securityconfig.
+
+**Acceptance:** `make evals` green on vuln cases; alerts evals unchanged;
+`ALLOWED_FIELDS` in `models.py` still alerts-only; states queries rejected if
+they reference alert fields and vice versa.

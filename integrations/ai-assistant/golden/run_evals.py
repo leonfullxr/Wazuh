@@ -77,6 +77,12 @@ REF_TOOLS: dict[str, tuple[str, dict, int]] = {
     "high_severity_7d": ("count_alerts", {"severity_gte": 10}, 24 * 7),
     "auth_failures_24h": ("auth_failures", {}, 24),
     "brute_force_total_24h": ("brute_force_summary", {}, 24),
+    "vulnerabilities_30d": ("count_vulnerabilities", {}, 24 * 30),
+    "vulnerabilities_high_30d": (
+        "count_vulnerabilities",
+        {"severity": "high"},
+        24 * 30,
+    ),
 }
 
 

@@ -31,6 +31,7 @@ class EnvConfig:
     embed_ml_model_id: str = ""
     locale: str = "bilingual"
     alerts_index: str = ""
+    vulnerabilities_index: str = ""
     saved_objects_index: str = ""
     dashboard_api_url: str = ""
     dashboard_executor_basic: str = ""
@@ -65,6 +66,9 @@ def _coerce(doc: dict[str, Any]) -> EnvConfig:
         ),
         locale=str(doc.get("locale", "bilingual")),
         alerts_index=str(doc.get("alerts_index", CFG.alerts_index)),
+        vulnerabilities_index=str(
+            doc.get("vulnerabilities_index", CFG.vulnerabilities_index)
+        ),
         saved_objects_index=str(
             doc.get("saved_objects_index", CFG.saved_objects_index)
         ),
@@ -105,6 +109,7 @@ def _fallback_lab() -> EnvConfig:
         reader_basic=reader,
         embed_ml_model_id=CFG.embed_ml_model_id,
         alerts_index=CFG.alerts_index,
+        vulnerabilities_index=CFG.vulnerabilities_index,
         saved_objects_index=CFG.saved_objects_index,
         dashboard_api_url=_env_or(
             "WAI_ENV_LAB_DASHBOARD_API_URL", "https://wazuh.dashboard:5601"

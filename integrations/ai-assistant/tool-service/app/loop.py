@@ -24,6 +24,7 @@ from .admission import BusyError, get_admission
 from .auth import User
 from .config import CFG
 from .knowledge import mitre_lookup
+from .auth_groups import BRUTE_FORCE_MITRE
 from .brute_force import brute_force_summary
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .environment_card import get_env_card_text
@@ -43,6 +44,7 @@ from .actions.proposals import create_proposal
 from .actions.cards import card_from_proposal
 from .actions.run import ActionPermissionError, execute_action_tool
 from .actions.repair import _repair_dashboard_async
+from .states_veracity import execute_vulnerabilities_ir
 from .veracity import VeracityError, execute_ir
 
 SYSTEM_PROMPT = """You are the wazuh-ai security analyst assistant for one \
@@ -567,9 +569,40 @@ async def run_turn(
                             }
                         )
                         continue
+                    if tool.states:
+                        ir = tool.to_ir(params)
+                        evidence = await execute_vulnerabilities_ir(ir, principal)
+                        lanes_used.add(tool.lane)
+                        checks_all |= set(evidence.checks_passed)
+                        retrieved_ids |= {h["_id"] for h in evidence.hits}
+                        agg_names |= set(evidence.aggregations.keys()) | {
+                            "total_matching",
+                            name,
+                            "executed_window",
+                        }
+                        _record_agg_values(agg_values, name, evidence)
+                        audit.emit(
+                            "states_tool_executed",
+                            env=env_id,
+                            tool=name,
+                            sub=sub if isinstance(principal, User) else None,
+                            total=evidence.total,
+                            checks=evidence.checks_passed,
+                        )
+                        metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
+                        results.append(
+                            {
+                                "toolResult": {
+                                    "toolUseId": call["toolUseId"],
+                                    "content": [{"json": evidence.to_tool_result()}],
+                                }
+                            }
+                        )
+                        continue
                     if tool.composite:
                         if tool.name == "brute_force_summary":
                             payload = await brute_force_summary(principal, params)
+                            kb_ids.add(BRUTE_FORCE_MITRE)
                         else:
                             payload = {"error": f"unknown composite tool '{name}'"}
                         lanes_used.add(tool.lane)

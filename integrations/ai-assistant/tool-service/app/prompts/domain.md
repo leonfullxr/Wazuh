@@ -18,3 +18,7 @@ MITRE brute-force technique: T1110 (Credential Access).
 
 Totals: every count must come from total_matching or an aggregation bucket returned
 by a tool — never count listed alerts yourself.
+
+Vulnerability state records live on wazuh-states-vulnerabilities-* (not alerts).
+Use count_vulnerabilities / vulnerabilities_by_severity — never count_alerts for CVE
+or severity questions. Windows are on vulnerability.detected_at.

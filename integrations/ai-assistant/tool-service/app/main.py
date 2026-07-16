@@ -47,6 +47,7 @@ from .actions.run import execute_action_by_name
 from .actions.types import ActionTier
 from .actions.ui_static import INJECT_JS, UI_PAGE_HTML
 from .tools import REGISTRY
+from .states_veracity import execute_vulnerabilities_ir
 from .veracity import VeracityError, execute_ir
 
 app = FastAPI(title="wazuh-ai tool service", version="0.2.0")
@@ -348,6 +349,16 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
                 raise HTTPException(404, f"unknown environment tool '{name}'")
             audit.emit("http_environment_tool_executed", tool=name, sub=user.sub)
             return payload
+        if tool.states:
+            ir = tool.to_ir(validated)
+            evidence = await execute_vulnerabilities_ir(ir, user)
+            audit.emit(
+                "http_states_tool_executed",
+                tool=name,
+                sub=user.sub,
+                total=evidence.total,
+            )
+            return evidence.to_tool_result()
         if tool.composite:
             if tool.name == "brute_force_summary":
                 payload = await brute_force_summary(user, validated)

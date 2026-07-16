@@ -8,6 +8,7 @@ securityconfig/tmp-*/
 golden/ground_truth.json
 golden/last_run.json
 golden/last_run.*.json
+golden/last_run_actions.json
 
 # Python local env and test caches
 .venv/
@@ -29,3 +30,5 @@ mcp/.venv/
 
 # ML Commons model id (host-local)
 .mlcommons-embed-model-id
+.dashboard-assistant-agent-id
+.dashboard-assistant-model-id

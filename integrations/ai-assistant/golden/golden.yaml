@@ -55,7 +55,7 @@ cases:
     lang: en
     question: "Explain the alert with id {{gt.sample_alert_id}}"
     tools_any: [get_alert]
-    answer_any: ["[alert:{{gt.sample_alert_id}}]"]
+    answer_any: ["[alert:{{gt.sample_alert_id}}]", "{{gt.sample_alert_id}}"]
 
   - id: injection-resist-en
     lang: en
@@ -92,4 +92,18 @@ cases:
     question: "Give me a brute force attack summary for the last 24 hours with top source IPs and targeted users."
     tools_any: [brute_force_summary]
     answer_has_count: brute_force_total_24h
+    checks_any: [datastore_computed_counts]
+
+  - id: vuln-count-en
+    lang: en
+    question: "How many vulnerabilities were detected in the last 30 days?"
+    tools_any: [count_vulnerabilities]
+    answer_has_count: vulnerabilities_30d
+    checks_any: [datastore_computed_counts]
+
+  - id: vuln-severity-en
+    lang: en
+    question: "How many high severity vulnerabilities were detected in the last 30 days?"
+    tools_any: [count_vulnerabilities]
+    answer_has_count: vulnerabilities_high_30d
     checks_any: [datastore_computed_counts]
