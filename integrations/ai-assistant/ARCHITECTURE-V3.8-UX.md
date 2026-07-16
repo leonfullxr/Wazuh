@@ -1,3 +1,6 @@
+<!-- HISTORICAL / IMPLEMENTATION RECORD. Current design: ARCHITECTURE.md.
+     This doc keeps the V3.8 phase instructions and rationale (D52–D54). -->
+
 # wazuh-ai v3.8 — language fidelity, Keycloak removal, conversational confirm
 
 Date: 2026-07-16 · Author: Claude (reviewer) · Implementer: Cursor

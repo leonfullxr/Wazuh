@@ -1,8 +1,11 @@
 # wazuh-ai v3 — the multi-environment MCP-LLM Gateway behind the Dashboard Assistant
 
-> **Follow-ups after V3.6/V3.7:** [`ARCHITECTURE-V3.8-UX.md`](ARCHITECTURE-V3.8-UX.md)
-> — language fidelity fix, full Keycloak removal, and conversational
-> confirm ("yes"/"confirm"), with new decisions D53/D54. Apply that file next.
+> **Current design lives in [`ARCHITECTURE.md`](ARCHITECTURE.md)** (consolidated,
+> as-built). This file is the V3.1–V3.7 implementation record: phase
+> instructions, payloads, and rationale. Follow-ups:
+> [`ARCHITECTURE-V3.5-ACTIONS.md`](ARCHITECTURE-V3.5-ACTIONS.md) (actions),
+> [`ARCHITECTURE-V3.8-UX.md`](ARCHITECTURE-V3.8-UX.md) (language, Keycloak
+> removal, conversational confirm).
 
 Date: 2026-07-15 · Author: Claude (reviewer) · Implementer: Cursor
 Decision (Leon): the chat moves INTO the Wazuh dashboard via the OpenSearch

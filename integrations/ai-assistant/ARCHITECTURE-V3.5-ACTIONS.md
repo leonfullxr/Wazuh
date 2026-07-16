@@ -1,3 +1,7 @@
+<!-- HISTORICAL / IMPLEMENTATION RECORD. Current design: ARCHITECTURE.md.
+     This doc keeps the actions design rationale, the phase instructions, and
+     the Round-6 review findings. -->
+
 # wazuh-ai v3.5 — Actions (write operations by design)
 
 Date: 2026-07-15 · Implements D20/D35 · Supersedes ARCHITECTURE-V3.md §8 (actions deferred)

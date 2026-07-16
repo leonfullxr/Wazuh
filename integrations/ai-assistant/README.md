@@ -8,7 +8,7 @@ The design in one paragraph: the model never writes a datastore query and never 
 
 ## Where the architecture is now (v3, as built)
 
-This project began as the self-hosted PoC the eight diagrams below describe, and that veracity core is unchanged. Everything since has been documented as a sequence of design phases; the authoritative, current design lives in the `ARCHITECTURE-V3*.md` documents and the `wazuh-ai-v3-*` draw.io sources, summarized here:
+This project began as the self-hosted PoC the eight diagrams below describe, and that veracity core is unchanged. Everything since has been documented as a sequence of design phases; the authoritative, current design is consolidated in **[`ARCHITECTURE.md`](ARCHITECTURE.md)** (the phase docs `ARCHITECTURE-V3*.md` remain as the implementation record). In short:
 
 - **The chat lives inside the Wazuh Dashboard.** The Dashboards Assistant plugin talks to OpenSearch ML Commons, whose HTTP connector calls our gateway — we adopt that edge from the [official Wazuh AI_assistant integration](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant) but replace its query-writing gateway with this veracity core. n8n, a direct API, and an MCP adapter remain as additional edges. See [`ARCHITECTURE-V3.md`](ARCHITECTURE-V3.md).
 - **One gateway, many environments.** A per-environment credential (never the request payload) resolves to that environment's indexer, reader principal, action tiers, and budgets (D42/D43). The PoC runs one environment; the interfaces are the multi-environment shape.
