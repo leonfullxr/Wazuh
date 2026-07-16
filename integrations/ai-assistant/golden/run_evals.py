@@ -226,6 +226,25 @@ def check_case(
             failures.append(f"expected one of {case['tools_any']}, tools called: {tools}")
     elif case.get("tools_any") and connector_edge:
         print(f"SKIPPED (env-scoped edge) {case['id']}: tools_any assertion")
+    if ordered := case.get("tools_ordered"):
+        if connector_edge:
+            print(f"SKIPPED (env-scoped edge) {case['id']}: tools_ordered assertion")
+        else:
+            positions = []
+            ok = True
+            for name in ordered:
+                try:
+                    positions.append(tools.index(name))
+                except ValueError:
+                    failures.append(
+                        f"tools_ordered missing {name!r}; tools called: {tools}"
+                    )
+                    ok = False
+                    break
+            if ok and positions != sorted(positions):
+                failures.append(
+                    f"tools_ordered {ordered} not in order; tools called: {tools}"
+                )
     if case.get("tools_none") and not connector_edge and tools:
         failures.append(f"expected no tool calls, got {tools}")
     if case.get("checks_any") and not connector_edge:
@@ -233,6 +252,12 @@ def check_case(
             failures.append(f"expected one of {case['checks_any']}, checks ran: {checks}")
     elif case.get("checks_any") and connector_edge:
         print(f"SKIPPED (env-scoped edge) {case['id']}: checks_any assertion")
+    if needles := case.get("label_any"):
+        label_cf = verifiability.casefold()
+        if not any(substitute(n, gt).casefold() in label_cf for n in needles):
+            failures.append(
+                f"verifiability missing any of {needles!r}: {verifiability!r}"
+            )
     if key := case.get("answer_has_count"):
         if not connector_edge and "datastore_computed_counts" not in checks:
             failures.append("count asserted but datastore_computed_counts never ran")

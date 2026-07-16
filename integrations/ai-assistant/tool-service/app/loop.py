@@ -12,6 +12,7 @@ multi-turn context comes from the conversation store (state.py).
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 import time
 from datetime import datetime, timezone
@@ -20,13 +21,15 @@ from typing import AsyncIterator
 from pydantic import ValidationError
 from fastapi import HTTPException
 
-from . import audit, embeddings, lane0, metrics, scope, state
+from . import audit, embeddings, lane0, metrics, playbooks, scope, state
 from .admission import BusyError, get_admission
+from .answer_shapes import select_shape, transient_shape_messages
 from .auth import User
 from .config import CFG
 from .knowledge import mitre_lookup
 from .auth_groups import BRUTE_FORCE_MITRE
 from .brute_force import brute_force_summary
+from .correlation import agent_posture, compare_windows, related_alerts
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .environment_card import get_env_card_text
 from .prompts_loader import build_system_prelude
@@ -259,17 +262,34 @@ def _record_composite_agg(
     if isinstance(total, int):
         agg_values.setdefault("total_matching", set()).add(total)
         agg_values.setdefault(tool_name, set()).add(total)
-    for key in ("timeline", "top_source_ips", "top_target_users"):
-        rows = payload.get(key)
-        if not isinstance(rows, list):
+    for key in (
+        "timeline",
+        "top_source_ips",
+        "top_target_users",
+        "delta",
+        "alert_total",
+        "high_severity_total",
+        "open_vuln_count",
+    ):
+        val = payload.get(key)
+        if isinstance(val, int):
+            agg_names.add(key)
+            agg_values.setdefault(key, set()).add(val)
+            continue
+        if not isinstance(val, list):
             continue
         agg_names.add(key)
         agg_names.add(f"{key}.key")
         agg_names.add(f"{key}.count")
         bucket = agg_values.setdefault(key, set())
-        for row in rows:
+        for row in val:
             if isinstance(row, dict) and "count" in row:
                 bucket.add(int(row["count"]))
+    for win_key in ("window_a", "window_b"):
+        win = payload.get(win_key)
+        if isinstance(win, dict) and isinstance(win.get("total_matching"), int):
+            agg_names.add(win_key)
+            agg_values.setdefault(win_key, set()).add(int(win["total_matching"]))
 
 
 def _record_agg_values(
@@ -462,8 +482,16 @@ async def run_turn(
                     yield {"event": "progress",
                            "data": {"step": 0, "msg": f"matched template {l0.exemplar.id}"}}
                     params = tool.schema.model_validate(l0.params)
+                    if tool.knowledge or tool.environment or tool.composite:
+                        raise VeracityError(
+                            f"lane 0 template {l0.exemplar.id} cannot run "
+                            f"tool kind for {tool.name}"
+                        )
                     ir = tool.to_ir(params)
-                    evidence = await execute_ir(ir, principal)
+                    if tool.states:
+                        evidence = await execute_vulnerabilities_ir(ir, principal)
+                    else:
+                        evidence = await execute_ir(ir, principal)
                     answer = lane0.render_local(l0, ir, evidence, text)
                     checks = sorted(evidence.checks_passed)
                     cache_note = " · served from cache" if evidence.from_cache else ""
@@ -517,6 +545,139 @@ async def run_turn(
                 }}
                 return
 
+        # D55: investigation playbook (after lane 0 miss, before free tool loop)
+        pb_match = await playbooks.match(
+            text, qvec=analysis.qvec if analysis else None
+        )
+        if pb_match is not None:
+            yield {
+                "event": "progress",
+                "data": {
+                    "step": 0,
+                    "msg": f"playbook {pb_match.playbook.id}",
+                },
+            }
+            pb_result = await playbooks.run(pb_match, text, principal)
+            user_lang = detect(text)
+            shape = select_shape(text, playbook=True, lang=user_lang)
+            evidence_text = json.dumps(pb_result.evidence_blob, default=str)[
+                : CFG.evidence_budget_chars
+            ]
+            synth_messages: list[dict] = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "text": (
+                                f"Reply entirely in {language_name(user_lang)}. "
+                                "The user's message is in that language."
+                            )
+                        }
+                    ],
+                },
+                {"role": "assistant", "content": [{"text": "Understood."}]},
+            ]
+            if shape is not None:
+                synth_messages.extend(transient_shape_messages(shape[1]))
+            synth_messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "text": (
+                                f"Question: {text}\n\n"
+                                "Evidence from the investigation playbook "
+                                f"'{pb_result.playbook_id}' (verified tool "
+                                "results only). Synthesize an answer. Do not "
+                                "invent ids, counts, or techniques.\n\n"
+                                f"{evidence_text}"
+                            )
+                        }
+                    ],
+                }
+            )
+            llm, model = ANALYSIS_LLM, CFG.model_analysis
+            turn_system = system_prompt(include_reporting=True, include_dashboards=False)
+            usage = {
+                "in": 0,
+                "out": 0,
+                "cacheReadInputTokens": 0,
+                "cacheWriteInputTokens": 0,
+            }
+            answer_parts: list[str] = []
+            step_streamed = False
+            yield {"event": "progress", "data": {"step": 1, "msg": "synthesizing"}}
+            async for ev in _gated_stream(
+                env_id, llm, model, synth_messages, [], turn_system
+            ):
+                if "text" in ev:
+                    step_streamed = True
+                    yield {"event": "token", "data": {"text": ev["text"]}}
+                elif "response" in ev:
+                    resp = ev["response"]
+                    u = resp.get("usage", {})
+                    usage["in"] += u.get("inputTokens", 0)
+                    usage["out"] += u.get("outputTokens", 0)
+                    usage["cacheReadInputTokens"] += u.get("cacheReadInputTokens", 0)
+                    usage["cacheWriteInputTokens"] += u.get(
+                        "cacheWriteInputTokens", 0
+                    )
+                    out_msg = resp["output"]["message"]
+                    texts = [c["text"] for c in out_msg["content"] if "text" in c]
+                    if texts:
+                        answer_parts.append("\n".join(texts).strip())
+            answer = "\n\n".join(p for p in answer_parts if p).strip()
+            if answer and not step_streamed:
+                yield {"event": "token", "data": {"text": answer}}
+            corrections = []
+            for kind, ref in CITATION_RE.findall(answer):
+                if kind == "alert":
+                    valid = ref in pb_result.retrieved_ids
+                elif kind == "kb":
+                    valid = ref.upper() in pb_result.kb_ids
+                else:
+                    norm = _normalize_agg_ref(ref)
+                    valid = _is_citable_agg(norm) and norm in pb_result.agg_names
+                if not valid:
+                    corrections.append({"kind": kind, "ref": ref})
+                    yield {"event": "correction", "data": {"kind": kind, "ref": ref}}
+            for corr in _grounded_number_corrections(answer, pb_result.agg_values):
+                corrections.append(corr)
+                yield {"event": "correction", "data": corr}
+            checks = sorted(pb_result.checks)
+            label = (
+                f"playbook {pb_result.playbook_id} "
+                f"(similarity {pb_result.score:.2f}) · "
+                f"checks: {', '.join(checks) if checks else 'none'}"
+            )
+            audit.emit(
+                "playbook_executed",
+                env=env_id,
+                playbook=pb_result.playbook_id,
+                score=round(pb_result.score, 3),
+                tools=pb_result.tools_called,
+                sub=sub if isinstance(principal, User) else None,
+            )
+            metrics.TURNS.labels(lane="playbook").inc()
+            metrics.TOKENS.labels(direction="in").inc(usage["in"])
+            metrics.TOKENS.labels(direction="out").inc(usage["out"])
+            metrics.TURN_SECONDS.observe(time.monotonic() - started)
+            state.save(sub, conversation_id, text, answer)
+            yield {
+                "event": "done",
+                "data": {
+                    "verifiability": label,
+                    "lanes": [1],
+                    "checks": checks,
+                    "tools_called": pb_result.tools_called,
+                    "usage": usage,
+                    "corrections": corrections,
+                    "conversation_id": conversation_id,
+                    "playbook": pb_result.playbook_id,
+                },
+            }
+            return
+
         llm, model = route(text)
         include_reporting = not _SIMPLE_RE.match(text)
         history = state.load(sub, conversation_id)
@@ -545,6 +706,10 @@ async def run_turn(
                     {"role": "assistant", "content": [{"text": "Understood."}]},
                 ]
             )
+        shape = select_shape(text, playbook=False, lang=user_lang)
+        if shape is not None:
+            transient.extend(transient_shape_messages(shape[1]))
+            audit.emit("answer_shape_injected", shape=shape[0], env=env_id)
         card_text, card_age_s = await get_env_card_text(principal)
         if card_text:
             transient.extend(
@@ -796,18 +961,54 @@ async def run_turn(
                         if tool.name == "brute_force_summary":
                             payload = await brute_force_summary(principal, params)
                             kb_ids.add(BRUTE_FORCE_MITRE)
+                        elif tool.name == "related_alerts":
+                            payload = await related_alerts(principal, params)
+                        elif tool.name == "compare_windows":
+                            payload = await compare_windows(principal, params)
+                        elif tool.name == "agent_posture":
+                            payload = await agent_posture(principal, params)
                         else:
                             payload = {"error": f"unknown composite tool '{name}'"}
                         lanes_used.add(tool.lane)
                         checks_all |= set(payload.get("veracity_checks_passed", []))
                         checks_all.add("datastore_computed_counts")
-                        agg_names |= {
-                            "total_matching",
-                            "timeline",
-                            "top_source_ips",
-                            "top_target_users",
-                            name,
-                        }
+                        if tool.name == "brute_force_summary":
+                            agg_names |= {
+                                "total_matching",
+                                "timeline",
+                                "top_source_ips",
+                                "top_target_users",
+                                name,
+                            }
+                        elif tool.name == "related_alerts":
+                            retrieved_ids |= {
+                                h["_id"] for h in payload.get("alerts", []) if h.get("_id")
+                            }
+                            if payload.get("seed_alert_id"):
+                                retrieved_ids.add(str(payload["seed_alert_id"]))
+                            agg_names |= {"total_matching", "pivot", name}
+                        elif tool.name == "compare_windows":
+                            agg_names |= {
+                                "total_matching",
+                                "delta",
+                                "window_a",
+                                "window_b",
+                                name,
+                            }
+                        elif tool.name == "agent_posture":
+                            retrieved_ids |= {
+                                h["_id"]
+                                for h in payload.get("high_severity_alerts", [])
+                                if h.get("_id")
+                            }
+                            agg_names |= {
+                                "total_matching",
+                                "alert_total",
+                                "high_severity_total",
+                                "open_vuln_count",
+                                "last_seen",
+                                name,
+                            }
                         _record_composite_agg(agg_names, agg_values, name, payload)
                         audit.emit(
                             "composite_tool_executed",

@@ -6,10 +6,12 @@
 # assertion keys:
 #   tools_any        at least one of these tools was called
 #   tools_none       no tool at all was called
+#   tools_ordered    tools_called must contain these names in this relative order
 #   answer_has_count answer contains this ground-truth number (plain or 1,234 style)
 #   answer_any       answer contains at least one of these substrings (casefold)
 #   answer_none      answer contains none of these substrings (casefold)
 #   checks_any       at least one of these veracity checks ran
+#   label_any        verifiability label contains at least one of these substrings
 
 cases:
   - id: total-count-en
@@ -121,3 +123,53 @@ cases:
     tools_any: [count_vulnerabilities]
     answer_has_count: vulnerabilities_high_30d
     checks_any: [datastore_computed_counts]
+
+  # E2 / E4 - new lane-0 families and read tools (tool selection; counts via REF_TOOLS when present)
+  - id: top-srcips-en
+    lang: en
+    question: "What are the top source ips this week?"
+    tools_any: [run_query_ir, search_alerts, auth_failures]
+    checks_any: [datastore_computed_counts]
+
+  - id: mitre-coverage-en
+    lang: en
+    question: "What is the most frequent mitre technique this week?"
+    tools_any: [mitre_coverage, run_query_ir, top_rules]
+    checks_any: [datastore_computed_counts]
+
+  - id: agent-timeline-en
+    lang: en
+    question: "Show me the alert timeline for agent web-01 in the last 24 hours"
+    tools_any: [alert_timeline, search_alerts]
+    answer_any: ["web-01"]
+
+  - id: related-alerts-en
+    lang: en
+    question: "Find related alerts for alert id {{gt.sample_alert_id}}"
+    tools_any: [related_alerts, get_alert, search_alerts]
+    answer_any: ["{{gt.sample_alert_id}}"]
+
+  - id: compare-windows-en
+    lang: en
+    question: "Compare alert volume this week versus last week"
+    tools_any: [compare_windows, count_alerts, alert_histogram]
+
+  - id: agent-posture-en
+    lang: en
+    question: "What is the security posture of agent web-01?"
+    tools_any: [agent_posture, search_alerts, list_agents, count_vulnerabilities]
+    answer_any: ["web-01"]
+
+  - id: playbook-explain-alert-en
+    lang: en
+    question: "Investigate alert {{gt.sample_alert_id}}"
+    tools_any: [get_alert]
+    tools_ordered: [get_alert, related_alerts]
+    label_any: ["playbook"]
+    answer_any: ["{{gt.sample_alert_id}}", "[alert:{{gt.sample_alert_id}}]"]
+
+  - id: triage-card-shape-en
+    lang: en
+    question: "Triage the alert with id {{gt.sample_alert_id}}"
+    tools_any: [get_alert, related_alerts]
+    answer_any: ["Summary", "Evidence", "Recommendation", "Triage", "Resumen", "Evidencia"]

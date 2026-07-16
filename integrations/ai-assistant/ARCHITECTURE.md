@@ -79,21 +79,25 @@ model runs (fails open).
 1. **Lane 0 (D40):** one embedding matches the question to a curated bilingual
    template → typed IR → executed with no model in the loop; a near-miss just
    under threshold becomes a few-shot hint instead of being discarded.
-2. **Lane 1:** the model picks **typed tools** with schema-validated params -
+2. **Playbooks (D55):** on a lane-0 miss, an embedding may match a curated
+   investigation playbook (ordered typed tool steps). Every step runs the
+   normal veracity path; the model only synthesizes from collected evidence.
+3. **Lane 1:** the model picks **typed tools** with schema-validated params -
    never free-form queries (D4). Catalog: alerts (`count_alerts`,
    `auth_failures`, `brute_force_summary`, `top_rules`, `search_alerts`,
-   `alert_histogram`), knowledge (`mitre_lookup` - exact ATT&CK id, no
-   embeddings), environment (`list_agents`, `index_health`, `list_dashboards`),
-   states (`count_vulnerabilities` over `wazuh-states-vulnerabilities-*`, its
-   own allowlist).
-3. **Lane 2:** the model emits a typed **Query IR**, allowlist-checked and
+   `alert_histogram`, `alert_timeline`, `related_alerts`, `compare_windows`,
+   `mitre_coverage`, `agent_posture`), knowledge (`mitre_lookup` - exact ATT&CK
+   id, no embeddings), environment (`list_agents`, `index_health`,
+   `list_dashboards`), states (`count_vulnerabilities` over
+   `wazuh-states-vulnerabilities-*`, its own allowlist).
+4. **Lane 2:** the model emits a typed **Query IR**, allowlist-checked and
    compiled to OpenSearch DSL server-side - no scripts, regexp, or wildcards
    (D22/D29). Lane 3 (free generation) stays off (D32).
 
 **Per-turn context** (transient, never in the cached prelude, so prompt-cache
 prefixes stay stable): the per-environment context card (agents, OS mix, geo
 field presence, existing dashboards; 15-min TTL), the domain/reporting/dashboard
-prompt modules, and the language line.
+prompt modules, optional answer-shape instructions (D56), and the language line.
 
 **Every read funnels through the veracity pipeline (D24):** (1) mapping
 validation, (2) dry-run, (3) execute as the principal, (4) zero-hit
@@ -185,6 +189,8 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D52 | Identity via the environment's own indexer authinfo; no external IdP (Keycloak removed) | active |
 | D53 | Dashboard-edge conversational "yes" executes under the env principal (dashboard access = authority) | active (bounded by §5 guardrails) |
 | D54 | Confirmation is a deterministic intent match outside the model; high-risk needs target echo | active |
+| D55 | Investigation playbooks: curated ordered typed tool sequences; model only synthesizes | active |
+| D56 | Per-intent answer shapes (triage card / incident / exec) as transient context | active |
 
 ## 8. Surfaces and configuration
 
@@ -200,6 +206,7 @@ shape is [`environments.yaml.example`](environments.yaml.example).
 |---|---|
 | Current design (this) | `ARCHITECTURE.md` |
 | The journey: phases, decisions + rationale, review findings, results | `DESIGN-JOURNAL.md` |
+| Forward enhancements (Cursor-ready tiers) | `ENHANCEMENTS.md` |
 | Topology diagram (labelled) | `diagrams/wazuh-ai-v3-gateway.drawio` |
 | Turn-workflow diagram (labelled) | `diagrams/wazuh-ai-v3-workflow.drawio` |
 | Icon-forward topology + turn flow | `diagrams/wazuh-ai-v3-icons.drawio` |

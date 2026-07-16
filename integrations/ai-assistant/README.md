@@ -16,7 +16,7 @@ Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/w
 
 ![One turn end to end](diagrams/png/wazuh-ai-v3-icons--v38-turn-flow-icons.png)
 
-More detail lives in dedicated docs: [`ARCHITECTURE.md`](ARCHITECTURE.md) (the current design + the D-tag decision log) and [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md) (how it got here - the phases, decisions, and review findings). Diagram sources are in [`diagrams/`](diagrams/), exports in [`diagrams/png/`](diagrams/png/).
+More detail lives in dedicated docs: [`ARCHITECTURE.md`](ARCHITECTURE.md) (the current design + the D-tag decision log), [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md) (how it got here - the phases, decisions, and review findings), and [`ENHANCEMENTS.md`](ENHANCEMENTS.md) (forward tiers). Diagram sources are in [`diagrams/`](diagrams/), exports in [`diagrams/png/`](diagrams/png/).
 
 ## Try it locally (the demo harness)
 
@@ -77,7 +77,7 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 | `dashboard-assistant/` | Dockerfile that bakes the Assistant plugins into the Wazuh dashboard image |
 | `golden/`, `seed/` | Deterministic seed data and the bilingual eval gate (`make evals*`) |
 | `environments.yaml.example` | The per-environment registry - copy, fill, and you are multi-environment |
-| `ARCHITECTURE.md`, `DESIGN-JOURNAL.md` | Current design, and the journey that produced it |
+| `ARCHITECTURE.md`, `DESIGN-JOURNAL.md`, `ENHANCEMENTS.md` | Current design, journey, and forward tiers |
 | `diagrams/` | draw.io sources; `diagrams/png/` holds the exported images used above |
 
 Not reproducible on a single box, deferred to a real cloud environment: per-tenant IAM/IRSA, PrivateLink, Bedrock Guardrails content policies, and NetworkPolicy walls. The `kind/` directory holds a two-tenant isolation harness for the multi-environment story.

@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     lane0_enabled: bool = False
     lane0_threshold: float = 0.80  # cosine floor; verify per embedding model
     lane0_near_miss_floor: float = 0.65  # below threshold but above -> few-shot hint
+    playbooks_enabled: bool = True  # D55 investigation playbooks (needs embeddings)
+    playbooks_threshold: float = 0.78  # slightly below lane0; verify per embed model
     embed_provider: str = "openai"  # openai | mlcommons (C3)
     embed_base_url: str = "http://ollama:11434/v1"
     embed_model: str = "bge-m3"
