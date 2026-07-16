@@ -191,9 +191,9 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 
 Surfaces: `POST /v1/chat` (SSE), `POST /v1/chat/sync`, `POST /v1/tools/{name}`,
 `POST /v1/connector/analyze` (ML Commons), `POST /v1/actions/{id}/confirm|reject`,
-and the stdio MCP adapter (`mcp/`). Full configuration knob reference is in
-[`README.md`](README.md) §8; the environment registry shape is
-`environments.poc.yaml` and `ARCHITECTURE-V3.md` §V3.1a.
+and the stdio MCP adapter (`mcp/`). Full configuration knob reference is
+documented inline in [`.env.example`](.env.example); the environment registry
+shape is `environments.yaml.example` and `ARCHITECTURE-V3.md` §V3.1a.
 
 ## 9. Document and diagram map
 
