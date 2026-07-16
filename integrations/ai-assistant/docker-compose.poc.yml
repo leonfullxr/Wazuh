@@ -83,6 +83,8 @@ services:
       WAI_ENV_LAB_MANAGER_URL: ${WAI_ENV_LAB_MANAGER_URL:-https://wazuh.manager:55000}
       WAI_ENV_LAB_MANAGER_EXECUTOR: ${WAI_ENV_LAB_MANAGER_EXECUTOR:-}
       WAI_ENV_LAB_AR_EXECUTOR: ${WAI_ENV_LAB_AR_EXECUTOR:-}
+      # Per-env action tiers (R6.6): deny-by-default; opt in per tier
+      WAI_ENV_LAB_ACTIONS: ${WAI_ENV_LAB_ACTIONS:-dashboard}
       WAI_UI_PUBLIC_BASE_URL: ${WAI_UI_PUBLIC_BASE_URL:-http://localhost:8080}
       WAI_ACTIONS_SHIM_PUBLIC_URL: ${WAI_ACTIONS_SHIM_PUBLIC_URL:-http://localhost:8081}
       WAI_ACTIONS_ENV_ID: ${WAI_ACTIONS_ENV_ID:-lab}
@@ -192,6 +194,20 @@ services:
       - "5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
+    networks: [wazuh]
+
+  # Test agent for the actions demo (V3.5): a real enrollment target so
+  # restart_agent and active-response verify end-to-end instead of stopping at
+  # "the manager API accepted the call". Start with: --profile agent
+  wazuh-agent:
+    image: wazuh/wazuh-agent:${WAZUH_VERSION:-4.14.5}
+    profiles: ["agent"]
+    hostname: test-agent-01
+    environment:
+      # verify: this image reads WAZUH_MANAGER_SERVER (not WAZUH_MANAGER)
+      WAZUH_MANAGER_SERVER: wazuh.manager
+      WAZUH_REGISTRATION_SERVER: wazuh.manager
+      WAZUH_AGENT_NAME: test-agent-01
     networks: [wazuh]
 
 volumes:

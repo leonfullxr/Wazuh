@@ -271,6 +271,12 @@ def main() -> None:
         users[DASHBOARD_WRITER_USER] = {
             "hash": DASHBOARD_WRITER_PASSWORD_HASH,
             "reserved": False,
+            # kibanauser backend role grants saved-object read/write on .kibana*
+            # via the stock kibana_user role — the Dashboards _bulk_create API
+            # (R6.9) needs it; without it saved-object writes 403. Note the
+            # backend-role name is "kibanauser" (no underscore); the security
+            # role it maps to is "kibana_user".
+            "backend_roles": ["kibanauser"],
             "description": "wazuh-ai dashboard executor (D35) — gateway only",
         }
         users["analyst1"] = {

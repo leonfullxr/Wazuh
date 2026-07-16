@@ -237,7 +237,8 @@ async def _wazuh_api_token(env: EnvConfig, cred: str) -> str:
             auth=(user, passwd),
         )
         r.raise_for_status()
-        return r.json()["data"]["token"]
+        # raw=true returns the bare JWT as text, not the {"data":{"token"}} JSON.
+        return r.text.strip()
 
 
 async def execute_manager_action(

@@ -10,7 +10,11 @@ OLLAMA_MODEL ?= gpt-oss:20b
 EMBED_MODEL ?= bge-m3
 KIND_CLUSTER ?= wazuh-ai
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions bakeoff demo-storyline test logs down clean
+COMPOSE := docker compose -f docker-compose.poc.yml
+# Profiled GPU/LLM backends are not stopped by a plain `compose down`.
+COMPOSE_ALL := $(COMPOSE) --profile ollama --profile airllm --profile litellm
+
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors
 .PHONY: dashboard-assistant assistant-setup
 .PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
@@ -99,6 +103,13 @@ assistant-setup:
 	chmod +x scripts/dashboard_assistant_setup.sh
 	./scripts/dashboard_assistant_setup.sh
 
+# Least-privilege Wazuh API users for the manager/active-response executors
+# (D35/R6.10). Run once after the manager is up; point the env registry at the
+# printed credentials. WAZUH_ADMIN=wazuh-wui:<api-password> required.
+manager-executors:
+	chmod +x scripts/manager_executor_setup.sh
+	./scripts/manager_executor_setup.sh
+
 evals-fresh: seed evals
 
 demo-storyline:
@@ -179,8 +190,14 @@ logs:
 	docker compose -f docker-compose.poc.yml logs -f tool-service auth-shim
 
 down:
-	docker compose -f docker-compose.poc.yml down
-	cd $(WAZUH_DIR) && docker compose down
+	$(COMPOSE) down --remove-orphans
+	cd $(WAZUH_DIR) && docker compose down --remove-orphans
+	@echo "PoC + Wazuh stopped (Ollama/GPU profiles may still be running — use: make down-all)"
 
-clean: down
+down-all:
+	$(COMPOSE_ALL) down --remove-orphans
+	cd $(WAZUH_DIR) && docker compose down --remove-orphans
+	@echo "Full stack stopped, including Ollama/AirLLM/LiteLLM (GPU released)."
+
+clean: down-all
 	rm -rf .wazuh-docker securityconfig/tmp golden/ground_truth.json
