@@ -1,10 +1,9 @@
 # wazuh-ai - architecture (current, consolidated)
 
-This is the single authoritative description of the system as built. It
-supersedes the phase documents for "what is the current design"; those
-(`ARCHITECTURE-V3.md`, `ARCHITECTURE-V3.5-ACTIONS.md`, `ARCHITECTURE-V3.8-UX.md`,
-`ENHANCEMENTS.md`) remain as the implementation record - the per-phase Cursor
-instructions, review findings, and rationale that got us here. Diagrams:
+This is the single authoritative description of the system as built. For *how*
+it got here - the phase-by-phase journey, the decisions and their rationale,
+and the review findings that caught real bugs - see
+[`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md). Diagrams:
 [`diagrams/wazuh-ai-v3-gateway.drawio`](diagrams/wazuh-ai-v3-gateway.drawio)
 (topology) and
 [`diagrams/wazuh-ai-v3-workflow.drawio`](diagrams/wazuh-ai-v3-workflow.drawio)
@@ -193,17 +192,14 @@ Surfaces: `POST /v1/chat` (SSE), `POST /v1/chat/sync`, `POST /v1/tools/{name}`,
 `POST /v1/connector/analyze` (ML Commons), `POST /v1/actions/{id}/confirm|reject`,
 and the stdio MCP adapter (`mcp/`). Full configuration knob reference is
 documented inline in [`.env.example`](.env.example); the environment registry
-shape is `environments.yaml.example` and `ARCHITECTURE-V3.md` §V3.1a.
+shape is [`environments.yaml.example`](environments.yaml.example).
 
 ## 9. Document and diagram map
 
 | For | Read |
 |---|---|
 | Current design (this) | `ARCHITECTURE.md` |
-| Multi-env gateway + connector edge + identity, phase instructions | `ARCHITECTURE-V3.md` (V3.1-V3.7) |
-| Actions design + Round-6 review findings | `ARCHITECTURE-V3.5-ACTIONS.md` |
-| Language fix, Keycloak removal, conversational confirm | `ARCHITECTURE-V3.8-UX.md` |
-| Pre-v3 enhancement passes (lanes, RAG posture, local models, kind) | `ENHANCEMENTS.md` |
+| The journey: phases, decisions + rationale, review findings, results | `DESIGN-JOURNAL.md` |
 | Topology diagram (labelled) | `diagrams/wazuh-ai-v3-gateway.drawio` |
 | Turn-workflow diagram (labelled) | `diagrams/wazuh-ai-v3-workflow.drawio` |
 | Icon-forward topology + turn flow | `diagrams/wazuh-ai-v3-icons.drawio` |
