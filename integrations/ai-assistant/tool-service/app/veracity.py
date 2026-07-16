@@ -111,12 +111,16 @@ def _flatten_hit(hit: dict) -> dict:
         return node
 
     desc = get("rule.description")
+    mitre = get("rule.mitre.id")
+    if isinstance(mitre, list):
+        mitre = mitre[0] if mitre else None
     return {
         "_id": hit["_id"],
         "timestamp": get("timestamp"),
         "rule.id": get("rule.id"),
         "rule.level": get("rule.level"),
         "rule.description": (desc or "")[:160],
+        "rule.mitre.id": mitre,
         "agent.name": get("agent.name"),
         "data.srcip": get("data.srcip"),
         "data.dstuser": get("data.dstuser"),

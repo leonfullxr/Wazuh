@@ -10,11 +10,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .auth_groups import AUTH_FAILURE_GROUPS
 from .brute_force import BruteForceSummaryParams
 from .config import CFG
+from .correlation import (
+    AgentPostureParams,
+    CompareWindowsParams,
+    RelatedAlertsParams,
+    _agent_posture_ir,
+    _compare_windows_ir,
+    _related_alerts_ir,
+)
 from .environment import (
     DashboardDesignGuideParams,
     IndexHealthParams,
@@ -168,6 +176,68 @@ def _auth_failures_ir(p: AuthFailuresParams) -> QueryIR:
             )
         ],
         aggregation=IRAggregation(kind="terms", field=p.group_by, size=p.size),
+        limit=0,
+    )
+
+
+class AlertTimelineParams(BaseModel):
+    """Ordered alerts for an agent, source IP, or user over a window."""
+
+    time_range: TimeRange = Field(default_factory=TimeRange)
+    agent_name: Optional[str] = Field(None, description="Exact agent.name")
+    source_ip: Optional[str] = Field(None, description="Exact data.srcip")
+    user: Optional[str] = Field(None, description="Exact data.dstuser")
+    size: int = Field(30, ge=1, le=50)
+    include_histogram: bool = Field(
+        False, description="Also return a date_histogram under aggregations"
+    )
+    interval: Literal["1h", "3h", "12h", "1d"] = "1h"
+
+    @model_validator(mode="after")
+    def _need_entity(self) -> "AlertTimelineParams":
+        if not self.agent_name and not self.source_ip and not self.user:
+            raise ValueError(
+                "alert_timeline requires at least one of agent_name, source_ip, user"
+            )
+        return self
+
+
+def _alert_timeline_ir(p: AlertTimelineParams) -> QueryIR:
+    filters: list[IRFilter] = []
+    if p.agent_name:
+        filters.append(IRFilter(field="agent.name", op="eq", value=p.agent_name))
+    if p.source_ip:
+        filters.append(IRFilter(field="data.srcip", op="eq", value=p.source_ip))
+    if p.user:
+        filters.append(IRFilter(field="data.dstuser", op="eq", value=p.user))
+    agg = None
+    if p.include_histogram:
+        agg = IRAggregation(kind="date_histogram", interval=p.interval)
+    return QueryIR(
+        time_range=p.time_range,
+        filters=filters,
+        aggregation=agg,
+        limit=p.size,
+        sort="timestamp:asc",
+    )
+
+
+class MitreCoverageParams(BaseModel):
+    """Which MITRE techniques are firing (terms on rule.mitre.id)."""
+
+    time_range: TimeRange = Field(default_factory=TimeRange)
+    size: int = Field(15, ge=1, le=50)
+    severity_gte: Optional[int] = Field(None, ge=0, le=15)
+
+
+def _mitre_coverage_ir(p: MitreCoverageParams) -> QueryIR:
+    filters: list[IRFilter] = []
+    if p.severity_gte is not None:
+        filters.append(IRFilter(field="rule.level", op="gte", value=p.severity_gte))
+    return QueryIR(
+        time_range=p.time_range,
+        filters=filters,
+        aggregation=IRAggregation(kind="terms", field="rule.mitre.id", size=p.size),
         limit=0,
     )
 
@@ -352,6 +422,49 @@ REGISTRY: dict[str, ToolDef] = {
             vulnerabilities_by_severity_ir,
             lane=1,
             states=True,
+        ),
+        ToolDef(
+            "alert_timeline",
+            "Ordered (oldest-first) alerts for one agent, source IP, or target user "
+            "over a window. Use for investigation timelines and pivot follow-ups.",
+            AlertTimelineParams,
+            _alert_timeline_ir,
+            lane=1,
+        ),
+        ToolDef(
+            "related_alerts",
+            "Pivot from one alert (or an explicit srcip/user/rule.id) to related "
+            "alerts sharing that key. Prefer alert_id when explaining an alert.",
+            RelatedAlertsParams,
+            _related_alerts_ir,
+            lane=1,
+            composite=True,
+        ),
+        ToolDef(
+            "compare_windows",
+            "Datastore-computed alert count delta between two time windows "
+            "(e.g. this week vs last). Never subtract totals yourself — call this.",
+            CompareWindowsParams,
+            _compare_windows_ir,
+            lane=1,
+            composite=True,
+        ),
+        ToolDef(
+            "mitre_coverage",
+            "Which MITRE ATT&CK technique ids are firing in the window, with exact "
+            "per-technique counts (terms on rule.mitre.id).",
+            MitreCoverageParams,
+            _mitre_coverage_ir,
+            lane=1,
+        ),
+        ToolDef(
+            "agent_posture",
+            "One agent: last-seen from alerts, recent high-severity alerts, and open "
+            "vulnerability count. Use for agent triage / health questions.",
+            AgentPostureParams,
+            _agent_posture_ir,
+            lane=1,
+            composite=True,
         ),
     ]
 }

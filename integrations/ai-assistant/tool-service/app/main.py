@@ -33,6 +33,7 @@ from .env_registry import resolve_by_key, get_env
 from .knowledge import mitre_lookup
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .brute_force import brute_force_summary
+from .correlation import agent_posture, compare_windows, related_alerts
 from .loop import run_turn
 from .principal import EnvPrincipal
 from .actions import (
@@ -381,6 +382,12 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
         if tool.composite:
             if tool.name == "brute_force_summary":
                 payload = await brute_force_summary(user, validated)
+            elif tool.name == "related_alerts":
+                payload = await related_alerts(user, validated)
+            elif tool.name == "compare_windows":
+                payload = await compare_windows(user, validated)
+            elif tool.name == "agent_posture":
+                payload = await agent_posture(user, validated)
             else:
                 raise HTTPException(404, f"unknown composite tool '{name}'")
             audit.emit("http_composite_tool_executed", tool=name, sub=user.sub)
