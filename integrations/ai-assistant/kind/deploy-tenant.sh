@@ -11,14 +11,12 @@ HOST_GW="${HOST_GW:-$(./kind/host-gateway.sh)}"
 case "$TENANT" in
   tenant-a)
     KEYS_DIR="$ROOT/keys"
-    KC_REALM="wazuh-poc"
     JWT_ISSUER="wazuh-ai-shim.lab"
     SHIM_NODEPORT=30771
     SVC_NODEPORT=30880
   ;;
   tenant-b)
     KEYS_DIR="$ROOT/keys/tenant-b"
-    KC_REALM="wazuh-poc-b"
     JWT_ISSUER="wazuh-ai-shim.tenant-b"
     SHIM_NODEPORT=30772
     SVC_NODEPORT=30881
@@ -34,7 +32,7 @@ if [[ ! -f "$KEYS_DIR/jwt-private.pem" ]]; then
   exit 1
 fi
 
-export TENANT HOST_GW KEYS_DIR KC_REALM JWT_ISSUER SHIM_NODEPORT SVC_NODEPORT
+export TENANT HOST_GW KEYS_DIR JWT_ISSUER SHIM_NODEPORT SVC_NODEPORT
 export WAI_LLM_PROVIDER="${WAI_LLM_PROVIDER:-openai}"
 export WAI_MODEL_ROUTER="${WAI_MODEL_ROUTER:-gpt-oss:20b}"
 export WAI_MODEL_ANALYSIS="${WAI_MODEL_ANALYSIS:-gpt-oss:20b}"

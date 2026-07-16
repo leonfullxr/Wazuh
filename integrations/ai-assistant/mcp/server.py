@@ -2,8 +2,8 @@
 """Stdio MCP adapter (P1.8) over the wazuh-ai tool-service HTTP surface.
 
 Exposes the typed tool catalog and the sync chat endpoint to MCP hosts.
-Authenticates with WAI_MCP_JWT (override) or mints on demand via Keycloak +
-shim exchange (R2.7), refreshing before expiry.
+Authenticates with WAI_MCP_JWT (override) or mints on demand via indexer
+Basic auth + shim exchange (V3.6), refreshing before expiry.
 
 Run: python3 mcp/server.py
 """
@@ -18,12 +18,14 @@ from typing import Any
 import httpx
 
 SVC = os.environ.get("WAI_MCP_BASE_URL", "http://localhost:8080")
-KC = os.environ.get("WAI_MCP_KC_URL", "http://localhost:8085")
 SHIM = os.environ.get("WAI_MCP_SHIM_URL", "http://localhost:8081")
-REALM = os.environ.get("WAI_MCP_REALM", "wazuh-poc")
-CLIENT = os.environ.get("WAI_MCP_CLIENT", "wazuh-ai")
-KC_USER = os.environ.get("WAI_MCP_KC_USER", "analyst1")
-KC_PASSWORD = os.environ.get("WAI_MCP_KC_PASSWORD", "analyst1")
+ENV_ID = os.environ.get("WAI_MCP_ENV_ID", "lab")
+MCP_USER = os.environ.get(
+    "WAI_MCP_USER", os.environ.get("WAI_MCP_KC_USER", "analyst1")
+)
+MCP_PASSWORD = os.environ.get(
+    "WAI_MCP_PASSWORD", os.environ.get("WAI_MCP_KC_PASSWORD", "analyst1")
+)
 
 _STATIC_JWT = os.environ.get("WAI_MCP_JWT", "")
 _cached_jwt: str | None = None
@@ -43,20 +45,13 @@ def _jwt_exp(token: str) -> float:
 
 
 def _mint_jwt() -> str:
-    oidc = httpx.post(
-        f"{KC}/realms/{REALM}/protocol/openid-connect/token",
-        data={
-            "grant_type": "password",
-            "client_id": CLIENT,
-            "username": KC_USER,
-            "password": KC_PASSWORD,
-        },
-        timeout=30,
-    )
-    oidc.raise_for_status()
+    headers: dict[str, str] = {}
+    if ENV_ID:
+        headers["X-Env-Id"] = ENV_ID
     exchanged = httpx.post(
         f"{SHIM}/v1/token/exchange",
-        headers={"Authorization": f"Bearer {oidc.json()['access_token']}"},
+        auth=(MCP_USER, MCP_PASSWORD),
+        headers=headers,
         timeout=30,
     )
     exchanged.raise_for_status()

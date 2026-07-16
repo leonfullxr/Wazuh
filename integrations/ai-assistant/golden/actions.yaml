@@ -13,6 +13,10 @@
 #   confirm_password password override
 #   expect_operator  if false, confirm should 403 (analyst without operator role)
 
+#   preview_any      substrings that must appear in proposal preview (casefold)
+#   preview_min_panels minimum panel count mentioned in preview
+#   skip_confirm     if true, stop after propose (preview-only cases)
+
 cases:
   - id: brute-force-geoip-dashboard-en
     lang: en
@@ -60,3 +64,33 @@ cases:
     confirm_user: analyst_no_op
     confirm_password: analyst_no_op
     expect_operator: false
+
+  - id: brute-force-dashboard-preview-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Brute force triage preview"
+      template: brute_force_geoip
+      description: "Golden eval — panel layout quality"
+    propose_status: 200
+    skip_confirm: true
+    preview_min_panels: 4
+    preview_any: ["metric", "timeline", "region_map", "GeoIP"]
+
+  - id: custom-dashboard-propose-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Custom SSH overview"
+      template: custom
+      panels:
+        - title: "Failed logins"
+          viz_type: metric
+          query: "rule.groups: authentication_failed"
+        - title: "Top users"
+          viz_type: table
+          terms_field: data.dstuser
+          query: "rule.groups: authentication_failed"
+    propose_status: 200
+    skip_confirm: true
+    preview_any: ["custom", "metric", "table"]

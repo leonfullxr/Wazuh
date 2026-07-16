@@ -89,6 +89,24 @@ SRC_IPS = [
 ]
 USERS = ["root", "admin", "svc-backup", "leon", "postgres"]
 
+AUTH_FAILURE_GROUP_SET = {
+    "authentication_failed",
+    "authentication_failures",
+    "win_authentication_failed",
+}
+
+
+def _is_auth_failure(groups: list[str]) -> bool:
+    return bool(AUTH_FAILURE_GROUP_SET.intersection(groups))
+
+
+def _is_brute_force_match(doc: dict) -> bool:
+    groups = doc.get("rule", {}).get("groups") or []
+    mitre = (doc.get("rule", {}).get("mitre") or {}).get("id") or []
+    if _is_auth_failure(groups):
+        return True
+    return "T1110" in mitre
+
 
 def _delete_previous_synthetic(client: httpx.Client) -> int:
     """Remove prior synthetic batches so re-seeding is idempotent."""
@@ -127,13 +145,45 @@ def main() -> None:
             },
             "full_log": f"synthetic event rule={rule_id} on {agent_name}",
         }
-        if "authentication_failed" in groups:
+        if _is_auth_failure(groups):
             doc["GeoLocation"] = {
                 "country_name": geo["country_name"],
                 "city_name": geo["city_name"],
                 "region_name": geo["region_name"],
                 "location": geo["location"],
             }
+        docs.append(doc)
+
+    # Windows-only auth failures (V3.7 golden) — not covered by sshd rules above.
+    for _ in range(48):
+        ts = now - timedelta(seconds=rng.randint(0, 24 * 3600))
+        agent_id, agent_name = rng.choice(AGENTS)
+        src_ip, geo = rng.choice(SRC_IPS)
+        doc = {
+            "timestamp": ts.isoformat(),
+            "rule": {
+                "id": "60122",
+                "level": 5,
+                "description": "Windows Logon Failure",
+                "groups": ["windows", "win_authentication_failed"],
+            },
+            "agent": {"id": agent_id, "name": agent_name, "ip": f"10.0.0.{int(agent_id)}"},
+            "manager": {"name": SEED_MARKER},
+            "decoder": {"name": "windows_eventchannel"},
+            "location": "EventChannel",
+            "data": {
+                "srcip": src_ip,
+                "dstuser": rng.choice(USERS),
+                "win": {"eventID": "4625"},
+            },
+            "GeoLocation": {
+                "country_name": geo["country_name"],
+                "city_name": geo["city_name"],
+                "region_name": geo["region_name"],
+                "location": geo["location"],
+            },
+            "full_log": f"synthetic windows auth failure on {agent_name}",
+        }
         docs.append(doc)
 
     client = httpx.Client(verify=False, auth=AUTH, timeout=60.0)
@@ -157,7 +207,13 @@ def main() -> None:
     # Ground truths for the golden set.
     last24 = now - timedelta(hours=24)
     in24 = [d for d in docs if datetime.fromisoformat(d["timestamp"]) >= last24]
-    auth_failed_24 = [d for d in in24 if "authentication_failed" in d["rule"]["groups"]]
+    auth_failed_24 = [d for d in in24 if _is_auth_failure(d["rule"]["groups"])]
+    windows_auth_24 = [
+        d
+        for d in in24
+        if "win_authentication_failed" in d["rule"]["groups"]
+    ]
+    brute_force_24 = [d for d in in24 if _is_brute_force_match(d)]
     rule_counts = Counter(d["rule"]["id"] for d in docs)
     top_rule, top_rule_count = rule_counts.most_common(1)[0]
     high_sev_7d = sum(1 for d in docs if d["rule"]["level"] >= 10)
@@ -174,6 +230,8 @@ def main() -> None:
         "seed_marker": SEED_MARKER,
         "total_7d": len(docs),
         "auth_failures_24h": len(auth_failed_24),
+        "windows_auth_failures_24h": len(windows_auth_24),
+        "brute_force_total_24h": len(brute_force_24),
         "high_severity_7d": high_sev_7d,
         "top_rule_id": top_rule,
         "top_rule_count": top_rule_count,

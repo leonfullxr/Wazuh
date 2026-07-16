@@ -2,8 +2,8 @@
 
 Move the **same** `auth-shim` and `tool-service` images from Compose into a
 single-node [kind](https://kind.sigs.k8s.io/) cluster with two namespaces.
-Wazuh, Keycloak, and Ollama stay on the host Docker stack; pods reach them via
-the Docker bridge gateway IP (`kind/host-gateway.sh`).
+Wazuh and Ollama stay on the host Docker stack; pods reach them via the Docker
+bridge gateway IP (`kind/host-gateway.sh`).
 
 This proves what Compose cannot: **NetworkPolicy walls**, **per-tenant mint
 keys**, and **tenant-claim rejection** (D30/D36).
@@ -27,7 +27,7 @@ export PATH="$PWD/.bin:$PATH"
 
 | Where | What |
 |-------|------|
-| Host Docker | Wazuh indexer `:9200`, Keycloak `:8085`, Ollama `:11434` |
+| Host Docker | Wazuh indexer `:9200`, Ollama `:11434` |
 | `tenant-a` namespace | auth-shim NodePort `:30771`, tool-service NodePort `:30880` |
 | `tenant-b` namespace | auth-shim NodePort `:30772`, tool-service NodePort `:30881` |
 
@@ -39,10 +39,11 @@ export PATH="$PWD/.bin:$PATH"
   by the lab indexer. Tenant-b can pass service-level auth yet cannot read
   telemetry; per-tenant indexers are an AWS-stage concern.
 
-**IdP**
+**Identity**
 
-- tenant-a → Keycloak realm `wazuh-poc`, user `analyst1`
-- tenant-b → realm `wazuh-poc-b`, user `analyst2` (`keycloak/realm-export-tenant-b.json`)
+- Both tenants verify `analyst1` against the host indexer via authinfo (V3.6).
+- Each shim mints a turn JWT with `tenant` = `tenant-a` or `tenant-b` from its
+  environment registry ConfigMap.
 
 ## Bring-up
 
@@ -50,7 +51,7 @@ export PATH="$PWD/.bin:$PATH"
 export PATH="$PWD/.bin:$PATH"   # if using install-prereqs
 
 make kind-up          # cluster + load images (kindnet enforces NetworkPolicy)
-make kind-tenants     # keys, redeploy Keycloak (realm-b), apply both tenants
+make kind-tenants     # keys, apply both tenants
 make kind-isolation   # four assertions, exit 0 = pass
 ```
 
@@ -59,7 +60,7 @@ is untouched.
 
 ## What each assertion proves
 
-1. **Happy path** — tenant-a OIDC → tenant-a shim → tenant-a tool-service
+1. **Happy path** — tenant-a Basic auth → tenant-a shim → tenant-a tool-service
    returns a labeled answer (lane 0 OK).
 2. **Cross-tenant token** — tenant-a turn JWT on tenant-b service → HTTP
    401/403 and `cross_tenant_token_rejected` in tenant-b audit logs.
@@ -82,16 +83,15 @@ is untouched.
 
 | Variable | Default (tenant-a via kind) |
 |----------|----------------------------|
-| `WAI_EVAL_KC_URL` | `http://localhost:8085` |
 | `WAI_EVAL_SHIM_URL` | `http://localhost:30771` |
 | `WAI_EVAL_SVC_URL` | `http://localhost:30880` |
+| `WAI_EVAL_ENV_ID` | `tenant-a` |
 
 ## Troubleshooting
 
 - **Pods ImagePullBackOff** — run `make kind-up` again to reload local images.
-- **401 on exchange** — Keycloak issuer mismatch; shim accepts both
-  `localhost:8085` and `keycloak:8080` issuers on Compose; kind pods use
-  `http://<host-gw>:8085/realms/...`.
+- **401 on exchange** — re-run `make securityconfig` so `analyst1` exists on
+  the indexer; confirm auth-shim can reach `https://<host-gw>:9200`.
 - **Golden fails on tenant-a** — tenant-a must use `keys/` trusted by indexer;
   re-run `make securityconfig` if keys were rotated.
 - **NetworkPolicy decorative** — confirm kindnet is up (`kubectl get pods -n kube-system -l app=kindnet`);

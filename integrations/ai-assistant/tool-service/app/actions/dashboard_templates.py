@@ -19,8 +19,10 @@ from .fields import (
 )
 from .schemas import CreateDashboardParams, DashboardPanelSpec
 
+from ..auth_groups import AUTH_FAILURE_KUERY
+
 INDEX_PATTERN_ID = "wazuh-alerts-*"
-AUTH_FILTER = "rule.groups: authentication_failed"
+AUTH_FILTER = AUTH_FAILURE_KUERY
 HIGH_SEVERITY_FILTER = "rule.level >= 10"
 ALL_ALERTS_FILTER = ""
 
@@ -684,6 +686,38 @@ def build_custom_dashboard_bundle(params: CreateDashboardParams) -> list[dict[st
         description=params.description or "Custom dashboard (wazuh-ai)",
     )
     return [*vis_objs, dashboard]
+
+
+TEMPLATE_PANEL_SUMMARY: dict[str, list[str]] = {
+    "brute_force_geoip": [
+        "metric: failed logins",
+        "histogram: timeline",
+        "region_map: GeoIP countries",
+        "pie: top source IPs",
+        "table: targeted users",
+    ],
+    "malware_detections": [
+        "metric: high severity",
+        "histogram: trend",
+        "pie: top rules",
+        "table: affected agents",
+        "pie: MITRE techniques",
+    ],
+    "agent_health": [
+        "metric: total alerts",
+        "histogram: volume trend",
+        "pie: alerts by agent",
+        "table: top rules",
+        "pie: severity distribution",
+    ],
+    "auth_failures_top_users": [
+        "table: failed-login users",
+    ],
+}
+
+
+def template_panel_summary(template: str) -> list[str]:
+    return list(TEMPLATE_PANEL_SUMMARY.get(template, []))
 
 
 def build_dashboard_bundle(params: CreateDashboardParams) -> list[dict[str, Any]]:

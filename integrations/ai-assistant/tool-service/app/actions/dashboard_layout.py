@@ -62,6 +62,34 @@ DESIGN_GUIDE: dict = {
         "Metric panels are compact; charts need w>=16; maps and tables need h>=20.",
         "Wazuh keyword fields have no .keyword suffix (data.dstuser, not data.dstuser.keyword).",
     ],
+    "templates": {
+        "brute_force_geoip": {
+            "panels": 5,
+            "includes": ["metric", "histogram/timeline", "region_map/GeoIP", "top source IPs", "targeted users"],
+            "description": "Auth-failure triage with GeoIP map — prefer for brute-force dashboards",
+        },
+        "malware_detections": {
+            "panels": 5,
+            "includes": ["high severity metric", "trend", "top rules", "agents", "MITRE"],
+        },
+        "agent_health": {
+            "panels": 5,
+            "includes": ["fleet volume", "trend", "per-agent breakdown", "top rules", "severity mix"],
+        },
+        "auth_failures_top_users": {
+            "panels": 1,
+            "includes": ["failed-login user leaderboard"],
+        },
+    },
+    "field_aliases": {
+        "geo.country": "GeoLocation.country_name",
+        "country": "GeoLocation.country_name",
+        "src_ip": "data.srcip",
+        "dst_user": "data.dstuser",
+        "username": "data.dstuser",
+        "agent": "agent.name",
+        "severity": "rule.level",
+    },
     "panel_sizes": {
         "metric": {"recommended_w": 16, "recommended_h": 16},
         "histogram": {"recommended_w": 32, "recommended_h": 16},
@@ -83,18 +111,18 @@ DESIGN_GUIDE: dict = {
             {
                 "title": "Failed logins",
                 "viz_type": "metric",
-                "query": "rule.groups: authentication_failed",
+                "query": "rule.groups: authentication_failed or rule.groups: win_authentication_failed",
             },
             {
                 "title": "Failures over time",
                 "viz_type": "histogram",
-                "query": "rule.groups: authentication_failed",
+                "query": "rule.groups: authentication_failed or rule.groups: win_authentication_failed",
             },
             {
                 "title": "Top source IPs",
                 "viz_type": "pie",
                 "terms_field": "data.srcip",
-                "query": "rule.groups: authentication_failed",
+                "query": "rule.groups: authentication_failed or rule.groups: win_authentication_failed",
             },
         ],
     },

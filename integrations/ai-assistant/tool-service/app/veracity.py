@@ -87,6 +87,18 @@ class Evidence:
         return payload
 
 
+def term_buckets(aggregations: dict, key: str) -> list[dict[str, Any]]:
+    """Normalized term/date buckets from Evidence.aggregations."""
+    node = aggregations.get(key)
+    if isinstance(node, list):
+        return node
+    if isinstance(node, dict):
+        raw = node.get("buckets")
+        if isinstance(raw, list):
+            return raw
+    return []
+
+
 def _flatten_hit(hit: dict) -> dict:
     src = hit.get("_source", {})
 
@@ -119,6 +131,7 @@ async def _check_mapping(
     if mapping is None:
         return None
     fields_used = [f.field for f in ir.filters if f.field != "_id"]
+    fields_used.extend(f.field for f in ir.should_any if f.field != "_id")
     if ir.aggregation and ir.aggregation.field:
         fields_used.append(ir.aggregation.field)
     for f in fields_used:

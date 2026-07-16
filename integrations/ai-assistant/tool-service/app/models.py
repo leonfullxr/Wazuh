@@ -132,6 +132,17 @@ class QueryIR(BaseModel):
 
     time_range: TimeRange = Field(default_factory=TimeRange)
     filters: list[IRFilter] = Field(default_factory=list, max_length=MAX_FILTERS)
+    should_any: list[IRFilter] = Field(
+        default_factory=list,
+        max_length=5,
+        description="OR group — at least one clause must match (V3.7 brute-force recipe)",
+    )
     aggregation: Optional[IRAggregation] = None
     limit: int = Field(20, ge=0, le=MAX_SIZE)
     sort: Literal["timestamp:desc", "timestamp:asc"] = "timestamp:desc"
+
+    @model_validator(mode="after")
+    def _check_should_any(self) -> "QueryIR":
+        if self.should_any and len(self.filters) + len(self.should_any) > MAX_FILTERS:
+            raise ValueError(f"filters + should_any capped at {MAX_FILTERS}")
+        return self

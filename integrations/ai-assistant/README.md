@@ -2,7 +2,7 @@
 
 An AI security assistant for Wazuh where veracity is a property of the architecture rather than a hope expressed in a system prompt. The thesis is simple to state. The hard part of an AI assistant for a SIEM is not talking to a model, it is guaranteeing that what the model says about your alerts is true, and every piece of that guarantee can be built and tested on a laptop.
 
-Everything in this directory is runnable configuration and code: a complete local harness (Wazuh single node, Keycloak as the IdP, n8n as the chat edge, an auth shim, and the tool service that owns the agent loop), plus a pluggable inference port covering Amazon Bedrock, fully local models via Ollama, and any OpenAI-compatible endpoint. The narrative writeup lives on my blog in [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) and [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/).
+Everything in this directory is runnable configuration and code: a complete local harness (Wazuh single node, n8n as the chat edge, an auth shim, and the tool service that owns the agent loop), plus a pluggable inference port covering Amazon Bedrock, fully local models via Ollama, and any OpenAI-compatible endpoint. The narrative writeup lives on my blog in [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) and [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/).
 
 The design in one paragraph: the model never writes a datastore query and never computes a number. Questions route through lanes ranked by verifiability. An embedding scope classifier refuses off-topic and injection-shaped questions before any model runs. Lane 0 answers recurring questions from embedding-matched curated templates with no model in the loop, and a near-miss below its threshold becomes a few-shot hint for the model instead of being discarded. Lane 1 lets the model pick typed tools with schema-validated parameters, including a local MITRE ATT&CK knowledge lookup that never touches tenant data. Lane 2 lets it emit a typed Query IR that is allowlist-checked and compiled to OpenSearch DSL server-side. Every query passes four veracity checks (mapping validation, dry-run, datastore-computed counts, zero-hit differential diagnosis), every claim in an answer must carry a citation that is verified against what was actually retrieved, every number standing next to a citation must equal a value the datastore actually returned, and every answer states its verifiability label. Identity is a chain in which telemetry queries execute as the logged-in analyst through an indexer JWT auth domain, so the assistant can never show anyone more than their own permissions allow.
 
@@ -44,20 +44,19 @@ The eight diagrams below are the whole PoC at a glance, exported from an editabl
 
 ## 1. What runs where
 
-Everything except inference is local, and even inference can be. The Wazuh stack is the official single-node Docker deployment, so the indexer the assistant queries is the same OpenSearch fork a production deployment runs. Keycloak stands in for the identity provider. n8n is the chat edge. The auth shim and the tool service are the two components this project actually builds. The inference backend is a pluggable port behind `llm.py`: the default is Amazon Bedrock, because testing against the same inference API you would ship is worth more than a weaker offline substitute, but the same harness runs fully air-gapped on a local model through Ollama, or against Groq and any other endpoint that speaks the OpenAI chat-completions dialect. Section 3 walks the setup for each, and nothing above that one module changes when you switch.
+Everything except inference is local, and even inference can be. The Wazuh stack is the official single-node Docker deployment, so the indexer the assistant queries is the same OpenSearch fork a production deployment runs. Analyst credentials live in the indexer's security plugin (internal users in the lab; LDAP or SSO in production). n8n is the chat edge. The auth shim and the tool service are the two components this project actually builds. The inference backend is a pluggable port behind `llm.py`: the default is Amazon Bedrock, because testing against the same inference API you would ship is worth more than a weaker offline substitute, but the same harness runs fully air-gapped on a local model through Ollama, or against Groq and any other endpoint that speaks the OpenAI chat-completions dialect. Section 3 walks the setup for each, and nothing above that one module changes when you switch.
 
 ```mermaid
 flowchart LR
   A["Analyst browser"] --> N["n8n chat<br/>(edge only)"]
-  A --> KC["Keycloak<br/>(IdP stand-in)"]
-  N -->|OIDC token| SHIM["auth shim<br/>holds the mint key"]
+  N -->|Basic creds| SHIM["auth shim<br/>holds the mint key"]
+  SHIM -->|authinfo on env indexer| IX["Wazuh Indexer"]
   SHIM -->|turn JWT, 10 min| N
   N -->|turn JWT| TS["tool service<br/>loop · IR · veracity · audit"]
-  TS -->|"queries as the analyst (JWT auth domain)"| IX["Wazuh Indexer"]
+  TS -->|"queries as the analyst (JWT auth domain)"| IX
   TS -->|"provider adapter (llm.py)"| BR["Inference backend<br/>Bedrock (default) · Ollama (local) · OpenAI-compatible"]
   subgraph Local Docker
     N
-    KC
     SHIM
     TS
     IX
@@ -68,7 +67,7 @@ flowchart LR
 |---|---|---|
 | Wazuh single node (manager, indexer, dashboard) | The datastore and its security plugin | Yes, same software |
 | Indexer JWT auth domain plus `wazuh_ai_analyst_role` | Queries-as-user (D11) | Yes, real securityconfig |
-| Keycloak realm `wazuh-poc` | The identity provider in the SSO-fronted mode (D30) | Yes, real OIDC |
+| Indexer internal users (`analyst1`, …) | Identity source verified via authinfo (V3.6) | Yes, real security plugin |
 | auth-shim | The minting sidecar (D30) | Yes, same code shape |
 | tool-service | Loop, IR, compiler, four veracity checks, citation verification, admission, audit (D28/D29/D32) | Yes, same code shape |
 | n8n | The thin edge (D28) | Yes |
@@ -84,7 +83,7 @@ cp .env.example .env    # set AWS_REGION and the two Bedrock model ids
 make keys               # RSA keypair: private to the shim, public to the verifiers
 make wazuh              # clone wazuh-docker at the pinned tag, generate certs, start
 make securityconfig     # add the JWT auth domain + analyst role to the live indexer
-make poc                # build and start keycloak, n8n, auth-shim, tool-service
+make poc                # build and start n8n, auth-shim, tool-service
 make seed               # ~2000 synthetic alerts with exact ground truths
 make evals              # the bilingual golden set against the live stack
 make evals-fresh        # seed + evals (recommended before grading a model)
@@ -238,18 +237,16 @@ The property being demonstrated is that the reasoning core can never forge an id
 sequenceDiagram
   autonumber
   actor A as Analyst
-  participant KC as Keycloak (IdP)
   participant N as n8n (edge)
   participant SH as auth-shim (mint key)
-  participant TS as tool service (core)
   participant IX as Wazuh Indexer
+  participant TS as tool service (core)
   participant LLM as Inference backend
 
-  A->>KC: authenticate (lab: password grant)
-  KC-->>A: OIDC access token
-  A->>N: question
-  N->>SH: exchange OIDC token
-  SH->>KC: verify signature via JWKS
+  A->>N: question (+ analyst creds on confirm)
+  N->>SH: Basic auth + X-Env-Id
+  SH->>IX: POST /_plugins/_security/authinfo
+  IX-->>SH: user_name + backend_roles
   SH-->>N: turn JWT (dual audience, <=10 min)
   N->>TS: question + turn JWT
   TS->>TS: verify sig · iss · aud · tenant · role, admission
@@ -273,22 +270,16 @@ sequenceDiagram
   N-->>A: answer, label rendered underneath
 ```
 
-The analyst first authenticates against Keycloak. In the lab that is a password grant for the test user `analyst1`, who carries the realm role `wazuh_ai_analyst`, the opt-in gate (D18):
+The analyst authenticates with their Wazuh/indexer credentials. In the lab that is the internal user `analyst1` / `analyst1`, who carries the backend role `wazuh_ai_analyst` (plus operator/responder roles for action confirms), the opt-in gate (D18):
 
 ```bash
-OIDC=$(curl -s http://localhost:8085/realms/wazuh-poc/protocol/openid-connect/token \
-  -d grant_type=password -d client_id=wazuh-ai \
-  -d username=analyst1 -d password=analyst1 | jq -r .access_token)
+TURN=$(curl -s -u analyst1:analyst1 -X POST http://localhost:8081/v1/token/exchange \
+  -H 'X-Env-Id: lab' | jq -r .access_token)
 ```
 
-The shim then verifies that token against the Keycloak JWKS, checks the role, and mints the turn credential. The minted token lives at most ten minutes, carries both audiences, and its `tenant` claim comes from deployment configuration rather than from anything in the request:
+The shim verifies those credentials against the environment's indexer via authinfo, checks the backend role, and mints the turn credential. The minted token lives at most ten minutes, carries both audiences, and its `tenant` claim is the verified environment id (authinfo succeeding on that env), never anything asserted by the client payload.
 
-```bash
-TURN=$(curl -s -X POST http://localhost:8081/v1/token/exchange \
-  -H "Authorization: Bearer $OIDC" | jq -r .access_token)
-```
-
-The tool service verifies the turn token with the public key only. Try the negative cases and watch them fail closed: a token signed by any other key is rejected at signature verification, a token for another tenant is rejected by the tenant-claim check and audited as `cross_tenant_token_rejected`, and the user `viewer1`, who exists in the realm but lacks the analyst role, is refused by the shim before a turn token ever exists.
+The tool service verifies the turn token with the public key only. Try the negative cases and watch them fail closed: a token signed by any other key is rejected at signature verification, a token for another tenant is rejected by the tenant-claim check and audited as `cross_tenant_token_rejected`, and the user `viewer1`, who exists on the indexer but lacks the analyst backend role, is refused by the shim before a turn token ever exists.
 
 The fourth hop is the one that makes queries-as-user real (D11). The indexer's securityconfig now contains a JWT auth domain trusting the same public key, so the tool service forwards the analyst's own token and the indexer resolves `backend_roles` to the read-only `wazuh_ai_analyst_role`. You can prove the ceiling directly, with no AI involved:
 
@@ -327,13 +318,13 @@ The golden runner wires all of this into a gate. It authenticates through the fu
 
 ## 6. The four surfaces
 
-The same hardened internals answer through four doors, which is the headless-core argument (D21) made concrete. `POST /v1/chat` is the SSE product API with keepalives and token streaming. `POST /v1/chat/sync` is the same turn as one JSON document, which is what the n8n workflow consumes. `POST /v1/tools/{name}` executes exactly one validated tool with no model involved, returning the evidence JSON: the same HTTP shape a raw community-node workflow expects, but behind it sit the allowlist, the IR, the dry-run, the datastore-computed totals, and the audit event. And [`mcp/server.py`](mcp/README.md) is the MCP door: a stdio adapter that exposes the tool catalog and the chat turn to any MCP host (Claude Desktop, Claude Code, Cursor), authenticating with the same turn JWT it mints on demand through the Keycloak-and-shim exchange and refreshing it before expiry - an external agent gets the veracity pipeline, never a raw datastore. The n8n build steps in [`n8n/README.md`](n8n/README.md) produce a chat that displays the verifiability label under every answer.
+The same hardened internals answer through four doors, which is the headless-core argument (D21) made concrete. `POST /v1/chat` is the SSE product API with keepalives and token streaming. `POST /v1/chat/sync` is the same turn as one JSON document, which is what the n8n workflow consumes. `POST /v1/tools/{name}` executes exactly one validated tool with no model involved, returning the evidence JSON: the same HTTP shape a raw community-node workflow expects, but behind it sit the allowlist, the IR, the dry-run, the datastore-computed totals, and the audit event. And [`mcp/server.py`](mcp/README.md) is the MCP door: a stdio adapter that exposes the tool catalog and the chat turn to any MCP host (Claude Desktop, Claude Code, Cursor), authenticating with the same turn JWT it mints on demand through the auth-shim (indexer Basic auth → exchange) and refreshing it before expiry - an external agent gets the veracity pipeline, never a raw datastore. The n8n build steps in [`n8n/README.md`](n8n/README.md) produce a chat that displays the verifiability label under every answer.
 
 Everything the service does is also observable. `make logs` tails structured JSON audit events, one per rejected token, per executed tool with its full IR, and per completed turn with usage and label. `GET /metrics` exposes Prometheus counters and histograms alongside them: turns by lane, tool calls by outcome, lane 0 hits and escalations, token usage by direction, and turn latency.
 
 ## 7. What this harness proves and what it defers
 
-Proven locally: the full loop from question to verified answer, the four veracity checks against a real OpenSearch, queries-as-user through a real JWT auth domain, the OIDC-to-turn-credential exchange with the mint key isolated in the shim, honest admission rejections, structured audit, the typed catalog and lane 2 through one IR, bilingual evaluation as an executable gate, and the n8n edge consuming both the chat and tool surfaces.
+Proven locally: the full loop from question to verified answer, the four veracity checks against a real OpenSearch, queries-as-user through a real JWT auth domain, the authinfo-to-turn-credential exchange with the mint key isolated in the shim, honest admission rejections, structured audit, the typed catalog and lane 2 through one IR, bilingual evaluation as an executable gate, and the n8n edge consuming both the chat and tool surfaces.
 
 Deferred to a real cloud environment, deliberately: IRSA and per-tenant IAM, application inference profiles and cost attribution, Bedrock Guardrails content policies, PrivateLink, and NetworkPolicy walls in production packaging. **Track B (local kind)** implements the NetworkPolicy + cross-tenant isolation story now — see [`kind/README.md`](kind/README.md) and `make kind-up kind-tenants kind-isolation`.
 
@@ -354,7 +345,7 @@ Operational features that started as simplifications and are now closed with cod
 | `QWEN3_INSTRUCT_MODEL` (make variable) | qwen3:30b-a3b-instruct-2507-q4_K_M | Model pulled and graded by `make evals-qwen3` (9/9 golden, lane 0 off) |
 | `WAI_MAX_OUTPUT_TOKENS` | 2048 | Per-turn completion cap; raise for tool-heavy local MoE models (4096 in `make evals-qwen3`) |
 | `WAI_EVAL_TIMEOUT_S` (host env) | 300 | Per-case timeout for `golden/run_evals.py`; raise for CPU-only or large MoE runs |
-| `WAI_EVAL_KC_URL` / `WAI_EVAL_SHIM_URL` / `WAI_EVAL_SVC_URL` | compose ports | Point golden evals at kind tenant-a NodePorts (`kind/README.md`) |
+| `WAI_EVAL_SHIM_URL` / `WAI_EVAL_SVC_URL` / `WAI_EVAL_ENV_ID` | compose ports / lab | Point golden evals at kind tenant-a NodePorts (`kind/README.md`) |
 | `WAI_GUARDRAIL_ID` | empty | Attach a Bedrock Guardrail to every invocation when set (`bedrock` provider only) |
 | `WAI_LANE2_ENABLED` | true | Expose `run_query_ir`, the constrained builder |
 | `WAI_MAX_TOOL_CALLS` | 6 | Loop cap per turn |
@@ -362,7 +353,7 @@ Operational features that started as simplifications and are now closed with cod
 | `WAI_LANE0_ENABLED` / `WAI_LANE0_THRESHOLD` | false / 0.80 | Semantic fast path (D40, section 3.5): embedding-matched questions run curated templates with no model |
 | `WAI_LANE0_NEAR_MISS_FLOOR` | 0.65 | Scores in [floor, threshold) inject the closest exemplar as a transient few-shot hint (section 3.5) |
 | `WAI_SCOPE_CLASSIFIER_ENABLED` / `WAI_SCOPE_MARGIN` | true / 0.05 | Embedding scope gate (section 3.5): refuses clearly out-of-scope questions before any model; active only with lane 0, fails open |
-| `KC_ISSUER` (shim) | http://localhost:8085/realms/wazuh-poc | Expected OIDC issuer. Keycloak stamps `iss` from the request url, so host-minted tokens differ from the in-network JWKS url the shim fetches from |
+| `WAI_ACTIONS_ENV_ID` | lab | Environment hint for the browser confirm UI login (`X-Env-Id` on shim exchange) |
 | `WAI_EMBED_BASE_URL` / `WAI_EMBED_MODEL` | ollama / bge-m3 | Embedding endpoint for lane 0 (`make embed` pulls the model) |
 | `WAI_EVIDENCE_CACHE_TTL` | 0 (off) | IR-keyed evidence cache in seconds (D41), cached answers disclose `served_from_cache` |
 | `WAI_STREAMING` | true | Token-by-token SSE from both providers, `false` falls back to one-shot answers |
@@ -409,12 +400,12 @@ Comments across the code carry `D<n>` tags referring to the design log this PoC 
 
 | Path | What it is |
 |---|---|
-| `docker-compose.poc.yml` | Overlay compose: keycloak, n8n, auth-shim, tool-service on the Wazuh network |
+| `docker-compose.poc.yml` | Overlay compose: n8n, auth-shim, tool-service on the Wazuh network |
 | `tool-service/` | The core: agent loop, Query IR, OpenSearch compiler, 4 veracity checks, scope classifier, knowledge tools, SSE + HTTP tool surfaces |
 | `mcp/` | Stdio MCP adapter over the HTTP surfaces: turn-JWT auth with on-demand mint and refresh (section 6) |
 | `tool-service/tests/` | 26-case unit suite for the deterministic core (`make test`) |
-| `auth-shim/` | The minting sidecar: verifies Keycloak OIDC tokens, mints turn JWTs (D30) |
-| `keycloak/` | Realm export: test realm, client, analyst user and role |
+| `auth-shim/` | The minting sidecar: verifies indexer credentials via authinfo, mints turn JWTs (D30) |
+| `environments.poc.yaml` | Lab environment registry mounted into auth-shim (indexer URL for authinfo) |
 | `securityconfig/` | Indexer JWT auth domain + role fragments and the apply script |
 | `seed/` | Synthetic alert generator with deterministic ground truths |
 | `golden/` | Bilingual golden set and the eval runner (the CI gate, D33) |

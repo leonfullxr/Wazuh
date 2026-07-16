@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Track B isolation suite (B4). Requires: docker Wazuh + Ollama + Keycloak up,
+# Track B isolation suite (B4). Requires: docker Wazuh + Ollama up,
 # kind cluster with tenant-a and tenant-b deployed.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-KC_URL="${WAI_EVAL_KC_URL:-http://localhost:8085}"
 SHIM_A="${WAI_EVAL_SHIM_A_URL:-http://localhost:30771}"
 SVC_A="${WAI_EVAL_SVC_A_URL:-http://localhost:30880}"
 SHIM_B="${WAI_EVAL_SHIM_B_URL:-http://localhost:30772}"
@@ -17,17 +16,15 @@ ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; failures=$((failures + 1)); }
 
 mint_turn() {
-  local realm="$1" user="$2" pass="$3" shim="$4"
-  local oidc turn
-  oidc=$(curl -sf "$KC_URL/realms/$realm/protocol/openid-connect/token" \
-    -d "grant_type=password&client_id=wazuh-ai&username=$user&password=$pass")
-  turn=$(curl -sf -X POST "$shim/v1/token/exchange" \
-    -H "Authorization: Bearer $(echo "$oidc" | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')")
-  echo "$turn" | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])'
+  local user="$1" pass="$2" shim="$3" env_id="$4"
+  curl -sf -X POST "$shim/v1/token/exchange" \
+    -u "$user:$pass" \
+    -H "X-Env-Id: $env_id" \
+    | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])'
 }
 
 say "1 · happy path tenant-a"
-JWT_A=$(mint_turn wazuh-poc analyst1 analyst1 "$SHIM_A")
+JWT_A=$(mint_turn analyst1 analyst1 "$SHIM_A" tenant-a)
 ANS=$(curl -sf -X POST "$SVC_A/v1/chat/sync" \
   -H "Authorization: Bearer $JWT_A" \
   -H "Content-Type: application/json" \
@@ -77,9 +74,9 @@ fi
 
 say "4 · golden set on tenant-a NodePort"
 _golden() {
-  WAI_EVAL_KC_URL="$KC_URL" \
   WAI_EVAL_SHIM_URL="$SHIM_A" \
   WAI_EVAL_SVC_URL="$SVC_A" \
+  WAI_EVAL_ENV_ID=tenant-a \
   python3 golden/run_evals.py
 }
 if _golden; then

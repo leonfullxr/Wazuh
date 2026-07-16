@@ -20,14 +20,6 @@ spec:
           ports:
             - containerPort: 8081
           env:
-            - name: SHIM_TENANT
-              value: ${TENANT}
-            - name: SHIM_KC_URL
-              value: http://${HOST_GW}:8085
-            - name: SHIM_KC_REALM
-              value: ${KC_REALM}
-            - name: SHIM_KC_ISSUER
-              value: http://${HOST_GW}:8085/realms/${KC_REALM}
             - name: SHIM_JWT_ISSUER
               value: ${JWT_ISSUER}
             - name: SHIM_BACKEND_AUDIENCE
@@ -38,9 +30,16 @@ spec:
               value: "600"
             - name: SHIM_REQUIRED_ROLE
               value: wazuh_ai_analyst
+            - name: SHIM_ENVS_FILE
+              value: /config/environments.yaml
+            - name: SHIM_INDEXER_VERIFY_SSL
+              value: "false"
           volumeMounts:
             - name: keys
               mountPath: /keys
+              readOnly: true
+            - name: envs
+              mountPath: /config
               readOnly: true
       volumes:
         - name: keys
@@ -49,6 +48,20 @@ spec:
             items:
               - key: jwt-private.pem
                 path: jwt-private.pem
+        - name: envs
+          configMap:
+            name: auth-shim-envs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-shim-envs
+  namespace: ${TENANT}
+data:
+  environments.yaml: |
+    - env_id: ${TENANT}
+      indexer_url: https://${HOST_GW}:9200
+      indexer_ca_path: ""
 ---
 apiVersion: v1
 kind: Service
@@ -192,8 +205,6 @@ spec:
         - ipBlock:
             cidr: ${HOST_GW}/32
       ports:
-        - protocol: TCP
-          port: 8085
         - protocol: TCP
           port: 9200
         - protocol: TCP

@@ -31,6 +31,7 @@ from .config import CFG
 from .env_registry import resolve_by_key
 from .knowledge import mitre_lookup
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
+from .brute_force import brute_force_summary
 from .loop import run_turn
 from .principal import EnvPrincipal
 from .actions import (
@@ -65,9 +66,7 @@ def _actions_ui_config() -> dict:
     return {
         "toolServiceUrl": CFG.ui_public_base_url.rstrip("/"),
         "shimUrl": CFG.actions_shim_public_url.rstrip("/"),
-        "kcUrl": CFG.actions_kc_public_url.rstrip("/"),
-        "kcRealm": CFG.actions_kc_realm,
-        "kcClient": CFG.actions_kc_client,
+        "envId": CFG.actions_env_id,
     }
 
 
@@ -348,6 +347,13 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
             else:
                 raise HTTPException(404, f"unknown environment tool '{name}'")
             audit.emit("http_environment_tool_executed", tool=name, sub=user.sub)
+            return payload
+        if tool.composite:
+            if tool.name == "brute_force_summary":
+                payload = await brute_force_summary(user, validated)
+            else:
+                raise HTTPException(404, f"unknown composite tool '{name}'")
+            audit.emit("http_composite_tool_executed", tool=name, sub=user.sub)
             return payload
         ir = tool.to_ir(validated)
         evidence = await execute_ir(ir, user)

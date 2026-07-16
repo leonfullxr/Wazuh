@@ -267,3 +267,99 @@ the architecture stabilizes.
   common questions; measure hit rates per env and tune the corpus.
 - **OQ-V3-3**: does `mlCommonsDashboards` require any indexer-side settings
   beyond §V3.1e on the Wazuh fork — verify during V3.1d bring-up.
+
+---
+
+## Phase V3.6 — identity without Keycloak (decision: Leon, 2026-07-16)
+
+**D52.** Keycloak is removed. It was the lab stand-in for a customer-SSO
+world that v3 no longer describes: environments are Wazuh deployments that
+already own a user store — the OpenSearch security plugin (internal users,
+LDAP, or SSO the env admin configured there). The shim's verify-only posture
+(D30) is unchanged; only its **verification source** changes: from Keycloak
+JWKS to the environment's own indexer via
+`POST /_plugins/_security/authinfo`. Everything downstream is byte-identical
+(turn JWT mint + TTL + dual audience, indexer JWT auth domain, D11
+queries-as-user). Environments with SSO inherit it through the security
+plugin — we support SSO without owning an IdP. If a future product needs an
+IdP decoupled from Wazuh accounts, the shim's verify-X-mint-Y seam takes an
+OIDC verifier back as a contained change.
+
+Tenant-claim subtlety (D6 preserved): the login request names its
+environment as a *hint*; the shim verifies the credentials against **that
+environment's indexer** — the `tenant` claim is proven by authinfo
+succeeding on that env, never asserted by the payload.
+
+| File | Change |
+|---|---|
+| `auth-shim/app/main.py` | Rewrite exchange: `POST /v1/token/exchange` with Basic auth (+ `X-Env-Id` hint, default sole env) → `authinfo` against that env's indexer (CA from registry) → require `wazuh_ai_analyst` in `backend_roles` → mint the same turn JWT (`sub` = user_name, `backend_roles` verbatim from authinfo, `tenant` = verified env). Drop all `SHIM_KC_*`; add `SHIM_ENVS_FILE` (same `environments.yaml`). |
+| `securityconfig/` | Grant the shim an authinfo-capable path: authinfo authenticates the USER's own creds, so no shim principal is needed at all — the shim holds only the mint key. Add `wazuh_ai_analyst`/`wazuh_ai_operator`/`wazuh_ai_responder` as backend_roles on the lab users (create `analyst1`, `operator1` as internal users; delete the Keycloak realm coupling). |
+| `docker-compose.poc.yml` | Delete the `keycloak` service; shim mounts `environments.yaml` read-only. |
+| `keycloak/` | Delete directory (realm export becomes git history). |
+| n8n workflow, `mcp/server.py`, `golden/run_evals.py`, actions confirm UI (`ui_static.py`) | One-call login: Basic creds → shim → turn JWT. Drop the OIDC leg everywhere. |
+| Track B kind manifests | Per-tenant realm replaced by per-env internal users; the cross-tenant token assertion is unchanged (still distinct mint keys + tenant claims). |
+| `README.md` §4, diagrams | Identity chain: analyst creds → shim verifies via env indexer authinfo → turn JWT ≤10 min → core + indexer verify. Keycloak boxes removed from the v3 deck (older decks are historical). |
+
+**Acceptance:** all existing identity negatives pass with the new chain
+(wrong password → 401 at authinfo; user without the analyst backend_role →
+403 at the shim; cross-env credentials → 401, audited); `make evals` and the
+actions confirm flow green with zero Keycloak references left in compose,
+Makefile, or docs; RAM footprint drops by the Keycloak container.
+
+---
+
+## Phase V3.7 — environment & domain context: closing the answer-quality gap
+
+Reference studied: the upstream gateway ships a ~10 KB domain prompt plus
+per-intent prompt files (`dashboard-builder.prompt`, `dql-builder.prompt`,
+`report-generator.prompt`). Its dashboards are better than ours for two
+reasons: richer **construction code** behind a strict spec, and a prompt that
+teaches **domain recipes** (multi-signal brute-force, severity bands, geo
+fields). Our ruling for adopting this: **teach code first, prompt second** —
+every upstream prompt-policy that can become a typed tool or template becomes
+one (that is our structural advantage); only composition semantics the model
+genuinely needs go into prompt modules. Everything below is eval-gated (D33).
+
+### V3.7a Tool/template upgrades (code, the biggest wins)
+
+| Item | Change |
+|---|---|
+| `auth_failures` tool | **Bug found via upstream:** filter `rule.groups` on ANY of `authentication_failed`, `authentication_failures`, `win_authentication_failed` (today only the first — Windows auth failures are invisible). `op: in` on the existing IR. Golden case with a seeded Windows auth-fail alert. |
+| New lane-1 tool `brute_force_summary` | The upstream 3-signal recipe as a typed tool: MITRE (`rule.mitre.id` = T1110) OR auth-fail groups, aggregated by `data.srcip` and `data.dstuser`, with timeline. One tool call instead of hoping the model composes it. |
+| `dashboard_templates.py` | Match upstream's output quality per template: metric header row, timeline histogram, top-N tables (srcip, dstuser), geo **region map** built from the fields that actually exist in the live mapping (`GeoLocation.*` on stock Wazuh; the field_resolver already validates against the mapping — extend its alias table with upstream's alias rules). Panel sizing via the existing layout engine. |
+| New knowledge tool `dashboard_design_guide` | Already referenced by the schema's error text — make it real: returns available templates, panel types, field aliases, sizing rules. The model consults it before proposing `template=custom`. |
+
+### V3.7b Prompt modules (bounded, versioned, cache-stable)
+
+`tool-service/app/prompts/*.md`, loaded at startup, byte-stable per build:
+
+| Module | Content | When appended |
+|---|---|---|
+| `domain.md` (~600 tokens) | Severity bands (rule.level 0–6/7–11/12–14/15+), the auth-failure group triad, geo enrichment field names, "totals from total_matching" reinforcement | Always (part of the static prelude — extends the prompt-cache prefix, never varies per turn) |
+| `reporting.md` (~400 tokens) | Upstream's answer shape adapted: Summary with exact total · Key findings with citations · Impact · Recommendation · Triage (Benign/Suspicious/Malicious + confidence). | Analysis-tier turns only |
+| `dashboards.md` (~400 tokens) | Template catalog one-liners, custom-panel schema, field alias hints | Only when action tools are offered |
+
+### V3.7c Environment context card (dynamic, per-env, cached)
+
+A compact per-env block (≤800 tokens) injected as a **transient message**
+(after the static prefix — same cache rule as the near-miss hint): Wazuh
+version, agent count + OS mix, top rule groups (7d), whether geo/vuln fields
+exist in the mapping, existing dashboard titles (dedupe hint for
+`propose_create_dashboard`). Built from the env tools we already have,
+cached per env with a 15-minute TTL (`WAI_ENV_CARD_TTL`), disclosed in audit
+(`env_card_age_s`). This is what "understands the environment" means without
+embedding telemetry.
+
+### V3.7d Eval additions
+
+Golden: Windows auth-fail case; brute-force summary case asserting the
+3-signal recipe ran (tool selection); dashboard-quality case asserting the
+proposed brute-force bundle contains ≥4 panels including a geo map and a
+timeline (assert on the proposal preview, no confirm needed). Actions eval
+gains a `custom` template case exercising `dashboard_design_guide`.
+
+**Acceptance:** `make evals` green including new cases; a "create a brute
+force dashboard" proposal preview lists metric+timeline+top-N+geo panels
+comparable to the upstream reference; prompt-cache prefix stability
+verified unchanged (static modules extend the prelude; the env card rides as
+a message).

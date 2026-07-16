@@ -14,30 +14,23 @@ Workflows → … → Import from file → n8n/wazuh-ai-chat.workflow.json
 
 Activate the workflow, open the Chat Trigger's public URL, and ask questions.
 
-**Issuer note:** n8n calls Keycloak at `http://keycloak:8080` (in-network). Host
-tools (`make evals`, `make demo-storyline`) use `http://localhost:8085`. The
-auth-shim accepts tokens from either issuer; if exchange fails with 401, recreate
-the auth-shim after pulling the latest compose (`make poc`).
+After import, create an **HTTP Basic Auth** credential named `wazuh-ai analyst1`
+with username `analyst1` and password `analyst1`, then attach it to the
+**Get turn JWT** node if n8n did not bind it automatically.
 
-The five-node chain (manual build reference):
+The three-node chain (manual build reference):
 
 1. **Chat Trigger** node. This gives you the hosted chat UI.
 
-2. **HTTP Request** node, name it `Get OIDC token`.
-   - Method POST, URL `http://keycloak:8080/realms/wazuh-poc/protocol/openid-connect/token`
-   - Body type: form urlencoded, with fields
-     `grant_type=password`, `client_id=wazuh-ai`,
-     `username=analyst1`, `password=analyst1`
-   - This is the lab stand-in for the customer SSO login. In a customer PoC
-     the analyst authenticates at the OIDC proxy in front of n8n instead, and
-     this node disappears. Move the credentials into an n8n credential
-     entry rather than the node body if you keep it beyond a demo.
-
-3. **HTTP Request** node, name it `Exchange for turn JWT`.
+2. **HTTP Request** node, name it `Get turn JWT`.
    - Method POST, URL `http://auth-shim:8081/v1/token/exchange`
-   - Header `Authorization` = `Bearer {{ $json.access_token }}`
+   - Authentication: HTTP Basic Auth (`analyst1` / `analyst1`)
+   - Header `X-Env-Id: lab`
+   - This is the lab stand-in for the customer login. In production the analyst
+     authenticates with their Wazuh/indexer credentials (or SSO the security
+     plugin already fronts). Move credentials into an n8n credential entry.
 
-4. **HTTP Request** node, name it `Ask wazuh-ai`.
+3. **HTTP Request** node, name it `Ask wazuh-ai`.
    - Method POST, URL `http://tool-service:8080/v1/chat/sync`
    - Header `Authorization` = `Bearer {{ $json.access_token }}`
    - JSON body: `{ "text": "{{ $('When chat message received').item.json.chatInput }}" }`
@@ -50,7 +43,7 @@ The five-node chain (manual build reference):
      `Explain the alert with id <alert_id>` so a dashboard link can open a
      pre-seeded investigation.
 
-5. Wire the chat response to
+4. Wire the chat response to
    `{{ $json.answer }}\n\n_{{ $json.verifiability }}_`
    so every answer displays its verifiability label (D23). That label line is
    the product thesis in one string, keep it visible.
@@ -115,7 +108,7 @@ so analysts can open the chat pre-seeded with one alert.
 
 If you expose the chat workflow via webhook instead of the Chat Trigger UI,
 pass `alert_id` in the JSON body to `POST /v1/chat/sync` (or through the
-five-node chain as an extra field on the final HTTP Request):
+chain as an extra field on the final HTTP Request):
 
 ```json
 {

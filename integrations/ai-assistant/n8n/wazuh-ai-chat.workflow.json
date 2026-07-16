@@ -15,45 +15,28 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://keycloak:8080/realms/wazuh-poc/protocol/openid-connect/token",
-        "sendBody": true,
-        "contentType": "form-urlencoded",
-        "bodyParameters": {
+        "url": "http://auth-shim:8081/v1/token/exchange",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
           "parameters": [
-            { "name": "grant_type", "value": "password" },
-            { "name": "client_id", "value": "wazuh-ai" },
-            { "name": "username", "value": "analyst1" },
-            { "name": "password", "value": "analyst1" }
+            { "name": "X-Env-Id", "value": "lab" }
           ]
         },
         "options": { "timeout": 30000 }
       },
       "id": "a1b2c3d4-0001-4000-8000-000000000002",
-      "name": "Get OIDC token",
+      "name": "Get turn JWT",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [280, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://auth-shim:8081/v1/token/exchange",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + $json.access_token }}"
-            }
-          ]
-        },
-        "options": { "timeout": 30000 }
-      },
-      "id": "a1b2c3d4-0001-4000-8000-000000000003",
-      "name": "Exchange for turn JWT",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [560, 300]
+      "position": [280, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "wazuh-ai-analyst1",
+          "name": "wazuh-ai analyst1"
+        }
+      }
     },
     {
       "parameters": {
@@ -77,7 +60,7 @@
       "name": "Ask wazuh-ai",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [840, 300]
+      "position": [560, 300]
     },
     {
       "parameters": {
@@ -87,17 +70,14 @@
       "name": "Format chat response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300]
+      "position": [840, 300]
     }
   ],
   "connections": {
     "When chat message received": {
-      "main": [[{ "node": "Get OIDC token", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Get turn JWT", "type": "main", "index": 0 }]]
     },
-    "Get OIDC token": {
-      "main": [[{ "node": "Exchange for turn JWT", "type": "main", "index": 0 }]]
-    },
-    "Exchange for turn JWT": {
+    "Get turn JWT": {
       "main": [[{ "node": "Ask wazuh-ai", "type": "main", "index": 0 }]]
     },
     "Ask wazuh-ai": {

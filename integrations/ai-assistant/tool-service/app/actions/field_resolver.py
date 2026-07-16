@@ -26,8 +26,25 @@ DASHBOARD_FIELD_CATALOG: dict[str, str] = {
 }
 
 
+# Upstream-style aliases the model may emit (V3.7).
+FIELD_ALIASES: dict[str, str] = {
+    "geo.country": "GeoLocation.country_name",
+    "country": "GeoLocation.country_name",
+    "geoip.country": "GeoLocation.country_name",
+    "src_ip": "data.srcip",
+    "source_ip": "data.srcip",
+    "dst_user": "data.dstuser",
+    "username": "data.dstuser",
+    "user": "data.dstuser",
+    "agent": "agent.name",
+    "severity": "rule.level",
+    "mitre": "rule.mitre.id",
+}
+
+
 def resolve_field(field: str, known: set[str]) -> str:
     """Pick the aggregatable field name present in the index pattern or mapping."""
+    field = FIELD_ALIASES.get(field, field)
     if field in known:
         return field
     kw = f"{field}.keyword"

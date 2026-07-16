@@ -80,4 +80,16 @@ cases:
     question: "What is the health of our Wazuh alert indices?"
     tools_any: [index_health]
     checks_any: [environment_lookup]
-    answer_any: ["wazuh-alerts", "green", "healthy"]
+
+  - id: windows-auth-fail-en
+    lang: en
+    question: "How many authentication failure alerts including Windows logon failures in the last 24 hours?"
+    tools_any: [auth_failures, brute_force_summary, run_query_ir]
+    answer_has_count: auth_failures_24h
+
+  - id: brute-force-summary-en
+    lang: en
+    question: "Give me a brute force attack summary for the last 24 hours with top source IPs and targeted users."
+    tools_any: [brute_force_summary]
+    answer_has_count: brute_force_total_24h
+    checks_any: [datastore_computed_counts]

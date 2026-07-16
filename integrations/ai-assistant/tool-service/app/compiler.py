@@ -33,22 +33,38 @@ def compile_opensearch(ir: QueryIR) -> dict:
     ]
     must_clauses: list[dict] = []
 
-    for f in ir.filters:
+    def _clause(f) -> dict:
         if f.field == "_id":
             values = f.value if isinstance(f.value, list) else [f.value]
-            filter_clauses.append({"ids": {"values": values}})
-        elif f.op == "eq":
-            filter_clauses.append({"term": {f.field: {"value": f.value}}})
-        elif f.op == "in":
-            filter_clauses.append({"terms": {f.field: f.value}})
-        elif f.op in ("gte", "lte"):
-            filter_clauses.append({"range": {f.field: {f.op: f.value}}})
-        elif f.op == "exists":
-            filter_clauses.append({"exists": {"field": f.field}})
-        elif f.op == "match":
+            return {"ids": {"values": values}}
+        if f.op == "eq":
+            return {"term": {f.field: {"value": f.value}}}
+        if f.op == "in":
+            return {"terms": {f.field: f.value}}
+        if f.op in ("gte", "lte"):
+            return {"range": {f.field: {f.op: f.value}}}
+        if f.op == "exists":
+            return {"exists": {"field": f.field}}
+        if f.op == "match":
             must_clauses.append({"match": {f.field: {"query": f.value}}})
+            return {}
+        raise ValueError(f"unsupported filter op {f.op!r}")
+
+    for f in ir.filters:
+        clause = _clause(f)
+        if clause:
+            filter_clauses.append(clause)
 
     bool_query: dict = {"filter": filter_clauses}
+    if ir.should_any:
+        should_clauses = []
+        for f in ir.should_any:
+            clause = _clause(f)
+            if clause:
+                should_clauses.append(clause)
+        if should_clauses:
+            bool_query["should"] = should_clauses
+            bool_query["minimum_should_match"] = 1
     if must_clauses:
         bool_query["must"] = must_clauses
 

@@ -1,0 +1,5 @@
+# PoC environment registry mounted into auth-shim (V3.6).
+# Copy to environments.yaml and extend for the tool-service gateway (V3.1).
+- env_id: lab
+  indexer_url: https://wazuh.indexer:9200
+  indexer_ca_path: ""

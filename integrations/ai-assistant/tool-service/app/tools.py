@@ -12,6 +12,8 @@ from typing import Callable, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from .auth_groups import AUTH_FAILURE_GROUPS
+from .brute_force import BruteForceSummaryParams
 from .config import CFG
 from .environment import (
     DashboardDesignGuideParams,
@@ -151,7 +153,13 @@ class AuthFailuresParams(BaseModel):
 def _auth_failures_ir(p: AuthFailuresParams) -> QueryIR:
     return QueryIR(
         time_range=p.time_range,
-        filters=[IRFilter(field="rule.groups", op="eq", value="authentication_failed")],
+        filters=[
+            IRFilter(
+                field="rule.groups",
+                op="in",
+                value=list(AUTH_FAILURE_GROUPS),
+            )
+        ],
         aggregation=IRAggregation(kind="terms", field=p.group_by, size=p.size),
         limit=0,
     )
@@ -169,6 +177,7 @@ class ToolDef:
     lane: int
     knowledge: bool = False
     environment: bool = False
+    composite: bool = False
 
 
 def _mitre_lookup_ir(_p: MitreLookupParams) -> QueryIR:
@@ -189,6 +198,10 @@ def _list_alert_fields_ir(_p: ListAlertFieldsParams) -> QueryIR:
 
 def _dashboard_design_guide_ir(_p: DashboardDesignGuideParams) -> QueryIR:
     raise RuntimeError("environment tool - not an alerts-index IR query")
+
+
+def _brute_force_summary_ir(_p: BruteForceSummaryParams) -> QueryIR:
+    raise RuntimeError("composite tool - executed via brute_force_summary()")
 
 
 REGISTRY: dict[str, ToolDef] = {
@@ -237,11 +250,22 @@ REGISTRY: dict[str, ToolDef] = {
             "auth_failures",
             "Authentication failures / failed logins (fallos de autenticacion, "
             "fallos de login) grouped by user, source ip or agent, with exact "
-            "counts (brute-force triage). ALWAYS use this for auth-failure "
-            "questions - it filters on rule.groups, never on free text.",
+            "counts (brute-force triage). Filters rule.groups on authentication_failed, "
+            "authentication_failures, and win_authentication_failed. ALWAYS use this "
+            "for auth-failure questions — never free text.",
             AuthFailuresParams,
             _auth_failures_ir,
             lane=1,
+        ),
+        ToolDef(
+            "brute_force_summary",
+            "Brute-force triage in one call: MITRE T1110 OR auth-failure rule groups, "
+            "with exact total_matching, timeline histogram, top source IPs and targeted "
+            "users. Prefer this over composing multiple tools for brute-force summaries.",
+            BruteForceSummaryParams,
+            _brute_force_summary_ir,
+            lane=1,
+            composite=True,
         ),
         ToolDef(
             "mitre_lookup",

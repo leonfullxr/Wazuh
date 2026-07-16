@@ -88,9 +88,7 @@ class Settings(BaseSettings):
     # Browser confirm UI (V3.5c) — host-facing URLs for dashboard + auth-shim
     ui_public_base_url: str = "http://localhost:8080"
     actions_shim_public_url: str = "http://localhost:8081"
-    actions_kc_public_url: str = "http://localhost:8085"
-    actions_kc_realm: str = "wazuh-poc"
-    actions_kc_client: str = "wazuh-ai"
+    actions_env_id: str = "lab"
     actions_cors_origins: str = (
         "https://localhost,http://localhost:5601,https://localhost:5601"
     )
@@ -102,6 +100,7 @@ class Settings(BaseSettings):
     max_output_tokens: int = 2048
     connector_timeout_s: float = 110.0
     envs_file: str = ""
+    env_card_ttl: int = 900  # 15 min; 0 disables the env context card (V3.7c)
 
     # Admission (a deliberately tiny D14: per-user single stream + per-tenant gate)
     tenant_concurrent: int = 2

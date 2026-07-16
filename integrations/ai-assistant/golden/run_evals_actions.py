@@ -2,7 +2,7 @@
 """Golden runner for V3.5 actions (direct execute or propose → confirm).
 
 Bilingual action golden set (V3.5d). Exercises the full identity chain
-(Keycloak → shim → turn JWT) and dashboard executor against live Wazuh.
+(indexer Basic auth → shim → turn JWT) and dashboard executor against live Wazuh.
 
 Run: python3 golden/run_evals_actions.py
   or: make evals-actions
@@ -19,13 +19,14 @@ from pathlib import Path
 import httpx
 import yaml
 
-KC = os.environ.get("WAI_EVAL_KC_URL", "http://localhost:8085")
+from auth import get_turn_jwt as _mint_turn_jwt
+
 SHIM = os.environ.get("WAI_EVAL_SHIM_URL", "http://localhost:8081")
 SVC = os.environ.get("WAI_EVAL_SVC_URL", "http://localhost:8080")
-REALM = os.environ.get("WAI_EVAL_KC_REALM", "wazuh-poc")
-CLIENT = os.environ.get("WAI_EVAL_KC_CLIENT", "wazuh-ai")
-USER = os.environ.get("WAI_EVAL_KC_USER", "analyst1")
-PASSWORD = os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
+USER = os.environ.get("WAI_EVAL_USER", os.environ.get("WAI_EVAL_KC_USER", "analyst1"))
+PASSWORD = os.environ.get(
+    "WAI_EVAL_PASSWORD", os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
+)
 TIMEOUT = float(os.environ.get("WAI_EVAL_ACTIONS_TIMEOUT_S", "120"))
 
 HERE = Path(__file__).resolve().parent
@@ -35,26 +36,7 @@ OUT = HERE / "last_run_actions.json"
 def get_turn_jwt(
     user: str | None = None, password: str | None = None
 ) -> str:
-    user = user or USER
-    password = password or PASSWORD
-    oidc = httpx.post(
-        f"{KC}/realms/{REALM}/protocol/openid-connect/token",
-        data={
-            "grant_type": "password",
-            "client_id": CLIENT,
-            "username": user,
-            "password": password,
-        },
-        timeout=30,
-    )
-    oidc.raise_for_status()
-    exchanged = httpx.post(
-        f"{SHIM}/v1/token/exchange",
-        headers={"Authorization": f"Bearer {oidc.json()['access_token']}"},
-        timeout=30,
-    )
-    exchanged.raise_for_status()
-    return exchanged.json()["access_token"]
+    return _mint_turn_jwt(user or USER, password or PASSWORD, shim=SHIM)
 
 
 def auth_headers(jwt: str) -> dict[str, str]:
@@ -204,7 +186,28 @@ def run_case_propose(case: dict, headers: dict) -> dict:
     body = propose.json()
     proposal_id = body.get("proposal_id")
     detail["proposal_id"] = proposal_id
-    detail["preview"] = body.get("preview", "")
+    preview = body.get("preview", "")
+    detail["preview"] = preview
+    preview_cf = preview.casefold()
+
+    if needles := case.get("preview_any"):
+        if not any(str(n).casefold() in preview_cf for n in needles):
+            detail["ok"] = False
+            detail["error"] = f"preview missing any of {needles!r}"
+            return _finalize_case(detail)
+    if min_panels := case.get("preview_min_panels"):
+        import re
+
+        m = re.search(r"Panels\s*\((\d+)\)", preview)
+        count = int(m.group(1)) if m else 0
+        detail["preview_panel_count"] = count
+        if count < int(min_panels):
+            detail["ok"] = False
+            detail["error"] = f"preview lists {count} panels, expected >= {min_panels}"
+            return _finalize_case(detail)
+
+    if case.get("skip_confirm"):
+        return _finalize_case(detail)
 
     confirm_user = case.get("confirm_user", USER)
     confirm_password = case.get("confirm_password", PASSWORD)

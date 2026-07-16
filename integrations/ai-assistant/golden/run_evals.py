@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Golden set runner (D33). Exercises the FULL identity chain on purpose:
-Keycloak password grant -> shim exchange -> turn JWT -> /v1/chat/sync.
+indexer Basic auth -> shim exchange -> turn JWT -> /v1/chat/sync.
 A failure anywhere in that chain fails the run, which is exactly what a CI
 gate should do.
 
@@ -37,18 +37,18 @@ import yaml
 
 from live_gt import load_and_refresh
 from connector_parse import parse_agent_message, split_connector_message
+from auth import get_turn_jwt
 
-KC = os.environ.get("WAI_EVAL_KC_URL", "http://localhost:8085")
 SHIM = os.environ.get("WAI_EVAL_SHIM_URL", "http://localhost:8081")
 SVC = os.environ.get("WAI_EVAL_SVC_URL", "http://localhost:8080")
 INDEXER = os.environ.get("WAI_EVAL_INDEXER_URL", "https://localhost:9200")
 INDEXER_USER = os.environ.get("INDEXER_ADMIN_USER", "admin")
 INDEXER_PASSWORD = os.environ.get("INDEXER_ADMIN_PASSWORD", "SecretPassword")
 EVAL_EDGE = os.environ.get("WAI_EVAL_EDGE", "direct")
-REALM = os.environ.get("WAI_EVAL_KC_REALM", "wazuh-poc")
-CLIENT = os.environ.get("WAI_EVAL_KC_CLIENT", "wazuh-ai")
-USER = os.environ.get("WAI_EVAL_KC_USER", "analyst1")
-PASSWORD = os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
+USER = os.environ.get("WAI_EVAL_USER", os.environ.get("WAI_EVAL_KC_USER", "analyst1"))
+PASSWORD = os.environ.get(
+    "WAI_EVAL_PASSWORD", os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
+)
 
 TIMEOUT = float(os.environ.get("WAI_EVAL_TIMEOUT_S", "300"))
 RETRIES = int(os.environ.get("WAI_EVAL_RETRIES", "0"))
@@ -76,28 +76,12 @@ REF_TOOLS: dict[str, tuple[str, dict, int]] = {
     "total_7d": ("count_alerts", {}, 24 * 7),
     "high_severity_7d": ("count_alerts", {"severity_gte": 10}, 24 * 7),
     "auth_failures_24h": ("auth_failures", {}, 24),
+    "brute_force_total_24h": ("brute_force_summary", {}, 24),
 }
 
 
-def get_turn_jwt() -> str:
-    oidc = httpx.post(
-        f"{KC}/realms/{REALM}/protocol/openid-connect/token",
-        data={
-            "grant_type": "password",
-            "client_id": CLIENT,
-            "username": USER,
-            "password": PASSWORD,
-        },
-        timeout=30,
-    )
-    oidc.raise_for_status()
-    exchanged = httpx.post(
-        f"{SHIM}/v1/token/exchange",
-        headers={"Authorization": f"Bearer {oidc.json()['access_token']}"},
-        timeout=30,
-    )
-    exchanged.raise_for_status()
-    return exchanged.json()["access_token"]
+def get_turn_jwt_for_eval() -> str:
+    return get_turn_jwt(USER, PASSWORD, shim=SHIM)
 
 
 def live_counts(headers: dict, key: str) -> tuple[int, int]:
@@ -285,7 +269,7 @@ def run_suite(gt: dict, spec: dict) -> tuple[int, int, list[dict]]:
 
         for _attempt in range(RETRIES + 1):
             try:
-                ref_headers = {"Authorization": f"Bearer {get_turn_jwt()}"}
+                ref_headers = {"Authorization": f"Bearer {get_turn_jwt_for_eval()}"}
                 headers = None if connector_edge else ref_headers
                 before = (
                     live_counts(ref_headers, key) if key in REF_TOOLS else None

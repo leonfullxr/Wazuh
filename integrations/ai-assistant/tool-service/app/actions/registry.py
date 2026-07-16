@@ -7,6 +7,7 @@ from typing import Callable
 from pydantic import BaseModel
 
 from ..config import CFG
+from .dashboard_templates import template_panel_summary
 from .schemas import (
     ActiveResponseParams,
     CreateDashboardParams,
@@ -45,11 +46,20 @@ def public_tool_name(action_name: str) -> str:
 
 def _preview_create_dashboard(p: BaseModel) -> str:
     params = CreateDashboardParams.model_validate(p.model_dump())
-    return (
+    head = (
         f"Create dashboard **{params.title}** in folder '{params.folder}' "
         f"using template `{params.template}`."
         + (f" {params.description}" if params.description else "")
     )
+    if params.template == "custom" and params.panels:
+        panel_lines = [
+            f"- {panel.viz_type}: {panel.title}" for panel in params.panels
+        ]
+        return head + f"\nPanels ({len(params.panels)}):\n" + "\n".join(panel_lines)
+    panels = template_panel_summary(params.template)
+    if panels:
+        return head + f"\nPanels ({len(panels)}): " + "; ".join(panels)
+    return head
 
 
 def _preview_create_visualization(p: BaseModel) -> str:

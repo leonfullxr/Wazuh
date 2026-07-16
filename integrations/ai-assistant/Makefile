@@ -31,7 +31,7 @@ securityconfig:
 
 poc:
 	docker compose -f docker-compose.poc.yml up -d --build
-	@echo "keycloak: http://localhost:8085  n8n: http://localhost:5678  tool-service: http://localhost:8080"
+	@echo "auth-shim: http://localhost:8081  n8n: http://localhost:5678  tool-service: http://localhost:8080"
 
 ollama:
 	docker compose -f docker-compose.poc.yml --profile ollama up -d ollama
@@ -163,9 +163,7 @@ kind-keys: keys
 	./keys/gen-keys.sh keys/tenant-b
 
 kind-tenants: kind-keys
-	docker compose -f docker-compose.poc.yml --profile ollama up -d keycloak ollama
-	@echo "waiting for Keycloak realm-b import..."
-	@sleep 20
+	docker compose -f docker-compose.poc.yml --profile ollama up -d ollama
 	HOST_GW=$$(./kind/host-gateway.sh) ./kind/deploy-tenant.sh tenant-a
 	HOST_GW=$$(./kind/host-gateway.sh) ./kind/deploy-tenant.sh tenant-b
 

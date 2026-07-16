@@ -31,6 +31,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from . import audit, metrics
+from .auth_groups import AUTH_FAILURE_GROUPS
 from .config import CFG
 from .embeddings import embed_corpus, embed_text
 
@@ -61,7 +62,13 @@ def _noisy_agents_ir(size: int = 5) -> dict:
 
 def _auth_fail_count_ir() -> dict:
     return {
-        "filters": [{"field": "rule.groups", "op": "eq", "value": "authentication_failed"}],
+        "filters": [
+            {
+                "field": "rule.groups",
+                "op": "in",
+                "value": list(AUTH_FAILURE_GROUPS),
+            }
+        ],
         "aggregation": {"kind": "count"},
         "limit": 0,
     }

@@ -10,17 +10,18 @@ pip install -r mcp/requirements.txt
 python3 mcp/server.py
 ```
 
-By default the server mints turn JWTs on demand (Keycloak password grant +
-shim exchange) and refreshes before the 10-minute TTL (R2.7). Override with
-a static token for one-shot use:
+By default the server mints turn JWTs on demand (indexer Basic auth via the
+auth-shim, V3.6) and refreshes before the 10-minute TTL. Override with a
+static token for one-shot use:
 
 ```bash
-export WAI_MCP_JWT=$(curl -s -X POST http://localhost:8081/v1/token/exchange \
-  -H "Authorization: Bearer $OIDC" | jq -r .access_token)
+export WAI_MCP_JWT=$(curl -s -u analyst1:analyst1 -X POST \
+  http://localhost:8081/v1/token/exchange \
+  -H 'X-Env-Id: lab' | jq -r .access_token)
 ```
 
-Optional env vars: `WAI_MCP_KC_URL`, `WAI_MCP_SHIM_URL`, `WAI_MCP_KC_USER`,
-`WAI_MCP_KC_PASSWORD`, `WAI_MCP_BASE_URL`.
+Optional env vars: `WAI_MCP_SHIM_URL`, `WAI_MCP_USER`, `WAI_MCP_PASSWORD`,
+`WAI_MCP_ENV_ID`, `WAI_MCP_BASE_URL`.
 
 ## Claude Desktop config snippet
 

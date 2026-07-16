@@ -24,7 +24,10 @@ from .admission import BusyError, get_admission
 from .auth import User
 from .config import CFG
 from .knowledge import mitre_lookup
+from .brute_force import brute_force_summary
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
+from .environment_card import get_env_card_text
+from .prompts_loader import build_system_prelude
 from .llm import ANALYSIS_LLM, ROUTER_LLM
 from .principal import (
     Principal,
@@ -97,7 +100,7 @@ Write operations (when propose_* tools are available):
 """
 
 
-def system_prompt() -> str:
+def system_prompt(*, include_reporting: bool = True, include_dashboards: bool | None = None) -> str:
     """System prelude with a live UTC clock so relative windows anchor correctly.
 
     Floored to the minute and stamped ONCE per turn (see run_turn): a per-step
@@ -105,15 +108,23 @@ def system_prompt() -> str:
     KV reuse (P1.2) and the Bedrock system cachePoint (P1.1) depend on.
     """
     now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-    prelude = (
+    now_line = (
         f"{SYSTEM_PROMPT}\n"
         f"Current UTC time: {now.isoformat()}. Treat this as 'now' when you "
         f"compute time_range for phrases like 'last 7 days', 'this week', or "
-        f"'last 24 hours'. Never use training-cutoff dates."
+        f"'last 24 hours'. Never use training-cutoff dates.\n"
     )
+    actions_suffix = ""
     if CFG.actions_enabled:
-        prelude += ACTIONS_PROMPT_DIRECT if CFG.actions_direct else ACTIONS_PROMPT_PROPOSE
-    return prelude
+        actions_suffix = ACTIONS_PROMPT_DIRECT if CFG.actions_direct else ACTIONS_PROMPT_PROPOSE
+    if include_dashboards is None:
+        include_dashboards = CFG.actions_enabled
+    return build_system_prelude(
+        now_line=now_line,
+        include_reporting=include_reporting,
+        include_dashboards=include_dashboards,
+        actions_suffix=actions_suffix,
+    )
 
 
 _OUT_OF_SCOPE_EN = (
@@ -193,6 +204,30 @@ def _grounded_number_corrections(
                 {"kind": "number", "ref": agg, "claimed": n, "allowed": sorted(allowed)}
             )
     return corrections
+
+
+def _record_composite_agg(
+    agg_names: set[str],
+    agg_values: dict[str, set[int]],
+    tool_name: str,
+    payload: dict,
+) -> None:
+    """Register citation targets for composite tool JSON (e.g. brute_force_summary)."""
+    total = payload.get("total_matching")
+    if isinstance(total, int):
+        agg_values.setdefault("total_matching", set()).add(total)
+        agg_values.setdefault(tool_name, set()).add(total)
+    for key in ("timeline", "top_source_ips", "top_target_users"):
+        rows = payload.get(key)
+        if not isinstance(rows, list):
+            continue
+        agg_names.add(key)
+        agg_names.add(f"{key}.key")
+        agg_names.add(f"{key}.count")
+        bucket = agg_values.setdefault(key, set())
+        for row in rows:
+            if isinstance(row, dict) and "count" in row:
+                bucket.add(int(row["count"]))
 
 
 def _record_agg_values(
@@ -316,20 +351,32 @@ async def run_turn(
                 return
 
         llm, model = route(text)
+        include_reporting = not _SIMPLE_RE.match(text)
         history = state.load(sub, conversation_id)
         transient: list[dict] = []
         if analysis and analysis.near_miss is not None:
-            transient = [
-                {"role": "user", "content": [{"text": analysis.near_miss.hint}]},
-                {"role": "assistant", "content": [{"text": "Understood."}]},
-            ]
+            transient.extend(
+                [
+                    {"role": "user", "content": [{"text": analysis.near_miss.hint}]},
+                    {"role": "assistant", "content": [{"text": "Understood."}]},
+                ]
+            )
+        card_text, card_age_s = await get_env_card_text(principal)
+        if card_text:
+            transient.extend(
+                [
+                    {"role": "user", "content": [{"text": card_text}]},
+                    {"role": "assistant", "content": [{"text": "Understood."}]},
+                ]
+            )
+            audit.emit("env_card_injected", env=env_id, age_s=card_age_s)
         messages: list[dict] = history + transient + [
             {"role": "user", "content": [{"text": text}]}
         ]
         tool_specs = converse_tool_specs()
         # One clock per turn: every step of this turn shares the byte-identical
         # system prelude, so step N+1 reuses step N's prefill (P1.1/P1.2).
-        turn_system = system_prompt()
+        turn_system = system_prompt(include_reporting=include_reporting)
 
         lanes_used: set[int] = set()
         checks_all: set[str] = set()
@@ -506,6 +553,38 @@ async def run_turn(
                             )
                         audit.emit(
                             "environment_tool_executed",
+                            env=env_id,
+                            tool=name,
+                            sub=sub if isinstance(principal, User) else None,
+                        )
+                        metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
+                        results.append(
+                            {
+                                "toolResult": {
+                                    "toolUseId": call["toolUseId"],
+                                    "content": [{"json": payload}],
+                                }
+                            }
+                        )
+                        continue
+                    if tool.composite:
+                        if tool.name == "brute_force_summary":
+                            payload = await brute_force_summary(principal, params)
+                        else:
+                            payload = {"error": f"unknown composite tool '{name}'"}
+                        lanes_used.add(tool.lane)
+                        checks_all |= set(payload.get("veracity_checks_passed", []))
+                        checks_all.add("datastore_computed_counts")
+                        agg_names |= {
+                            "total_matching",
+                            "timeline",
+                            "top_source_ips",
+                            "top_target_users",
+                            name,
+                        }
+                        _record_composite_agg(agg_names, agg_values, name, payload)
+                        audit.emit(
+                            "composite_tool_executed",
                             env=env_id,
                             tool=name,
                             sub=sub if isinstance(principal, User) else None,

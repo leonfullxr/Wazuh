@@ -39,6 +39,19 @@ ENV_READER_PASSWORD_HASH = os.environ.get(
     "WAI_ENV_READER_PASSWORD_HASH",
     "$2a$12$hsVmOpZVO2Kn7v8HO4eMseUBesSEHxVrKKnmeuqVBhm5l0qIzKkp6",
 )
+# Lab analyst users for auth-shim authinfo login (V3.6) — passwords match usernames
+ANALYST1_PASSWORD_HASH = os.environ.get(
+    "WAI_ANALYST1_PASSWORD_HASH",
+    "$2b$12$SIWR6ujjAkVu.2iin1..Au1dYLtTzoZfpDzoGzbJvSOJLSRsnhrpi",
+)
+ANALYST_NO_OP_PASSWORD_HASH = os.environ.get(
+    "WAI_ANALYST_NO_OP_PASSWORD_HASH",
+    "$2b$12$dU4yGhiGnJqWi1aRK76p..fLxJXVhWw9CuBLnfIN/kaRqkFCKJLU6",
+)
+VIEWER1_PASSWORD_HASH = os.environ.get(
+    "WAI_VIEWER1_PASSWORD_HASH",
+    "$2b$12$JEHIXJLnJj.2pofPJ4gCvuWteXKHa6TV1/eMmY66oHs8S0Ty2ggFy",
+)
 
 JWT_BLOCK_TEMPLATE = """\
       wazuh_ai_jwt_auth_domain:
@@ -185,6 +198,17 @@ def main() -> None:
             },
         ],
     }
+    roles["wazuh_ai_responder_role"] = {
+        "reserved": False,
+        "description": "wazuh-ai responder: may confirm manager/AR actions (R6.11)",
+        "cluster_permissions": ["cluster_composite_ops_ro"],
+        "index_permissions": [
+            {
+                "index_patterns": ["wazuh-alerts-*"],
+                "allowed_actions": ["read"],
+            },
+        ],
+    }
     roles_path.write_text(yaml.safe_dump(roles, sort_keys=False))
 
     map_path = workdir / "roles_mapping.yml"
@@ -209,6 +233,11 @@ def main() -> None:
         "users": [DASHBOARD_WRITER_USER],
         "description": "Dashboard executor internal user (D35)",
     }
+    mapping["wazuh_ai_responder_role"] = {
+        "reserved": False,
+        "backend_roles": ["wazuh_ai_responder"],
+        "description": "JWT backend_roles claim -> wazuh-ai responder (R6.11)",
+    }
     map_path.write_text(yaml.safe_dump(mapping, sort_keys=False))
 
     users_path = workdir / "internal_users.yml"
@@ -223,6 +252,27 @@ def main() -> None:
             "hash": DASHBOARD_WRITER_PASSWORD_HASH,
             "reserved": False,
             "description": "wazuh-ai dashboard executor (D35) — gateway only",
+        }
+        users["analyst1"] = {
+            "hash": ANALYST1_PASSWORD_HASH,
+            "reserved": False,
+            "description": "wazuh-ai lab analyst (V3.6)",
+            "backend_roles": [
+                "wazuh_ai_analyst",
+                "wazuh_ai_operator",
+                "wazuh_ai_responder",
+            ],
+        }
+        users["analyst_no_op"] = {
+            "hash": ANALYST_NO_OP_PASSWORD_HASH,
+            "reserved": False,
+            "description": "wazuh-ai lab analyst without operator role (V3.6)",
+            "backend_roles": ["wazuh_ai_analyst"],
+        }
+        users["viewer1"] = {
+            "hash": VIEWER1_PASSWORD_HASH,
+            "reserved": False,
+            "description": "lab user without wazuh-ai roles (negative tests, V3.6)",
         }
         users_path.write_text(yaml.safe_dump(users, sort_keys=False))
 

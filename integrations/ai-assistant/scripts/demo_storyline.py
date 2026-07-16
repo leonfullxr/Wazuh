@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the six-question demo storyline from n8n/README.md via the same API chain.
 
-Uses Keycloak password grant -> shim exchange -> /v1/chat/sync. Prints each
+Uses indexer Basic auth -> shim exchange -> /v1/chat/sync. Prints each
 answer's verifiability label so you can compare with the n8n chat UI before
 recording demo/demo.gif.
 """
@@ -15,9 +15,9 @@ from pathlib import Path
 
 import httpx
 
-KC = os.environ.get("WAI_DEMO_KC_URL", "http://localhost:8085")
 SHIM = os.environ.get("WAI_DEMO_SHIM_URL", "http://localhost:8081")
 SVC = os.environ.get("WAI_DEMO_SVC_URL", "http://localhost:8080")
+ENV_ID = os.environ.get("WAI_DEMO_ENV_ID", "lab")
 TIMEOUT = float(os.environ.get("WAI_DEMO_TIMEOUT_S", "300"))
 
 HERE = Path(__file__).resolve().parent.parent
@@ -25,20 +25,13 @@ GT_PATH = HERE / "golden" / "ground_truth.json"
 
 
 def turn_jwt() -> str:
-    oidc = httpx.post(
-        f"{KC}/realms/wazuh-poc/protocol/openid-connect/token",
-        data={
-            "grant_type": "password",
-            "client_id": "wazuh-ai",
-            "username": "analyst1",
-            "password": "analyst1",
-        },
-        timeout=30,
-    )
-    oidc.raise_for_status()
+    headers: dict[str, str] = {}
+    if ENV_ID:
+        headers["X-Env-Id"] = ENV_ID
     shim = httpx.post(
         f"{SHIM}/v1/token/exchange",
-        headers={"Authorization": f"Bearer {oidc.json()['access_token']}"},
+        auth=("analyst1", "analyst1"),
+        headers=headers,
         timeout=30,
     )
     shim.raise_for_status()

@@ -6,40 +6,23 @@
 #   docker network ls | grep single-node
 
 services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0
-    command: ["start-dev", "--import-realm"]
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
-    volumes:
-      - ./keycloak:/opt/keycloak/data/import:ro
-    ports:
-      - "8085:8080"
-    networks: [wazuh]
-
   auth-shim:
     build: ./auth-shim
     environment:
-      SHIM_TENANT: ${WAI_TENANT:-lab}
-      SHIM_KC_URL: ${KC_URL:-http://keycloak:8080}
-      SHIM_KC_REALM: ${KC_REALM:-wazuh-poc}
-      # Host-facing issuer: Keycloak stamps iss from the request url, and the
-      # analyst/evals authenticate via localhost:8085 while JWKS is fetched
-      # in-network via KC_URL.
-      SHIM_KC_ISSUER: ${KC_ISSUER:-http://localhost:8085/realms/wazuh-poc}
       SHIM_JWT_ISSUER: ${WAI_JWT_ISSUER:-wazuh-ai-shim.lab}
       SHIM_BACKEND_AUDIENCE: ${WAI_JWT_AUDIENCE:-wazuh-ai-backend.lab}
       SHIM_INDEXER_AUDIENCE: ${WAI_JWT_INDEXER_AUDIENCE:-wazuh-indexer.lab}
       SHIM_TTL_SECONDS: ${WAI_JWT_TTL_SECONDS:-600}
       SHIM_REQUIRED_ROLE: wazuh_ai_analyst
+      SHIM_ENVS_FILE: /config/environments.yaml
+      SHIM_INDEXER_VERIFY_SSL: ${WAI_INDEXER_VERIFY_SSL:-false}
       SHIM_CORS_ORIGINS: ${WAI_ACTIONS_CORS_ORIGINS:-https://localhost,http://localhost:5601,https://localhost:5601,http://localhost:8080}
     volumes:
       # The ONLY place the private key is mounted (D30)
       - ./keys:/keys:ro
+      - ./environments.poc.yaml:/config/environments.yaml:ro
     ports:
       - "8081:8081"
-    depends_on: [keycloak]
     networks: [wazuh]
 
   tool-service:
@@ -102,7 +85,7 @@ services:
       WAI_ENV_LAB_AR_EXECUTOR: ${WAI_ENV_LAB_AR_EXECUTOR:-}
       WAI_UI_PUBLIC_BASE_URL: ${WAI_UI_PUBLIC_BASE_URL:-http://localhost:8080}
       WAI_ACTIONS_SHIM_PUBLIC_URL: ${WAI_ACTIONS_SHIM_PUBLIC_URL:-http://localhost:8081}
-      WAI_ACTIONS_KC_PUBLIC_URL: ${WAI_ACTIONS_KC_PUBLIC_URL:-http://localhost:8085}
+      WAI_ACTIONS_ENV_ID: ${WAI_ACTIONS_ENV_ID:-lab}
       WAI_ACTIONS_CORS_ORIGINS: ${WAI_ACTIONS_CORS_ORIGINS:-https://localhost,http://localhost:5601,https://localhost:5601}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}

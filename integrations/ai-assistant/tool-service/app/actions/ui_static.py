@@ -8,9 +8,7 @@ INJECT_JS = r"""
   var CFG = window.WAZUH_AI_ACTIONS_CONFIG || {
     toolServiceUrl: "http://localhost:8080",
     shimUrl: "http://localhost:8081",
-    kcUrl: "http://localhost:8085",
-    kcRealm: "wazuh-poc",
-    kcClient: "wazuh-ai",
+    envId: "lab",
   };
 
   var MARKER_RE = /<!--WAZUH_AI_ACTIONS([A-Za-z0-9_-]*)WAZUH_AI_ACTIONS_END-->/g;
@@ -31,21 +29,12 @@ INJECT_JS = r"""
   }
 
   async function login(username, password) {
-    var body = new URLSearchParams({
-      grant_type: "password",
-      client_id: CFG.kcClient,
-      username: username,
-      password: password,
-    });
-    var oidc = await fetch(
-      CFG.kcUrl + "/realms/" + CFG.kcRealm + "/protocol/openid-connect/token",
-      { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body }
-    );
-    if (!oidc.ok) throw new Error("Keycloak login failed (" + oidc.status + ")");
-    var access = (await oidc.json()).access_token;
     var exchanged = await fetch(CFG.shimUrl + "/v1/token/exchange", {
       method: "POST",
-      headers: { Authorization: "Bearer " + access },
+      headers: {
+        Authorization: "Basic " + btoa(username + ":" + password),
+        "X-Env-Id": CFG.envId || "lab",
+      },
     });
     if (!exchanged.ok) throw new Error("token exchange failed (" + exchanged.status + ")");
     var turn = (await exchanged.json()).access_token;
