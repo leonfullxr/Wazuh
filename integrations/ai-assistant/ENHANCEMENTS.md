@@ -1,7 +1,7 @@
-# wazuh-ai enhancements — implementation spec
+# wazuh-ai enhancements - implementation spec
 
 > **Round 5 (2026-07-15) lives in its own file: [`ARCHITECTURE-V3.md`](ARCHITECTURE-V3.md)**
-> — the Dashboard Assistant edge (ML Commons connector) and the
+> - the Dashboard Assistant edge (ML Commons connector) and the
 > multi-environment MCP-LLM gateway redesign. Implement V3.1 from that file;
 > diagrams in `diagrams/wazuh-ai-v3-gateway.drawio`.
 
@@ -11,14 +11,14 @@ Review output for the local AMD test harness. **Cursor applies P0 + P1** (decisi
 RAG posture (decision 2): **query, don't embed** for tenant telemetry. The typed-tool
 pipeline against the indexer is the retrieval layer. No vector store over alerts.
 Embeddings are used for lane-0 recognition, scope classification, and near-miss
-few-shot hints — not for alert retrieval.
+few-shot hints - not for alert retrieval.
 
-Diagrams: `diagrams/wazuh-ai-enhancements.drawio` (three pages — turn workflow,
+Diagrams: `diagrams/wazuh-ai-enhancements.drawio` (three pages - turn workflow,
 cache/knowledge placement, AMD test harness). Orange = new/changed.
 
 ---
 
-## P0 — eval harness blockers (apply in order)
+## P0 - eval harness blockers (apply in order)
 
 ### P0.1 ROCm GPU for Ollama
 
@@ -29,7 +29,7 @@ cache/knowledge placement, AMD test harness). Orange = new/changed.
 |---|---|
 | `docker-compose.poc.yml` | `image: ollama/ollama:rocm`, `/dev/kfd` + `/dev/dri`, `group_add: [video, render]` |
 | `docker-compose.poc.yml` | `OLLAMA_IMAGE` override for CPU/NVIDIA hosts |
-| `Makefile` | `make ollama-gpu-verify` — `ollama ps` + optional `rocm-smi` |
+| `Makefile` | `make ollama-gpu-verify` - `ollama ps` + optional `rocm-smi` |
 | `.env.example` | Document ROCm defaults |
 
 **Acceptance:** `make ollama-gpu-verify` shows GPU/ROCm in `ollama ps`, not 100% CPU.
@@ -73,7 +73,7 @@ up to evidence budget per tool result → silent truncation.
 
 ---
 
-## P1 — quality and surfaces
+## P1 - quality and surfaces
 
 ### P1.1 Lane-0 near-miss few-shot
 
@@ -106,7 +106,7 @@ up to evidence budget per tool result → silent truncation.
 
 **Acceptance:** `mitre_lookup(T1110)` returns name/tactic/description; no indexer query.
 
-### P1.4–P1.6 Prompt caching
+### P1.4-P1.6 Prompt caching
 
 | File | Change |
 |---|---|
@@ -126,7 +126,7 @@ up to evidence budget per tool result → silent truncation.
 
 ---
 
-## P2 — deferred
+## P2 - deferred
 
 - Persistent conversation store (indexer-backed, D7)
 - Cross-tenant isolation suite in kind
@@ -135,7 +135,7 @@ up to evidence budget per tool result → silent truncation.
 
 ---
 
-## Section 7 — test phase (after P0+P1 land)
+## Section 7 - test phase (after P0+P1 land)
 
 Run in order:
 
@@ -155,12 +155,12 @@ Artifacts: `golden/last_run.json`, `golden/last_run.<model>.json` per bake-off m
 
 ---
 
-## Round 2 — review findings on the P0+P1 implementation (2026-07-14)
+## Round 2 - review findings on the P0+P1 implementation (2026-07-14)
 
 Verdict: structure is right and the 26-case unit suite passes, but there are
-four blockers (R2.0–R2.3) that must land before the test phase. Fix in order.
+four blockers (R2.0-R2.3) that must land before the test phase. Fix in order.
 
-### R2.0 Restore the stashed round-1 hardening — BLOCKER
+### R2.0 Restore the stashed round-1 hardening - BLOCKER
 
 `git stash list` shows `stash@{0}` (WIP on b87bb5e). It holds **endorsed**
 changes this pass was unknowingly built without. Recover with a 3-way apply
@@ -180,16 +180,16 @@ Merge rules per conflicted file (keep BOTH sides):
 | `tool-service/app/llm.py` | `stream_options: {include_usage: true}` | history `cachePoint` |
 | `tool-service/app/main.py` | `_indexer_http_error` 401/403→401, else 502 (both surfaces) | knowledge branch in `call_tool` |
 | `tool-service/app/tools.py` | sharpened `count_alerts` + `auth_failures` descriptions | `mitre_lookup` ToolDef |
-| `tool-service/app/veracity.py` | `executed_window` on Evidence (applies clean) | — |
+| `tool-service/app/veracity.py` | `executed_window` on Evidence (applies clean) | - |
 
 `live_gt.py` then shrinks to what `REF_TOOLS` cannot do: live `top_rule_id`
 and `sample_alert_id` re-resolution. Its admin-credential count refresh is
 superseded (one-shot pre-suite counts reintroduce mid-run drift on slow local
 models; drop those fields from `refresh()`). Drop the stash only after
-`git diff` review, then **commit everything** — uncommitted work got clobbered
+`git diff` review, then **commit everything** - uncommitted work got clobbered
 once already.
 
-### R2.1 `loop.py` missing import — BLOCKER
+### R2.1 `loop.py` missing import - BLOCKER
 
 Lint: `loop.py:224 undefined name 'mitre_lookup'` (the import sits unused in
 `tools.py`). Any model call to the *advertised* `mitre_lookup` tool crashes
@@ -204,10 +204,10 @@ recover from.
 **Acceptance:** ruff/pyflakes F-rules clean on `tool-service/app/`; a chat turn
 asking "what is technique T1110?" returns the catalog entry.
 
-### R2.2 `make bakeoff` never switches models — BLOCKER
+### R2.2 `make bakeoff` never switches models - BLOCKER
 
 `WAI_MODEL_*` env vars only reach `run_evals.py` (artifact labels); the
-tool-service **container** keeps the model it was started with — all three
+tool-service **container** keeps the model it was started with - all three
 artifacts currently grade the same model under different names.
 
 | File | Change |
@@ -217,12 +217,12 @@ artifacts currently grade the same model under different names.
 **Acceptance:** `turn_complete` audit events show a different `model` per
 bake-off leg; `last_run.<model>.json` headers match the model that answered.
 
-### R2.3 Scope classifier fails closed and runs everywhere — BLOCKER
+### R2.3 Scope classifier fails closed and runs everywhere - BLOCKER
 
 Three problems: (a) tie→refuse: `in_scope = in-out ≥ margin` refuses anything
-ambiguous — "hola"/"thanks" now get a hard refusal instead of the friendly
+ambiguous - "hola"/"thanks" now get a hard refusal instead of the friendly
 router reply (regression); (b) enabled by default even with no embeddings
-endpoint — the docstring and `.env.example` claim it inherits `lane0_enabled`
+endpoint - the docstring and `.env.example` claim it inherits `lane0_enabled`
 but the code doesn't, so Bedrock-only deployments eat a failing (up to 30 s)
 embed call on every turn; (c) it also fires on greetings.
 
@@ -239,7 +239,7 @@ embed call on every turn; (c) it also fires on greetings.
 ### R2.4 Embed once per turn
 
 `lane0.match`, `scope.classify` and `lane0.near_miss` each embed the same
-question — three HTTP round trips. Share one memoized embed helper (small
+question - three HTTP round trips. Share one memoized embed helper (small
 `embeddings.py` with an LRU text→vector used by both modules), and derive the
 near-miss from `match()`'s already-computed scores instead of re-embedding.
 
@@ -247,7 +247,7 @@ near-miss from `match()`'s already-computed scores instead of re-embedding.
 
 ### R2.5 Near-miss hint placement
 
-The hint is appended to the **system prompt**, so system varies per question —
+The hint is appended to the **system prompt**, so system varies per question -
 that breaks the cross-turn KV/prompt-cache prefix invariant documented in
 `llm.py` (P1.6). Inject it as a transient user message before the question
 (never saved to `state`), keeping system byte-stable.
@@ -270,13 +270,13 @@ re-mint transparently. Keep `WAI_MCP_JWT` as an override for one-shot use.
 
 **Acceptance:** an MCP session keeps working past the 10-minute mark.
 
-### R2.8 Silently dropped spec items — dispositions
+### R2.8 Silently dropped spec items - dispositions
 
 | Item | Decision |
 |---|---|
-| Grounded-number check (round-1 P1.5) | **Implement now** — it is the veracity thesis. Numbers in a sentence citing `[agg:<name>]` must equal a value reachable under that agg (total, bucket count, zero-hit probe). Mismatch → existing `correction` event with `kind="number"`. While there: add the `kb` citation kind — `CITATION_RE` gains `kb`, valid iff that technique id was returned by `mitre_lookup` this turn; knowledge branch adds its tool name to `agg_names`. |
-| Parallel tool calls + zero-hit probes (round-1 P1.7) | Defer to P2 — latency-only, fine. |
-| Surface `cacheReadInputTokens`/`cacheWriteInputTokens` into `usage` (P1.1 acceptance) | Implement now — without it the Bedrock cache is unverifiable (ledger Q4). |
+| Grounded-number check (round-1 P1.5) | **Implement now** - it is the veracity thesis. Numbers in a sentence citing `[agg:<name>]` must equal a value reachable under that agg (total, bucket count, zero-hit probe). Mismatch → existing `correction` event with `kind="number"`. While there: add the `kb` citation kind - `CITATION_RE` gains `kb`, valid iff that technique id was returned by `mitre_lookup` this turn; knowledge branch adds its tool name to `agg_names`. |
+| Parallel tool calls + zero-hit probes (round-1 P1.7) | Defer to P2 - latency-only, fine. |
+| Surface `cacheReadInputTokens`/`cacheWriteInputTokens` into `usage` (P1.1 acceptance) | Implement now - without it the Bedrock cache is unverifiable (ledger Q4). |
 
 ### R2.9 Seed delete robustness (minor)
 
@@ -291,20 +291,20 @@ features silently no-op (and with R2.3 fixed, that no-op is at least safe).
 
 ---
 
-## Round 3 — Track B: kind cluster and the cross-tenant isolation suite
+## Round 3 - Track B: kind cluster and the cross-tenant isolation suite
 
 **Status: done (July 2026).** `make kind-up kind-tenants kind-isolation` exits 0
 with the docker Wazuh stack on the host; all four assertions pass. kindnet
-(default CNI) enforces NetworkPolicy on this kernel — Calico install script
+(default CNI) enforces NetworkPolicy on this kernel - Calico install script
 remains optional (`kind/install-calico.sh`) if a stricter CNI is needed.
 
-Status of rounds 1–2: shipped and validated (golden 9/9 lane-0-on; bake-off
+Status of rounds 1-2: shipped and validated (golden 9/9 lane-0-on; bake-off
 matrix in `golden/last_run.*.json`; results note
 `Notes/Obsidian/Wazuh/wazuh-ai/15-local-validation-results.md`). Track B is
 the notes' declared next stage (13 §7): move the SAME container images into a
 kind cluster with two tenant namespaces and prove the isolation story that
 Compose cannot express. Cursor implements; scope below is deliberately
-minimal — this demonstrates isolation primitives, not production packaging.
+minimal - this demonstrates isolation primitives, not production packaging.
 
 ### B1. Cluster and layout
 
@@ -315,7 +315,7 @@ minimal — this demonstrates isolation primitives, not production packaging.
 | `Makefile` | `kind-up`, `kind-tenants`, `kind-isolation`, `kind-down` targets |
 
 Keep the Wazuh stack and Ollama on the host (docker), reachable from kind via
-the host gateway — running Wazuh inside kind proves nothing new and costs
+the host gateway - running Wazuh inside kind proves nothing new and costs
 10 GB. The cluster runs only what multi-tenancy changes: per-tenant auth-shim
 and tool-service.
 
@@ -329,23 +329,23 @@ and tool-service.
 
 Per tenant: own RSA keypair (the mint key is the tenant boundary, D30), own
 `WAI_TENANT` value, own `SHIM_KC_ISSUER`. The container images are the ones
-`docker compose build` produces — load them with `kind load docker-image`;
+`docker compose build` produces - load them with `kind load docker-image`;
 zero image changes allowed (that is the point of D36's "same containers").
 
 Indexer note: the lab indexer's JWT auth domain trusts one public key. Give
 tenant-b's tool-service a syntactically valid but indexer-untrusted keypair
 and the isolation suite gains a free extra assertion: tenant-b can pass
 service-level auth yet still cannot read telemetry the indexer does not trust
-its key for. Document this asymmetry in `kind/README.md` — per-tenant
+its key for. Document this asymmetry in `kind/README.md` - per-tenant
 indexers are an AWS-stage concern, deliberately out of scope.
 
 ### B3. NetworkPolicy walls
 
 | File | Change |
 |---|---|
-| `kind/tenants/<t>/netpol.yaml` | Default-deny ingress+egress; allow DNS; allow same-namespace; allow egress to host indexer/Ollama CIDR (no Keycloak — removed V3.6); allow ingress from the NodePort |
+| `kind/tenants/<t>/netpol.yaml` | Default-deny ingress+egress; allow DNS; allow same-namespace; allow egress to host indexer/Ollama CIDR (no Keycloak - removed V3.6); allow ingress from the NodePort |
 
-kind's default CNI (kindnetd) does not enforce NetworkPolicy — install a CNI
+kind's default CNI (kindnetd) does not enforce NetworkPolicy - install a CNI
 that does (Calico is the boring choice) in `kind-up`, or the walls are
 decorative.
 
@@ -363,7 +363,7 @@ Assertions, each observable and audited:
    tool-service → 401/403 at signature or tenant-claim check, and the
    `cross_tenant_token_rejected` audit event is emitted (assert on pod logs).
 3. **Cross-namespace network**: a curl pod in tenant-a cannot reach
-   `tool-service.tenant-b.svc` (connection timeout, not 403 — the wall, not
+   `tool-service.tenant-b.svc` (connection timeout, not 403 - the wall, not
    the guard).
 4. **Golden set still green**: `run_evals.py` pointed at tenant-a's NodePort
    passes, proving the k8s move changed no behavior (parameterize the
@@ -392,7 +392,7 @@ stopped manually; audit emits `llm_unreachable`.
 
 `n8n/README.md` gains a "what the answer shows" section (labels for lane 0 /
 scope classifier / cache disclosure, corrections rendering) and a scripted
-demo storyline for re-recording `demo/demo.gif` — see the file; execution is
+demo storyline for re-recording `demo/demo.gif` - see the file; execution is
 a human-with-a-screen-recorder task. **Partially done:** committed
 `n8n/wazuh-ai-chat.workflow.json`, `make demo-storyline`, and
 `scripts/demo_storyline.py` for headless validation; `demo.gif` recording
@@ -400,7 +400,7 @@ still manual.
 
 ---
 
-## Round 4 — Track C: environment awareness and in-cluster embeddings
+## Round 4 - Track C: environment awareness and in-cluster embeddings
 
 Decision context (Leon, 2026-07-14). The n8n edge lacks environment context
 (dashboards, index state, agent inventory), and the question was whether to
@@ -415,31 +415,31 @@ HTTP connector → an MCP-LLM gateway). Reviewed against the live stack and
   Everything in Track C must work against the ML Commons 2.19 API surface;
   3.x-only features (MCP client, built-in MCP server, assistant UI) are out
   of scope and must not be designed against.
-- Architecture ruling: the "MCP-LLM gateway" already exists — it is the
+- Architecture ruling: the "MCP-LLM gateway" already exists - it is the
   tool-service. ML Commons as orchestrator would hold a standing credential
   inside the cluster (breaks D11/D30: queries-as-the-analyst, no hop trusts
   unverified identity) and re-couples orchestration to OpenSearch against the
   ClickHouse pivot (note 09). The loop stays in the tool-service (D28).
   If a future Wazuh rebases onto 3.x, the Dashboards Assistant may become an
   *edge only* via an HTTP connector into `/v1/chat/sync`, gated on the
-  connector forwarding the analyst's own credential — tracked, not built.
+  connector forwarding the analyst's own credential - tracked, not built.
 
 ### C1. Environment tools (the actual gap)
 
 New read-only lane-1 tools, same registry, same audit, executed with the
 analyst's turn JWT. Two kinds:
 
-**C1a. `list_agents` — through the normal IR path.** Terms aggregation on
+**C1a. `list_agents` - through the normal IR path.** Terms aggregation on
 `agent.name` over the window, plus last-seen. Requires one minimal IR
 extension: an optional `last_seen: bool` on `IRAggregation(kind="terms")`
 that compiles to a `max` sub-aggregation on `timestamp`; buckets gain a
 `last_seen` field. Validation unchanged (timestamp is not a caller-supplied
-field). Do NOT add a generic metric-agg system — one flag, one sub-agg.
+field). Do NOT add a generic metric-agg system - one flag, one sub-agg.
 
-**C1b. `index_health` and `list_dashboards` — environment lookups.** These
+**C1b. `index_health` and `list_dashboards` - environment lookups.** These
 are not alerts-index IR queries, so they get a small `environment.py` module
 (the `knowledge.py` pattern): each tool calls ONE hardcoded indexer endpoint
-with the analyst JWT — no generic passthrough, the endpoint allowlist is the
+with the analyst JWT - no generic passthrough, the endpoint allowlist is the
 module.
 
 | Tool | Endpoint | Returns |
@@ -450,9 +450,9 @@ module.
 Both need explicit, scoped grants added to `wazuh_ai_analyst_role` in
 `securityconfig/`: `indices:monitor/*` on `wazuh-alerts-*` for the first,
 read on the dashboard saved-objects index for the second (verify the index
-name on the live fork — `.kibana*` on the wazuh-dashboard). Call the grants
+name on the live fork - `.kibana*` on the wazuh-dashboard). Call the grants
 out in the securityconfig comments: still read-only, still index-scoped, and
-`list_dashboards` intentionally exposes shared dashboard *titles* only —
+`list_dashboards` intentionally exposes shared dashboard *titles* only -
 projected fields are the privacy boundary.
 
 Loop integration mirrors the knowledge branch: `environment=True` on the
@@ -486,10 +486,10 @@ dying took every lane down on 2026-07-14) with an embeddings *port*:
 |---|---|
 | `tool-service/app/embeddings.py` | `WAI_EMBED_PROVIDER=openai` (default, unchanged) or `mlcommons` → `POST _plugins/_ml/models/{WAI_EMBED_ML_MODEL_ID}/_predict` (text_embedding), forwarding the analyst JWT |
 | `tool-service/app/config.py` | `embed_provider`, `embed_ml_model_id` |
-| `securityconfig/` | grant the ml predict action to `wazuh_ai_analyst_role` (per-user, no standing credential — verify the exact 2.19 action name) |
-| `scripts/mlcommons_embed_setup.sh` + Makefile `embed-mlcommons` | one-time admin setup: cluster settings (`plugins.ml_commons.only_run_on_ml_node: false`), register + deploy a pretrained BILINGUAL model — `huggingface/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` from the OpenSearch pretrained list (verify availability on 2.19.5) |
+| `securityconfig/` | grant the ml predict action to `wazuh_ai_analyst_role` (per-user, no standing credential - verify the exact 2.19 action name) |
+| `scripts/mlcommons_embed_setup.sh` + Makefile `embed-mlcommons` | one-time admin setup: cluster settings (`plugins.ml_commons.only_run_on_ml_node: false`), register + deploy a pretrained BILINGUAL model - `huggingface/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` from the OpenSearch pretrained list (verify availability on 2.19.5) |
 
-Notes: lane-0/scope thresholds are calibrated per embedding model — re-verify
+Notes: lane-0/scope thresholds are calibrated per embedding model - re-verify
 `WAI_LANE0_THRESHOLD`/near-miss floor against the golden set after switching
 (the corpus vectors and question vectors change together, but absolute cosine
 ranges differ between bge-m3 and MiniLM). Mind the single-node JVM: the model

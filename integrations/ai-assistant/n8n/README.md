@@ -101,7 +101,7 @@ one string.
 
 ## Dashboard alert deep link (C2 / D34)
 
-No plugin code — configure a URL column on the Wazuh dashboard alerts table
+No plugin code - configure a URL column on the Wazuh dashboard alerts table
 so analysts can open the chat pre-seeded with one alert.
 
 ### n8n chat URL (webhook variant)
@@ -131,7 +131,7 @@ http://localhost:5678/webhook/<your-n8n-webhook-path>?alert_id={{value}}
 ```
 
 Or, if using the committed Chat Trigger public URL with a thin relay workflow,
-open the hosted chat and paste — for a one-click experience, point the URL at
+open the hosted chat and paste - for a one-click experience, point the URL at
 an n8n webhook workflow that forwards `alert_id` into the `Ask wazuh-ai` body
 as shown above.
 
@@ -140,4 +140,4 @@ that alert with `[alert:<id>]` and, when rule metadata includes MITRE tags,
 `[kb:T####]` citations from `mitre_lookup`.
 
 **Privacy:** the link carries only the alert document id already visible in
-the table — no extra PII in the URL.
+the table - no extra PII in the URL.

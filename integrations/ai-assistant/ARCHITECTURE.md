@@ -1,9 +1,9 @@
-# wazuh-ai — architecture (current, consolidated)
+# wazuh-ai - architecture (current, consolidated)
 
 This is the single authoritative description of the system as built. It
 supersedes the phase documents for "what is the current design"; those
 (`ARCHITECTURE-V3.md`, `ARCHITECTURE-V3.5-ACTIONS.md`, `ARCHITECTURE-V3.8-UX.md`,
-`ENHANCEMENTS.md`) remain as the implementation record — the per-phase Cursor
+`ENHANCEMENTS.md`) remain as the implementation record - the per-phase Cursor
 instructions, review findings, and rationale that got us here. Diagrams:
 [`diagrams/wazuh-ai-v3-gateway.drawio`](diagrams/wazuh-ai-v3-gateway.drawio)
 (topology) and
@@ -20,7 +20,7 @@ verifies every citation and number against what was actually retrieved. Write
 operations are proposed by the model and executed only after a human confirms,
 under a credential the model never holds.
 
-## 2. Topology — two edges, one gateway, N environments
+## 2. Topology - two edges, one gateway, N environments
 
 ```
 Dashboard Assistant (in Wazuh Dashboard) ─ ML Commons connector ─┐
@@ -42,7 +42,7 @@ n8n · direct API · MCP · confirm UI ─ auth-shim (turn JWT) ─────�
   but replace its query-writing gateway with this veracity core (D44: the
   gateway and MCP surface are one deployable over one tool registry).
 - **One gateway serves many environments (D43).** A per-environment credential
-  — never the request payload (D6) — resolves through the environment registry
+  - never the request payload (D6) - resolves through the environment registry
   to that environment's indexer, CA, reader principal, action tiers, and
   budgets. Admission (D14), evidence cache, lane-0 vectors, audit, and the kill
   switch are all per-environment. The PoC runs one environment (`lab`); every
@@ -56,12 +56,12 @@ n8n · direct API · MCP · confirm UI ─ auth-shim (turn JWT) ─────�
 
 | Edge | Runs as | Verified by |
 |---|---|---|
-| Dashboard Assistant (connector) | `wazuh_ai_env_reader` — per-env, read-only (D42) | per-env `X-Env-Key` in the ML Commons connector → env registry |
+| Dashboard Assistant (connector) | `wazuh_ai_env_reader` - per-env, read-only (D42) | per-env `X-Env-Key` in the ML Commons connector → env registry |
 | n8n · direct API · MCP · confirm UI | the analyst, per-user (D11) | indexer Basic creds → auth-shim `authinfo` verify → turn JWT ≤10 min (D52) |
 
 - The **auth-shim** is the only holder of the mint key; the core verifies with
   the public key and never mints (D30). Identity is verified against each
-  **environment's own indexer** (`_plugins/_security/authinfo`) — there is no
+  **environment's own indexer** (`_plugins/_security/authinfo`) - there is no
   external IdP (D52; Keycloak was the earlier stand-in, removed in V3.6).
 - The `tenant` claim is proven by *which* environment's authinfo accepted the
   credentials, never asserted by the payload (D6).
@@ -70,7 +70,7 @@ n8n · direct API · MCP · confirm UI ─ auth-shim (turn JWT) ─────�
   The dashboard edge's read-only downgrade is disclosed in every answer's
   label (`· environment-scoped identity`) and in audit (`claimed_user=null`).
 
-## 4. A read turn — the lane cascade
+## 4. A read turn - the lane cascade
 
 Order is by verifiability; each rung escalates only if the cheaper one cannot
 answer. Language of the answer follows `detect(question)` (V3.8a), and an
@@ -80,15 +80,15 @@ model runs (fails open).
 1. **Lane 0 (D40):** one embedding matches the question to a curated bilingual
    template → typed IR → executed with no model in the loop; a near-miss just
    under threshold becomes a few-shot hint instead of being discarded.
-2. **Lane 1:** the model picks **typed tools** with schema-validated params —
+2. **Lane 1:** the model picks **typed tools** with schema-validated params -
    never free-form queries (D4). Catalog: alerts (`count_alerts`,
    `auth_failures`, `brute_force_summary`, `top_rules`, `search_alerts`,
-   `alert_histogram`), knowledge (`mitre_lookup` — exact ATT&CK id, no
+   `alert_histogram`), knowledge (`mitre_lookup` - exact ATT&CK id, no
    embeddings), environment (`list_agents`, `index_health`, `list_dashboards`),
    states (`count_vulnerabilities` over `wazuh-states-vulnerabilities-*`, its
    own allowlist).
 3. **Lane 2:** the model emits a typed **Query IR**, allowlist-checked and
-   compiled to OpenSearch DSL server-side — no scripts, regexp, or wildcards
+   compiled to OpenSearch DSL server-side - no scripts, regexp, or wildcards
    (D22/D29). Lane 3 (free generation) stays off (D32).
 
 **Per-turn context** (transient, never in the cached prelude, so prompt-cache
@@ -101,7 +101,7 @@ validation, (2) dry-run, (3) execute as the principal, (4) zero-hit
 differential diagnosis. Counts come from the datastore, never from the model
 counting a list. The IR-keyed evidence cache is always disclosed
 (`served_from_cache`, D41). "Query, don't embed": tenant telemetry is never
-vectorized (D4/D5) — the only embeddings are over questions and curated
+vectorized (D4/D5) - the only embeddings are over questions and curated
 exemplars.
 
 **Answer assembly:** citation verification (`[alert]`/`[agg]`/`[kb]` must have
@@ -117,19 +117,19 @@ directly.
 
 - **Two phases (D20):** the model calls a `propose_*` tool (typed schema +
   preview) → a proposal card, nothing executed. A human confirms; only then
-  does a **per-tier executor credential — never the model (D35)** — run it.
+  does a **per-tier executor credential - never the model (D35)** - run it.
   Executors: dashboard (saved-objects via the Dashboards API), manager
   (`agent:restart`), active-response (`active-response:command`), each a
   least-privilege Wazuh user, mutually exclusive.
 - **Confirmation** is either `POST /v1/actions/{id}/confirm` (operator JWT) or
-  a conversational **"yes"/"no"** — a deterministic bilingual intent match
+  a conversational **"yes"/"no"** - a deterministic bilingual intent match
   *outside* the model (D54). On direct edges the JWT's tier role
   (`wazuh_ai_operator` / `wazuh_ai_responder`) authorizes; on the dashboard
   edge a "yes" executes under the environment principal (**D53**, Leon's
-  explicit trust decision: dashboard access is the authority — a documented
+  explicit trust decision: dashboard access is the authority - a documented
   lowering of D42/D48).
 - **Guardrails that always hold:** per-environment tier opt-in (deny by
-  default — an env that hasn't enabled a tier can't even propose it),
+  default - an env that hasn't enabled a tier can't even propose it),
   high-risk actions require echoing the target, idempotency (D49, replays and
   cross-proposal key reuse handled), per-tier rate caps, and full audit. Risk
   tiers gate UX (D51). The action catalog is code, not prompt (D50).
@@ -139,7 +139,7 @@ directly.
 Structured JSON audit per token rejection, tool call, turn, proposal, and
 confirm (D8); Prometheus counters/histograms by lane, tool, outcome, tokens,
 latency. Admission is one stream per user, a per-tenant semaphore, and honest
-429s — no silent downgrades (D14). Honest failure modes: 503 when the
+429s - no silent downgrades (D14). Honest failure modes: 503 when the
 inference backend is unreachable, 401 when the indexer rejects a turn
 credential, per-tenant kill switch.
 
@@ -166,7 +166,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D26 | Local-render and cloud-synthesis modes | active |
 | D28 | n8n (and every edge) is edge-only; the gateway owns the loop | active |
 | D30 | Minting lives in the auth-shim sidecar; the core verifies, never mints | active |
-| D32 | Lanes 1–2 ship with all checks; lane 3 (free generation) stays off | active |
+| D32 | Lanes 1-2 ship with all checks; lane 3 (free generation) stays off | active |
 | D33 | The bilingual golden set is a CI gate | active |
 | D34 | Explain-this-alert via a deep link (`alert_id`) | active |
 | D35 | Per-action-tier executor principals, least privilege | active |
@@ -178,7 +178,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D44 | Gateway and MCP surface are one deployable over one registry | active |
 | D45 | Connector-edge conversation memory belongs to ML Commons | active |
 | D46 | Local-first inference under a 16 GB budget; in-cluster embeddings | active |
-| D47 | ~~Write operations deferred, not in v3~~ | **superseded** — actions shipped (D20) |
+| D47 | ~~Write operations deferred, not in v3~~ | **superseded** - actions shipped (D20) |
 | D48 | ~~Propose on every edge; confirm on direct edges only~~ | **superseded by D53** |
 | D49 | Idempotency on every confirm | active |
 | D50 | Action catalog is code, not prompt | active |
@@ -200,13 +200,14 @@ and the stdio MCP adapter (`mcp/`). Full configuration knob reference is in
 | For | Read |
 |---|---|
 | Current design (this) | `ARCHITECTURE.md` |
-| Multi-env gateway + connector edge + identity, phase instructions | `ARCHITECTURE-V3.md` (V3.1–V3.7) |
+| Multi-env gateway + connector edge + identity, phase instructions | `ARCHITECTURE-V3.md` (V3.1-V3.7) |
 | Actions design + Round-6 review findings | `ARCHITECTURE-V3.5-ACTIONS.md` |
 | Language fix, Keycloak removal, conversational confirm | `ARCHITECTURE-V3.8-UX.md` |
 | Pre-v3 enhancement passes (lanes, RAG posture, local models, kind) | `ENHANCEMENTS.md` |
 | Topology diagram (labelled) | `diagrams/wazuh-ai-v3-gateway.drawio` |
 | Turn-workflow diagram (labelled) | `diagrams/wazuh-ai-v3-workflow.drawio` |
 | Icon-forward topology + turn flow | `diagrams/wazuh-ai-v3-icons.drawio` |
+| Self-hosted PoC deployment (this box) + posture comparison | `diagrams/wazuh-ai-selfhosted.drawio` |
 | Original self-hosted PoC decks (historical) | `diagrams/wazuh-ai-poc-architecture.drawio`, `wazuh-ai-enhancements.drawio` |
 
 ## 10. Deferred / roadmap

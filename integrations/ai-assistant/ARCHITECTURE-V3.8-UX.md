@@ -1,24 +1,24 @@
 <!-- HISTORICAL / IMPLEMENTATION RECORD. Current design: ARCHITECTURE.md.
-     This doc keeps the V3.8 phase instructions and rationale (D52–D54). -->
+     This doc keeps the V3.8 phase instructions and rationale (D52-D54). -->
 
-# wazuh-ai v3.8 — language fidelity, Keycloak removal, conversational confirm
+# wazuh-ai v3.8 - language fidelity, Keycloak removal, conversational confirm
 
 Date: 2026-07-16 · Author: Claude (reviewer) · Implementer: Cursor
-Three targeted changes requested by Leon. New decisions D53–D54.
+Three targeted changes requested by Leon. New decisions D53-D54.
 
 **How to use this file (Cursor):** V3.8a and V3.8b are self-contained; do them
 first. V3.8c changes the actions trust model with an explicit, documented
-security trade-off — read §3.0 before writing code. Keep D-tag comments. Every
+security trade-off - read §3.0 before writing code. Keep D-tag comments. Every
 change that touches an answer or an action path gets a golden case (D33).
 
 ---
 
-## 1. V3.8a — Language fidelity (bug fix)
+## 1. V3.8a - Language fidelity (bug fix)
 
 **Symptom:** an English question sometimes gets a Spanish answer.
 
 **Root cause (confirmed in code):** `lane0.render_local` chooses the answer
-language from `match_.exemplar.lang` — the language of the *matched exemplar*,
+language from `match_.exemplar.lang` - the language of the *matched exemplar*,
 not the user's question. The embedding model (bge-m3 / MiniLM) is cross-lingual,
 so an English question routinely matches the Spanish half of an exemplar pair
 above the 0.80 threshold, and lane 0 then renders Spanish. The model loop has a
@@ -26,18 +26,18 @@ weaker version of the same issue: the only language instruction is the static
 "Answer in the user's language", with no per-turn signal, so Spanish
 conversation history or a Spanish near-miss hint can pull it over.
 
-**Fix — one shared detector, three call sites:**
+**Fix - one shared detector, three call sites:**
 
 | File | Change |
 |---|---|
 | `tool-service/app/language.py` (new) | `detect(text) -> "es" | "en"`: deterministic, no model. Spanish if the text has Spanish-only diacritics (`ñ`, `¿`, `¡`), or ≥2 Spanish stopword/question-word hits (`qué, cuánto/a/s, cuál, cómo, cuándo, dónde, alertas, agentes, fallos, reglas, muéstrame, últim*`) outstripping English hits; else English. Bounded word lists, unit-tested with the golden questions. |
-| `tool-service/app/lane0.py` | `render_local` takes the **question** (or a resolved `lang`) and renders from `detect(question)`, never `exemplar.lang`. Thread the original `text` from `run_turn` into the render call (the `Lane0Analysis`/`Lane0Match` already flows there — add `question` to it or pass `text` alongside). Keep the `_STR["en"|"es"]` tables. |
+| `tool-service/app/lane0.py` | `render_local` takes the **question** (or a resolved `lang`) and renders from `detect(question)`, never `exemplar.lang`. Thread the original `text` from `run_turn` into the render call (the `Lane0Analysis`/`Lane0Match` already flows there - add `question` to it or pass `text` alongside). Keep the `_STR["en"|"es"]` tables. |
 | `tool-service/app/loop.py` | Scope-refusal language: replace the `re.search(r"\b(que|cuant|cual|como)\b", …)` heuristic with `language.detect(text)`. |
-| `tool-service/app/loop.py` | Model loop: inject a per-turn line **into the transient context block** (where the env card / near-miss hint already ride — NOT the static prelude, so the prompt-cache prefix stays byte-stable): `"Reply entirely in {en=English|es=Spanish}. The user's message is in that language."` Placed after the static prefix as a system/user transient message. |
+| `tool-service/app/loop.py` | Model loop: inject a per-turn line **into the transient context block** (where the env card / near-miss hint already ride - NOT the static prelude, so the prompt-cache prefix stays byte-stable): `"Reply entirely in {en=English|es=Spanish}. The user's message is in that language."` Placed after the static prefix as a system/user transient message. |
 
 **Guard for both edges:** the connector edge composes history into
 `${parameters.prompt}`; `detect()` runs on the full inbound text, which is fine
-— the latest user line dominates the word counts in practice, and the explicit
+- the latest user line dominates the word counts in practice, and the explicit
 instruction resolves ties.
 
 **Golden (D33):** add a case where an English question is a known cross-lingual
@@ -48,18 +48,18 @@ These fail today and pass after the fix.
 
 ---
 
-## 2. V3.8b — Fully remove Keycloak
+## 2. V3.8b - Fully remove Keycloak
 
 The compose service and `keycloak/` realm export are already gone (V3.6). What
 remains is dead config, backward-compat fallbacks, one **functionally broken**
-UI path, and stale doc/diagram references. Remove all of it — no OIDC fallback
+UI path, and stale doc/diagram references. Remove all of it - no OIDC fallback
 kept (D52 is final: identity is the environment's own indexer via authinfo).
 
-### 2a. Functional (do first — the confirm UI is currently broken)
+### 2a. Functional (do first - the confirm UI is currently broken)
 
 `tool-service/app/actions/ui_static.py` still performs an OIDC **password grant
 against Keycloak** (`${kcUrl}/realms/${kcRealm}/protocol/openid-connect/token`)
-then exchanges — against a Keycloak that no longer exists, so operator sign-in
+then exchanges - against a Keycloak that no longer exists, so operator sign-in
 in the confirm card is dead. Rewrite `login()` to the V3.6 chain:
 
 ```js
@@ -83,8 +83,8 @@ setJwt((await exchanged.json()).access_token);
 | File | Remove |
 |---|---|
 | `.env`, `.env.example` | the whole `KC_ADMIN / KC_ADMIN_PASSWORD / KC_REALM / KC_CLIENT_ID / KC_URL` block and its "Keycloak (the customer IdP stand-in)" heading |
-| `mcp/server.py` | `WAI_MCP_KC_USER` / `WAI_MCP_KC_PASSWORD` fallbacks — keep only `WAI_MCP_USER` / `WAI_MCP_PASSWORD` |
-| `golden/run_evals.py`, `golden/run_evals_actions.py` | `WAI_EVAL_KC_USER` / `WAI_EVAL_KC_PASSWORD` fallbacks — keep `WAI_EVAL_USER` / `WAI_EVAL_PASSWORD` |
+| `mcp/server.py` | `WAI_MCP_KC_USER` / `WAI_MCP_KC_PASSWORD` fallbacks - keep only `WAI_MCP_USER` / `WAI_MCP_PASSWORD` |
+| `golden/run_evals.py`, `golden/run_evals_actions.py` | `WAI_EVAL_KC_USER` / `WAI_EVAL_KC_PASSWORD` fallbacks - keep `WAI_EVAL_USER` / `WAI_EVAL_PASSWORD` |
 | `golden/actions.yaml` | the `confirm_user … Keycloak` comment wording |
 | `kind/host-gateway.sh` | "Keycloak" in the comment (the service is gone from kind too) |
 
@@ -93,9 +93,9 @@ setJwt((await exchanged.json()).access_token);
 | File | Change |
 |---|---|
 | `README.md` §4 | Identity chain narrative: analyst Basic creds → shim verifies via the environment's indexer `authinfo` → turn JWT ≤10 min → core + indexer verify. Remove the Keycloak password-grant curl; replace with the Basic→shim call. Remove Keycloak from the §1 component table and the "what runs where" mermaid. |
-| `ENHANCEMENTS.md`, `ARCHITECTURE-V3.md`, `ARCHITECTURE-V3.5-ACTIONS.md` | Purge remaining Keycloak mentions or mark them explicitly historical ("v1/v2 used Keycloak; removed in V3.6"). Do not rewrite settled history — annotate. |
+| `ENHANCEMENTS.md`, `ARCHITECTURE-V3.md`, `ARCHITECTURE-V3.5-ACTIONS.md` | Purge remaining Keycloak mentions or mark them explicitly historical ("v1/v2 used Keycloak; removed in V3.6"). Do not rewrite settled history - annotate. |
 | `diagrams/wazuh-ai-v3-gateway.drawio` | Already Keycloak-free (V3.6); verify no stray "Keycloak" label remains except an optional "(replaces the former Keycloak stand-in)" note. |
-| `diagrams/wazuh-ai-poc-architecture.drawio`, `diagrams/wazuh-ai-enhancements.drawio` | These are **historical snapshot decks** (v1 PoC, round-1 enhancements). Add a title-line note "HISTORICAL — identity now via indexer authinfo (V3.6), no Keycloak" rather than rescreenshotting the whole deck. The current-truth diagram is `wazuh-ai-v3-gateway.drawio`. If PNG exports are regenerated, do the identity diagram (`2-turn-data-flow`) too. |
+| `diagrams/wazuh-ai-poc-architecture.drawio`, `diagrams/wazuh-ai-enhancements.drawio` | These are **historical snapshot decks** (v1 PoC, round-1 enhancements). Add a title-line note "HISTORICAL - identity now via indexer authinfo (V3.6), no Keycloak" rather than rescreenshotting the whole deck. The current-truth diagram is `wazuh-ai-v3-gateway.drawio`. If PNG exports are regenerated, do the identity diagram (`2-turn-data-flow`) too. |
 
 **Acceptance:** `grep -rIi keycloak integrations/ai-assistant --exclude-dir=.wazuh-docker`
 returns only explicit "historical / removed in V3.6" annotations; the confirm
@@ -104,15 +104,15 @@ test`, `make evals`, `make evals-actions`, `make evals-connector` all green.
 
 ---
 
-## 3. V3.8c — Conversational confirm ("yes" / "confirm")
+## 3. V3.8c - Conversational confirm ("yes" / "confirm")
 
 Requested UX: when the assistant proposes a write/delete/PUT/POST action and
 the user replies "confirm" or "yes", the assistant proceeds; "no" cancels.
 
-### 3.0 Trust model — read before coding
+### 3.0 Trust model - read before coding
 
 The current design (D20/D48) executes actions only through
-`POST /v1/actions/{id}/confirm` carrying an operator/responder **JWT** — chat
+`POST /v1/actions/{id}/confirm` carrying an operator/responder **JWT** - chat
 text is a trigger, never authorization. Conversational confirm keeps that on the
 direct edges. On the **dashboard connector edge** there is no verified per-user
 identity (D42: turns run as the env reader), so a chat "yes" cannot be tied to a
@@ -120,7 +120,7 @@ person.
 
 **Leon's decision (2026-07-16): on the connector edge, execute on "yes",
 trusting dashboard access as the authority.** This is recorded as **D53** and is
-a deliberate, accepted lowering of D42/D48 — NOT an oversight. The security bar
+a deliberate, accepted lowering of D42/D48 - NOT an oversight. The security bar
 on that edge becomes: *anyone who can open the dashboard Assistant chat can
 trigger the action tiers that environment has opted into.* That is acceptable
 because Wazuh dashboard access is already gated to trusted operators, and it is
@@ -134,7 +134,7 @@ bounded by the mitigations in §3.3 which stay MANDATORY.
   `sí, si, confirmar, confirmo, adelante, procede, hazlo, dale`
 - Negate: `no, cancel, stop, abort, nope, cancela, cancelar, detente, para`
 - Match only when the message is *essentially just* the affirmation/negation
-  (short, or affirmation + the action's target tokens) — a substantive new
+  (short, or affirmation + the action's target tokens) - a substantive new
   question must never be swallowed. Anything else → normal turn (proposal stays
   pending until its TTL).
 
@@ -158,7 +158,7 @@ is a safe replay, D49). The assistant's reply reports the executor result
 verbatim (created / restarted / executed, or the honest error) and MUST NOT
 claim success the executor did not return.
 
-### 3.3 Authorization by edge — mandatory guardrails
+### 3.3 Authorization by edge - mandatory guardrails
 
 | Edge | "yes" authorizes because | Guardrails that STAY |
 |---|---|---|
@@ -206,10 +206,10 @@ execute. Low/medium accept a bare "yes".
 | `WAI_CONFIRM_WINDOW_S` | `300` | Fallback pending-proposal window when no conversation id (connector edge) |
 
 The `/v1/actions/{id}/confirm` API and the UI card remain as the
-higher-assurance path and for programmatic use — conversational confirm is
+higher-assurance path and for programmatic use - conversational confirm is
 additive, not a replacement.
 
-### 3.8 Golden (D33) — `golden/actions.yaml`
+### 3.8 Golden (D33) - `golden/actions.yaml`
 
 - direct: propose dashboard → "yes" → executed; propose → "no" → rejected.
 - connector edge: propose (env with `dashboard` tier) → "yes" → executed under
@@ -227,7 +227,7 @@ additive, not a replacement.
 
 | Tag | Decision |
 |---|---|
-| D53 | On the dashboard connector edge, a conversational "yes"/"confirm" executes the pending action under the environment principal — dashboard access is accepted as the authority (Leon, 2026-07-16). A deliberate, documented lowering of D42/D48, bounded by per-env tier opt-in, high-risk target echo, rate caps, idempotency, and full audit (`claimed_user=null`). Revisit if verifiable per-user identity reaches the connector edge (OQ-V3-4). |
+| D53 | On the dashboard connector edge, a conversational "yes"/"confirm" executes the pending action under the environment principal - dashboard access is accepted as the authority (Leon, 2026-07-16). A deliberate, documented lowering of D42/D48, bounded by per-env tier opt-in, high-risk target echo, rate caps, idempotency, and full audit (`claimed_user=null`). Revisit if verifiable per-user identity reaches the connector edge (OQ-V3-4). |
 | D54 | Confirmation is a deterministic, bilingual intent match outside the model; the model proposes and instructs, it never self-authorizes execution. High-risk requires echoing the target, never a bare affirmation. |
 
 ## 5. Diagram delta
@@ -235,7 +235,7 @@ additive, not a replacement.
 `diagrams/wazuh-ai-v3-gateway.drawio`: on the turn-flow, add the branch
 "pending proposal + affirmation → deterministic confirm (bypasses the model)"
 and annotate the connector edge box with "D53: chat 'yes' executes under env
-principal — dashboard access = authority; high-risk still target-echoed." Mark
+principal - dashboard access = authority; high-risk still target-echoed." Mark
 the Keycloak removal per §2c.
 
 ## 6. Open questions

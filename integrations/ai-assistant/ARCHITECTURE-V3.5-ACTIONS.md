@@ -2,13 +2,13 @@
      This doc keeps the actions design rationale, the phase instructions, and
      the Round-6 review findings. -->
 
-# wazuh-ai v3.5 — Actions (write operations by design)
+# wazuh-ai v3.5 - Actions (write operations by design)
 
 Date: 2026-07-15 · Implements D20/D35 · Supersedes ARCHITECTURE-V3.md §8 (actions deferred)
 
 **Decision (Leon):** the assistant is not read-only long term. It must be able
 to restart agents, create dashboards/visualizations, run active response, and
-other Wazuh operations — but **never** by letting the model call a write API
+other Wazuh operations - but **never** by letting the model call a write API
 directly. Writes follow the same veracity discipline as reads: typed params,
 allowlists, audit, and an explicit human confirmation step.
 
@@ -51,7 +51,7 @@ User: "Create a brute-force GeoIP dashboard"
 Lane 0 / scope (unchanged) ──miss──► model loop
         │
         ▼
-Model calls read tools (auth_failures, search_alerts) — gather evidence
+Model calls read tools (auth_failures, search_alerts) - gather evidence
         │
         ▼
 Model calls propose_create_dashboard(title, template=brute_force_geoip, ...)
@@ -90,12 +90,12 @@ The model **must not** claim the dashboard exists until confirm succeeds.
 | Remove agent | `propose_remove_agent` | `manager` | high | manager API | deferred |
 | Email report | `propose_email_report` | `reports` | medium | indexer/reporting | deferred |
 
-**Templates** (dashboard tier): curated panel bundles validated offline —
+**Templates** (dashboard tier): curated panel bundles validated offline -
 `brute_force_geoip`, `auth_failures_top_users`, etc. The model picks a template
 or `custom` with an explicit panel list (bounded schema).
 
 **Active-response allowlist** (initial): `restart-ossec`, `firewall-drop`,
-`disable-account` — extend only with golden cases per command.
+`disable-account` - extend only with golden cases per command.
 
 ---
 
@@ -111,13 +111,13 @@ or `custom` with an explicit panel list (bounded schema).
 | Principal | User | Role | Grants |
 |---|---|---|---|
 | Dashboard executor | `wazuh_ai_dashboard_writer` | `wazuh_ai_dashboard_writer_role` | `create`, `write`, `delete` on `.kibana*` saved objects only |
-| Manager executor | `wazuh_ai_manager_operator` | `wazuh_ai_manager_operator_role` | Wazuh indexer security role mapping to manager API RBAC (restart, status) — **no** active-response |
+| Manager executor | `wazuh_ai_manager_operator` | `wazuh_ai_manager_operator_role` | Wazuh indexer security role mapping to manager API RBAC (restart, status) - **no** active-response |
 | AR executor | `wazuh_ai_ar_executor` | `wazuh_ai_ar_executor_role` | Active-response API only, scoped commands |
 
 Confirm endpoint verifies:
 
 1. Turn JWT valid (D11)
-2. `wazuh_ai_operator` ∈ `backend_roles` (umbrella — maps to executor creds server-side)
+2. `wazuh_ai_operator` ∈ `backend_roles` (umbrella - maps to executor creds server-side)
 3. Proposal not expired, status `pending`, env matches token tenant
 4. Idempotency key not already consumed
 
@@ -164,7 +164,7 @@ Config: `WAI_ACTIONS_ENABLED=true` adds `propose_*` tools to the model catalog.
 
 - **No** `CONFIRM` in chat text as authorization (upstream anti-pattern).
 - **No** write grants on `wazuh_ai_env_reader` or analyst read role.
-- **No** free-form dashboard JSON from the model — templates + bounded `custom`.
+- **No** free-form dashboard JSON from the model - templates + bounded `custom`.
 - **No** active-response commands outside the allowlist.
 - **No** executing proposals from the connector edge until D48 is revisited with verifiable user propagation.
 
@@ -173,7 +173,7 @@ Config: `WAI_ACTIONS_ENABLED=true` adds `propose_*` tools to the model catalog.
 ## 9. Open questions
 
 - **OQ-V3-4:** OpenSearch 3.x / assistant plugin user propagation for in-dashboard confirm without a side-channel JWT.
-- **OQ-V3-5:** GeoIP field names vary by Wazuh version — dashboard templates versioned per `WAZUH_VERSION`.
+- **OQ-V3-5:** GeoIP field names vary by Wazuh version - dashboard templates versioned per `WAZUH_VERSION`.
 - **OQ-V3-6:** Whether operator role should be per-action (`wazuh_ai_ar_operator` vs `wazuh_ai_operator` umbrella).
 
 ---
@@ -186,36 +186,36 @@ tiered executors.
 
 ---
 
-## Round 6 — review findings on the V3.x + actions implementation (2026-07-16)
+## Round 6 - review findings on the V3.x + actions implementation (2026-07-16)
 
 Verdict: the propose→confirm machinery, tiered executors, idempotency store
 and audit events are the right skeleton, and 64/64 unit tests pass. But the
 implementation ships with its safety inverted by default, and the
 active-response executor has a targeting bug that could fire fleet-wide.
 Decision context (Leon): the assistant is write-capable **long term, by
-design** — these findings ARE the long-term design; fix them, don't patch
-around them. Blockers R6.1–R6.5 land before any live actions test.
+design** - these findings ARE the long-term design; fix them, don't patch
+around them. Blockers R6.1-R6.5 land before any live actions test.
 
-### R6.1 Active-response targeting — CRITICAL BLOCKER
+### R6.1 Active-response targeting - CRITICAL BLOCKER
 
 Verified against the live Wazuh 4.14 API spec: `agents_list` is a **query
 parameter** whose documented default is **"all agents selected by default if
 not specified"**. `execute_active_response_action` sends `"agents"` in the
-**body** — a field `ActiveResponseBody` does not define. Depending on API
+**body** - a field `ActiveResponseBody` does not define. Depending on API
 strictness that is either a guaranteed 400 or a **fleet-wide command
 execution**. Neither is acceptable.
 
 | File | Change |
 |---|---|
-| `tool-service/app/actions/executors.py` | `params={"agents_list": p.agent_id}` on the PUT; remove `agents` from the body. The request MUST be refused client-side if `agent_id` is empty — never emit an AR call without an explicit `agents_list`. Same pattern check on `restart_agent` (path-param form is fine as implemented). |
-| tests | A unit test asserting the built request has `agents_list` set and that an empty agent id raises — this class of bug must be structurally unrepresentable. |
+| `tool-service/app/actions/executors.py` | `params={"agents_list": p.agent_id}` on the PUT; remove `agents` from the body. The request MUST be refused client-side if `agent_id` is empty - never emit an AR call without an explicit `agents_list`. Same pattern check on `restart_agent` (path-param form is fine as implemented). |
+| tests | A unit test asserting the built request has `agents_list` set and that an empty agent id raises - this class of bug must be structurally unrepresentable. |
 
-### R6.2 Direct mode defaults + fabricated operator — BLOCKER
+### R6.2 Direct mode defaults + fabricated operator - BLOCKER
 
 `actions_direct` defaults to **True** (execute on model tool call, no
 confirm), and `operator_for_writes` **synthesizes** a `User` carrying
 `wazuh_ai_operator` for the env-scoped connector principal. Together the
-unverified dashboard edge executes writes with an invented operator — the
+unverified dashboard edge executes writes with an invented operator - the
 upstream anti-pattern this document exists to reject, reintroduced as the
 default. Long-term rulings:
 
@@ -223,41 +223,41 @@ default. Long-term rulings:
 - Direct mode, when explicitly enabled, requires a **verified User** with the
   operator role AND applies to the **dashboard tier only**. Manager and
   active-response tiers execute exclusively through `/v1/actions/{id}/confirm`
-  — no configuration combination may bypass that.
+  - no configuration combination may bypass that.
 - `operator_for_writes` never fabricates identity: an `EnvPrincipal` gets
   `ActionPermissionError`, full stop. The connector edge proposes; it never
   executes (D48 as written).
 
-### R6.3 Active-response `arguments` — BLOCKER
+### R6.3 Active-response `arguments` - BLOCKER
 
 `ActiveResponseParams.arguments` is a free-form `dict` (and the executor
-sends `p.arguments or []` — a type it can never be). The highest-risk action
+sends `p.arguments or []` - a type it can never be). The highest-risk action
 must not carry an unbounded injection surface: make it `list[str]`,
 `max_length=5`, each item `max_length=100`, pattern-restricted to
-`[A-Za-z0-9._:/-]` — or drop it entirely for the three allowlisted commands
+`[A-Za-z0-9._:/-]` - or drop it entirely for the three allowlisted commands
 (none require custom arguments). Prefer dropping it.
 
-### R6.4 Dashboard field auto-fix is discarded — BLOCKER
+### R6.4 Dashboard field auto-fix is discarded - BLOCKER
 
 `_prepare_dashboard_objects` computes `resolved = validate_and_resolve_bundle_fields(...)`
 and throws it away (lint flags it); the ORIGINAL objects are written. The
-".keyword-suffix auto-fix" the resolver exists for never applies — dashboards
+".keyword-suffix auto-fix" the resolver exists for never applies - dashboards
 get created with broken field references whenever resolution changed
 anything. Write the resolved bundle.
 
-### R6.5 The actions eval artifact contradicts itself — BLOCKER
+### R6.5 The actions eval artifact contradicts itself - BLOCKER
 
 `golden/last_run_actions.json` reports `passed: 4 / total: 4` in the header
 while every case record carries `passed: false` with empty failures. The
 runner's record bookkeeping is broken, which means the actions gate currently
 asserts nothing. Fix `run_evals_actions.py` record handling (mirror the main
-runner's), then re-run — do not trust any prior green from this artifact.
+runner's), then re-run - do not trust any prior green from this artifact.
 
 ### R6.6 Per-environment, per-tier action enablement (long-term)
 
 A customer environment must **opt in per tier**. Registry entries gain
 `actions: [dashboard]` (deny-by-default; `manager` and `active_response`
-listed explicitly per env). The proposal step already knows the env — refuse
+listed explicitly per env). The proposal step already knows the env - refuse
 at propose time with an honest "actions of this tier are not enabled for
 this environment". `WAI_ACTIONS_ENABLED` stays as the global master switch,
 and the per-env kill switch covers actions too.
@@ -278,7 +278,7 @@ not be able to become a hundred.
 
 ### R6.9 Saved objects via the Dashboard API, not raw index writes
 
-`_write_saved_objects` PUTs documents into a hardcoded `.kibana_1` — silently
+`_write_saved_objects` PUTs documents into a hardcoded `.kibana_1` - silently
 wrong after any OSD migration (alias moves to `.kibana_2`, dashboards vanish
 into an orphan index) and it bypasses reference integrity. Long-term: the
 dashboard executor talks to the **Dashboards saved-objects HTTP API**
@@ -306,10 +306,10 @@ now, painful to retrofit after customers exist.
 
 ### R6.12 Status corrections to this document
 
-- V3.3 (streamable-HTTP `/mcp` with env-key auth) is **not implemented** —
+- V3.3 (streamable-HTTP `/mcp` with env-key auth) is **not implemented** -
   the stdio adapter is unchanged. Keep it on the roadmap; do not mark done.
 - V3.2 is partial: the registry and constant-time key resolution are real;
   the second-environment isolation extension has no suite yet.
-- COMMIT the working tree before applying Round 6 — the entire V3.x + actions
+- COMMIT the working tree before applying Round 6 - the entire V3.x + actions
   implementation is currently uncommitted, and uncommitted work has been
   clobbered twice in this project's history.
