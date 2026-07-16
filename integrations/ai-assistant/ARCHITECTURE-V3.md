@@ -259,8 +259,17 @@ prompt/KV caching. No vector store over telemetry — D4/D5 survive v3 intact.
 
 `diagrams/wazuh-ai-v3-gateway.drawio`: page 1 = target multi-environment
 topology (this file §3), page 2 = PoC realization on the harness with the
-exact container/port/credential wiring. Keep PNG exports next to them when
-the architecture stabilizes.
+exact container/port/credential wiring.
+
+`diagrams/wazuh-ai-v3-workflow.drawio`: one turn end to end as built through
+V3.8 — both edges, admission, conversational/API confirm, language+scope, the
+read lane cascade (lanes 0/1/2, knowledge/env/states tools), the write-actions
+lane, the veracity pipeline, and answer assembly. This is the current
+turn-workflow reference; the historical decks (`wazuh-ai-poc-architecture`,
+`wazuh-ai-enhancements`) cover the pre-v3 layers.
+
+PNG exports are pending a manual draw.io export (no headless exporter on the
+build host); the `.drawio` sources are the source of truth.
 
 ## Open questions
 
