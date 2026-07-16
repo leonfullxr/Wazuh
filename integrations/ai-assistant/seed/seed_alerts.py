@@ -54,6 +54,7 @@ SRC_IPS = [
         "203.0.113.66",
         {
             "country_name": "United States",
+            "country_code2": "US",
             "city_name": "Chicago",
             "region_name": "Illinois",
             "location": {"lat": 41.8781, "lon": -87.6298},
@@ -63,6 +64,7 @@ SRC_IPS = [
         "198.51.100.23",
         {
             "country_name": "Germany",
+            "country_code2": "DE",
             "city_name": "Berlin",
             "region_name": "Berlin",
             "location": {"lat": 52.52, "lon": 13.405},
@@ -72,6 +74,7 @@ SRC_IPS = [
         "192.0.2.14",
         {
             "country_name": "Brazil",
+            "country_code2": "BR",
             "city_name": "Sao Paulo",
             "region_name": "Sao Paulo",
             "location": {"lat": -23.5505, "lon": -46.6333},
@@ -81,6 +84,7 @@ SRC_IPS = [
         "185.220.101.42",
         {
             "country_name": "Netherlands",
+            "country_code2": "NL",
             "city_name": "Amsterdam",
             "region_name": "North Holland",
             "location": {"lat": 52.3676, "lon": 4.9041},
@@ -148,6 +152,7 @@ def main() -> None:
         if _is_auth_failure(groups):
             doc["GeoLocation"] = {
                 "country_name": geo["country_name"],
+                "country_code2": geo["country_code2"],
                 "city_name": geo["city_name"],
                 "region_name": geo["region_name"],
                 "location": geo["location"],
@@ -178,6 +183,7 @@ def main() -> None:
             },
             "GeoLocation": {
                 "country_name": geo["country_name"],
+                "country_code2": geo["country_code2"],
                 "city_name": geo["city_name"],
                 "region_name": geo["region_name"],
                 "location": geo["location"],

@@ -12,7 +12,17 @@ from ..config import CFG
 from ..env_registry import EnvConfig
 from ..principal import Principal
 from .dashboard_templates import build_dashboard_bundle
-from .field_resolver import load_known_fields, validate_and_resolve_bundle_fields
+from .field_resolver import (
+    load_aggregatable_index_pattern_fields,
+    load_known_fields,
+    validate_and_resolve_bundle_fields,
+)
+from .fields import FIELD_COUNTRY_ISO2
+from .index_pattern_fields import (
+    bundle_has_region_map,
+    ensure_country_iso2_scripted_field,
+    load_index_pattern_fields_from_dashboard,
+)
 from .schemas import (
     ActiveResponseParams,
     CreateDashboardParams,
@@ -54,11 +64,38 @@ async def _prepare_dashboard_objects(
     if not headers:
         return None
     indexer = get_indexer(env.env_id)
+    needs_region_map = bundle_has_region_map(objects)
+    if needs_region_map:
+        if not await ensure_country_iso2_scripted_field(env):
+            return ActionResult(
+                ok=False,
+                status="index_pattern_unavailable",
+                message=(
+                    "could not register GeoLocation.country_iso2 on the wazuh-alerts-* "
+                    "index pattern (dashboard_api_url / dashboard_executor_basic required "
+                    "for region maps on stock Wazuh)"
+                ),
+                details={"env_id": env.env_id},
+            )
     known = await load_known_fields(indexer, headers)
+    aggregatable = await load_aggregatable_index_pattern_fields(indexer, headers)
+    dash_names, dash_agg = await load_index_pattern_fields_from_dashboard(env)
+    known |= dash_names
+    aggregatable |= dash_agg
+    if needs_region_map and FIELD_COUNTRY_ISO2 not in aggregatable:
+        return ActionResult(
+            ok=False,
+            status="index_pattern_unavailable",
+            message=(
+                "GeoLocation.country_iso2 is not on the wazuh-alerts-* index pattern "
+                "after registration — check dashboard executor permissions"
+            ),
+            details={"env_id": env.env_id},
+        )
     if not known:
         return None
     try:
-        validate_and_resolve_bundle_fields(objects, known)
+        validate_and_resolve_bundle_fields(objects, known, aggregatable)
     except ValueError as exc:
         return ActionResult(
             ok=False,

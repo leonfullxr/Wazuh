@@ -6,13 +6,18 @@ import re
 from typing import Any
 
 from ..indexer import Indexer, IndexerError
+from .dashboard_templates import _region_map_params
+from .geo_ems import pick_geo_country_field
+from .index_pattern_fields import bundle_has_region_map
 
 FIELD_IN_VISSTATE_RE = re.compile(r'"field"\s*:\s*"([^"]+)"')
 
 # Dashboard-relevant fields the assistant should know about (wazuh-alerts-*).
 DASHBOARD_FIELD_CATALOG: dict[str, str] = {
     "timestamp": "Alert time (date_histogram, time picker)",
-    "GeoLocation.country_name": "GeoIP country (terms, region map) — no .keyword suffix",
+    "GeoLocation.country_name": "GeoIP country (keyword, terms)",
+    "GeoLocation.country_iso2": "Scripted ISO2 for region maps (EMS iso2 join)",
+    "GeoLocation.country_code2": "ISO alpha-2 in template but text/non-aggregatable on stock Wazuh — not for terms",
     "GeoLocation.city_name": "GeoIP city",
     "GeoLocation.location": "GeoIP geo_point for maps",
     "data.srcip": "Source IP (terms) — keyword field, no .keyword suffix",
@@ -92,10 +97,43 @@ def rewrite_vis_fields(objects: list[dict[str, Any]], resolved: dict[str, str]) 
         vis["visState"] = state
 
 
+def configure_region_maps_in_bundle(
+    objects: list[dict[str, Any]],
+    known: set[str],
+    aggregatable: set[str] | None = None,
+) -> None:
+    """Align region-map terms field and EMS join field with the tenant mapping."""
+    if not bundle_has_region_map(objects):
+        return
+    terms_field, join_field = pick_geo_country_field(known, aggregatable)
+    params_patch = _region_map_params(join_field)
+    for obj in objects:
+        doc = obj.get("document", {})
+        if doc.get("type") != "visualization":
+            continue
+        vis = doc.get("visualization", {})
+        try:
+            state = json.loads(vis.get("visState", "{}"))
+        except json.JSONDecodeError:
+            continue
+        if state.get("type") != "region_map":
+            continue
+        for agg in state.get("aggs", []):
+            if agg.get("type") == "terms" and agg.get("schema") == "segment":
+                params = agg.setdefault("params", {})
+                params["field"] = terms_field
+                params.pop("script", None)
+        state.setdefault("params", {}).update(params_patch)
+        vis["visState"] = json.dumps(state)
+
+
 def validate_and_resolve_bundle_fields(
-    objects: list[dict[str, Any]], known: set[str]
+    objects: list[dict[str, Any]],
+    known: set[str],
+    aggregatable: set[str] | None = None,
 ) -> dict[str, str]:
     """Validate all visualization fields; return old→resolved map (may be empty)."""
+    configure_region_maps_in_bundle(objects, known, aggregatable)
     used = extract_vis_fields(objects)
     resolved: dict[str, str] = {}
     for field in used:
@@ -137,6 +175,43 @@ async def load_index_pattern_fields(
     except json.JSONDecodeError:
         return set()
     return {row["name"] for row in field_rows if isinstance(row, dict) and row.get("name")}
+
+
+async def load_aggregatable_index_pattern_fields(
+    indexer: Indexer, headers: dict[str, str], pattern_id: str = "wazuh-alerts-*"
+) -> set[str]:
+    """Index-pattern fields marked aggregatable (required for terms/histogram aggs)."""
+    body = {
+        "size": 1,
+        "query": {
+            "bool": {
+                "filter": [
+                    {"term": {"type": "index-pattern"}},
+                    {"ids": {"values": [f"index-pattern:{pattern_id}"]}},
+                ]
+            }
+        },
+        "_source": ["index-pattern.fields"],
+    }
+    try:
+        res = await indexer.saved_objects_search(headers, body)
+    except IndexerError:
+        return set()
+
+    hits = res.get("hits", {}).get("hits", [])
+    if not hits:
+        return set()
+
+    raw = (hits[0].get("_source", {}).get("index-pattern") or {}).get("fields", "[]")
+    try:
+        field_rows = json.loads(raw) if isinstance(raw, str) else raw
+    except json.JSONDecodeError:
+        return set()
+    return {
+        row["name"]
+        for row in field_rows
+        if isinstance(row, dict) and row.get("name") and row.get("aggregatable")
+    }
 
 
 async def load_known_fields(

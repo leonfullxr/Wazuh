@@ -6,6 +6,9 @@ from __future__ import annotations
 
 FIELD_TIMESTAMP = "timestamp"
 FIELD_COUNTRY = "GeoLocation.country_name"
+FIELD_COUNTRY_CODE2 = "GeoLocation.country_code2"
+FIELD_COUNTRY_CODE2_KEYWORD = "GeoLocation.country_code2.keyword"
+FIELD_COUNTRY_ISO2 = "GeoLocation.country_iso2"
 FIELD_GEO_POINT = "GeoLocation.location"
 FIELD_DST_USER = "data.dstuser"
 FIELD_SRC_IP = "data.srcip"

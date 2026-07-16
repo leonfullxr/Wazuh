@@ -102,7 +102,7 @@ DESIGN_GUIDE: dict = {
         "histogram": "Alerts over time — no terms_field",
         "pie": "Top values — requires terms_field",
         "table": "Ranked buckets — requires terms_field",
-        "region_map": "GeoIP countries — terms_field=GeoLocation.country_name",
+        "region_map": "GeoIP countries — GeoLocation.country_iso2 scripted field + EMS iso2 join",
     },
     "example_custom": {
         "title": "SSH auth overview",

@@ -69,6 +69,13 @@ Hard rules:
 - Every claim about specific data must cite evidence inline as [alert:<_id>] \
 for a document, [agg:<name>] for an aggregation result you received, or \
 [kb:<technique_id>] for a MITRE technique returned by mitre_lookup.
+- Valid [agg:...] names are ONLY datastore result keys: total_matching; \
+aggregation bucket names returned under aggregations (by, over_time, timeline, \
+top_source_ips, top_target_users, and similar); and the tool name when the \
+tool returned a single total. NEVER cite JSON metadata fields — read them to \
+explain results in plain language. Forbidden [agg:...] names include \
+zero_hit_diagnosis, veracity_checks_passed, veracity_checks_skipped, \
+executed_window, hits, checks_passed, and checks_skipped.
 - Citation format examples: "301 alerts [agg:total_matching]", \
 "rule 5710 [agg:by]", "[alert:abc123]". Use the aggregation key exactly as \
 returned (e.g. total_matching, by, over_time). Never invent syntax like \
@@ -76,9 +83,9 @@ returned (e.g. total_matching, by, over_time). Never invent syntax like \
 - Any number of alerts MUST come from a tool's total_matching field or an \
 aggregation value. Never count the listed alerts yourself: the list is a \
 truncated sample, the total is exact.
-- If a tool reports zero results, use its zero_hit_diagnosis to answer \
-precisely: state whether data exists in the window and which filter matched \
-nothing. Never invent alerts or soften a zero into a guess.
+- If a tool reports zero results, read its zero_hit_diagnosis object and \
+answer precisely: state whether data exists in the window and which filter \
+matched nothing. Do not cite zero_hit_diagnosis — narrate the diagnosis.
 - State the time window you actually queried: every tool result carries an \
 executed_window. If it does not match the user's question, call the tool \
 again with the correct time_range instead of misdescribing the window.
@@ -152,6 +159,22 @@ _OUT_OF_SCOPE_ES = (
 )
 
 CITATION_RE = re.compile(r"\[(alert|agg|kb):([^\]\s]+)\]")
+# Tool JSON metadata — never valid [agg:...] citation targets (D24).
+NON_CITABLE_AGG_NAMES = frozenset(
+    {
+        "zero_hit_diagnosis",
+        "veracity_checks_passed",
+        "veracity_checks_skipped",
+        "executed_window",
+        "veracity_checks",
+        "checks_passed",
+        "checks_skipped",
+        "from_cache",
+        "hits",
+        "aggregations",
+        "total",
+    }
+)
 AGG_NUMBER_RE = re.compile(
     r"(?<![\d/.\-\u2010-\u2015])(\d[\d,\.]*)\s*\[agg:([^\]]+)\]",
     re.IGNORECASE,
@@ -200,6 +223,10 @@ def _normalize_agg_ref(ref: str) -> str:
         if name == "total_matching" and suffix.isdigit():
             return name
     return ref
+
+
+def _is_citable_agg(name: str) -> bool:
+    return name not in NON_CITABLE_AGG_NAMES
 
 
 def _grounded_number_corrections(
@@ -738,10 +765,13 @@ async def run_turn(
                         lanes_used.add(tool.lane)
                         checks_all |= set(evidence.checks_passed)
                         retrieved_ids |= {h["_id"] for h in evidence.hits}
-                        agg_names |= set(evidence.aggregations.keys()) | {
-                            "total_matching",
-                            name,
-                            "executed_window",
+                        agg_names |= {
+                            k
+                            for k in (
+                                set(evidence.aggregations.keys())
+                                | {"total_matching", name}
+                            )
+                            if _is_citable_agg(k)
                         }
                         _record_agg_values(agg_values, name, evidence)
                         audit.emit(
@@ -812,11 +842,13 @@ async def run_turn(
                 lanes_used.add(tool.lane)
                 checks_all |= set(evidence.checks_passed)
                 retrieved_ids |= {h["_id"] for h in evidence.hits}
-                agg_names |= set(evidence.aggregations.keys()) | {
-                    "total_matching", name, "executed_window"
+                agg_names |= {
+                    k
+                    for k in (
+                        set(evidence.aggregations.keys()) | {"total_matching", name}
+                    )
+                    if _is_citable_agg(k)
                 }
-                if evidence.zero_hit_diagnosis is not None:
-                    agg_names.add("zero_hit_diagnosis")
                 _record_agg_values(agg_values, name, evidence)
                 audit.emit(
                     "tool_executed",
@@ -892,7 +924,8 @@ async def run_turn(
             elif kind == "kb":
                 valid = ref.upper() in kb_ids
             else:
-                valid = _normalize_agg_ref(ref) in agg_names
+                norm = _normalize_agg_ref(ref)
+                valid = _is_citable_agg(norm) and norm in agg_names
             if not valid:
                 corrections.append({"kind": kind, "ref": ref})
                 yield {"event": "correction", "data": {"kind": kind, "ref": ref}}

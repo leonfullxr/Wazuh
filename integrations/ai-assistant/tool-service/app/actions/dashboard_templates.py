@@ -10,6 +10,8 @@ from .dashboard_layout import GRID_COLUMNS, layout_for_panel_count, layout_five_
 from .fields import (
     FIELD_AGENT,
     FIELD_COUNTRY,
+    FIELD_COUNTRY_CODE2,
+    FIELD_COUNTRY_CODE2_KEYWORD,
     FIELD_DST_USER,
     FIELD_RULE_ID,
     FIELD_RULE_LEVEL,
@@ -25,6 +27,72 @@ INDEX_PATTERN_ID = "wazuh-alerts-*"
 AUTH_FILTER = AUTH_FAILURE_KUERY
 HIGH_SEVERITY_FILTER = "rule.level >= 10"
 ALL_ALERTS_FILTER = ""
+
+# OpenSearch Maps EMS — world_countries layer (vectors v2 manifest).
+WORLD_COUNTRIES_LAYER: dict[str, Any] = {
+    "name": "World Countries",
+    "layerId": "opensearch_maps_service.World Countries",
+    "isEMS": True,
+    "attribution": "© OpenSearch Contributors",
+    "format": {"type": "geojson"},
+}
+WORLD_COUNTRIES_JOIN: dict[str, dict[str, str]] = {
+    "iso2": {"name": "iso2", "description": "ISO 3166-1 alpha-2 Code"},
+    "name": {"name": "name", "description": "Name"},
+}
+
+
+def pick_geo_country_field(
+    known: set[str] | None = None,
+    aggregatable: set[str] | None = None,
+) -> tuple[str, str]:
+    """Return (terms_field, ems_join_field) — delegates to geo_ems."""
+    from .geo_ems import pick_geo_country_field as _pick
+
+    return _pick(known, aggregatable)
+
+
+
+def _region_map_params(join_field: str) -> dict[str, Any]:
+    if join_field not in WORLD_COUNTRIES_JOIN:
+        raise ValueError(f"unsupported region map join field {join_field!r}")
+    return {
+        "legendPosition": "bottomright",
+        "showAllShapes": True,
+        "colorSchema": "Yellow to Red",
+        "outlineWeight": 0.5,
+        "isDisplayWarning": True,
+        "mapZoom": 2,
+        "mapCenter": [0, 0],
+        "layerChosenByUser": "default",
+        "selectedLayer": WORLD_COUNTRIES_LAYER,
+        "selectedJoinField": WORLD_COUNTRIES_JOIN[join_field],
+        "wms": {
+            "enabled": False,
+            "url": "",
+            "options": {"format": "image/png", "transparent": True},
+        },
+    }
+
+
+def _region_map_vis_state(
+    title: str,
+    *,
+    query: str = "",
+    terms_field: str | None = None,
+    join_field: str | None = None,
+) -> dict[str, Any]:
+    field = terms_field or FIELD_COUNTRY
+    join = join_field or "iso2"
+    return {
+        "title": title,
+        "type": "region_map",
+        "params": _region_map_params(join),
+        "aggs": [
+            _terms_agg("2", field, "segment", order_by="1"),
+            _count_agg("1"),
+        ],
+    }
 
 
 def _now_iso() -> str:
@@ -390,21 +458,10 @@ def build_brute_force_geoip_bundle(params: CreateDashboardParams) -> list[dict[s
         geo_id,
         f"{params.title} — source countries",
         "region_map",
-        {
-            "title": f"{params.title} — source countries",
-            "type": "region_map",
-            "params": {
-                "legendPosition": "bottomright",
-                "showAllShapes": True,
-                "colorSchema": "Yellow to Red",
-                "outlineWeight": 0.5,
-                "isDisplayWarning": True,
-            },
-            "aggs": [
-                _terms_agg("2", FIELD_COUNTRY, "segment", order_by="1"),
-                _count_agg("1"),
-            ],
-        },
+        _region_map_vis_state(
+            f"{params.title} — source countries",
+            query=AUTH_FILTER,
+        ),
         query=AUTH_FILTER,
         description="GeoIP country distribution (requires GeoLocation enrichment on data.srcip)",
     )
@@ -642,21 +699,7 @@ def _panel_from_spec(
             vid,
             spec.title,
             "region_map",
-            {
-                "title": spec.title,
-                "type": "region_map",
-                "params": {
-                    "legendPosition": "bottomright",
-                    "showAllShapes": True,
-                    "colorSchema": "Yellow to Red",
-                    "outlineWeight": 0.5,
-                    "isDisplayWarning": True,
-                },
-                "aggs": [
-                    _terms_agg("2", spec.terms_field, "segment", order_by="1"),
-                    _count_agg("1"),
-                ],
-            },
+            _region_map_vis_state(spec.title, query=spec.query, terms_field=spec.terms_field),
             query=spec.query,
             description=spec.description,
         )

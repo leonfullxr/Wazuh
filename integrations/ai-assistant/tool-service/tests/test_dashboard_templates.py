@@ -43,6 +43,8 @@ def test_brute_force_geoip_fields():
     )
     joined = _vis_states(objs)
     assert FIELD_COUNTRY in joined
+    assert '"name": "iso2"' in joined
+    assert "World Countries" in joined
     assert FIELD_DST_USER in joined
     assert FIELD_SRC_IP in joined
 
