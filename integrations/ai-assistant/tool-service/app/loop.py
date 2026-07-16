@@ -26,10 +26,11 @@ from .admission import BusyError, get_admission
 from .answer_shapes import select_shape, transient_shape_messages
 from .auth import User
 from .config import CFG
-from .knowledge import mitre_lookup
+from .knowledge import knowledge_search, mitre_lookup
 from .auth_groups import BRUTE_FORCE_MITRE
 from .brute_force import brute_force_summary
 from .correlation import agent_posture, compare_windows, related_alerts
+from .evidence_guard import guard_evidence, guard_evidence_text
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .environment_card import get_env_card_text
 from .prompts_loader import build_system_prelude
@@ -396,7 +397,10 @@ def _conversational_confirm_events(
 
         prop = pending[0]
         confirm_target = None
-        if prop.risk == ActionRisk.HIGH:
+        needs_echo = prop.risk == ActionRisk.HIGH or prop.action_name in {
+            "add_agent_to_group",
+        }
+        if needs_echo:
             confirm_target = extract_confirm_target(text, prop.action_name)
             if not confirm_target:
                 answer = confirm_instruction(
@@ -560,9 +564,12 @@ async def run_turn(
             pb_result = await playbooks.run(pb_match, text, principal)
             user_lang = detect(text)
             shape = select_shape(text, playbook=True, lang=user_lang)
-            evidence_text = json.dumps(pb_result.evidence_blob, default=str)[
-                : CFG.evidence_budget_chars
-            ]
+            evidence_text = guard_evidence_text(
+                json.dumps(pb_result.evidence_blob, default=str)[
+                    : CFG.evidence_budget_chars
+                ],
+                env_id=env_id,
+            )
             synth_messages: list[dict] = [
                 {
                     "role": "user",
@@ -861,11 +868,22 @@ async def run_turn(
                             tid = payload.get("technique_id")
                             if tid:
                                 kb_ids.add(str(tid).upper())
+                        elif tool.name == "knowledge_search":
+                            payload = await knowledge_search(params)
+                            for hit in payload.get("hits") or []:
+                                hid = hit.get("id")
+                                if hid:
+                                    kb_ids.add(str(hid).upper())
                         else:
                             payload = {"error": f"unknown knowledge tool '{name}'"}
                         lanes_used.add(tool.lane)
                         checks_all.add("knowledge_lookup")
+                        if tool.name == "knowledge_search":
+                            checks_all.add("public_kb_retrieval")
                         agg_names.add(name)
+                        payload = guard_evidence(
+                            payload, env_id=env_id, source=f"tool:{name}"
+                        )
                         audit.emit(
                             "knowledge_tool_executed",
                             env=env_id,
@@ -952,7 +970,15 @@ async def run_turn(
                             {
                                 "toolResult": {
                                     "toolUseId": call["toolUseId"],
-                                    "content": [{"json": evidence.to_tool_result()}],
+                                    "content": [
+                                        {
+                                            "json": guard_evidence(
+                                                evidence.to_tool_result(),
+                                                env_id=env_id,
+                                                source=f"tool:{name}",
+                                            )
+                                        }
+                                    ],
                                 }
                             }
                         )
@@ -1010,6 +1036,9 @@ async def run_turn(
                                 name,
                             }
                         _record_composite_agg(agg_names, agg_values, name, payload)
+                        payload = guard_evidence(
+                            payload, env_id=env_id, source=f"tool:{name}"
+                        )
                         audit.emit(
                             "composite_tool_executed",
                             env=env_id,
@@ -1064,13 +1093,21 @@ async def run_turn(
                 )
                 metrics.TOOL_CALLS.labels(tool=name, outcome="ok").inc()
                 results.append(
-                    {
-                        "toolResult": {
-                            "toolUseId": call["toolUseId"],
-                            "content": [{"json": evidence.to_tool_result()}],
-                        }
-                    }
-                )
+                            {
+                                "toolResult": {
+                                    "toolUseId": call["toolUseId"],
+                                    "content": [
+                                        {
+                                            "json": guard_evidence(
+                                                evidence.to_tool_result(),
+                                                env_id=env_id,
+                                                source=f"tool:{name}",
+                                            )
+                                        }
+                                    ],
+                                }
+                            }
+                        )
             messages.append({"role": "user", "content": results})
         else:
             budget_note = ("I hit the tool-call budget for this turn before "

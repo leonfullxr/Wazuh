@@ -22,3 +22,7 @@ by a tool - never count listed alerts yourself.
 Vulnerability state records live on wazuh-states-vulnerabilities-* (not alerts).
 Use count_vulnerabilities / vulnerabilities_by_severity - never count_alerts for CVE
 or severity questions. Windows are on vulnerability.detected_at.
+
+Remediation / how-to / public ATT&CK guidance: call knowledge_search (curated public
+docs) or mitre_lookup (exact technique id). Cite hits as [kb:<id>]. Do not invent
+remediation steps without a tool result.

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "kb-ssh-bruteforce",
+    "title": "Remediate SSH brute force (T1110)",
+    "tags": ["ssh", "brute force", "t1110", "authentication", "remediation"],
+    "text": "For SSH brute-force (MITRE T1110): block or rate-limit the source IP at the edge, enforce key-based auth and disable password logins where possible, review Fail2ban/WAF rules, and verify the targeted accounts have MFA. Confirm no successful login followed the failures before closing the ticket."
+  },
+  {
+    "id": "kb-windows-logon",
+    "title": "Windows failed logon triage",
+    "tags": ["windows", "4625", "logon", "authentication"],
+    "text": "Windows failed logons (Event 4625 / win_authentication_failed): check whether the source is internal lateral movement or external. Lock or reset the targeted account if compromise is likely, review GPO lockout policy, and correlate with successful 4624 events from the same srcip."
+  },
+  {
+    "id": "kb-agent-offline",
+    "title": "Agent stopped reporting",
+    "tags": ["agent", "offline", "last seen", "connectivity"],
+    "text": "When an agent stops reporting: verify the host is up, the Wazuh agent service is running, and outbound connectivity to the manager on the enrollment/reporting ports works. Check disk space and agent logs under ossec.log. Re-register only after confirming the agent key was not rotated unexpectedly."
+  },
+  {
+    "id": "kb-vuln-patch",
+    "title": "Vulnerability remediation basics",
+    "tags": ["vulnerability", "cve", "patch", "sca"],
+    "text": "For open vulnerabilities: prioritize critical/high CVEs with public exploits, apply vendor patches or mitigate with config hardening, re-scan to confirm closure, and document residual risk for exceptions. Do not treat SCA findings as CVEs without checking the check id."
+  },
+  {
+    "id": "kb-mitre-t1110",
+    "title": "MITRE T1110 Brute Force guidance",
+    "tags": ["mitre", "t1110", "brute force"],
+    "text": "T1110 Brute Force covers password guessing against authentication services. Detect via repeated failures from one srcip or against one user, then contain (block IP / disable account) and hunt for subsequent successful auth from the same source."
+  }
+]

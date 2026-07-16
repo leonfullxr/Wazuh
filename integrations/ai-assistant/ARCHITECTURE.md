@@ -86,10 +86,11 @@ model runs (fails open).
    never free-form queries (D4). Catalog: alerts (`count_alerts`,
    `auth_failures`, `brute_force_summary`, `top_rules`, `search_alerts`,
    `alert_histogram`, `alert_timeline`, `related_alerts`, `compare_windows`,
-   `mitre_coverage`, `agent_posture`), knowledge (`mitre_lookup` - exact ATT&CK
-   id, no embeddings), environment (`list_agents`, `index_health`,
-   `list_dashboards`), states (`count_vulnerabilities` over
-   `wazuh-states-vulnerabilities-*`, its own allowlist).
+   `mitre_coverage`, `agent_posture`), knowledge (`mitre_lookup` exact ATT&CK
+   id; `knowledge_search` over curated public docs only - D57), environment
+   (`list_agents`, `index_health`, `list_dashboards`), states
+   (`count_vulnerabilities` over `wazuh-states-vulnerabilities-*`, its own
+   allowlist).
 4. **Lane 2:** the model emits a typed **Query IR**, allowlist-checked and
    compiled to OpenSearch DSL server-side - no scripts, regexp, or wildcards
    (D22/D29). Lane 3 (free generation) stays off (D32).
@@ -191,6 +192,9 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D54 | Confirmation is a deterministic intent match outside the model; high-risk needs target echo | active |
 | D55 | Investigation playbooks: curated ordered typed tool sequences; model only synthesizes | active |
 | D56 | Per-intent answer shapes (triage card / incident / exec) as transient context | active |
+| D57 | Vector store only over curated public reference content (`knowledge_search`) | active |
+| D58 | Conversation store backends: memory (default) or indexer; rolling summary budget | active |
+| D59 | Evidence-side injection scan before synthesis (deterministic neutralize) | active |
 
 ## 8. Surfaces and configuration
 

@@ -30,10 +30,11 @@ from .admission import BusyError
 from .auth import User, verify_jwt
 from .config import CFG
 from .env_registry import resolve_by_key, get_env
-from .knowledge import mitre_lookup
+from .knowledge import knowledge_search, mitre_lookup
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .brute_force import brute_force_summary
 from .correlation import agent_posture, compare_windows, related_alerts
+from .evidence_guard import guard_evidence
 from .loop import run_turn
 from .principal import EnvPrincipal
 from .actions import (
@@ -352,10 +353,12 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
         if tool.knowledge:
             if tool.name == "mitre_lookup":
                 payload = mitre_lookup(validated)
+            elif tool.name == "knowledge_search":
+                payload = await knowledge_search(validated)
             else:
                 raise HTTPException(404, f"unknown knowledge tool '{name}'")
             audit.emit("http_knowledge_tool_executed", tool=name, sub=user.sub)
-            return payload
+            return guard_evidence(payload, env_id=getattr(user, "env_id", None), source=f"http:{name}")
         if tool.environment:
             if tool.name == "index_health":
                 payload = await index_health(user, validated)

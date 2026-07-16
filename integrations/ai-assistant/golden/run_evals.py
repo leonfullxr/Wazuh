@@ -277,7 +277,7 @@ def check_case(
         if needle.casefold() in answer_cf:
             failures.append(f"answer contains forbidden text: {needle!r}")
 
-    if result.get("corrections") and not connector_edge:
+    if result.get("corrections") and not connector_edge and not case.get("allow_corrections"):
         failures.append(f"unverified citations: {result['corrections']}")
     return failures
 

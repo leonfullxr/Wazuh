@@ -45,6 +45,7 @@ class StatesEvidence:
     checks_skipped: list[str]
     zero_hit_diagnosis: Optional[dict] = None
     window: dict = field(default_factory=dict)
+    from_cache: bool = False
 
     def to_tool_result(self) -> dict:
         return {

@@ -21,7 +21,7 @@ from .brute_force import brute_force_summary
 from .config import CFG
 from .correlation import agent_posture, compare_windows, related_alerts
 from .embeddings import embed_corpus, embed_text
-from .knowledge import mitre_lookup
+from .knowledge import knowledge_search, mitre_lookup
 from .lane0 import extract_slots
 from .principal import Principal
 from .states_veracity import execute_vulnerabilities_ir
@@ -103,9 +103,12 @@ PLAYBOOKS: list[Playbook] = [
         id="explain-alert",
         triggers=[
             PlaybookTrigger("en", "investigate alert abc123 explain this alert"),
+            PlaybookTrigger("en", "investigate alert 4cCrbJ8B_F_lAuh5a9oC"),
             PlaybookTrigger("en", "triage the alert with id nAP8a58B0Y_4M-XCNW9z"),
+            PlaybookTrigger("en", "explain the alert with id nAP8a58B0Y_4M-XCNW9z"),
             PlaybookTrigger("es", "investiga la alerta abc123 explica esta alerta"),
             PlaybookTrigger("es", "triar la alerta con id nAP8a58B0Y_4M-XCNW9z"),
+            PlaybookTrigger("es", "explica la alerta con id nAP8a58B0Y_4M-XCNW9z"),
         ],
         steps=[
             PlaybookStep(
@@ -262,22 +265,37 @@ async def invoke_tool(
         raise VeracityError(f"unknown tool '{name}'")
     params = tool.schema.model_validate(raw_params)
     if tool.knowledge:
-        if name != "mitre_lookup":
-            raise VeracityError(f"unknown knowledge tool '{name}'")
-        payload = mitre_lookup(params)
-        return {
-            "name": name,
-            "payload": payload,
-            "checks": ["knowledge_lookup"],
-            "hits": [],
-            "aggregations": {},
-            "total": 0,
-            "kb_ids": (
-                [str(payload["technique_id"]).upper()]
-                if payload.get("found") and payload.get("technique_id")
-                else []
-            ),
-        }
+        if name == "mitre_lookup":
+            payload = mitre_lookup(params)
+            return {
+                "name": name,
+                "payload": payload,
+                "checks": ["knowledge_lookup"],
+                "hits": [],
+                "aggregations": {},
+                "total": 0,
+                "kb_ids": (
+                    [str(payload["technique_id"]).upper()]
+                    if payload.get("found") and payload.get("technique_id")
+                    else []
+                ),
+            }
+        if name == "knowledge_search":
+            payload = await knowledge_search(params)
+            return {
+                "name": name,
+                "payload": payload,
+                "checks": ["knowledge_lookup", "public_kb_retrieval"],
+                "hits": [],
+                "aggregations": {},
+                "total": int(payload.get("total_matching") or 0),
+                "kb_ids": [
+                    str(h["id"]).upper()
+                    for h in (payload.get("hits") or [])
+                    if h.get("id")
+                ],
+            }
+        raise VeracityError(f"unknown knowledge tool '{name}'")
     if tool.composite:
         if name == "brute_force_summary":
             payload = await brute_force_summary(principal, params)

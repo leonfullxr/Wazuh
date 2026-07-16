@@ -114,6 +114,7 @@ def _flatten_hit(hit: dict) -> dict:
     mitre = get("rule.mitre.id")
     if isinstance(mitre, list):
         mitre = mitre[0] if mitre else None
+    full_log = get("full_log")
     return {
         "_id": hit["_id"],
         "timestamp": get("timestamp"),
@@ -124,6 +125,8 @@ def _flatten_hit(hit: dict) -> dict:
         "agent.name": get("agent.name"),
         "data.srcip": get("data.srcip"),
         "data.dstuser": get("data.dstuser"),
+        # Attacker-influenced; capped for budget + evidence_guard (E8).
+        "full_log": (full_log or "")[:400] if full_log else None,
     }
 
 

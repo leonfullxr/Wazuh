@@ -35,7 +35,7 @@ from .environment import (
     list_alert_fields,
     list_dashboards,
 )
-from .knowledge import MitreLookupParams
+from .knowledge import KnowledgeSearchParams, MitreLookupParams
 from .models import IRAggregation, IRFilter, QueryIR, TimeRange
 from .states_models import StatesQueryIR
 from .states_tools import (
@@ -262,6 +262,10 @@ def _mitre_lookup_ir(_p: MitreLookupParams) -> QueryIR:
     raise RuntimeError("knowledge tool - not an indexer query")
 
 
+def _knowledge_search_ir(_p: KnowledgeSearchParams) -> QueryIR:
+    raise RuntimeError("knowledge tool - not an indexer query")
+
+
 def _list_dashboards_ir(_p: ListDashboardsParams) -> QueryIR:
     raise RuntimeError("environment tool - not an alerts-index IR query")
 
@@ -353,6 +357,16 @@ REGISTRY: dict[str, ToolDef] = {
             "to find alerts tagged with a technique.",
             MitreLookupParams,
             _mitre_lookup_ir,
+            lane=1,
+            knowledge=True,
+        ),
+        ToolDef(
+            "knowledge_search",
+            "Semantic search over curated PUBLIC remediation and reference docs "
+            "(not tenant telemetry). Use for how-to / remediation questions. "
+            "Cite hits as [kb:<doc_id>].",
+            KnowledgeSearchParams,
+            _knowledge_search_ir,
             lane=1,
             knowledge=True,
         ),

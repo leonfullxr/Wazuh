@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     lane0_near_miss_floor: float = 0.65  # below threshold but above -> few-shot hint
     playbooks_enabled: bool = True  # D55 investigation playbooks (needs embeddings)
     playbooks_threshold: float = 0.78  # slightly below lane0; verify per embed model
+    knowledge_search_enabled: bool = True  # D57 public corpus semantic search
+    knowledge_search_threshold: float = 0.55
     embed_provider: str = "openai"  # openai | mlcommons (C3)
     embed_base_url: str = "http://ollama:11434/v1"
     embed_model: str = "bge-m3"
@@ -79,6 +81,9 @@ class Settings(BaseSettings):
     service_enabled: bool = True    # kill switch: false -> 503 on all surfaces
     conversation_ttl: int = 3600    # in-memory multi-turn window (prod: indexer)
     conversation_max_turns: int = 8 # question/answer pairs kept per conversation
+    conversation_backend: str = "memory"  # memory | indexer (D58)
+    conversation_index: str = "wazuh-ai-conversations"
+    conversation_summary_tokens: int = 2000  # rolling summary budget (approx tokens)
     indexer_ca_path: str = ""       # pin the tenant root CA instead of verify=off
     prompt_cache: bool = False      # Bedrock cachePoint on the prelude (verify, Q4)
 

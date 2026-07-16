@@ -182,6 +182,13 @@ EXEMPLARS: list[Exemplar] = [
              "count_vulnerabilities", {}, inject={"time_range": "time_range"}),
     Exemplar("vuln-count", "es", "cuantas vulnerabilidades se detectaron en los ultimos 30 dias",
              "count_vulnerabilities", {}, inject={"time_range": "time_range"}),
+    # high severity vulnerabilities
+    Exemplar("vuln-high", "en", "how many high severity vulnerabilities were detected in the last 30 days",
+             "count_vulnerabilities", {"severity": "high"},
+             inject={"time_range": "time_range"}),
+    Exemplar("vuln-high", "es", "cuantas vulnerabilidades de severidad alta se detectaron en los ultimos 30 dias",
+             "count_vulnerabilities", {"severity": "high"},
+             inject={"time_range": "time_range"}),
     # agents with last-seen (stopped reporting / fleet posture approximation)
     Exemplar("agents-last-seen", "en", "which agents stopped reporting or have stale last seen",
              "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
