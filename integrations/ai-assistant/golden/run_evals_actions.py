@@ -122,14 +122,22 @@ def _verify_dashboard(
     return detail
 
 
+def _finalize_case(detail: dict) -> dict:
+    detail["passed"] = bool(detail.get("ok")) and not detail.get("skipped")
+    return detail
+
+
 def run_case_direct(case: dict, headers: dict) -> dict:
     if case.get("reject_after_propose") or case.get("expect_operator") is False:
-        return {
-            "id": case["id"],
-            "lang": case.get("lang", "en"),
-            "ok": True,
-            "skipped": "propose/confirm flow not used in actions_direct mode",
-        }
+        return _finalize_case(
+            {
+                "id": case["id"],
+                "lang": case.get("lang", "en"),
+                "ok": True,
+                "skipped": True,
+                "reason": "propose/confirm flow not used in actions_direct mode",
+            }
+        )
 
     params = dict(case.get("params") or {})
     suffix = uuid.uuid4().hex[:6]
@@ -152,21 +160,21 @@ def run_case_direct(case: dict, headers: dict) -> dict:
     }
     if not detail["ok"]:
         detail["error"] = resp.text[:500]
-        return detail
+        return _finalize_case(detail)
 
     result = resp.json()
     detail["result"] = result
     if "result_ok" in case and result.get("ok") is not case["result_ok"]:
         detail["ok"] = False
         detail["error"] = f"result.ok expected {case['result_ok']}, got {result.get('ok')}"
-        return detail
+        return _finalize_case(detail)
     if "result_status" in case and result.get("status") != case["result_status"]:
         detail["ok"] = False
         detail["error"] = (
             f"result.status expected {case['result_status']!r}, got {result.get('status')!r}"
         )
-        return detail
-    return _verify_dashboard(case, suffix, result, headers, detail)
+        return _finalize_case(detail)
+    return _finalize_case(_verify_dashboard(case, suffix, result, headers, detail))
 
 
 def run_case_propose(case: dict, headers: dict) -> dict:
@@ -191,7 +199,7 @@ def run_case_propose(case: dict, headers: dict) -> dict:
     }
     if not detail["ok"]:
         detail["error"] = propose.text[:500]
-        return detail
+        return _finalize_case(detail)
 
     body = propose.json()
     proposal_id = body.get("proposal_id")
@@ -222,7 +230,7 @@ def run_case_propose(case: dict, headers: dict) -> dict:
         if status != "rejected":
             detail["ok"] = False
             detail["error"] = f"expected rejected, got {status!r}"
-        return detail
+        return _finalize_case(detail)
 
     confirm = httpx.post(
         f"{SVC}/v1/actions/{proposal_id}/confirm",
@@ -236,25 +244,25 @@ def run_case_propose(case: dict, headers: dict) -> dict:
     if confirm.status_code != expect_confirm:
         detail["ok"] = False
         detail["error"] = confirm.text[:500]
-        return detail
+        return _finalize_case(detail)
 
     if expect_confirm == 403:
-        return detail
+        return _finalize_case(detail)
 
     result = confirm.json().get("result", {})
     detail["result"] = result
     if "result_ok" in case and result.get("ok") is not case["result_ok"]:
         detail["ok"] = False
         detail["error"] = f"result.ok expected {case['result_ok']}, got {result.get('ok')}"
-        return detail
+        return _finalize_case(detail)
     if "result_status" in case and result.get("status") != case["result_status"]:
         detail["ok"] = False
         detail["error"] = (
             f"result.status expected {case['result_status']!r}, got {result.get('status')!r}"
         )
-        return detail
+        return _finalize_case(detail)
 
-    return _verify_dashboard(case, suffix, result, headers, detail)
+    return _finalize_case(_verify_dashboard(case, suffix, result, headers, detail))
 
 
 def main() -> None:
@@ -264,7 +272,7 @@ def main() -> None:
             "actions disabled on tool-service — set WAI_ACTIONS_ENABLED=true and recreate"
         )
 
-    direct = bool(health.get("actions_direct", True))
+    direct = bool(health.get("actions_direct", False))
     mode = "direct" if direct else "propose/confirm"
     print(f"actions mode: {mode}")
 
@@ -274,26 +282,28 @@ def main() -> None:
 
     runner = run_case_direct if direct else run_case_propose
     results = [runner(c, headers) for c in cases]
-    passed = sum(1 for r in results if r.get("ok"))
+    passed = sum(1 for r in results if r.get("passed"))
+    skipped = sum(1 for r in results if r.get("skipped"))
     report = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "actions_mode": mode,
         "passed": passed,
         "total": len(results),
+        "skipped": skipped,
         "cases": results,
     }
     OUT.write_text(json.dumps(report, indent=2) + "\n")
 
     for r in results:
-        mark = "PASS" if r.get("ok") else "FAIL"
+        mark = "PASS" if r.get("passed") else ("SKIP" if r.get("skipped") else "FAIL")
         lang = r.get("lang", "en")
-        skip = f" (skipped: {r['skipped']})" if r.get("skipped") else ""
-        print(f"[{mark}] {r['id']} ({lang}){skip}")
-        if not r.get("ok"):
+        reason = f" ({r.get('reason', r.get('skipped', ''))})" if r.get("skipped") else ""
+        print(f"[{mark}] {r['id']} ({lang}){reason}")
+        if not r.get("passed") and not r.get("skipped"):
             print(f"       {r.get('error', 'unknown error')}")
 
-    print(f"\n{passed}/{len(results)} passed — wrote {OUT.name}")
-    sys.exit(0 if passed == len(results) else 1)
+    print(f"\n{passed}/{len(results)} passed ({skipped} skipped) — wrote {OUT.name}")
+    sys.exit(0 if passed == len(results) - skipped else 1)
 
 
 if __name__ == "__main__":

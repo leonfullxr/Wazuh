@@ -91,4 +91,3 @@ class ActiveResponseParams(BaseModel):
     alert_id: Optional[str] = Field(
         None, description="Optional triggering alert document id"
     )
-    arguments: dict = Field(default_factory=dict)

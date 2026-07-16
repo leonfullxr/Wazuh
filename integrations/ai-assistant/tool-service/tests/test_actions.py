@@ -97,15 +97,28 @@ def test_confirm_without_executor_creds_returns_not_configured(monkeypatch):
     asyncio.run(_run())
 
 
-def test_confirm_idempotent_replay():
+def test_confirm_idempotent_replay(monkeypatch):
     from app.actions.schemas import RestartAgentParams
+    from app.env_registry import ENV_REGISTRY, EnvConfig
 
+    monkeypatch.setitem(
+        ENV_REGISTRY,
+        "lab",
+        EnvConfig(
+            env_id="lab",
+            gateway_key="k",
+            indexer_url="https://indexer:9200",
+            actions_tiers=("dashboard", "manager"),
+        ),
+    )
+
+    roles = ["wazuh_ai_analyst", CFG.responder_role]
     prop = create_proposal(
         "propose_restart_agent",
         RestartAgentParams(agent_id="001", reason="Agent unresponsive after patch window"),
-        User(sub="op1", roles=["wazuh_ai_analyst", CFG.operator_role], raw_jwt="t"),
+        User(sub="op1", roles=roles, raw_jwt="t"),
     )
-    user = User(sub="op1", roles=["wazuh_ai_analyst", CFG.operator_role], raw_jwt="t")
+    user = User(sub="op1", roles=roles, raw_jwt="t")
 
     async def _run():
         _, r1 = await confirm_proposal(prop["proposal_id"], user, "idem-key-003")
@@ -160,6 +173,7 @@ def test_actions_api_propose_and_confirm(actions_propose_mode, monkeypatch):
             env_id="lab",
             gateway_key="k",
             indexer_url="https://indexer:9200",
+            dashboard_api_url="https://dashboard:5601",
             dashboard_executor_basic="writer:secret",
         ),
     )
@@ -218,6 +232,7 @@ def test_actions_api_propose_executes_when_direct(actions_on, monkeypatch):
             env_id="lab",
             gateway_key="k",
             indexer_url="https://indexer:9200",
+            dashboard_api_url="https://dashboard:5601",
             dashboard_executor_basic="writer:secret",
         ),
     )

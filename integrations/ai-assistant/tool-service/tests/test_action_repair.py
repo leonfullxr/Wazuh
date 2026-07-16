@@ -33,7 +33,7 @@ def test_repair_dashboard_json_executes_direct(monkeypatch, principal):
         ui_base="http://localhost:8080",
     )
     assert result is not None
-    assert "status" in result
+    assert result.get("proposal_id") or result.get("status") == "pending"
     assert "{" not in answer
 
 

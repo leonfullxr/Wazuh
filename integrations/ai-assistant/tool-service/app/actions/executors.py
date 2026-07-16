@@ -22,16 +22,32 @@ from .schemas import (
 from .types import ActionResult, ActionTier
 
 
+def _basic_header(user_pass: str) -> dict[str, str]:
+    token = base64.b64encode(user_pass.encode()).decode("ascii")
+    return {"Authorization": f"Basic {token}"}
+
+
 def _reader_headers(env: EnvConfig) -> dict[str, str]:
     if not env.reader_basic or ":" not in env.reader_basic:
         return {}
     return _basic_header(env.reader_basic)
 
 
+def _manager_verify(env: EnvConfig) -> object:
+    return env.manager_ca_path or env.indexer_ca_path or CFG.indexer_verify_ssl
+
+
+def _require_agent_id(agent_id: str) -> str:
+    agent_id = (agent_id or "").strip()
+    if not agent_id:
+        raise ValueError("agent_id is required — refusing untargeted manager/AR call")
+    return agent_id
+
+
 async def _prepare_dashboard_objects(
     env: EnvConfig, objects: list[dict[str, Any]]
 ) -> ActionResult | None:
-    """Validate visualization fields against the live index pattern; auto-fix suffixes."""
+    """Validate visualization fields; rewrite in place before write (R6.4)."""
     from ..indexer import get_indexer
 
     headers = _reader_headers(env)
@@ -42,7 +58,7 @@ async def _prepare_dashboard_objects(
     if not known:
         return None
     try:
-        resolved = validate_and_resolve_bundle_fields(objects, known)
+        validate_and_resolve_bundle_fields(objects, known)
     except ValueError as exc:
         return ActionResult(
             ok=False,
@@ -53,43 +69,50 @@ async def _prepare_dashboard_objects(
     return None
 
 
-def _basic_header(user_pass: str) -> dict[str, str]:
-    token = base64.b64encode(user_pass.encode()).decode("ascii")
-    return {"Authorization": f"Basic {token}"}
+def _to_saved_object_bulk(obj: dict[str, Any]) -> dict[str, Any]:
+    doc = obj["document"]
+    obj_type = doc["type"]
+    obj_id = obj["id"].split(":", 1)[-1]
+    return {
+        "type": obj_type,
+        "id": obj_id,
+        "attributes": doc[obj_type],
+        "references": doc.get("references", []),
+    }
 
 
 async def _write_saved_objects(
     env: EnvConfig, objects: list[dict[str, Any]], cred: str
 ) -> ActionResult:
-    index = env.saved_objects_index or CFG.saved_objects_index or ".kibana"
-    # Wazuh OSD stores saved objects in the concrete index behind the .kibana alias.
-    if index == ".kibana":
-        index = ".kibana_1"
+    """Write via Dashboards saved-objects HTTP API (R6.9)."""
+    base = (env.dashboard_api_url or "").rstrip("/")
+    if not base:
+        return ActionResult(
+            ok=False,
+            status="not_configured",
+            message="dashboard_api_url not configured for this environment",
+            details={"env_id": env.env_id},
+        )
     verify: object = env.indexer_ca_path or CFG.indexer_verify_ssl
     headers = {
         **_basic_header(cred),
         "Content-Type": "application/json",
         "osd-xsrf": "true",
     }
-    async with httpx.AsyncClient(
-        base_url=env.indexer_url, verify=verify, timeout=30.0
-    ) as client:
-        for obj in objects:
-            r = await client.put(
-                f"/{index}/_doc/{obj['id']}",
-                json=obj["document"],
-                headers=headers,
+    bulk = [_to_saved_object_bulk(obj) for obj in objects]
+    async with httpx.AsyncClient(base_url=base, verify=verify, timeout=30.0) as client:
+        r = await client.post(
+            "/api/saved_objects/_bulk_create?overwrite=true",
+            json=bulk,
+            headers=headers,
+        )
+        if r.status_code not in (200, 201):
+            return ActionResult(
+                ok=False,
+                status="dashboard_api_error",
+                message=f"saved object bulk create failed: HTTP {r.status_code}",
+                details={"body": r.text[:500]},
             )
-            if r.status_code not in (200, 201):
-                return ActionResult(
-                    ok=False,
-                    status="indexer_error",
-                    message=f"saved object write failed for {obj['id']}: HTTP {r.status_code}",
-                    details={"body": r.text[:500], "object_id": obj["id"]},
-                )
-        await client.post(f"/{index}/_refresh", headers=headers)
-        if index != ".kibana":
-            await client.post("/.kibana/_refresh", headers=headers)
     dash = objects[-1]
     title = dash["document"].get("dashboard", {}).get("title", "")
     dash_uuid = dash["id"].split(":", 1)[-1]
@@ -138,6 +161,9 @@ async def execute_dashboard_action(
     elif action_name == "create_visualization":
         p = CreateVisualizationParams.model_validate(params.model_dump())
         objects = [_single_visualization_object(p)]
+        field_err = await _prepare_dashboard_objects(env, objects)
+        if field_err is not None:
+            return field_err
     else:
         return ActionResult(
             ok=False,
@@ -196,7 +222,8 @@ def _single_visualization_object(p: CreateVisualizationParams) -> dict[str, Any]
 
 async def _wazuh_api_token(env: EnvConfig, cred: str) -> str:
     user, passwd = cred.split(":", 1)
-    async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+    verify = _manager_verify(env)
+    async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
         r = await client.post(
             f"{env.manager_api_url.rstrip('/')}/security/user/authenticate?raw=true",
             auth=(user, passwd),
@@ -231,6 +258,11 @@ async def execute_manager_action(
 
     p = RestartAgentParams.model_validate(params.model_dump())
     try:
+        agent_id = _require_agent_id(p.agent_id)
+    except ValueError as exc:
+        return ActionResult(ok=False, status="invalid_target", message=str(exc))
+
+    try:
         token = await _wazuh_api_token(env, env.manager_executor_basic)
     except httpx.HTTPError as exc:
         return ActionResult(
@@ -239,8 +271,9 @@ async def execute_manager_action(
             message=f"Wazuh API authentication failed: {exc}",
         )
 
-    url = f"{env.manager_api_url.rstrip('/')}/agents/{p.agent_id}/restart"
-    async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+    verify = _manager_verify(env)
+    url = f"{env.manager_api_url.rstrip('/')}/agents/{agent_id}/restart"
+    async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
         r = await client.put(
             url,
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
@@ -250,13 +283,13 @@ async def execute_manager_action(
             ok=False,
             status="manager_error",
             message=f"agent restart failed: HTTP {r.status_code}",
-            details={"body": r.text[:500], "agent_id": p.agent_id},
+            details={"body": r.text[:500], "agent_id": agent_id},
         )
     return ActionResult(
         ok=True,
         status="restarted",
-        message=f"Agent {p.agent_id} restart requested",
-        details={"agent_id": p.agent_id, "reason": p.reason, "confirmed_by": operator.sub},
+        message=f"Agent {agent_id} restart requested",
+        details={"agent_id": agent_id, "reason": p.reason, "confirmed_by": operator.sub},
     )
 
 
@@ -278,6 +311,11 @@ async def execute_active_response_action(
 
     p = ActiveResponseParams.model_validate(params.model_dump())
     try:
+        agent_id = _require_agent_id(p.agent_id)
+    except ValueError as exc:
+        return ActionResult(ok=False, status="invalid_target", message=str(exc))
+
+    try:
         token = await _wazuh_api_token(env, env.ar_executor_basic)
     except httpx.HTTPError as exc:
         return ActionResult(
@@ -287,15 +325,16 @@ async def execute_active_response_action(
         )
 
     url = f"{env.manager_api_url.rstrip('/')}/active-response"
-    payload = {
-        "command": p.command,
-        "arguments": p.arguments or [],
-        "alert": {"data": {"id": p.alert_id}} if p.alert_id else {},
-        "agents": [p.agent_id],
-    }
-    async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+    query = {"agents_list": agent_id}
+    payload: dict[str, Any] = {"command": p.command}
+    if p.alert_id:
+        payload["alert"] = {"data": {"id": p.alert_id}}
+
+    verify = _manager_verify(env)
+    async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
         r = await client.put(
             url,
+            params=query,
             json=payload,
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
@@ -304,14 +343,14 @@ async def execute_active_response_action(
             ok=False,
             status="ar_error",
             message=f"active response failed: HTTP {r.status_code}",
-            details={"body": r.text[:500], "command": p.command},
+            details={"body": r.text[:500], "command": p.command, "agent_id": agent_id},
         )
     return ActionResult(
         ok=True,
         status="executed",
-        message=f"Active response {p.command} sent to agent {p.agent_id}",
+        message=f"Active response {p.command} sent to agent {agent_id}",
         details={
-            "agent_id": p.agent_id,
+            "agent_id": agent_id,
             "command": p.command,
             "reason": p.reason,
             "confirmed_by": operator.sub,

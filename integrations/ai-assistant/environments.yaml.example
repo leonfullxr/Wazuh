@@ -6,8 +6,16 @@
   reader_basic: ${WAI_ENV_LAB_READER}
   embed_ml_model_id: ${WAI_EMBED_ML_MODEL_ID}
   locale: bilingual
-  # Actions v3.5 executors (D35) — gateway holds these, never the model
+  # Per-tier action enablement (R6.6) — deny-by-default except listed tiers
+  actions:
+    - dashboard
+    # - manager
+    # - active_response
+  dashboard_api_url: ${WAI_ENV_LAB_DASHBOARD_API_URL}
   dashboard_executor_basic: ${WAI_ENV_LAB_DASHBOARD_EXECUTOR}
   manager_api_url: https://wazuh.manager:55000
+  manager_ca_path: ""
   manager_executor_basic: ${WAI_ENV_LAB_MANAGER_EXECUTOR}
   ar_executor_basic: ${WAI_ENV_LAB_AR_EXECUTOR}
+  manager_actions_per_hour: 10
+  active_response_actions_per_hour: 5

@@ -1,4 +1,4 @@
-"""Execute write actions immediately (direct mode)."""
+"""Execute write actions immediately (direct mode — dashboard tier only)."""
 from __future__ import annotations
 
 from typing import Any
@@ -10,29 +10,34 @@ from .. import audit
 from ..auth import User
 from ..config import CFG
 from ..env_registry import get_env
-from ..principal import Principal, can_confirm_actions, env_id_for, is_env_scoped
+from ..principal import Principal, can_confirm_tier, env_id_for, is_env_scoped
 from .executors import run_executor
+from .guards import (
+    ActionPermissionError,
+    assert_may_execute,
+    assert_tier_enabled,
+    direct_execution_allowed,
+)
 from .registry import get_action, get_action_by_tool, public_tool_name
-from .types import ActionResult
+from .types import ActionResult, ActionTier
 
 
-class ActionPermissionError(Exception):
-    pass
-
-
-def operator_for_writes(principal: Principal) -> User:
-    """Resolve the operator identity used for executor audit fields."""
+def operator_for_writes(principal: Principal, tier: ActionTier) -> User:
+    """Verified operator identity — never fabricated (R6.2)."""
     if isinstance(principal, User):
-        if not can_confirm_actions(principal):
+        if not can_confirm_tier(principal, tier):
+            role = (
+                CFG.operator_role
+                if tier == ActionTier.DASHBOARD
+                else CFG.responder_role
+            )
             raise ActionPermissionError(
-                f"missing operator role {CFG.operator_role} — cannot run write actions"
+                f"missing role {role} — cannot run {tier.value} actions"
             )
         return principal
-    return User(
-        sub=f"connector:{principal.env_id}",
-        roles=[CFG.operator_role, CFG.access_role],
-        raw_jwt="",
-        env_id=principal.env_id,
+    raise ActionPermissionError(
+        "connector edge may propose actions but cannot execute — "
+        "confirm with a verified operator JWT"
     )
 
 
@@ -46,8 +51,15 @@ async def execute_action_tool(
         raise ValueError(f"unknown action tool {tool_name}")
 
     env_id = env_id_for(principal)
-    operator = operator_for_writes(principal)
     env = get_env(env_id)
+    assert_tier_enabled(env, action.tier)
+    assert_may_execute(principal, action.tier, via_confirm=False)
+    if not direct_execution_allowed(action.tier):
+        raise ActionPermissionError(
+            f"tool {tool_name!r} requires propose/confirm — direct mode is dashboard-only"
+        )
+
+    operator = operator_for_writes(principal, action.tier)
     result = await run_executor(
         action.tier,
         action.name,

@@ -43,6 +43,7 @@ from .actions import (
 from .actions.registry import ACTION_REGISTRY, get_action
 from .actions.cards import embed_action_cards
 from .actions.run import execute_action_by_name
+from .actions.types import ActionTier
 from .actions.ui_static import INJECT_JS, UI_PAGE_HTML
 from .tools import REGISTRY
 from .veracity import VeracityError, execute_ir
@@ -369,6 +370,7 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
 
 class ConfirmActionRequest(BaseModel):
     idempotency_key: str = Field(min_length=8, max_length=128)
+    confirm_target: dict | None = None
 
 
 class ProposeActionRequest(BaseModel):
@@ -378,11 +380,19 @@ class ProposeActionRequest(BaseModel):
 
 @app.post("/v1/actions/propose")
 async def propose_action(req: ProposeActionRequest, user: User = Depends(verify_jwt)) -> dict:
-    """Create a pending proposal, or execute immediately when actions_direct=true."""
+    """Create a pending proposal, or execute immediately when actions_direct=true (dashboard only)."""
     _kill_switch()
     if not CFG.actions_enabled:
         raise HTTPException(503, "actions disabled (set WAI_ACTIONS_ENABLED=true)")
     if CFG.actions_direct:
+        action = get_action(req.action)
+        if action is None:
+            raise HTTPException(400, f"unknown action {req.action!r}")
+        if action.tier != ActionTier.DASHBOARD:
+            raise HTTPException(
+                400,
+                "manager and active-response actions require propose/confirm flow",
+            )
         return await execute_action_by_name(req.action, req.params, user)
     return create_proposal_by_action(req.action, req.params, user)
 
@@ -408,7 +418,9 @@ async def confirm_action_proposal(
     """Execute a proposed action after operator confirmation (D20/D48)."""
     _kill_switch()
     try:
-        prop, result = await confirm_proposal(proposal_id, user, req.idempotency_key)
+        prop, result = await confirm_proposal(
+            proposal_id, user, req.idempotency_key, req.confirm_target
+        )
     except HTTPException:
         raise
     return {

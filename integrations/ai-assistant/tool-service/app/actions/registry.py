@@ -37,7 +37,8 @@ class ActionDef:
 
 
 def public_tool_name(action_name: str) -> str:
-    if CFG.actions_direct:
+    action = get_action(action_name)
+    if action and CFG.actions_direct and action.tier == ActionTier.DASHBOARD:
         return action_name
     return f"propose_{action_name}"
 

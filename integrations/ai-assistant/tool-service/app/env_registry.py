@@ -32,10 +32,15 @@ class EnvConfig:
     locale: str = "bilingual"
     alerts_index: str = ""
     saved_objects_index: str = ""
+    dashboard_api_url: str = ""
     dashboard_executor_basic: str = ""
     manager_api_url: str = ""
+    manager_ca_path: str = ""
     manager_executor_basic: str = ""
     ar_executor_basic: str = ""
+    actions_tiers: tuple[str, ...] = ("dashboard",)
+    manager_actions_per_hour: int = 10
+    active_response_actions_per_hour: int = 5
     enabled: bool = True
   # admission overrides reserved for V3.2
 
@@ -63,10 +68,17 @@ def _coerce(doc: dict[str, Any]) -> EnvConfig:
         saved_objects_index=str(
             doc.get("saved_objects_index", CFG.saved_objects_index)
         ),
+        dashboard_api_url=_expand(str(doc.get("dashboard_api_url", ""))),
         dashboard_executor_basic=_expand(str(doc.get("dashboard_executor_basic", ""))),
         manager_api_url=_expand(str(doc.get("manager_api_url", ""))),
+        manager_ca_path=_expand(str(doc.get("manager_ca_path", ""))),
         manager_executor_basic=_expand(str(doc.get("manager_executor_basic", ""))),
         ar_executor_basic=_expand(str(doc.get("ar_executor_basic", ""))),
+        actions_tiers=tuple(str(t) for t in doc.get("actions", ["dashboard"])),
+        manager_actions_per_hour=int(doc.get("manager_actions_per_hour", 10)),
+        active_response_actions_per_hour=int(
+            doc.get("active_response_actions_per_hour", 5)
+        ),
         enabled=bool(doc.get("enabled", True)),
     )
 
@@ -94,10 +106,17 @@ def _fallback_lab() -> EnvConfig:
         embed_ml_model_id=CFG.embed_ml_model_id,
         alerts_index=CFG.alerts_index,
         saved_objects_index=CFG.saved_objects_index,
+        dashboard_api_url=_env_or("WAI_ENV_LAB_DASHBOARD_API_URL", "https://localhost:5601"),
         dashboard_executor_basic=dash_exec,
         manager_api_url=_env_or("WAI_ENV_LAB_MANAGER_URL", "https://wazuh.manager:55000"),
+        manager_ca_path=_env_or("WAI_ENV_LAB_MANAGER_CA_PATH", CFG.indexer_ca_path),
         manager_executor_basic=mgr_exec,
         ar_executor_basic=ar_exec,
+        actions_tiers=tuple(
+            t.strip()
+            for t in _env_or("WAI_ENV_LAB_ACTIONS", "dashboard").split(",")
+            if t.strip()
+        ),
     )
 
 

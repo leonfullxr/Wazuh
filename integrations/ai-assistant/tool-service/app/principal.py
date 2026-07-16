@@ -63,10 +63,27 @@ def proposer_sub(principal: Principal) -> str | None:
 
 
 def can_confirm_actions(user: User) -> bool:
-    """Confirm requires operator role (D20/D48)."""
+    """Dashboard-tier confirm (R6.11)."""
     from .config import CFG
 
     return CFG.operator_role in user.roles
+
+
+def can_confirm_responder(user: User) -> bool:
+    """Manager + active-response tier confirm (R6.11)."""
+    from .config import CFG
+
+    return CFG.responder_role in user.roles
+
+
+def can_confirm_tier(user: User, tier: "ActionTier") -> bool:
+    from .actions.types import ActionTier
+
+    if tier == ActionTier.DASHBOARD:
+        return can_confirm_actions(user)
+    if tier in (ActionTier.MANAGER, ActionTier.ACTIVE_RESPONSE):
+        return can_confirm_responder(user)
+    return False
 
 
 def indexer_headers(principal: Principal, env: EnvConfig | None = None) -> dict[str, str]:

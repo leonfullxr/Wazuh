@@ -81,9 +81,10 @@ class Settings(BaseSettings):
 
     # Actions v1.5 (D20/D35) — write operations
     actions_enabled: bool = False
-    actions_direct: bool = True  # execute on tool call; false = propose/confirm UI flow
+    actions_direct: bool = False  # propose/confirm default; dashboard-only when True
     action_proposal_ttl_s: int = 900
     operator_role: str = "wazuh_ai_operator"
+    responder_role: str = "wazuh_ai_responder"
     # Browser confirm UI (V3.5c) — host-facing URLs for dashboard + auth-shim
     ui_public_base_url: str = "http://localhost:8080"
     actions_shim_public_url: str = "http://localhost:8081"

@@ -9,7 +9,7 @@ from typing import Any, Iterator
 from pydantic import ValidationError
 
 from ..config import CFG
-from ..principal import Principal
+from ..principal import Principal, is_env_scoped
 from .cards import card_from_proposal
 from .proposals import create_proposal
 from .registry import public_tool_name
@@ -17,6 +17,7 @@ from .run import ActionPermissionError, execute_action_tool
 from .schemas import CreateDashboardParams
 
 _DASHBOARD_TOOL = public_tool_name("create_dashboard")
+_PROPOSE_DASHBOARD_TOOL = "propose_create_dashboard"
 _FENCED_JSON_RE = re.compile(
     r"```(?:json)?\s*(\{.*?\})\s*```",
     re.DOTALL | re.IGNORECASE,
@@ -90,11 +91,11 @@ async def _repair_dashboard_async(
 
         cleaned = re.sub(r"\n{3,}", "\n\n", text.replace(raw, "").strip())
         try:
-            if CFG.actions_direct:
+            if CFG.actions_direct and not is_env_scoped(principal):
                 payload = await execute_action_tool(_DASHBOARD_TOOL, params, principal)
                 answer = cleaned or _format_direct_result(payload)
                 return answer, payload
-            payload = create_proposal(_DASHBOARD_TOOL, params, principal)
+            payload = create_proposal(_PROPOSE_DASHBOARD_TOOL, params, principal)
             card = card_from_proposal(payload, ui_base=ui_base)
             preview = payload["preview"]
             answer = cleaned or (

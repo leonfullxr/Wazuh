@@ -11,11 +11,15 @@ from pydantic import BaseModel
 from .. import audit
 from ..auth import User
 from ..config import CFG
-from ..env_registry import get_env
-from ..principal import Principal, can_confirm_actions, env_id_for, proposer_sub
+from ..env_registry import EnvConfig, get_env
+from ..principal import Principal, can_confirm_tier, env_id_for, proposer_sub
 from .executors import run_executor
+from .guards import ActionPermissionError, assert_tier_enabled
+from .limits import LIMITER
 from .registry import get_action, get_action_by_tool
-from .types import ActionProposal, ActionResult
+from .types import ActionProposal, ActionResult, ActionRisk, ActionTier
+
+_MAX_PENDING = 512
 
 
 class ProposalStore:
@@ -27,6 +31,11 @@ class ProposalStore:
         now = time.time()
         for pid, prop in list(self._proposals.items()):
             if prop.status == "pending" and prop.expires_at <= now:
+                prop.status = "expired"
+        pending = [p for p in self._proposals.values() if p.status == "pending"]
+        if len(pending) > _MAX_PENDING:
+            pending.sort(key=lambda p: p.created_at)
+            for prop in pending[: len(pending) - _MAX_PENDING]:
                 prop.status = "expired"
 
     def create(
@@ -40,6 +49,12 @@ class ProposalStore:
             raise ValueError(f"unknown action tool {tool_name}")
 
         env_id = env_id_for(principal)
+        env = get_env(env_id)
+        try:
+            assert_tier_enabled(env, action.tier)
+        except ActionPermissionError as exc:
+            raise HTTPException(403, str(exc)) from exc
+
         now = time.time()
         proposal_id = uuid.uuid4().hex
         preview = action.preview(params)
@@ -90,34 +105,87 @@ class ProposalStore:
         )
         return prop
 
+    def _rate_limit(self, env: EnvConfig, tier: ActionTier) -> None:
+        if tier == ActionTier.MANAGER:
+            cap = env.manager_actions_per_hour
+        elif tier == ActionTier.ACTIVE_RESPONSE:
+            cap = env.active_response_actions_per_hour
+        else:
+            return
+        if not LIMITER.allow(env.env_id, tier.value, cap):
+            audit.emit(
+                "action_rate_limited",
+                env=env.env_id,
+                tier=tier.value,
+            )
+            raise HTTPException(
+                429,
+                f"rate limit exceeded for {tier.value} actions in this environment",
+            )
+
+    def _validate_confirm_target(
+        self, prop: ActionProposal, confirm_target: dict[str, Any] | None
+    ) -> None:
+        if prop.risk != ActionRisk.HIGH:
+            return
+        if prop.action_name == "active_response":
+            expected = {
+                "agent_id": prop.params.get("agent_id"),
+                "command": prop.params.get("command"),
+            }
+        elif prop.action_name == "restart_agent":
+            expected = {"agent_id": prop.params.get("agent_id")}
+        else:
+            return
+        if confirm_target != expected:
+            raise HTTPException(
+                409,
+                detail={
+                    "error": "confirm_target mismatch",
+                    "expected": expected,
+                    "got": confirm_target,
+                },
+            )
+
     async def confirm(
         self,
         proposal_id: str,
         user: User,
         idempotency_key: str,
+        confirm_target: dict[str, Any] | None = None,
     ) -> tuple[ActionProposal, ActionResult]:
-        if not can_confirm_actions(user):
+        prop = self.get(proposal_id)
+        if prop is None:
+            raise HTTPException(404, "proposal not found")
+        if not can_confirm_tier(user, prop.tier):
+            role = (
+                CFG.operator_role
+                if prop.tier == ActionTier.DASHBOARD
+                else CFG.responder_role
+            )
             raise HTTPException(
                 403,
-                f"missing operator role {CFG.operator_role} — cannot confirm actions",
+                f"missing role {role} — cannot confirm {prop.tier.value} actions",
             )
 
         self._expire_stale()
         idem = f"{user.env_id}:{idempotency_key}"
         if idem in self._idempotency:
             existing_id = self._idempotency[idem]
-            prop = self._proposals.get(existing_id)
-            if prop and prop.result is not None:
-                return prop, ActionResult(
-                    ok=prop.result.get("ok", False),
-                    status=prop.result.get("status", "replay"),
-                    message=prop.result.get("message", "idempotent replay"),
-                    details=prop.result.get("details", {}),
+            if existing_id != proposal_id:
+                raise HTTPException(
+                    409,
+                    "idempotency key already used for a different proposal",
+                )
+            existing = self._proposals.get(existing_id)
+            if existing and existing.result is not None:
+                return existing, ActionResult(
+                    ok=existing.result.get("ok", False),
+                    status=existing.result.get("status", "replay"),
+                    message=existing.result.get("message", "idempotent replay"),
+                    details=existing.result.get("details", {}),
                 )
 
-        prop = self.get(proposal_id)
-        if prop is None:
-            raise HTTPException(404, "proposal not found")
         if prop.env_id != user.env_id:
             raise HTTPException(403, "proposal belongs to another environment")
         if prop.status == "expired":
@@ -125,11 +193,19 @@ class ProposalStore:
         if prop.status != "pending":
             raise HTTPException(409, f"proposal already {prop.status}")
 
+        self._validate_confirm_target(prop, confirm_target)
+
         action = get_action(prop.action_name)
         if action is None:
             raise HTTPException(500, "action definition missing")
 
         env = get_env(prop.env_id)
+        try:
+            assert_tier_enabled(env, prop.tier)
+        except ActionPermissionError as exc:
+            raise HTTPException(403, str(exc)) from exc
+        self._rate_limit(env, prop.tier)
+
         validated = action.schema.model_validate(prop.params)
         result = await run_executor(
             prop.tier, prop.action_name, validated, env, user, user
@@ -187,7 +263,7 @@ def create_proposal_by_action(
         validated = action.schema.model_validate(params)
     except Exception as exc:
         raise HTTPException(422, f"invalid params: {exc}") from exc
-    return create_proposal(action.tool_name, validated, principal)
+    return create_proposal(action.propose_tool_name, validated, principal)
 
 
 def get_proposal(proposal_id: str) -> ActionProposal | None:
@@ -199,11 +275,15 @@ def reject_proposal(proposal_id: str, user: User) -> ActionProposal:
 
 
 async def confirm_proposal(
-    proposal_id: str, user: User, idempotency_key: str
+    proposal_id: str,
+    user: User,
+    idempotency_key: str,
+    confirm_target: dict[str, Any] | None = None,
 ) -> tuple[ActionProposal, ActionResult]:
-    return await _STORE.confirm(proposal_id, user, idempotency_key)
+    return await _STORE.confirm(proposal_id, user, idempotency_key, confirm_target)
 
 
 def reset_store_for_tests() -> None:
     _STORE._proposals.clear()
     _STORE._idempotency.clear()
+    LIMITER.reset_for_tests()
