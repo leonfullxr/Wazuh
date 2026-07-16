@@ -9,3 +9,4 @@ boto3~=1.35
 anyio~=4.6
 prometheus-client~=0.21
 pyyaml~=6.0
+mcp>=1.2

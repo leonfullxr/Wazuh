@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
@@ -28,7 +29,7 @@ from . import audit
 from .admission import BusyError
 from .auth import User, verify_jwt
 from .config import CFG
-from .env_registry import resolve_by_key
+from .env_registry import resolve_by_key, get_env
 from .knowledge import mitre_lookup
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .brute_force import brute_force_summary
@@ -49,8 +50,17 @@ from .actions.ui_static import INJECT_JS, UI_PAGE_HTML
 from .tools import REGISTRY
 from .states_veracity import execute_vulnerabilities_ir
 from .veracity import VeracityError, execute_ir
+from .mcp_surface import MCP, MCP_APP
 
-app = FastAPI(title="wazuh-ai tool service", version="0.2.0")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    async with MCP.session_manager.run():
+        yield
+
+
+app = FastAPI(title="wazuh-ai tool service", version="0.2.0", lifespan=_lifespan)
+app.mount("/mcp", MCP_APP)
 
 _origins = [o.strip() for o in CFG.actions_cors_origins.split(",") if o.strip()]
 if _origins:
@@ -137,6 +147,8 @@ async def healthz() -> dict:
         "tools": sorted(REGISTRY),
         "actions_enabled": CFG.actions_enabled,
         "actions_direct": CFG.actions_direct,
+        "actions_conversational": CFG.actions_conversational,
+        "action_tiers": list(get_env(CFG.actions_env_id).actions_tiers),
         "action_tools": sorted(ACTION_REGISTRY) if CFG.actions_enabled else [],
     }
 
@@ -254,7 +266,14 @@ async def connector_analyze(
         message = f"{answer}\n\n_{label} {ENV_SCOPED_SUFFIX}_"
     else:
         message = f"{answer}\n\n_{ENV_SCOPED_SUFFIX}_"
-    return {"output": {"message": message}}
+    payload: dict = {"output": {"message": message}}
+    if label:
+        payload["verifiability"] = label
+    if done.get("checks"):
+        payload["checks"] = done["checks"]
+    if done.get("action_result"):
+        payload["action_result"] = done["action_result"]
+    return payload
 
 
 @app.post("/v1/chat/sync")
@@ -393,6 +412,27 @@ class ConfirmActionRequest(BaseModel):
 class ProposeActionRequest(BaseModel):
     action: str = Field(min_length=1, max_length=64)
     params: dict = Field(default_factory=dict)
+    conversation_id: str | None = None
+
+
+@app.post("/v1/connector/propose")
+async def connector_propose(
+    req: ProposeActionRequest,
+    x_env_key: str = Header(..., alias="X-Env-Key"),
+) -> dict:
+    """Create a pending proposal on the connector edge (eval / harness use)."""
+    if not CFG.service_enabled:
+        raise HTTPException(503, "wazuh-ai is disabled for this tenant (kill switch)")
+    if not CFG.actions_enabled or CFG.actions_direct:
+        raise HTTPException(503, "actions propose/confirm flow is not enabled")
+    env = resolve_by_key(x_env_key.strip())
+    if env is None:
+        audit.emit("env_key_rejected", env=None)
+        raise HTTPException(401, "invalid environment key")
+    _env_kill_switch(env)
+    return create_proposal_by_action(
+        req.action, req.params, EnvPrincipal(env.env_id), req.conversation_id
+    )
 
 
 @app.post("/v1/actions/propose")
@@ -411,7 +451,7 @@ async def propose_action(req: ProposeActionRequest, user: User = Depends(verify_
                 "manager and active-response actions require propose/confirm flow",
             )
         return await execute_action_by_name(req.action, req.params, user)
-    return create_proposal_by_action(req.action, req.params, user)
+    return create_proposal_by_action(req.action, req.params, user, req.conversation_id)
 
 
 @app.get("/v1/actions/{proposal_id}")

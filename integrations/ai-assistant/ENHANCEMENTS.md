@@ -264,8 +264,8 @@ and document `getent group render video` in `.env.example`.
 ### R2.7 MCP token lifecycle
 
 `WAI_MCP_JWT` is pre-minted and dies ≤10 min into a session. Have `server.py`
-mint on demand: Keycloak password grant + shim exchange (env
-`WAI_MCP_KC_USER`/`WAI_MCP_KC_PASSWORD`, urls), cache until `exp - 30 s`,
+mint on demand: indexer Basic auth → shim exchange (env
+`WAI_MCP_USER`/`WAI_MCP_PASSWORD`, urls), cache until `exp - 30 s`,
 re-mint transparently. Keep `WAI_MCP_JWT` as an override for one-shot use.
 
 **Acceptance:** an MCP session keeps working past the 10-minute mark.
@@ -325,7 +325,7 @@ and tool-service.
 |---|---|
 | `kind/tenants/tenant-a/` and `tenant-b/` | Namespace, Deployments (auth-shim + tool-service), Services, Secrets |
 | `keys/gen-keys.sh` | Accept an output-dir argument so each tenant gets its OWN mint keypair |
-| `keycloak/realm-export.json` | Second realm (or a second client + role pair) so each tenant has its own IdP audience |
+| `keycloak/realm-export.json` | **HISTORICAL (removed V3.6):** was a second realm per tenant; multi-tenant isolation now uses indexer authinfo per environment. |
 
 Per tenant: own RSA keypair (the mint key is the tenant boundary, D30), own
 `WAI_TENANT` value, own `SHIM_KC_ISSUER`. The container images are the ones
@@ -343,7 +343,7 @@ indexers are an AWS-stage concern, deliberately out of scope.
 
 | File | Change |
 |---|---|
-| `kind/tenants/<t>/netpol.yaml` | Default-deny ingress+egress; allow DNS; allow same-namespace; allow egress to host indexer/Keycloak/Ollama CIDR; allow ingress from the NodePort |
+| `kind/tenants/<t>/netpol.yaml` | Default-deny ingress+egress; allow DNS; allow same-namespace; allow egress to host indexer/Ollama CIDR (no Keycloak — removed V3.6); allow ingress from the NodePort |
 
 kind's default CNI (kindnetd) does not enforce NetworkPolicy — install a CNI
 that does (Calico is the boring choice) in `kind-up`, or the walls are

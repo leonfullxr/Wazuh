@@ -20,12 +20,8 @@ import httpx
 SVC = os.environ.get("WAI_MCP_BASE_URL", "http://localhost:8080")
 SHIM = os.environ.get("WAI_MCP_SHIM_URL", "http://localhost:8081")
 ENV_ID = os.environ.get("WAI_MCP_ENV_ID", "lab")
-MCP_USER = os.environ.get(
-    "WAI_MCP_USER", os.environ.get("WAI_MCP_KC_USER", "analyst1")
-)
-MCP_PASSWORD = os.environ.get(
-    "WAI_MCP_PASSWORD", os.environ.get("WAI_MCP_KC_PASSWORD", "analyst1")
-)
+MCP_USER = os.environ.get("WAI_MCP_USER", "analyst1")
+MCP_PASSWORD = os.environ.get("WAI_MCP_PASSWORD", "analyst1")
 
 _STATIC_JWT = os.environ.get("WAI_MCP_JWT", "")
 _cached_jwt: str | None = None

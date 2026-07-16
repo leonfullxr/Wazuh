@@ -151,7 +151,7 @@ Config: `WAI_ACTIONS_ENABLED=true` adds `propose_*` tools to the model catalog.
 |---|---|---|
 | **V3.5a** (this PR) | `app/actions/*`, propose tools, confirm API, securityconfig scaffold, tests | Proposal + confirm flow works; executor returns `not_configured` without creds; env principal cannot confirm |
 | **V3.5b** | Wire dashboard executor (saved objects), manager restart, AR allowlist | Golden case: create brute-force dashboard; restart agent in lab; AR dry-run |
-| **V3.5c** | Dashboard UI confirm card; operator role in Keycloak | Click confirm in Wazuh dashboard without curl |
+| **V3.5c** | Dashboard UI confirm card; operator role on lab users | Click confirm in Wazuh dashboard without curl |
 | **V3.5d** | `make evals-actions` | Bilingual action golden set |
 
 ---
@@ -297,7 +297,7 @@ executor basic auth). Registry gains `dashboard_api_url`. The stray
 
 Two roles, not one umbrella: `wazuh_ai_operator` confirms dashboard-tier;
 `wazuh_ai_responder` additionally required for manager + active-response
-tiers. Keycloak realm gains both (lab users: `operator1` with both). Cheap
+tiers. Lab users (`operator1`, etc.) carry both roles. Cheap
 now, painful to retrofit after customers exist.
 
 ### R6.12 Status corrections to this document

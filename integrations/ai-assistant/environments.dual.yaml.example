@@ -1,0 +1,21 @@
+# Dual-environment registry example (V3.2). Both entries may share one indexer
+# in the PoC; production uses distinct indexers per env.
+- env_id: lab
+  gateway_key: ${WAI_ENV_LAB_KEY}
+  indexer_url: https://wazuh.indexer:9200
+  indexer_ca_path: ""
+  reader_basic: ${WAI_ENV_LAB_READER}
+  enabled: true
+  locale: bilingual
+  actions:
+    - dashboard
+
+- env_id: lab-b
+  gateway_key: ${WAI_ENV_LAB_B_KEY}
+  indexer_url: https://wazuh.indexer:9200
+  indexer_ca_path: ""
+  reader_basic: ${WAI_ENV_LAB_B_READER:-wazuh_ai_env_reader:EnvReaderLab1!}
+  enabled: true
+  locale: bilingual
+  actions:
+    - dashboard

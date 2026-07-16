@@ -101,6 +101,20 @@ cases:
     answer_has_count: vulnerabilities_30d
     checks_any: [datastore_computed_counts]
 
+  - id: lane0-lang-fidelity-en
+    lang: en
+    question: "How many alerts did we get in the last 24 hours?"
+    tools_any: [count_alerts]
+    answer_any: ["matching alerts"]
+    answer_none: ["alertas coincidentes", "Sin alertas coincidentes"]
+
+  - id: lane0-lang-fidelity-es
+    lang: es
+    question: "Cuantas alertas hemos tenido en las ultimas 24 horas?"
+    tools_any: [count_alerts]
+    answer_any: ["alertas coincidentes"]
+    answer_none: ["matching alerts between"]
+
   - id: vuln-severity-en
     lang: en
     question: "How many high severity vulnerabilities were detected in the last 30 days?"

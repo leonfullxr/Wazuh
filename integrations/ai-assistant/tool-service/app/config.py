@@ -90,6 +90,8 @@ class Settings(BaseSettings):
     ui_public_base_url: str = "http://localhost:8080"
     actions_shim_public_url: str = "http://localhost:8081"
     actions_env_id: str = "lab"
+    actions_conversational: bool = True
+    confirm_window_s: int = 300
     actions_cors_origins: str = (
         "https://localhost,http://localhost:5601,https://localhost:5601"
     )

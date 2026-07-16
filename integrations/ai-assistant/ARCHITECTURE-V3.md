@@ -1,5 +1,9 @@
 # wazuh-ai v3 — the multi-environment MCP-LLM Gateway behind the Dashboard Assistant
 
+> **Follow-ups after V3.6/V3.7:** [`ARCHITECTURE-V3.8-UX.md`](ARCHITECTURE-V3.8-UX.md)
+> — language fidelity fix, full Keycloak removal, and conversational
+> confirm ("yes"/"confirm"), with new decisions D53/D54. Apply that file next.
+
 Date: 2026-07-15 · Author: Claude (reviewer) · Implementer: Cursor
 Decision (Leon): the chat moves INTO the Wazuh dashboard via the OpenSearch
 Dashboards Assistant + ML Commons HTTP connector, following the shape of the
@@ -92,7 +96,7 @@ outbound-only pattern — recorded as open question OQ-V3-1, out of PoC scope.
 | Edge | Who the query runs as | How the caller is verified |
 |---|---|---|
 | Dashboard assistant (connector) | `wazuh_ai_env_reader` — per-env, read-only, indexer-local | Per-env gateway credential in the connector (`X-Env-Key`), stored encrypted by ML Commons |
-| n8n / direct API / eval runner | The analyst (turn JWT, D11) — unchanged | Keycloak → shim → turn JWT chain — unchanged |
+| n8n / direct API / eval runner | The analyst (turn JWT, D11) — unchanged | Indexer Basic creds → shim authinfo verify → turn JWT (V3.6; no IdP stand-in) |
 | MCP adapter | The analyst (turn JWT it mints/refreshes) — unchanged | Same chain |
 
 Rules that make the downgrade honest:

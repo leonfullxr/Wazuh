@@ -10,6 +10,7 @@ from fastapi import Header, HTTPException
 
 from .config import CFG
 from . import audit
+from .env_registry import ENV_REGISTRY
 
 with open(CFG.jwt_public_key_path, "rb") as fh:
     _PUBLIC_KEY = fh.read()
@@ -35,8 +36,7 @@ class User:
         return "direct"
 
 
-async def verify_jwt(authorization: str = Header(...)) -> User:
-    token = authorization.removeprefix("Bearer ").strip()
+def user_from_token(token: str) -> User:
     try:
         claims = jwt.decode(
             token,
@@ -46,19 +46,36 @@ async def verify_jwt(authorization: str = Header(...)) -> User:
             issuer=CFG.jwt_issuer,
         )
     except jwt.PyJWTError as exc:
+        audit.emit("turn_token_rejected", reason=str(exc)[:200])
         raise HTTPException(401, f"turn token rejected: {exc}") from exc
 
-    if claims.get("tenant") != CFG.tenant:
-        # Defense in depth: a token minted for another tenant is rejected even
-        # if it somehow arrived here.
-        audit.emit("cross_tenant_token_rejected", sub=claims.get("sub"))
+    tenant = str(claims.get("tenant") or CFG.tenant)
+    if tenant not in ENV_REGISTRY:
+        audit.emit("cross_tenant_token_rejected", sub=claims.get("sub"), tenant=tenant)
         raise HTTPException(403, "tenant mismatch")
-    if CFG.access_role not in claims.get("backend_roles", []):
+    env = ENV_REGISTRY[tenant]
+    if not env.enabled:
+        audit.emit("env_disabled_rejected", env=tenant, sub=claims.get("sub"))
+        raise HTTPException(503, f"environment {tenant!r} is disabled")
+
+    roles = claims.get("backend_roles") or []
+    if CFG.access_role not in roles:
+        audit.emit(
+            "turn_role_rejected",
+            env=tenant,
+            sub=claims.get("sub"),
+            role=CFG.access_role,
+        )
         raise HTTPException(403, f"missing role {CFG.access_role}")
 
     return User(
         sub=claims["sub"],
-        roles=claims["backend_roles"],
+        roles=roles,
         raw_jwt=token,
-        env_id=CFG.tenant,
+        env_id=tenant,
     )
+
+
+async def verify_jwt(authorization: str = Header(...)) -> User:
+    token = authorization.removeprefix("Bearer ").strip()
+    return user_from_token(token)

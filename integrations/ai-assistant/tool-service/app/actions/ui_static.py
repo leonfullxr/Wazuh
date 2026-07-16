@@ -204,7 +204,7 @@ UI_PAGE_HTML = """<!doctype html>
     <div class="meta" id="meta"></div>
     <pre id="preview"></pre>
     <div class="login" id="login">
-      <label>Operator sign-in (Keycloak)</label>
+      <label>Operator sign-in</label>
       <input id="user" placeholder="username" autocomplete="username" />
       <input id="pass" type="password" placeholder="password" autocomplete="current-password" />
       <button type="button" id="signin">Sign in</button>
@@ -223,21 +223,17 @@ UI_PAGE_HTML = """<!doctype html>
     const setJwt = (t) => sessionStorage.setItem(JWT_KEY, t);
 
     async function login() {
-      const body = new URLSearchParams({
-        grant_type: "password",
-        client_id: CFG.kcClient,
-        username: document.getElementById("user").value,
-        password: document.getElementById("pass").value,
-      });
-      const oidc = await fetch(`${CFG.kcUrl}/realms/${CFG.kcRealm}/protocol/openid-connect/token`, {
-        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body,
-      });
-      if (!oidc.ok) throw new Error(`Keycloak login failed (${oidc.status})`);
-      const access = (await oidc.json()).access_token;
+      const user = document.getElementById("user").value;
+      const pass = document.getElementById("pass").value;
+      const basic = btoa(`${user}:${pass}`);
       const exchanged = await fetch(`${CFG.shimUrl}/v1/token/exchange`, {
-        method: "POST", headers: { Authorization: `Bearer ${access}` },
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basic}`,
+          "X-Env-Id": CFG.envId,
+        },
       });
-      if (!exchanged.ok) throw new Error(`token exchange failed (${exchanged.status})`);
+      if (!exchanged.ok) throw new Error(`sign-in failed (${exchanged.status})`);
       setJwt((await exchanged.json()).access_token);
       document.getElementById("login").style.display = "none";
     }

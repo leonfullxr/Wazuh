@@ -14,7 +14,7 @@ COMPOSE := docker compose -f docker-compose.poc.yml
 # Profiled GPU/LLM backends are not stopped by a plain `compose down`.
 COMPOSE_ALL := $(COMPOSE) --profile ollama --profile airllm --profile litellm
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions evals-isolation bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors
 .PHONY: dashboard-assistant assistant-setup
 .PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
@@ -84,6 +84,10 @@ evals-connector:
 evals-actions:
 	python3 golden/run_evals_actions.py
 
+evals-isolation:
+	chmod +x scripts/isolation_poc.sh
+	./scripts/isolation_poc.sh
+
 dashboard-assistant:
 	docker build -t wazuh-ai-dashboard:$(WAZUH_VERSION) \
 	  --build-arg WAZUH_VERSION=$(WAZUH_VERSION) \
@@ -151,8 +155,14 @@ evals-qwen3:
 	cp golden/last_run.json "golden/last_run.$$(echo $(QWEN3_INSTRUCT_MODEL) | tr ':/' '--').json"
 
 test:
+	docker compose -f docker-compose.poc.yml build tool-service auth-shim
 	docker compose -f docker-compose.poc.yml run --rm --no-deps \
+	  -v ./keys:/keys:ro \
 	  -v ./tool-service/tests:/app/tests:ro --entrypoint sh tool-service \
+	  -c "pip install -q pytest && python -m pytest -q tests"
+	docker compose -f docker-compose.poc.yml run --rm --no-deps \
+	  -v ./keys:/keys:ro \
+	  -v ./auth-shim/tests:/app/tests:ro --entrypoint sh auth-shim \
 	  -c "pip install -q pytest && python -m pytest -q tests"
 
 # ---- Track B: kind cluster + cross-tenant isolation (kind/README.md) ----------

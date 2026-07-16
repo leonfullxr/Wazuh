@@ -333,8 +333,11 @@ _STR = {
 }
 
 
-def render_local(match_: Lane0Match, ir, evidence) -> str:
-    lang = _STR.get(match_.exemplar.lang, _STR["en"])
+def render_local(match_: Lane0Match, ir, evidence, question: str = "") -> str:
+    from .language import detect
+
+    lang_key = detect(question or match_.exemplar.text)
+    lang = _STR.get(lang_key, _STR["en"])
     gte, lte = ir.time_range.iso()
     gte, lte = gte[:16].replace("T", " "), lte[:16].replace("T", " ")
 

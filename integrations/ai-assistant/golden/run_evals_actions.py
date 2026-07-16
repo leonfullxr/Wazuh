@@ -23,10 +23,9 @@ from auth import get_turn_jwt as _mint_turn_jwt
 
 SHIM = os.environ.get("WAI_EVAL_SHIM_URL", "http://localhost:8081")
 SVC = os.environ.get("WAI_EVAL_SVC_URL", "http://localhost:8080")
-USER = os.environ.get("WAI_EVAL_USER", os.environ.get("WAI_EVAL_KC_USER", "analyst1"))
-PASSWORD = os.environ.get(
-    "WAI_EVAL_PASSWORD", os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
-)
+ENV_KEY = os.environ.get("WAI_EVAL_ENV_KEY") or os.environ.get("WAI_ENV_LAB_KEY", "")
+USER = os.environ.get("WAI_EVAL_USER", "analyst1")
+PASSWORD = os.environ.get("WAI_EVAL_PASSWORD", "analyst1")
 TIMEOUT = float(os.environ.get("WAI_EVAL_ACTIONS_TIMEOUT_S", "120"))
 
 HERE = Path(__file__).resolve().parent
@@ -268,6 +267,182 @@ def run_case_propose(case: dict, headers: dict) -> dict:
     return _finalize_case(_verify_dashboard(case, suffix, result, headers, detail))
 
 
+def _chat_turn(
+    text: str,
+    conversation_id: str | None,
+    *,
+    edge: str,
+    headers: dict,
+    env_key: str,
+) -> dict:
+    if edge == "connector":
+        r = httpx.post(
+            f"{SVC}/v1/connector/analyze",
+            json={"parameters": {"prompt": text}},
+            headers={"X-Env-Key": env_key},
+            timeout=TIMEOUT,
+        )
+        r.raise_for_status()
+        body = r.json()
+        return {
+            "answer": body.get("output", {}).get("message", ""),
+            "checks": body.get("checks") or [],
+            "verifiability": body.get("verifiability", ""),
+            "action_result": body.get("action_result"),
+        }
+    r = httpx.post(
+        f"{SVC}/v1/chat/sync",
+        json={"text": text, "conversation_id": conversation_id},
+        headers=headers,
+        timeout=TIMEOUT,
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def run_case_conversational(case: dict, headers: dict, health: dict) -> dict:
+    if not health.get("actions_conversational"):
+        return _finalize_case(
+            {
+                "id": case["id"],
+                "lang": case.get("lang", "en"),
+                "ok": True,
+                "skipped": True,
+                "reason": "actions_conversational disabled",
+            }
+        )
+    if health.get("actions_direct"):
+        return _finalize_case(
+            {
+                "id": case["id"],
+                "lang": case.get("lang", "en"),
+                "ok": True,
+                "skipped": True,
+                "reason": "conversational confirm requires propose/confirm mode",
+            }
+        )
+
+    edge = case.get("edge", "direct")
+    env_key = ENV_KEY.strip()
+    if edge == "connector" and not env_key:
+        return _finalize_case(
+            {
+                "id": case["id"],
+                "lang": case.get("lang", "en"),
+                "ok": False,
+                "error": "WAI_EVAL_ENV_KEY required for connector conversational cases",
+            }
+        )
+
+    skip_tier = case.get("skip_if_tier_enabled")
+    if skip_tier and skip_tier in (health.get("action_tiers") or []):
+        return _finalize_case(
+            {
+                "id": case["id"],
+                "lang": case.get("lang", "en"),
+                "ok": True,
+                "skipped": True,
+                "reason": f"tier {skip_tier!r} enabled on lab env",
+            }
+        )
+
+    conv_id = f"golden-{case['id']}-{uuid.uuid4().hex[:8]}"
+    propose_conv_id = None if edge == "connector" else conv_id
+    params = dict(case.get("params") or {})
+    suffix = uuid.uuid4().hex[:6]
+    if "title" in params:
+        params["title"] = f"{params['title']} [{suffix}]"
+
+    propose_count = int(case.get("multi_propose", 1))
+    propose_url = (
+        f"{SVC}/v1/connector/propose"
+        if edge == "connector"
+        else f"{SVC}/v1/actions/propose"
+    )
+    propose_headers = (
+        {"X-Env-Key": env_key} if edge == "connector" else headers
+    )
+    detail: dict = {
+        "id": case["id"],
+        "lang": case.get("lang", "en"),
+        "edge": edge,
+        "conversation_id": conv_id,
+        "ok": True,
+    }
+
+    for _ in range(propose_count):
+        propose = httpx.post(
+            propose_url,
+            json={
+                "action": case["action"],
+                "params": params,
+                "conversation_id": propose_conv_id,
+            },
+            headers=propose_headers,
+            timeout=TIMEOUT,
+        )
+        expect_propose = int(case.get("propose_status", 200))
+        detail["propose_status"] = propose.status_code
+        if propose.status_code != expect_propose:
+            detail["ok"] = False
+            detail["error"] = propose.text[:500]
+            return _finalize_case(detail)
+        if expect_propose != 200:
+            return _finalize_case(detail)
+
+    chat_text = case.get("chat_text", "yes")
+    try:
+        chat_body = _chat_turn(
+            chat_text,
+            conv_id if edge != "connector" else None,
+            edge=edge,
+            headers=headers,
+            env_key=env_key,
+        )
+    except httpx.HTTPError as exc:
+        detail["ok"] = False
+        detail["error"] = str(exc)[:500]
+        return _finalize_case(detail)
+
+    detail["answer"] = chat_body.get("answer", "")[:500]
+    detail["checks"] = chat_body.get("checks") or []
+    detail["verifiability"] = chat_body.get("verifiability", "")
+
+    expected_checks = case.get("checks") or []
+    for chk in expected_checks:
+        if chk not in detail["checks"]:
+            detail["ok"] = False
+            detail["error"] = (
+                f"expected check {chk!r} in {detail['checks']!r}"
+            )
+            return _finalize_case(detail)
+
+    action_result = chat_body.get("action_result") or {}
+    if "result_ok" in case:
+        got_ok = action_result.get("ok")
+        if got_ok is not case["result_ok"]:
+            detail["ok"] = False
+            detail["error"] = f"action_result.ok expected {case['result_ok']}, got {got_ok}"
+            return _finalize_case(detail)
+    if "result_status" in case:
+        got_status = action_result.get("status")
+        if got_status != case["result_status"]:
+            detail["ok"] = False
+            detail["error"] = (
+                f"action_result.status expected {case['result_status']!r}, "
+                f"got {got_status!r}"
+            )
+            return _finalize_case(detail)
+
+    if action_result.get("ok") and case.get("dashboard_title"):
+        return _finalize_case(
+            _verify_dashboard(
+                case, suffix, action_result, headers, detail
+            )
+        )
+    return _finalize_case(detail)
+
+
 def main() -> None:
     health = wait_for_service()
     if not health.get("actions_enabled"):
@@ -279,12 +454,17 @@ def main() -> None:
     mode = "direct" if direct else "propose/confirm"
     print(f"actions mode: {mode}")
 
+    runner = run_case_direct if direct else run_case_propose
     jwt = get_turn_jwt()
     headers = auth_headers(jwt)
     cases = yaml.safe_load((HERE / "actions.yaml").read_text())["cases"]
 
-    runner = run_case_direct if direct else run_case_propose
-    results = [runner(c, headers) for c in cases]
+    results = []
+    for c in cases:
+        if c.get("mode") == "conversational":
+            results.append(run_case_conversational(c, headers, health))
+        else:
+            results.append(runner(c, headers))
     passed = sum(1 for r in results if r.get("passed"))
     skipped = sum(1 for r in results if r.get("skipped"))
     report = {

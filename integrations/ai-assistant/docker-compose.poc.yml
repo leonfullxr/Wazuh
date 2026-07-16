@@ -16,6 +16,8 @@ services:
       SHIM_REQUIRED_ROLE: wazuh_ai_analyst
       SHIM_ENVS_FILE: /config/environments.yaml
       SHIM_INDEXER_VERIFY_SSL: ${WAI_INDEXER_VERIFY_SSL:-false}
+      SHIM_EXCHANGES_PER_USER_PER_MINUTE: ${SHIM_EXCHANGES_PER_USER_PER_MINUTE:-20}
+      SHIM_EXCHANGES_PER_IP_PER_MINUTE: ${SHIM_EXCHANGES_PER_IP_PER_MINUTE:-60}
       SHIM_CORS_ORIGINS: ${WAI_ACTIONS_CORS_ORIGINS:-https://localhost,http://localhost:5601,https://localhost:5601,http://localhost:8080}
     volumes:
       # The ONLY place the private key is mounted (D30)

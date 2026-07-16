@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from pydantic import ValidationError
+from fastapi import HTTPException
 
 from . import audit, embeddings, lane0, metrics, scope, state
 from .admission import BusyError, get_admission
@@ -40,9 +41,21 @@ from .principal import (
 )
 from .tools import REGISTRY, converse_tool_specs
 from .actions.registry import get_action_by_tool
-from .actions.proposals import create_proposal
+from .actions.proposals import (
+    confirm_proposal_principal,
+    create_proposal,
+    list_pending_proposals,
+    reject_proposal_principal,
+)
 from .actions.cards import card_from_proposal
+from .actions.confirm_intent import (
+    confirm_instruction,
+    extract_confirm_target,
+    parse_intent,
+)
 from .actions.run import ActionPermissionError, execute_action_tool
+from .actions.types import ActionRisk
+from .language import detect, language_name
 from .actions.repair import _repair_dashboard_async
 from .states_veracity import execute_vulnerabilities_ir
 from .veracity import VeracityError, execute_ir
@@ -274,14 +287,143 @@ async def _gated_stream(
         admission.tenant_sem.release()
 
 
+def _conversational_confirm_events(
+    text: str,
+    principal: Principal,
+    conversation_id: str | None,
+    started: float,
+) -> AsyncIterator[dict] | None:
+    """Handle yes/no on pending proposals (D54). Returns None if not handled."""
+    if not CFG.actions_enabled or not CFG.actions_conversational or CFG.actions_direct:
+        return None
+    intent = parse_intent(text)
+    if intent == "other":
+        return None
+
+    pending = list_pending_proposals(principal, conversation_id)
+    env_id = env_id_for(principal)
+    sub = admission_key(principal)
+    lang = detect(text)
+
+    async def _finish(answer: str, label: str, **extra) -> AsyncIterator[dict]:
+        state.save(sub, conversation_id, text, answer)
+        metrics.TURNS.labels(lane="0").inc()
+        metrics.TURN_SECONDS.observe(time.monotonic() - started)
+        yield {"event": "token", "data": {"text": answer}}
+        yield {
+            "event": "done",
+            "data": {
+                "verifiability": label,
+                "lanes": [0],
+                "checks": extra.get("checks", ["action_confirmed"]),
+                "tools_called": [],
+                "usage": {"in": 0, "out": 0},
+                "corrections": [],
+                "conversation_id": conversation_id,
+                **extra,
+            },
+        }
+
+    if intent == "negate" and pending:
+        prop = pending[0]
+        reject_proposal_principal(prop.proposal_id, principal)
+        answer = "Action cancelled." if lang == "en" else "Acción cancelada."
+        label = "conversational confirm · cancelled · no model involved"
+        return _finish(answer, label, checks=["action_rejected"])
+
+    if intent == "affirm":
+        if not pending:
+            return None
+        if len(pending) > 1:
+            lines = "\n".join(
+                f"- `{p.proposal_id}`: {p.preview[:120]}" for p in pending[:5]
+            )
+            if lang == "es":
+                answer = (
+                    "Hay varias acciones pendientes. Indica cuál confirmar:\n" + lines
+                )
+            else:
+                answer = "Multiple pending actions. Which one should I confirm?\n" + lines
+            label = "conversational confirm · ambiguous · no model involved"
+            return _finish(answer, label, checks=["action_ambiguous"])
+
+        prop = pending[0]
+        confirm_target = None
+        if prop.risk == ActionRisk.HIGH:
+            confirm_target = extract_confirm_target(text, prop.action_name)
+            if not confirm_target:
+                answer = confirm_instruction(
+                    lang, prop.risk, prop.action_name, prop.params
+                )
+                label = "conversational confirm · target echo required · no model involved"
+                return _finish(answer, label, checks=["confirm_target_required"])
+
+        idem = f"conv:{conversation_id or prop.conversation_scope}:{prop.proposal_id}"
+
+        async def _affirm_confirm() -> AsyncIterator[dict]:
+            try:
+                _prop, result = await confirm_proposal_principal(
+                    prop.proposal_id, principal, idem, confirm_target
+                )
+            except HTTPException as exc:
+                detail = exc.detail
+                answer = detail if isinstance(detail, str) else str(detail)
+                label = (
+                    f"conversational confirm · failed ({exc.status_code}) · "
+                    "no model involved"
+                )
+                async for ev in _finish(
+                    answer, label, checks=["action_confirm_failed"]
+                ):
+                    yield ev
+                return
+
+            answer = result.message
+            if not result.ok:
+                label = "conversational confirm · executor error · no model involved"
+                async for ev in _finish(
+                    answer, label, checks=["action_executed"], actions=[]
+                ):
+                    yield ev
+                return
+            label = (
+                f"conversational confirm · {result.status} · "
+                f"edge={edge_name(principal)} · no model involved"
+            )
+            async for ev in _finish(
+                answer,
+                label,
+                checks=["action_confirmed", "action_executed"],
+                action_result={
+                    "ok": result.ok,
+                    "status": result.status,
+                    "message": result.message,
+                    "details": result.details,
+                },
+            ):
+                yield ev
+
+        return _affirm_confirm()
+
+    return None
+
+
 async def run_turn(
     text: str, principal: Principal, conversation_id: str | None = None
 ) -> AsyncIterator[dict]:
     """Yields SSE-shaped events: progress, token, correction, error, done."""
     started = time.monotonic()
     env_id = env_id_for(principal)
-    auth_headers = indexer_headers(principal)
     sub = admission_key(principal)
+
+    # V3.8c (D54): yes/no confirm is deterministic — no model, no admission slot.
+    conv = _conversational_confirm_events(text, principal, conversation_id, started)
+    if conv is not None:
+        async for ev in conv:
+            yield ev
+        return
+
+    auth_headers = indexer_headers(principal)
     embeddings.begin_turn(auth_headers, env_id)
     async with get_admission(env_id).acquire(sub, env_scoped=is_env_scoped(principal)):
         analysis = await lane0.analyze(text)
@@ -295,7 +437,7 @@ async def run_turn(
                     params = tool.schema.model_validate(l0.params)
                     ir = tool.to_ir(params)
                     evidence = await execute_ir(ir, principal)
-                    answer = lane0.render_local(l0, ir, evidence)
+                    answer = lane0.render_local(l0, ir, evidence, text)
                     checks = sorted(evidence.checks_passed)
                     cache_note = " · served from cache" if evidence.from_cache else ""
                     label = (f"lane 0 · template {l0.exemplar.id} "
@@ -335,11 +477,7 @@ async def run_turn(
             qvec = analysis.qvec if analysis else None
             verdict = await scope.classify(text, qvec=qvec)
             if verdict is not None and not verdict.in_scope:
-                refusal = (
-                    _OUT_OF_SCOPE_ES
-                    if re.search(r"\b(que|cuant|cual|como)\b", text, re.I)
-                    else _OUT_OF_SCOPE_EN
-                )
+                refusal = _OUT_OF_SCOPE_ES if detect(text) == "es" else _OUT_OF_SCOPE_EN
                 metrics.TURNS.labels(lane="scope").inc()
                 metrics.TURN_SECONDS.observe(time.monotonic() - started)
                 state.save(sub, conversation_id, text, refusal)
@@ -356,6 +494,23 @@ async def run_turn(
         include_reporting = not _SIMPLE_RE.match(text)
         history = state.load(sub, conversation_id)
         transient: list[dict] = []
+        user_lang = detect(text)
+        transient.extend(
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "text": (
+                                f"Reply entirely in {language_name(user_lang)}. "
+                                "The user's message is in that language."
+                            )
+                        }
+                    ],
+                },
+                {"role": "assistant", "content": [{"text": "Understood."}]},
+            ]
+        )
         if analysis and analysis.near_miss is not None:
             transient.extend(
                 [
@@ -446,7 +601,15 @@ async def run_turn(
                                 sub=sub if isinstance(principal, User) else None,
                             )
                         else:
-                            payload = create_proposal(name, params, principal)
+                            payload = create_proposal(
+                                name, params, principal, conversation_id
+                            )
+                            payload["confirm_instruction"] = confirm_instruction(
+                                user_lang,
+                                action_def.risk,
+                                action_def.name,
+                                params.model_dump(mode="json"),
+                            )
                             card = card_from_proposal(
                                 payload, ui_base=CFG.ui_public_base_url
                             )

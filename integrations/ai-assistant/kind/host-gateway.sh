@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IP pods use to reach host-published docker services (Keycloak, Ollama, indexer).
+# IP pods use to reach host-published docker services (indexer, Ollama, shim).
 set -euo pipefail
 KIND_CLUSTER="${KIND_CLUSTER:-wazuh-ai}"
 NODE="${KIND_CLUSTER}-control-plane"

@@ -35,6 +35,7 @@ class ActionProposal:
     risk: ActionRisk
     created_at: float
     expires_at: float
+    conversation_scope: str = ""
     status: ProposalStatus = "pending"
     idempotency_key: str | None = None
     result: dict[str, Any] | None = None

@@ -312,3 +312,72 @@ def test_actions_api_get_proposal(actions_on):
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()["preview"]
+
+
+def test_conversational_no_rejects_pending(actions_propose_mode, monkeypatch):
+    from app.loop import _conversational_confirm_events
+
+    monkeypatch.setattr(CFG, "actions_conversational", True)
+    user = User(
+        sub="op1",
+        roles=["wazuh_ai_analyst", CFG.operator_role],
+        raw_jwt="t",
+        env_id="lab",
+    )
+    prop = create_proposal(
+        "propose_create_dashboard",
+        CreateDashboardParams(title="Cancel me", template="brute_force_geoip"),
+        user,
+        conversation_id="conv-cancel",
+    )
+    gen = _conversational_confirm_events("no", user, "conv-cancel", 0.0)
+    assert gen is not None
+
+    async def _collect():
+        out = []
+        async for ev in gen:
+            out.append(ev)
+        return out
+
+    events = asyncio.run(_collect())
+    done = next(e for e in events if e["event"] == "done")
+    assert "cancel" in done["data"]["verifiability"].casefold()
+    from app.actions.proposals import get_proposal
+
+    assert get_proposal(prop["proposal_id"]).status == "rejected"
+
+
+def test_conversational_yes_ambiguous_lists_proposals(actions_propose_mode, monkeypatch):
+    from app.loop import _conversational_confirm_events
+
+    monkeypatch.setattr(CFG, "actions_conversational", True)
+    user = User(
+        sub="op1",
+        roles=["wazuh_ai_analyst", CFG.operator_role],
+        raw_jwt="t",
+        env_id="lab",
+    )
+    create_proposal(
+        "propose_create_dashboard",
+        CreateDashboardParams(title="One", template="brute_force_geoip"),
+        user,
+        conversation_id="conv-multi",
+    )
+    create_proposal(
+        "propose_create_dashboard",
+        CreateDashboardParams(title="Two", template="brute_force_geoip"),
+        user,
+        conversation_id="conv-multi",
+    )
+    gen = _conversational_confirm_events("yes", user, "conv-multi", 0.0)
+    assert gen is not None
+
+    async def _collect():
+        out = []
+        async for ev in gen:
+            out.append(ev)
+        return out
+
+    events = asyncio.run(_collect())
+    text = next(e for e in events if e["event"] == "token")["data"]["text"]
+    assert "pending" in text.casefold() or "pendientes" in text.casefold()

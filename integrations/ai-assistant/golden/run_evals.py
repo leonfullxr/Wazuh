@@ -45,10 +45,8 @@ INDEXER = os.environ.get("WAI_EVAL_INDEXER_URL", "https://localhost:9200")
 INDEXER_USER = os.environ.get("INDEXER_ADMIN_USER", "admin")
 INDEXER_PASSWORD = os.environ.get("INDEXER_ADMIN_PASSWORD", "SecretPassword")
 EVAL_EDGE = os.environ.get("WAI_EVAL_EDGE", "direct")
-USER = os.environ.get("WAI_EVAL_USER", os.environ.get("WAI_EVAL_KC_USER", "analyst1"))
-PASSWORD = os.environ.get(
-    "WAI_EVAL_PASSWORD", os.environ.get("WAI_EVAL_KC_PASSWORD", "analyst1")
-)
+USER = os.environ.get("WAI_EVAL_USER", "analyst1")
+PASSWORD = os.environ.get("WAI_EVAL_PASSWORD", "analyst1")
 
 TIMEOUT = float(os.environ.get("WAI_EVAL_TIMEOUT_S", "300"))
 RETRIES = int(os.environ.get("WAI_EVAL_RETRIES", "0"))
