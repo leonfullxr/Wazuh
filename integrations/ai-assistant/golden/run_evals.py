@@ -273,6 +273,14 @@ def check_case(
             substitute(needle, gt).casefold() in answer_cf for needle in needles
         ):
             failures.append(f"answer missing any of {needles!r}")
+    if needles := case.get("answer_all"):
+        missing = [
+            needle
+            for needle in needles
+            if substitute(needle, gt).casefold() not in answer_cf
+        ]
+        if missing:
+            failures.append(f"answer missing required {missing!r}")
     for needle in case.get("answer_none", []):
         if needle.casefold() in answer_cf:
             failures.append(f"answer contains forbidden text: {needle!r}")
