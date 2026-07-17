@@ -162,16 +162,19 @@ tokens), cite the reference where applicable, and never fall through to
 `knowledge_search`; the docs-KB semantic path (E9) still handles open
 "how do I / how to remediate" questions.
 
-### F7. brute_force_summary stochastic no-tool answer (minor, known)
+**Status (Cursor):** **shipped** - `tool-service/app/reference_router.py`
+(sibling to lane 0; knowledge/composite tools + local render; fail open on
+how-to / `knowledge_search` prompts). Wired after lane 0 in `loop.py`.
+Goldens assert `tools_any` + `label_any: [reference router, no model involved]`
++ `[kb:]` where applicable. F7 brute-force summary uses the same recognizer.
 
-`brute-force-summary-en` intermittently free-answers (tools `[]`) but calls the
-tool on re-ask - the long-standing gpt-oss quirk, not caused by E9-E15. Options:
-run demo evals with `WAI_EVAL_RETRIES=1` (it passes on retry), or add
-"summarize brute force" as a lane-0 / recognizer route so the tool is guaranteed
-(preferred - same mechanism as F6, and it removes the flake for good).
+### F7. brute_force_summary stochastic no-tool answer (minor, known) — **shipped**
+
+Closed by the same `reference_router` route for "brute force … summary / top
+source IPs / targeted users" shapes (local render with `[agg:total_matching]`).
 
 ### Not re-touch
 
-E9 docs KB, E12-E15, and the tool router are correct - F6 is the one real gap
-(three tools that need a deterministic route to be usable), F7 is a known flake
-best closed by the same recognizer.
+E9 docs KB, E12-E15, and the tool router are correct - F6 was the one real gap
+(three tools that needed a deterministic route); F7 is closed by the same
+recognizer.

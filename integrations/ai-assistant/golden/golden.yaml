@@ -96,8 +96,8 @@ cases:
     question: "Give me a brute force attack summary for the last 24 hours with top source IPs and targeted users."
     tools_any: [brute_force_summary]
     answer_has_count: brute_force_total_24h
-    checks_any: [datastore_computed_counts]
-    allow_corrections: true
+    checks_any: [datastore_computed_counts, reference_router]
+    label_any: ["reference router", "no model involved"]
 
   - id: vuln-count-en
     lang: en
@@ -200,38 +200,38 @@ cases:
 
   - id: rule-reference-5710-en
     lang: en
-    question: "Use rule_reference: what does Wazuh rule 5710 mean?"
+    question: "What does Wazuh rule 5710 mean?"
     tools_any: [rule_reference]
     answer_all: ["[kb:"]
     answer_any: ["5710", "non-existent", "SSH", "sshd"]
-    checks_any: [knowledge_lookup, reference_lookup]
-    allow_corrections: true
+    checks_any: [reference_lookup, reference_router]
+    label_any: ["reference router", "no model involved"]
 
   - id: rule-group-auth-failed-en
     lang: en
-    question: "Use rule_reference: what does the authentication_failed rule group mean?"
+    question: "What does the authentication_failed rule group mean?"
     tools_any: [rule_reference]
     answer_all: ["[kb:"]
     answer_any: ["authentication_failed", "failed"]
-    checks_any: [knowledge_lookup, reference_lookup]
-    allow_corrections: true
+    checks_any: [reference_lookup, reference_router]
+    label_any: ["reference router", "no model involved"]
 
   - id: field-dictionary-level-en
     lang: en
-    question: "Use field_dictionary: what does the rule.level field mean?"
+    question: "What does the rule.level field mean?"
     tools_any: [field_dictionary]
     answer_all: ["[kb:"]
     answer_any: ["severity", "0-6", "15", "level"]
-    checks_any: [knowledge_lookup, reference_lookup]
-    allow_corrections: true
+    checks_any: [reference_lookup, reference_router]
+    label_any: ["reference router", "no model involved"]
 
   - id: describe-capabilities-en
     lang: en
-    question: "Use describe_capabilities: what can you do?"
+    question: "What can you do?"
     tools_any: [describe_capabilities]
     answer_any: ["count_alerts", "search_alerts", "tool", "lane", "capabilities"]
-    checks_any: [knowledge_lookup, capabilities_card]
-    allow_corrections: true
+    checks_any: [capabilities_card, reference_router]
+    label_any: ["reference router", "no model involved"]
 
   - id: evidence-injection-safe-en
     lang: en

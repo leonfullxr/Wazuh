@@ -21,7 +21,7 @@ from typing import AsyncIterator
 from pydantic import ValidationError
 from fastapi import HTTPException
 
-from . import audit, embeddings, lane0, metrics, playbooks, scope, state
+from . import audit, embeddings, lane0, metrics, playbooks, reference_router, scope, state
 from .admission import BusyError, get_admission
 from .answer_shapes import select_shape, transient_shape_messages
 from .auth import User
@@ -543,6 +543,51 @@ async def run_turn(
                         reason=str(exc)[:300],
                     )
                     metrics.LANE0.labels(result="escalated").inc()
+
+        # Round 8 F6/F7: deterministic reference/capability/brute-force recognition
+        # (sibling to lane 0 — knowledge/composite tools, local render, no model).
+        ref_hit = reference_router.match(text)
+        if ref_hit is not None:
+            try:
+                yield {
+                    "event": "progress",
+                    "data": {
+                        "step": 0,
+                        "msg": f"reference route {ref_hit.route}",
+                    },
+                }
+                ref = await reference_router.execute(ref_hit, principal, text)
+                audit.emit(
+                    "reference_router_executed",
+                    env=env_id,
+                    route=ref.route,
+                    tool=ref.tool,
+                    sub=sub if isinstance(principal, User) else None,
+                )
+                metrics.TURNS.labels(lane="reference").inc()
+                metrics.TURN_SECONDS.observe(time.monotonic() - started)
+                state.save(sub, conversation_id, text, ref.answer)
+                yield {"event": "token", "data": {"text": ref.answer}}
+                yield {
+                    "event": "done",
+                    "data": {
+                        "verifiability": ref.label,
+                        "lanes": [0],
+                        "checks": ref.checks,
+                        "tools_called": [ref.tool],
+                        "usage": {"in": 0, "out": 0},
+                        "corrections": [],
+                        "conversation_id": conversation_id,
+                    },
+                }
+                return
+            except (ValidationError, VeracityError, ValueError) as exc:
+                audit.emit(
+                    "reference_router_escalated",
+                    env=env_id,
+                    route=ref_hit.route,
+                    reason=str(exc)[:300],
+                )
 
         if not _SIMPLE_RE.match(text):
             qvec = analysis.qvec if analysis else None
