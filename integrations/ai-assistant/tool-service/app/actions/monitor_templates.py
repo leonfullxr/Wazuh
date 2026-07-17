@@ -54,7 +54,7 @@ def build_monitor_body(params: CreateIndexerMonitorParams) -> dict[str, Any]:
         "triggers": [
             {
                 "name": f"{params.template}-trigger",
-                "severity_level": "1",
+                "severity": "1",
                 "condition": {
                     "script": {
                         "source": "ctx.results[0].hits.total.value > 0",

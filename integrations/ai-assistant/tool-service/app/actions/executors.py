@@ -20,6 +20,7 @@ from .field_resolver import (
 from .fields import FIELD_COUNTRY_ISO2
 from .index_pattern_fields import (
     bundle_has_region_map,
+    degrade_region_maps_in_bundle,
     ensure_country_iso2_scripted_field,
     load_index_pattern_fields_from_dashboard,
 )
@@ -60,54 +61,56 @@ def _require_agent_id(agent_id: str) -> str:
 
 async def _prepare_dashboard_objects(
     env: EnvConfig, objects: list[dict[str, Any]]
-) -> ActionResult | None:
-    """Validate visualization fields; rewrite in place before write (R6.4)."""
+) -> tuple[ActionResult | None, list[str]]:
+    """Validate visualization fields; rewrite in place before write (R6.4).
+
+    Returns (error_or_None, degradation_notes). Geo enrichment failure never
+    aborts the write — region_map panels are substituted (F1).
+    """
     from ..indexer import get_indexer
 
+    degraded: list[str] = []
     headers = _reader_headers(env)
     if not headers:
-        return None
+        return None, degraded
     indexer = get_indexer(env.env_id)
     needs_region_map = bundle_has_region_map(objects)
     if needs_region_map:
-        if not await ensure_country_iso2_scripted_field(env):
-            return ActionResult(
-                ok=False,
-                status="index_pattern_unavailable",
-                message=(
-                    "could not register GeoLocation.country_iso2 on the wazuh-alerts-* "
-                    "index pattern (dashboard_api_url / dashboard_executor_basic required "
-                    "for region maps on stock Wazuh)"
-                ),
-                details={"env_id": env.env_id},
-            )
+        registered = await ensure_country_iso2_scripted_field(env)
+        if not registered:
+            degraded.extend(degrade_region_maps_in_bundle(objects))
+            needs_region_map = False
     known = await load_known_fields(indexer, headers)
     aggregatable = await load_aggregatable_index_pattern_fields(indexer, headers)
     dash_names, dash_agg = await load_index_pattern_fields_from_dashboard(env)
     known |= dash_names
     aggregatable |= dash_agg
     if needs_region_map and FIELD_COUNTRY_ISO2 not in aggregatable:
-        return ActionResult(
-            ok=False,
-            status="index_pattern_unavailable",
-            message=(
-                "GeoLocation.country_iso2 is not on the wazuh-alerts-* index pattern "
-                "after registration — check dashboard executor permissions"
-            ),
-            details={"env_id": env.env_id},
-        )
+        degraded.extend(degrade_region_maps_in_bundle(objects))
+        needs_region_map = False
     if not known:
-        return None
+        return None, degraded
     try:
         validate_and_resolve_bundle_fields(objects, known, aggregatable)
     except ValueError as exc:
-        return ActionResult(
-            ok=False,
-            status="invalid_fields",
-            message=str(exc),
-            details={"hint": "call list_alert_fields for valid field names"},
+        return (
+            ActionResult(
+                ok=False,
+                status="invalid_fields",
+                message=str(exc),
+                details={"hint": "call list_alert_fields for valid field names"},
+            ),
+            degraded,
         )
-    return None
+    return None, degraded
+
+
+def _attach_degraded(result: ActionResult, degraded: list[str]) -> ActionResult:
+    if result.ok and degraded:
+        result.details = {**(result.details or {}), "degraded": list(degraded)}
+        note = "; ".join(degraded)
+        result.message = f"{result.message} (degraded: {note})"
+    return result
 
 
 def _to_saved_object_bulk(obj: dict[str, Any]) -> dict[str, Any]:
@@ -204,13 +207,13 @@ async def execute_dashboard_action(
             return ActionResult(
                 ok=False, status="invalid_template", message=str(exc)
             )
-        field_err = await _prepare_dashboard_objects(env, objects)
+        field_err, degraded = await _prepare_dashboard_objects(env, objects)
         if field_err is not None:
             return field_err
     elif action_name == "create_visualization":
         p = CreateVisualizationParams.model_validate(params.model_dump())
         objects = [_single_visualization_object(p)]
-        field_err = await _prepare_dashboard_objects(env, objects)
+        field_err, degraded = await _prepare_dashboard_objects(env, objects)
         if field_err is not None:
             return field_err
     elif action_name == "create_indexer_monitor":
@@ -225,6 +228,7 @@ async def execute_dashboard_action(
     result = await _write_saved_objects(env, objects, env.dashboard_executor_basic)
     if result.ok:
         result.details["confirmed_by"] = operator.sub
+        _attach_degraded(result, degraded)
     return result
 
 
@@ -232,14 +236,16 @@ async def _create_indexer_monitor(
     params: BaseModel, env: EnvConfig, operator: User
 ) -> ActionResult:
     """Write curated OpenSearch Alerting monitor via indexer HTTP API."""
-    cred = env.dashboard_executor_basic or env.reader_basic
+    # Prefer dedicated alerting credential (F3); fall back only for labs that
+    # have not provisioned monitor_executor_basic yet.
+    cred = env.monitor_executor_basic or env.dashboard_executor_basic or env.reader_basic
     if not cred or ":" not in cred:
         return ActionResult(
             ok=False,
             status="not_configured",
             message=(
-                "indexer monitor write needs dashboard_executor_basic "
-                "(or reader_basic) on this environment"
+                "indexer monitor write needs monitor_executor_basic "
+                "(alerting-capable) on this environment"
             ),
             details={"env_id": env.env_id},
         )
@@ -281,6 +287,9 @@ async def _create_indexer_monitor(
             "title": p.title,
             "template": p.template,
             "confirmed_by": operator.sub,
+            "executor": "monitor_executor_basic"
+            if env.monitor_executor_basic
+            else "fallback",
         },
     )
 
@@ -442,6 +451,38 @@ async def execute_manager_action(
                     "group": group,
                 },
             )
+        body = r.json() if r.content else {}
+        # Agent already in the group is success for the operator (Wazuh error 1751).
+        failed = body.get("data", {}).get("failed_items") or []
+        if body.get("error") and failed:
+            codes = {
+                (item.get("error") or {}).get("code")
+                for item in failed
+                if isinstance(item, dict)
+            }
+            if codes and codes <= {1751}:
+                return ActionResult(
+                    ok=True,
+                    status="grouped",
+                    message=f"Agent {agent_id} already in group {group}",
+                    details={
+                        "agent_id": agent_id,
+                        "group": group,
+                        "reason": p.reason,
+                        "confirmed_by": operator.sub,
+                        "already_member": True,
+                    },
+                )
+            return ActionResult(
+                ok=False,
+                status="manager_error",
+                message=f"add agent to group failed: {body.get('message') or r.text[:200]}",
+                details={
+                    "body": r.text[:500],
+                    "agent_id": agent_id,
+                    "group": group,
+                },
+            )
         return ActionResult(
             ok=True,
             status="grouped",
@@ -471,7 +512,7 @@ async def execute_manager_action(
                 status="manager_auth_error",
                 message=f"Wazuh API authentication failed: {exc}",
             )
-        # Curated local_rules override: if_sid → level 0 (never free-form rule XML).
+        # Curated local_rules override via PUT /rules/files/{filename} (Wazuh 4.14).
         xml = (
             f"<!-- wazuh-ai suppress {rule_id}: {p.reason[:80]} -->\n"
             f'<group name="wazuh_ai_suppress,">\n'
@@ -482,35 +523,61 @@ async def execute_manager_action(
             f"</group>\n"
         )
         verify = _manager_verify(env)
-        path = f"etc/rules/local_rules_wazuh_ai_{rule_id}.xml"
-        url = f"{env.manager_api_url.rstrip('/')}/manager/files"
+        filename = f"local_rules_wazuh_ai_{rule_id}.xml"
+        url = f"{env.manager_api_url.rstrip('/')}/rules/files/{filename}"
         async with httpx.AsyncClient(verify=verify, timeout=30.0) as client:
             r = await client.put(
                 url,
-                params={"path": path, "overwrite": "true"},
+                params={"overwrite": "true"},
                 content=xml.encode("utf-8"),
                 headers={
                     "Authorization": f"Bearer {token}",
                     "Content-Type": "application/octet-stream",
                 },
             )
-        if r.status_code not in (200, 201):
+            if r.status_code not in (200, 201):
+                return ActionResult(
+                    ok=False,
+                    status="manager_error",
+                    message=f"suppress rule failed: HTTP {r.status_code}",
+                    details={"body": r.text[:500], "rule_id": rule_id},
+                )
+            # F4: hot-reload analysisd (RBAC: manager:read + manager:restart).
+            reload = await client.put(
+                f"{env.manager_api_url.rstrip('/')}/manager/analysisd/reload",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        reload_ok = reload.status_code in (200, 201)
+        details: dict[str, Any] = {
+            "rule_id": rule_id,
+            "path": f"etc/rules/{filename}",
+            "filename": filename,
+            "reason": p.reason,
+            "confirmed_by": operator.sub,
+            "ruleset_reloaded": reload_ok,
+            "permission_note": (
+                "executor holds rules:update/delete (custom rule files) and "
+                "manager:read+manager:restart (required for analysisd reload in "
+                "4.14 — manager:restart also permits a full manager restart)"
+            ),
+        }
+        if not reload_ok:
+            details["reload_status"] = reload.status_code
+            details["reload_body"] = reload.text[:300]
             return ActionResult(
-                ok=False,
-                status="manager_error",
-                message=f"suppress rule failed: HTTP {r.status_code}",
-                details={"body": r.text[:500], "rule_id": rule_id},
+                ok=True,
+                status="suppressed_pending_reload",
+                message=(
+                    f"Rule {rule_id} written to {filename} but analysisd reload failed "
+                    f"(HTTP {reload.status_code}); suppression is inert until reload"
+                ),
+                details=details,
             )
         return ActionResult(
             ok=True,
             status="suppressed",
-            message=f"Rule {rule_id} suppressed via {path}",
-            details={
-                "rule_id": rule_id,
-                "path": path,
-                "reason": p.reason,
-                "confirmed_by": operator.sub,
-            },
+            message=f"Rule {rule_id} suppressed via {filename} (analysisd reloaded)",
+            details=details,
         )
 
     return ActionResult(

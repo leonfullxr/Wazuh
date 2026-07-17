@@ -110,8 +110,11 @@ def _preview_create_indexer_monitor(p: BaseModel) -> str:
 def _preview_suppress_noisy_rule(p: BaseModel) -> str:
     params = SuppressNoisyRuleParams.model_validate(p.model_dump())
     return (
-        f"Suppress noisy rule **{params.rule_id}** via local_rules override "
-        f"(level 0).\nReason: {params.reason}"
+        f"Suppress noisy rule **{params.rule_id}** via custom rules file "
+        f"(level 0), then reload analysisd.\n"
+        f"Note: executor needs rules:update/delete plus manager:read+restart "
+        f"(restart is also a full manager restart capability).\n"
+        f"Reason: {params.reason}"
     )
 
 

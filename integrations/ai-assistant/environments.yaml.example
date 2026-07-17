@@ -13,10 +13,15 @@
     # - active_response
   dashboard_api_url: ${WAI_ENV_LAB_DASHBOARD_API_URL}
   dashboard_executor_basic: ${WAI_ENV_LAB_DASHBOARD_EXECUTOR}
-  # create_indexer_monitor writes via indexer Alerting API using
-  # dashboard_executor_basic (or reader_basic as fallback).
+  # create_indexer_monitor — Alerting plugin write (not kibanauser / saved-objects).
+  # Provision via securityconfig (wazuh_ai_monitor_writer → alerting_full_access).
+  monitor_executor_basic: ${WAI_ENV_LAB_MONITOR_EXECUTOR}
   manager_api_url: https://wazuh.manager:55000
   manager_ca_path: ""
+  # Least-privilege manager executor from scripts/manager_executor_setup.sh
+  # (agent:restart, agent:modify_group + group:modify_assignments,
+  #  rules:update/delete, manager:read+restart for analysisd reload).
+  # manager:restart also permits a full manager restart — documented trade-off.
   manager_executor_basic: ${WAI_ENV_LAB_MANAGER_EXECUTOR}
   ar_executor_basic: ${WAI_ENV_LAB_AR_EXECUTOR}
   manager_actions_per_hour: 10

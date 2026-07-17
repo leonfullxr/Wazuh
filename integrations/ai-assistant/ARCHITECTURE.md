@@ -173,7 +173,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D32 | Lanes 1-2 ship with all checks; lane 3 (free generation) stays off | active |
 | D33 | The bilingual golden set is a CI gate | active |
 | D34 | Explain-this-alert via a deep link (`alert_id`) | active |
-| D35 | Per-action-tier executor principals, least privilege | active |
+| D35 | Per-action-tier executor principals, least privilege (manager: upload_file + analysisd_reload for suppress; dedicated `monitor_executor_basic` for Alerting) | active |
 | D37 / D39 | Two model tiers; each tier binds its own provider/endpoint | active |
 | D40 | Lane 0: embedding-matched curated templates, no model | active |
 | D41 | Evidence cache keyed on the canonical IR, always disclosed | active |

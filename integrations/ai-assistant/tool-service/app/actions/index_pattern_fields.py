@@ -9,7 +9,7 @@ import httpx
 
 from ..config import CFG
 from ..env_registry import EnvConfig
-from .fields import FIELD_COUNTRY_ISO2
+from .fields import FIELD_COUNTRY, FIELD_COUNTRY_ISO2
 from .geo_ems import country_iso2_index_pattern_field_row
 
 
@@ -90,6 +90,74 @@ def bundle_has_region_map(objects: list[dict[str, Any]]) -> bool:
         if state.get("type") == "region_map":
             return True
     return False
+
+
+def degrade_region_maps_in_bundle(objects: list[dict[str, Any]]) -> list[str]:
+    """Replace region_map visualizations with a country_name table (in place).
+
+    Region maps need GeoLocation.country_iso2 on the index pattern. When that
+    enrichment is unavailable, keep the dashboard write and substitute an
+    equivalent terms table on GeoLocation.country_name.
+    """
+    notes: list[str] = []
+    for obj in objects:
+        doc = obj.get("document", {})
+        if doc.get("type") != "visualization":
+            continue
+        vis = doc.get("visualization", {})
+        try:
+            state = json.loads(vis.get("visState", "{}"))
+        except json.JSONDecodeError:
+            continue
+        if state.get("type") != "region_map":
+            continue
+        title = str(vis.get("title") or state.get("title") or "source countries")
+        table_title = f"{title} (table fallback)"
+        vis["title"] = table_title
+        vis["description"] = (
+            "Substituted for region_map — GeoLocation.country_iso2 was unavailable "
+            "on the wazuh-alerts-* index pattern"
+        )
+        vis["visState"] = json.dumps(
+            {
+                "title": table_title,
+                "type": "table",
+                "params": {
+                    "perPage": 10,
+                    "showPartialRows": False,
+                    "showMetricsAtAllLevels": False,
+                    "sort": {"columnIndex": None, "direction": None},
+                    "showTotal": False,
+                    "totalFunc": "sum",
+                },
+                "aggs": [
+                    {
+                        "id": "1",
+                        "enabled": True,
+                        "type": "terms",
+                        "schema": "bucket",
+                        "params": {
+                            "field": FIELD_COUNTRY,
+                            "size": 10,
+                            "order": "desc",
+                            "orderBy": "2",
+                        },
+                    },
+                    {
+                        "id": "2",
+                        "enabled": True,
+                        "type": "count",
+                        "schema": "metric",
+                        "params": {},
+                    },
+                ],
+            }
+        )
+        notes.append(
+            "region_map panel substituted with GeoLocation.country_name table "
+            "(country_iso2 scripted field unavailable)"
+        )
+    return notes
 
 
 async def ensure_country_iso2_scripted_field(

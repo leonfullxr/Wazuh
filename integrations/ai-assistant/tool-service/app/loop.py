@@ -28,8 +28,7 @@ from .auth import User
 from .config import CFG
 from .knowledge import knowledge_search, mitre_lookup
 from .auth_groups import BRUTE_FORCE_MITRE
-from .brute_force import brute_force_summary
-from .correlation import agent_posture, compare_windows, related_alerts
+from .composite_dispatch import dispatch_composite
 from .evidence_guard import guard_evidence, guard_evidence_text
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .environment_card import get_env_card_text
@@ -433,7 +432,7 @@ def _conversational_confirm_events(
             if not result.ok:
                 label = "conversational confirm · executor error · no model involved"
                 async for ev in _finish(
-                    answer, label, checks=["action_executed"], actions=[]
+                    answer, label, checks=["action_confirm_failed"], actions=[]
                 ):
                     yield ev
                 return
@@ -984,17 +983,14 @@ async def run_turn(
                         )
                         continue
                     if tool.composite:
-                        if tool.name == "brute_force_summary":
-                            payload = await brute_force_summary(principal, params)
-                            kb_ids.add(BRUTE_FORCE_MITRE)
-                        elif tool.name == "related_alerts":
-                            payload = await related_alerts(principal, params)
-                        elif tool.name == "compare_windows":
-                            payload = await compare_windows(principal, params)
-                        elif tool.name == "agent_posture":
-                            payload = await agent_posture(principal, params)
-                        else:
+                        try:
+                            payload = await dispatch_composite(
+                                tool.name, params, principal
+                            )
+                        except ValueError:
                             payload = {"error": f"unknown composite tool '{name}'"}
+                        if tool.name == "brute_force_summary":
+                            kb_ids.add(BRUTE_FORCE_MITRE)
                         lanes_used.add(tool.lane)
                         checks_all |= set(payload.get("veracity_checks_passed", []))
                         checks_all.add("datastore_computed_counts")

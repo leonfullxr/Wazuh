@@ -199,3 +199,52 @@ cases:
     chat_text: "yes"
     checks: ["confirm_target_required"]
     require_tier: manager
+
+  # --- F3: confirm-execute for new write actions (opt-in) ---
+  # Enabled with WAI_EVAL_ACTIONS_EXECUTE=1 so propose-only runs stay safe.
+  - id: execute-add-agent-group-en
+    require_execute: true
+    lang: en
+    action: add_agent_to_group
+    params:
+      agent_id: "001"
+      group: wazuh_ai_eval
+      reason: "Golden eval confirm-execute add agent to group"
+    propose_status: 200
+    confirm_status: 200
+    confirm_target:
+      agent_id: "001"
+      group: wazuh_ai_eval
+    result_ok: true
+    result_status: grouped
+    require_tier: manager
+
+  - id: execute-indexer-monitor-en
+    require_execute: true
+    lang: en
+    action: create_indexer_monitor
+    params:
+      title: "Wazuh AI eval auth failure monitor"
+      template: auth_failures
+      schedule_minutes: 5
+      reason: "Golden eval confirm-execute curated monitor"
+    propose_status: 200
+    confirm_status: 200
+    result_ok: true
+    result_status: created
+
+  - id: execute-suppress-rule-en
+    require_execute: true
+    lang: en
+    action: suppress_noisy_rule
+    params:
+      # Lab-only synthetic id — does not silence real seeded auth rules.
+      rule_id: "99901"
+      reason: "Golden eval confirm-execute suppress with analysisd reload"
+    propose_status: 200
+    confirm_status: 200
+    confirm_target:
+      rule_id: "99901"
+    result_ok: true
+    result_status_any: ["suppressed", "suppressed_pending_reload"]
+    require_tier: manager

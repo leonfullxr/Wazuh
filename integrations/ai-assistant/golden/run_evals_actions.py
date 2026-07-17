@@ -27,6 +27,11 @@ ENV_KEY = os.environ.get("WAI_EVAL_ENV_KEY") or os.environ.get("WAI_ENV_LAB_KEY"
 USER = os.environ.get("WAI_EVAL_USER", "analyst1")
 PASSWORD = os.environ.get("WAI_EVAL_PASSWORD", "analyst1")
 TIMEOUT = float(os.environ.get("WAI_EVAL_ACTIONS_TIMEOUT_S", "120"))
+EXECUTE_NEW = os.environ.get("WAI_EVAL_ACTIONS_EXECUTE", "").strip() in {
+    "1",
+    "true",
+    "yes",
+}
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "last_run_actions.json"
@@ -236,7 +241,14 @@ def run_case_propose(case: dict, headers: dict) -> dict:
 
     confirm = httpx.post(
         f"{SVC}/v1/actions/{proposal_id}/confirm",
-        json={"idempotency_key": f"golden-{case['id']}-{suffix}"},
+        json={
+            "idempotency_key": f"golden-{case['id']}-{suffix}",
+            **(
+                {"confirm_target": case["confirm_target"]}
+                if case.get("confirm_target")
+                else {}
+            ),
+        },
         headers=confirm_headers,
         timeout=TIMEOUT,
     )
@@ -263,6 +275,14 @@ def run_case_propose(case: dict, headers: dict) -> dict:
             f"result.status expected {case['result_status']!r}, got {result.get('status')!r}"
         )
         return _finalize_case(detail)
+    if "result_status_any" in case:
+        allowed = list(case["result_status_any"])
+        if result.get("status") not in allowed:
+            detail["ok"] = False
+            detail["error"] = (
+                f"result.status expected one of {allowed!r}, got {result.get('status')!r}"
+            )
+            return _finalize_case(detail)
 
     return _finalize_case(_verify_dashboard(case, suffix, result, headers, detail))
 
@@ -472,6 +492,19 @@ def main() -> None:
 
     results = []
     for c in cases:
+        if c.get("require_execute") and not EXECUTE_NEW:
+            results.append(
+                _finalize_case(
+                    {
+                        "id": c["id"],
+                        "lang": c.get("lang", "en"),
+                        "ok": True,
+                        "skipped": True,
+                        "reason": "set WAI_EVAL_ACTIONS_EXECUTE=1 to run confirm-execute cases",
+                    }
+                )
+            )
+            continue
         if c.get("mode") == "conversational":
             results.append(run_case_conversational(c, headers, health))
             continue

@@ -35,6 +35,14 @@ DASHBOARD_WRITER_PASSWORD_HASH = os.environ.get(
     "WAI_DASHBOARD_WRITER_PASSWORD_HASH",
     "$2b$12$OY5xZu30A.2oay3gJCEjQeNIsV/Bxyr.pAG5G7mwo9fB/5KVljfha",
 )
+MONITOR_WRITER_USER = os.environ.get(
+    "WAI_MONITOR_WRITER_USER", "wazuh_ai_monitor_writer"
+)
+MONITOR_WRITER_PASSWORD_HASH = os.environ.get(
+    "WAI_MONITOR_WRITER_PASSWORD_HASH",
+    # MonitorWriterLab1!
+    "$2b$12$fJsHjlAkuq0CcRqOIAigf.C8dAG1BvGXpkcjbVxZVpM3uDyVCFv8i",
+)
 ENV_READER_PASSWORD_HASH = os.environ.get(
     "WAI_ENV_READER_PASSWORD_HASH",
     "$2a$12$hsVmOpZVO2Kn7v8HO4eMseUBesSEHxVrKKnmeuqVBhm5l0qIzKkp6",
@@ -206,6 +214,28 @@ def main() -> None:
             },
         ],
     }
+    # F3: Alerting monitor writer — needs Alerting write + read on monitored indices.
+    roles["wazuh_ai_monitor_writer_role"] = {
+        "reserved": False,
+        "description": "wazuh-ai monitor executor: Alerting write + wazuh-alerts read (F3)",
+        "cluster_permissions": [
+            "cluster_composite_ops_ro",
+            "cluster:admin/opendistro/alerting/*",
+            "cluster:monitor/main",
+        ],
+        "index_permissions": [
+            {
+                "index_patterns": ["wazuh-alerts-*"],
+                "allowed_actions": [
+                    "read",
+                    "indices:admin/mappings/get",
+                    "indices:admin/validate/query",
+                    "indices:data/read/search",
+                    "indices:data/read/field_caps",
+                ],
+            },
+        ],
+    }
     # App-level operator role (confirm gate). Manager/AR executors use Wazuh API creds.
     roles["wazuh_ai_operator_role"] = {
         "reserved": False,
@@ -253,6 +283,23 @@ def main() -> None:
         "users": [DASHBOARD_WRITER_USER],
         "description": "Dashboard executor internal user (D35)",
     }
+    mapping["wazuh_ai_monitor_writer_role"] = {
+        "reserved": False,
+        "users": [MONITOR_WRITER_USER],
+        "description": "Monitor executor internal user (F3)",
+    }
+    # Also attach to stock Alerting role when present (cluster alerting APIs).
+    _alert_map = dict(mapping.get("alerting_full_access") or {})
+    _alert_users = list(_alert_map.get("users") or [])
+    if MONITOR_WRITER_USER not in _alert_users:
+        _alert_users.append(MONITOR_WRITER_USER)
+    _alert_map["users"] = _alert_users
+    _alert_map.setdefault("reserved", False)
+    _alert_map["description"] = (
+        _alert_map.get("description")
+        or "OpenSearch Alerting full access + wazuh-ai monitor executor"
+    )
+    mapping["alerting_full_access"] = _alert_map
     mapping["wazuh_ai_responder_role"] = {
         "reserved": False,
         "backend_roles": ["wazuh_ai_responder"],
@@ -278,6 +325,15 @@ def main() -> None:
             # role it maps to is "kibana_user".
             "backend_roles": ["kibanauser"],
             "description": "wazuh-ai dashboard executor (D35) — gateway only",
+        }
+        users[MONITOR_WRITER_USER] = {
+            "hash": MONITOR_WRITER_PASSWORD_HASH,
+            "reserved": False,
+            "backend_roles": [],
+            "description": (
+                "wazuh-ai monitor executor (F3) — Alerting plugin write via "
+                "alerting_full_access role mapping; gateway only"
+            ),
         }
         users["analyst1"] = {
             "hash": ANALYST1_PASSWORD_HASH,

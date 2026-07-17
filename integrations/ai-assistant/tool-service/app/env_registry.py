@@ -35,6 +35,9 @@ class EnvConfig:
     saved_objects_index: str = ""
     dashboard_api_url: str = ""
     dashboard_executor_basic: str = ""
+    # Alerting-plugin writer for create_indexer_monitor (F3). Prefer over
+    # dashboard_executor_basic — kibanauser cannot POST /_plugins/_alerting/*.
+    monitor_executor_basic: str = ""
     manager_api_url: str = ""
     manager_ca_path: str = ""
     manager_executor_basic: str = ""
@@ -74,6 +77,7 @@ def _coerce(doc: dict[str, Any]) -> EnvConfig:
         ),
         dashboard_api_url=_expand(str(doc.get("dashboard_api_url", ""))),
         dashboard_executor_basic=_expand(str(doc.get("dashboard_executor_basic", ""))),
+        monitor_executor_basic=_expand(str(doc.get("monitor_executor_basic", ""))),
         manager_api_url=_expand(str(doc.get("manager_api_url", ""))),
         manager_ca_path=_expand(str(doc.get("manager_ca_path", ""))),
         manager_executor_basic=_expand(str(doc.get("manager_executor_basic", ""))),
@@ -99,6 +103,10 @@ def _fallback_lab() -> EnvConfig:
         "WAI_ENV_LAB_DASHBOARD_EXECUTOR",
         "wazuh_ai_dashboard_writer:DashboardWriterLab1!",
     )
+    mon_exec = _env_or(
+        "WAI_ENV_LAB_MONITOR_EXECUTOR",
+        "wazuh_ai_monitor_writer:MonitorWriterLab1!",
+    )
     mgr_exec = _env_or("WAI_ENV_LAB_MANAGER_EXECUTOR", "wazuh-wui:MyS3cr37P450r.*-")
     ar_exec = _env_or("WAI_ENV_LAB_AR_EXECUTOR", mgr_exec)
     return EnvConfig(
@@ -115,6 +123,7 @@ def _fallback_lab() -> EnvConfig:
             "WAI_ENV_LAB_DASHBOARD_API_URL", "https://wazuh.dashboard:5601"
         ),
         dashboard_executor_basic=dash_exec,
+        monitor_executor_basic=mon_exec,
         manager_api_url=_env_or("WAI_ENV_LAB_MANAGER_URL", "https://wazuh.manager:55000"),
         manager_ca_path=_env_or("WAI_ENV_LAB_MANAGER_CA_PATH", CFG.indexer_ca_path),
         manager_executor_basic=mgr_exec,

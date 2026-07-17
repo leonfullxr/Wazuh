@@ -32,8 +32,7 @@ from .config import CFG
 from .env_registry import resolve_by_key, get_env
 from .knowledge import knowledge_search, mitre_lookup
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
-from .brute_force import brute_force_summary
-from .correlation import agent_posture, compare_windows, related_alerts
+from .composite_dispatch import dispatch_composite
 from .evidence_guard import guard_evidence
 from .loop import run_turn
 from .principal import EnvPrincipal
@@ -383,16 +382,10 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
             )
             return evidence.to_tool_result()
         if tool.composite:
-            if tool.name == "brute_force_summary":
-                payload = await brute_force_summary(user, validated)
-            elif tool.name == "related_alerts":
-                payload = await related_alerts(user, validated)
-            elif tool.name == "compare_windows":
-                payload = await compare_windows(user, validated)
-            elif tool.name == "agent_posture":
-                payload = await agent_posture(user, validated)
-            else:
-                raise HTTPException(404, f"unknown composite tool '{name}'")
+            try:
+                payload = await dispatch_composite(tool.name, validated, user)
+            except ValueError as exc:
+                raise HTTPException(404, str(exc)) from exc
             audit.emit("http_composite_tool_executed", tool=name, sub=user.sub)
             return payload
         ir = tool.to_ir(validated)

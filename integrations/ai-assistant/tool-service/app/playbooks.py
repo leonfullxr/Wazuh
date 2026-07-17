@@ -17,9 +17,8 @@ from typing import Any, Optional
 from pydantic import ValidationError
 
 from . import audit, metrics
-from .brute_force import brute_force_summary
+from .composite_dispatch import dispatch_composite
 from .config import CFG
-from .correlation import agent_posture, compare_windows, related_alerts
 from .embeddings import embed_corpus, embed_text
 from .knowledge import knowledge_search, mitre_lookup
 from .lane0 import extract_slots
@@ -297,16 +296,10 @@ async def invoke_tool(
             }
         raise VeracityError(f"unknown knowledge tool '{name}'")
     if tool.composite:
-        if name == "brute_force_summary":
-            payload = await brute_force_summary(principal, params)
-        elif name == "related_alerts":
-            payload = await related_alerts(principal, params)
-        elif name == "compare_windows":
-            payload = await compare_windows(principal, params)
-        elif name == "agent_posture":
-            payload = await agent_posture(principal, params)
-        else:
-            raise VeracityError(f"unknown composite tool '{name}'")
+        try:
+            payload = await dispatch_composite(name, params, principal)
+        except ValueError as exc:
+            raise VeracityError(str(exc)) from exc
         hits = payload.get("alerts") or payload.get("high_severity_alerts") or []
         return {
             "name": name,

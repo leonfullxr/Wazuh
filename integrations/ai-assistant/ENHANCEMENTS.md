@@ -321,3 +321,16 @@ new composite is added in one place. Do when next touching that code.
 Tier 3 (E6/E7/E8), the E5 executor structure, and the read-side Tier 1/2 tools
 are correct - findings above are permission wiring and one regression, not the
 core logic.
+
+### Round 7 implementation status (Cursor)
+
+- **F1** — graceful region-map degradation in `_prepare_dashboard_objects` (never
+  terminal `index_pattern_unavailable` for optional geo enrichment).
+- **F2** — conversational executor-error path emits `action_confirm_failed`.
+- **F3** — manager_executor_setup grants agent:modify_group +
+  group:modify_assignments, rules:update/delete, manager:read+restart;
+  `monitor_executor_basic` + securityconfig monitor writer; confirm-execute
+  golden cases behind `WAI_EVAL_ACTIONS_EXECUTE=1`.
+- **F4** — suppress uses `PUT /rules/files/{filename}` then
+  `PUT /manager/analysisd/reload`; preview documents manager:restart blast radius.
+- **F5** — `composite_dispatch.dispatch_composite` shared by loop / playbooks / HTTP.

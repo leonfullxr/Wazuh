@@ -123,3 +123,18 @@ def test_brute_force_bundle_triggers_region_map_detection():
         CreateDashboardParams(title="BF", template="brute_force_geoip")
     )
     assert bundle_has_region_map(objects)
+
+
+def test_degrade_region_maps_substitutes_country_table():
+    from app.actions.index_pattern_fields import degrade_region_maps_in_bundle
+    from app.actions.fields import FIELD_COUNTRY
+
+    objects = build_dashboard_bundle(
+        CreateDashboardParams(title="BF", template="brute_force_geoip")
+    )
+    notes = degrade_region_maps_in_bundle(objects)
+    assert notes
+    assert not bundle_has_region_map(objects)
+    joined = json.dumps(objects)
+    assert FIELD_COUNTRY in joined
+    assert "table fallback" in joined
