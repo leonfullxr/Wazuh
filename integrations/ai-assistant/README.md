@@ -78,6 +78,7 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 | `golden/`, `seed/` | Deterministic seed data and the bilingual eval gate (`make evals*`) |
 | `environments.yaml.example` | The per-environment registry - copy, fill, and you are multi-environment |
 | `ARCHITECTURE.md`, `DESIGN-JOURNAL.md` | Current design, and the journey that produced it (incl. the enhancement arc) |
+| `ENHANCEMENTS.md` | Forward enhancements not yet built (Cursor-ready) |
 | `diagrams/` | draw.io sources; `diagrams/png/` holds the exported images used above |
 
 Not reproducible on a single box, deferred to a real cloud environment: per-tenant IAM/IRSA, PrivateLink, Bedrock Guardrails content policies, and NetworkPolicy walls. The `kind/` directory holds a two-tenant isolation harness for the multi-environment story.

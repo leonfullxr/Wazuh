@@ -219,6 +219,7 @@ shape is [`environments.yaml.example`](environments.yaml.example).
 |---|---|
 | Current design (this) | `ARCHITECTURE.md` |
 | The journey: phases, decisions + rationale, review findings, results (incl. the enhancement arc E1-E8 and Round 7) | `DESIGN-JOURNAL.md` |
+| Forward enhancements not yet built (Cursor-ready tiers) | `ENHANCEMENTS.md` |
 | Topology diagram (labelled) | `diagrams/wazuh-ai-v3-gateway.drawio` |
 | Turn-workflow diagram (labelled) | `diagrams/wazuh-ai-v3-workflow.drawio` |
 | Icon-forward topology + turn flow | `diagrams/wazuh-ai-v3-icons.drawio` |
