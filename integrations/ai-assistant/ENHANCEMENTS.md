@@ -26,19 +26,6 @@ deferred-with-intent.
 - Rejected: semantic answer cache, LLM-judge in the live path, lane 3, ML
   Commons as orchestrator.
 
-## E16 - self-hosted deployment automation — **shipped**
-
-Two idempotent installers for a **pre-existing** Wazuh (never `make wazuh`):
-
-- `scripts/install_dashboard_assistant.sh` — OSD-version detection → Assistant
-  plugins → `dashboard_assistant_setup.sh` → optional `mlcommons_embed_setup.sh`
-- `scripts/install_gateway.sh` — keys → securityconfig → `environments.yaml` →
-  optional manager executors → compose/systemd for tool-service + auth-shim +
-  Ollama
-
-Operator inputs: `deploy.env.example` → `deploy.env`. README §"Automated
-self-hosted deployment". Shared helpers: `scripts/lib/deploy_common.sh`.
-
 ## Backlog
 
 | Item | Notes |

@@ -280,7 +280,27 @@ long-standing stochastic `brute_force_summary` miss. Golden set back to green
 (31/32, the one red a transient admission-429 that passes on re-ask); the eval
 had, once again, caught a capability that shipped but the model would not use.
 
-## 13. Deferred, with intent
+## 13. Self-hosted deployment automation (E16)
+
+Onboarding a *pre-existing* Wazuh was eight manual steps plus harness `make`
+targets that assume the bundled docker stack. E16 collapses that into two
+idempotent, env-driven installers that orchestrate the existing scripts rather
+than duplicate them: `install_dashboard_assistant.sh` (OSD-version detection →
+Assistant/ML-Commons plugins → `dashboard_assistant_setup.sh` → optional
+`mlcommons_embed_setup.sh`) and `install_gateway.sh` (keys → securityconfig →
+generated `environments.yaml` → optional executor RBAC → compose/systemd for
+tool-service + auth-shim + Ollama). Operator inputs live in `deploy.env`; shared
+preflight/TLS helpers in `scripts/lib/deploy_common.sh`. They never run
+`make wazuh` and pin the env CA. Review caught one deploy-breaking gap: the
+gateway installer points tool-service at a file-based env registry, but only
+auth-shim had mounted that path and `env_registry` reads it at import - so
+tool-service crash-looped on `FileNotFoundError` until the bind mount was
+mirrored (fix `9a45009`). Known single-env limits, acceptable for the PoC: the
+gateway key var is hardcoded `WAI_ENV_LAB_KEY` regardless of `WAI_ENV_ID`, and
+the ML Commons embed model id from the dashboard side is not auto-written into
+`environments.yaml` (only relevant for `provider=mlcommons` embeddings).
+
+## 14. Deferred, with intent
 
 The multi-environment cross-tenant isolation suite (a `kind/` two-tenant
 harness exists; set aside by choice for the self-hosted focus), a
@@ -290,7 +310,7 @@ hardening, and re-exporting the v3 diagram PNGs when the draw.io GUI is
 available. None block the self-hosted PoC; the live backlog is tracked in
 `ENHANCEMENTS.md`.
 
-## 14. Cross-cutting lessons
+## 15. Cross-cutting lessons
 
 - **Commit after every accepted pass.** Uncommitted work was clobbered twice;
   a stash rescue and several "the tree was uncommitted at review" notes trace
