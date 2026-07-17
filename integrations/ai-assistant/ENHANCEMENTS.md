@@ -108,3 +108,70 @@ System prompt enumerates citable tokens and forbids metadata field citations
 ## Suggested order
 
 E9–E15 shipped. Further work goes in a new ENHANCEMENTS round when needed.
+
+---
+
+## Round 8 - review findings (2026-07-17)
+
+Reviewed E9-E15 live. E9 (docs KB - 35 pages / 230 chunks from the real
+`llms.txt`, cited), E12 (env card), E13 (tool router - safe, fails open,
+`run_query_ir` always in core), E14 (field projection), and E15 (citation
+hardening + evidence-injection guard) are all good; unit gates 143+4 and the
+docs-KB golden case passes. One real finding.
+
+### F6. E10/E11 reference tools are shipped but never selected - BLOCKER for those features
+
+Live `make evals` is 27/32. Four failures are the same root cause: gpt-oss does
+not pick the new narrow reference/capability tools -
+
+- `rule-reference-5710-en` / `rule-group-auth-failed-en`: the model calls
+  `knowledge_search` (+ `mitre_lookup`) instead of `rule_reference`.
+- `field-dictionary-level-en`: the model loops `knowledge_search` **7 times**
+  into the tool-call budget and never answers, instead of calling
+  `field_dictionary`.
+- `describe-capabilities-en`: the model free-answers with **no tool call** at
+  all instead of calling `describe_capabilities`.
+
+(The fifth failure, `brute-force-summary-en` with no tool call, is the known
+gpt-oss stochasticity - it calls the tool on re-ask; not a regression. See F7.)
+
+As shipped, `rule_reference`, `field_dictionary`, and `describe_capabilities`
+are effectively dead: a small local model consistently prefers the broad
+`knowledge_search` or its own prompt knowledge. Leaving these to model
+tool-selection among ~16 tools is the mismatch - they are **recognitions, not
+reasoning** ("what does rule <id> mean", "what does <field> mean", "what can
+you do"), exactly the shape lane 0 and playbooks already handle
+deterministically.
+
+**Fix - deterministic recognition, not model tool-selection.** Add a small
+recognizer that runs after lane 0 (a sibling to it), invokes the exact tool
+directly, and renders locally with no model. These are knowledge/metadata tools,
+not alerts-IR, so this is a *sibling* to `lane0.render_local` (which executes IR
+through the veracity pipeline), not a literal lane-0 template:
+
+| File | Change |
+|---|---|
+| `tool-service/app/loop.py` (+ a small `reference_router` helper, or extend `lane0`) | Before the model loop, deterministically recognize the three question shapes and dispatch directly: a `rule.id` / `rule.groups` / `decoder.name` "what does X mean" -> `rule_reference(...)`; a field "what does <field>/level/severity mean" -> `field_dictionary(...)`; "what can you do / que puedes hacer / capabilities" -> `describe_capabilities(...)`. Render the tool's JSON locally (the payloads are already structured); label "no model involved"; emit the `[kb:]` cite for the reference tools. Fail open to the normal loop when no pattern matches or a slot is missing. |
+| `describe_capabilities` | Answer entirely in the gateway (no model, no datastore) - it is pure registry+env metadata; a bilingual local render of the capability list. |
+| slot extraction | Reuse `lane0.extract_slots` / the playbook `_ALERT_ID`/`_AGENT` patterns for the rule id / field name; add a bilingual field-name matcher for the dictionary. |
+| `golden/golden.yaml` | The three cases now assert the exact tool/route fired **and** (for rule/field) a `[kb:]` cite, with `checks_any: [knowledge_lookup]` or a `reference` label - no `knowledge_search`, no 7x loop, no empty tool list. |
+
+**Acceptance:** "what does rule 5710 mean", "what does level/severity mean",
+and "what can you do" each answer via the deterministic route (zero model
+tokens), cite the reference where applicable, and never fall through to
+`knowledge_search`; the docs-KB semantic path (E9) still handles open
+"how do I / how to remediate" questions.
+
+### F7. brute_force_summary stochastic no-tool answer (minor, known)
+
+`brute-force-summary-en` intermittently free-answers (tools `[]`) but calls the
+tool on re-ask - the long-standing gpt-oss quirk, not caused by E9-E15. Options:
+run demo evals with `WAI_EVAL_RETRIES=1` (it passes on retry), or add
+"summarize brute force" as a lane-0 / recognizer route so the tool is guaranteed
+(preferred - same mechanism as F6, and it removes the flake for good).
+
+### Not re-touch
+
+E9 docs KB, E12-E15, and the tool router are correct - F6 is the one real gap
+(three tools that need a deterministic route to be usable), F7 is a known flake
+best closed by the same recognizer.
