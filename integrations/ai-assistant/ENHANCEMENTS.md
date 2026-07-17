@@ -197,3 +197,127 @@ event; legitimate evidence is untouched.
 E1 + E2 + E3 first (they answer "skills" and "templates" together and showcase
 the thesis), then E4 (which E1's richer playbooks want), then E5, then E6-E8 as
 depth. Each tier is independently shippable and eval-gated.
+
+---
+
+## Round 7 - review findings (2026-07-17)
+
+Reviewed E1-E8 as implemented (Tier 1/2/3 + E5 write actions). Unit gates green
+(123 tool-service + 4 auth-shim). Tier 3 is clean and on-thesis - knowledge
+search is corpus-only, persistent conversation stores only what the analyst
+already saw, the evidence guard is deterministic. E5 executor *structure* is
+correct (curated templates, numeric guards, high-risk target echo). But a live
+`make evals-actions` run came back **10/15 (was 11/12)**: a real regression in
+dashboard creation, plus latent permission gaps the eval does not exercise. Fix
+F1 first (it broke a working flagship feature), then F2-F4.
+
+### F1. `create_dashboard` region-map hard-fails the whole write - BLOCKER (live-confirmed)
+
+`make evals-actions` shows `brute-force-geoip-dashboard-{en,es}` failing with
+audit `status: index_pattern_unavailable`. The GeoIP scripted-field work
+(commit 5a99b60) made the region-map panel *require* registering
+`GeoLocation.country_iso2` on the `wazuh-alerts-*` index pattern, and
+`_prepare_dashboard_objects` (`tool-service/app/actions/executors.py:61-98`)
+**aborts the entire dashboard** when that registration fails or the field is not
+aggregatable. Dashboard create worked at the V3.5 live sign-off; this regressed
+it.
+
+**Fix - graceful degradation, not hard failure.** An optional enrichment panel
+must never block the whole dashboard:
+
+- In `_prepare_dashboard_objects`, when `ensure_country_iso2_scripted_field`
+  fails OR `FIELD_COUNTRY_ISO2` is not aggregatable after registration, **drop
+  or substitute** the region-map panel (e.g. replace it with a top-countries
+  table on an existing field, or omit it and re-flow the layout) and **continue**
+  the write. Return `ok=True` with a `details.degraded` note naming what was
+  dropped and why - never `index_pattern_unavailable` as a terminal status for
+  an optional panel.
+- Verify the `wazuh-alerts-*` index-pattern saved object exists and the
+  dashboard executor can write scripted fields; if the index pattern itself is
+  missing, that is a separate setup note (document it), still degrade rather
+  than fail.
+
+**Acceptance:** `brute-force-geoip-dashboard-{en,es}` return `ok=True`; with the
+geo field present the dashboard has the region map, without it the dashboard is
+still created and `details.degraded` says the geo panel was substituted; audit
+never shows `index_pattern_unavailable` as a terminal failure.
+
+### F2. Confirm failure path emits a misleading check - GATE
+
+`conv-yes-dashboard-en` and `conv-connector-yes-en` fail asserting check
+`action_confirmed`, but the result carried only `['action_executed']`. Root
+cause is two-fold: (a) they hit F1 (the dashboard write failed), and (b) the
+conversational executor-error path
+(`tool-service/app/loop.py:436`) labels a *failed* execution with
+`checks=["action_executed"]` - which is both untrue (nothing executed) and
+missing the `action_confirmed` the success path emits (`loop.py:447`).
+
+**Fix:** the failure path should emit an honest check such as
+`action_confirm_failed` (not `action_executed`), and the eval case should assert
+that a *successful* conv confirm carries `action_confirmed`. Once F1 is fixed
+these cases execute successfully and should pass; keep the honest failure label
+so a future executor failure is never mislabeled as executed.
+
+**Acceptance:** a successful conv confirm carries `action_confirmed`; a failed
+one carries `action_confirm_failed` and never `action_executed`; both eval
+cases pass.
+
+### F3. New write actions will 403 on execution - the eval does not catch it
+
+The actions eval only *proposes* the three new actions (or does bare-yes
+reprompt); it never confirm-executes them, so their credential gaps are latent:
+
+- `add_agent_to_group` and `suppress_noisy_rule` run as `manager_executor_basic`,
+  but `scripts/manager_executor_setup.sh` grants that user only `agent:restart`.
+  Group-add needs `agent:modify_group`; suppress writes `PUT /manager/files`
+  needing `manager:upload_file`. Both will 403.
+- `create_indexer_monitor` (tier dashboard) uses `dashboard_executor_basic`
+  (backend role `kibanauser` = saved-objects on `.kibana*`), but POSTs to
+  `/_plugins/_alerting/monitors`, which needs Alerting-plugin write. It will
+  403; the `reader_basic` fallback is read-only.
+
+**Fix:**
+- Extend `manager_executor_setup.sh` to grant `agent:modify_group` and
+  `manager:upload_file` to the manager executor (or split a dedicated
+  higher-privilege tier - state the least-privilege trade-off either way, D35).
+- Give `create_indexer_monitor` an alerting-capable credential (a new
+  `monitor_executor_basic` on the env with an alerting-write role, e.g.
+  `alerting_full_access`), rather than the saved-objects writer.
+- **Add confirm-execute eval cases** (behind a flag / against the lab agent) for
+  all three new actions so this whole class of gap cannot hide again - the value
+  of this finding is that unit + propose-only evals missed it; only a live
+  confirm-execute surfaces it.
+
+**Acceptance:** each new write action confirm-executes successfully against the
+lab stack with its scoped executor; removing the grant makes it fail closed
+with an honest error; the new execute eval cases are green.
+
+### F4. `suppress_noisy_rule` is inert until reload, and grants broad write
+
+Writing `etc/rules/local_rules_wazuh_ai_<id>.xml` via `PUT /manager/files` does
+not reload analysisd, so the suppression does not take effect until a manager
+restart/reload; and `manager:upload_file` lets that executor write *any* manager
+file - a real blast radius.
+
+**Fix:** after writing the rule file, trigger a ruleset reload (the manager
+restart/reload API) so the suppression takes effect, and note the added
+permission; scope the executor grant as narrowly as the API allows and document
+the trade-off. If a safe narrow grant is not available, keep `suppress_noisy_rule`
+behind an explicit per-env opt-in and say so in the preview.
+
+**Acceptance:** after confirm, the suppressed rule stops firing (verified by a
+follow-up count) without a manual restart; the executor grant and its blast
+radius are documented.
+
+### F5 (minor, carried). Composite-tool dispatch is triplicated
+
+The `if tool.composite: ... elif name == ...` chain is duplicated in `loop.py`
+(free loop), `playbooks.invoke_tool`, and `main.py` (`/v1/tools`). Behavior is
+correct; fold into one `dispatch_composite(name, params, principal)` helper so a
+new composite is added in one place. Do when next touching that code.
+
+### Not re-touch
+
+Tier 3 (E6/E7/E8), the E5 executor structure, and the read-side Tier 1/2 tools
+are correct - findings above are permission wiring and one regression, not the
+core logic.
