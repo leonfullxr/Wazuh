@@ -99,6 +99,9 @@ services:
     volumes:
       # Public key only - the reasoning core cannot mint (D30)
       - ./keys/jwt-public.pem:/keys/jwt-public.pem:ro
+      # Env registry: read only when WAI_ENVS_FILE points here (E16 installer sets it).
+      # Unmounted-but-set was a startup crash (env_registry loads at import).
+      - ./environments.poc.yaml:/config/environments.yaml:ro
       # CA pinning (recommended once the wazuh certs exist; verify the path):
       # - ./.wazuh-docker/single-node/config/wazuh_indexer_ssl_certs/root-ca.pem:/certs/root-ca.pem:ro
     ports:
