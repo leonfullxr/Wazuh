@@ -16,7 +16,7 @@ Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/w
 
 ![One turn end to end](diagrams/png/wazuh-ai-v3-icons--v38-turn-flow-icons.png)
 
-More detail lives in dedicated docs: [`ARCHITECTURE.md`](ARCHITECTURE.md) (the current design + the D-tag decision log), [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md) (how it got here - the phases, decisions, and review findings), and [`ENHANCEMENTS.md`](ENHANCEMENTS.md) (forward tiers). Diagram sources are in [`diagrams/`](diagrams/), exports in [`diagrams/png/`](diagrams/png/).
+More detail lives in dedicated docs: [`ARCHITECTURE.md`](ARCHITECTURE.md) (the current design + the D-tag decision log) and [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md) (how it got here - the phases, decisions, review findings, and the enhancement arc). Diagram sources are in [`diagrams/`](diagrams/), exports in [`diagrams/png/`](diagrams/png/).
 
 ## Try it locally (the demo harness)
 

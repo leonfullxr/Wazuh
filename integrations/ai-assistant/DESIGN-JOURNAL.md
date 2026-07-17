@@ -171,7 +171,69 @@ principal - dashboard access accepted as the authority, a documented,
 deliberate lowering of the per-user bar, bounded by the tier opt-in, target
 echo, rate caps, and audit that always hold.
 
-## 10. Deferred, with intent
+## 10. The enhancement arc: skills and templates (E1-E8)
+
+With the product validated, the question became "what next, beyond RAG and
+prompt caching?" The framing that shaped the answer: in this system a **skill
+is a typed tool, action, or playbook** (the model only acts through the typed
+catalog), and **more context** splits into input recognition, multi-step
+investigations, and output structure. Everything was constrained by the design
+laws - query-don't-embed, veracity by construction, propose→confirm, no
+semantic answer cache, no LLM-judge in the live path, lane 3 off. Delivered as
+tiers, each eval-gated:
+
+- **Investigation playbooks (D55)** - the biggest jump: curated, ordered typed
+  tool sequences run as code, so the *shape* of an investigation is
+  deterministic and every step passes the veracity pipeline; the model only
+  synthesizes from collected evidence and is offered no tools during synthesis.
+  "Recognition before reasoning" extended from single queries to whole
+  investigations. Three shipped: explain-alert, brute-force triage, agent
+  triage.
+- **Templates, both sides:** lane-0 corpus expansion (more zero-token
+  recognitions, extends D40) and per-intent **answer shapes** (D56 - triage
+  card / incident / exec rollup) injected as transient context so the
+  prompt-cache prefix stays byte-stable.
+- **New read skills (D4):** `alert_timeline`, `related_alerts`,
+  `compare_windows` (delta computed server-side, never by the model),
+  `mitre_coverage`, `agent_posture` - correlation and trend the catalog lacked,
+  all compiling to IR and veracity-checked.
+- **New write actions (D20/D35):** `add_agent_to_group`,
+  `create_indexer_monitor`, `suppress_noisy_rule` - each propose→confirm with a
+  tiered executor and, for high-risk, target echo.
+- **Tier 3 depth:** the first sanctioned vector store (D57) - `knowledge_search`
+  over *public* reference content only, never telemetry; a persistent
+  conversation backend with a rolling summary (D58, implementing the D7 seam);
+  and a deterministic evidence-side injection guard (D59) that neutralizes
+  attacker-controlled log content before synthesis rather than dropping it.
+
+## 11. Round 7: the review that caught a regression the tests could not
+
+The enhancement pass shipped with green unit tests - and a live
+`make evals-actions` still fell from 11/12 to 10/15. Three lessons, all now
+folded into the eval:
+
+- **A flagship feature had regressed silently.** The GeoIP scripted-field work
+  made the brute-force dashboard's region-map panel *require* registering a
+  field on the index pattern, and a failed registration aborted the *entire*
+  dashboard with `index_pattern_unavailable`. The fix was graceful degradation:
+  an optional enrichment panel is substituted, never allowed to fail the whole
+  write. Unit tests passed throughout; only the live run caught it.
+- **The propose-only eval hid latent 403s.** The new write actions were only
+  ever *proposed* in the eval, never confirm-executed, so their credential gaps
+  (the least-privilege manager executor lacked `agent:modify_group` and
+  `manager:upload_file`; the monitor used the saved-objects writer, not an
+  alerting-capable one) never surfaced. The fix extended the executor RBAC and
+  added a dedicated monitor writer - and, crucially, added **confirm-execute
+  eval cases** (behind `WAI_EVAL_ACTIONS_EXECUTE=1`) so the class cannot hide
+  again. It verified 17/18 with real mutations against the lab.
+- **A failed execution was mislabeled as executed**, and the composite-tool
+  dispatch had drifted into three copies - both cleaned up (an honest
+  `action_confirm_failed` status; one shared `dispatch_composite`).
+
+The through-line of the whole project in one round: unit-green is not done,
+live is; and the eval must exercise the dangerous path, not just propose it.
+
+## 12. Deferred, with intent
 
 The multi-environment cross-tenant isolation suite (a `kind/` two-tenant
 harness exists; the full suite is partial), a streamable-HTTP `/mcp` surface
@@ -179,7 +241,7 @@ harness exists; the full suite is partial), a streamable-HTTP `/mcp` surface
 credentials), and re-exporting the v3 diagram PNGs when the draw.io GUI is
 available. None block the self-hosted PoC.
 
-## 11. Cross-cutting lessons
+## 13. Cross-cutting lessons
 
 - **Commit after every accepted pass.** Uncommitted work was clobbered twice;
   a stash rescue and several "the tree was uncommitted at review" notes trace

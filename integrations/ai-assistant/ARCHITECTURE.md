@@ -108,6 +108,10 @@ counting a list. The IR-keyed evidence cache is always disclosed
 vectorized (D4/D5) - the only embeddings are over questions and curated
 exemplars.
 
+Before synthesis, an **evidence-side injection guard (D59)** scans the
+retrieved (attacker-controlled) evidence for prompt-injection shapes and
+neutralizes them by delimiting rather than dropping - deterministic, no model.
+
 **Answer assembly:** citation verification (`[alert]`/`[agg]`/`[kb]` must have
 been retrieved this turn) plus the grounded-number check (a number beside a
 citation must equal an evidence value); mismatches surface as `corrections`,
@@ -146,6 +150,11 @@ latency. Admission is one stream per user, a per-tenant semaphore, and honest
 429s - no silent downgrades (D14). Honest failure modes: 503 when the
 inference backend is unreachable, 401 when the indexer rejects a turn
 credential, per-tenant kill switch.
+
+Multi-turn context (D7/D58) is a documented seam: in-memory by default, or
+persisted to the environment's own indexer, with a rolling summary that keeps
+replayed context within a token budget. Only text the analyst already saw is
+stored - never raw telemetry.
 
 ## 7. Consolidated decision log
 
@@ -209,8 +218,7 @@ shape is [`environments.yaml.example`](environments.yaml.example).
 | For | Read |
 |---|---|
 | Current design (this) | `ARCHITECTURE.md` |
-| The journey: phases, decisions + rationale, review findings, results | `DESIGN-JOURNAL.md` |
-| Forward enhancements (Cursor-ready tiers) | `ENHANCEMENTS.md` |
+| The journey: phases, decisions + rationale, review findings, results (incl. the enhancement arc E1-E8 and Round 7) | `DESIGN-JOURNAL.md` |
 | Topology diagram (labelled) | `diagrams/wazuh-ai-v3-gateway.drawio` |
 | Turn-workflow diagram (labelled) | `diagrams/wazuh-ai-v3-workflow.drawio` |
 | Icon-forward topology + turn flow | `diagrams/wazuh-ai-v3-icons.drawio` |
