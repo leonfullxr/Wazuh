@@ -1,0 +1,100 @@
+{
+  "rules": {
+    "5710": {
+      "description": "sshd: Attempt to login using a non-existent user",
+      "level": 5,
+      "groups": ["syslog", "sshd", "authentication_failed"],
+      "mitre": ["T1110"],
+      "meaning": "Someone tried to SSH in with a username that does not exist on the host. Common in internet-facing brute-force scans."
+    },
+    "5716": {
+      "description": "sshd: authentication failed",
+      "level": 5,
+      "groups": ["syslog", "sshd", "authentication_failed"],
+      "mitre": ["T1110"],
+      "meaning": "SSH password or key authentication failed for an existing (or attempted) account."
+    },
+    "5715": {
+      "description": "sshd: authentication success",
+      "level": 3,
+      "groups": ["syslog", "sshd", "authentication_success"],
+      "mitre": [],
+      "meaning": "Successful SSH login. Correlate with prior failures from the same source when investigating brute force."
+    },
+    "5503": {
+      "description": "PAM: User login failed",
+      "level": 5,
+      "groups": ["pam", "syslog", "authentication_failed"],
+      "mitre": ["T1110"],
+      "meaning": "PAM-reported failed login on Linux (console, sudo, or service auth depending on context)."
+    },
+    "31103": {
+      "description": "SQL injection attempt detected in web request",
+      "level": 10,
+      "groups": ["web", "attack", "sql_injection"],
+      "mitre": ["T1190"],
+      "meaning": "Web request matched SQL-injection patterns. Review the URL/body and whether the app blocked or executed it."
+    },
+    "533": {
+      "description": "Listened ports status (netstat) changed",
+      "level": 3,
+      "groups": ["ossec"],
+      "mitre": [],
+      "meaning": "The set of listening ports on the agent changed since the last check (new service or unexpected listener)."
+    },
+    "100100": {
+      "description": "Multiple failed logins followed by success (possible brute force)",
+      "level": 12,
+      "groups": ["authentication_failures"],
+      "mitre": ["T1110"],
+      "meaning": "Composite signal: several authentication failures then a success — classic brute-force success pattern. Investigate immediately."
+    },
+    "60122": {
+      "description": "Logon Failure - Unknown user or bad password",
+      "level": 5,
+      "groups": ["windows", "windows_security", "authentication_failed", "win_authentication_failed"],
+      "mitre": ["T1110"],
+      "meaning": "Windows Event 4625-style failed logon (unknown user or bad password)."
+    }
+  },
+  "groups": {
+    "authentication_failed": {
+      "meaning": "Single failed authentication events (Linux/SSH and related). Use for failed-login counts and triage.",
+      "typical_rules": ["5710", "5716", "5503"]
+    },
+    "authentication_failures": {
+      "meaning": "Multi-event / correlation rules for repeated auth failures (often brute-force composites).",
+      "typical_rules": ["100100"]
+    },
+    "win_authentication_failed": {
+      "meaning": "Windows failed logon events (Event ID 4625 family).",
+      "typical_rules": ["60122"]
+    },
+    "authentication_success": {
+      "meaning": "Successful authentication events (e.g. SSH accept). Pair with failures when hunting brute force.",
+      "typical_rules": ["5715"]
+    },
+    "sshd": {
+      "meaning": "Alerts derived from OpenSSH/sshd logs.",
+      "typical_rules": ["5710", "5715", "5716"]
+    },
+    "sql_injection": {
+      "meaning": "Web SQL-injection attempt detections.",
+      "typical_rules": ["31103"]
+    }
+  },
+  "decoders": {
+    "sshd": {
+      "meaning": "Parses OpenSSH daemon log lines into fields such as srcip, dstuser, and status.",
+      "produces": ["data.srcip", "data.dstuser"]
+    },
+    "web-accesslog": {
+      "meaning": "Parses common HTTP access-log formats for web attack rules.",
+      "produces": ["data.srcip", "data.url"]
+    },
+    "windows_eventchannel": {
+      "meaning": "Parses Windows Event Channel security events (including failed logons).",
+      "produces": ["data.win.system.eventID", "data.win.eventdata"]
+    }
+  }
+}

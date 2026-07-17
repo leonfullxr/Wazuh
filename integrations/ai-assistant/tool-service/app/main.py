@@ -30,7 +30,13 @@ from .admission import BusyError
 from .auth import User, verify_jwt
 from .config import CFG
 from .env_registry import resolve_by_key, get_env
-from .knowledge import knowledge_search, mitre_lookup
+from .knowledge import (
+    field_dictionary,
+    knowledge_search,
+    mitre_lookup,
+    rule_reference,
+)
+from .capabilities import describe_capabilities
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .composite_dispatch import dispatch_composite
 from .evidence_guard import guard_evidence
@@ -356,6 +362,12 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
             elif tool.name == "knowledge_search":
                 embeddings.begin_turn(indexer_headers(user), getattr(user, "env_id", None) or CFG.tenant)
                 payload = await knowledge_search(validated)
+            elif tool.name == "rule_reference":
+                payload = rule_reference(validated)
+            elif tool.name == "field_dictionary":
+                payload = field_dictionary(validated)
+            elif tool.name == "describe_capabilities":
+                payload = describe_capabilities(validated, principal=user)
             else:
                 raise HTTPException(404, f"unknown knowledge tool '{name}'")
             audit.emit("http_knowledge_tool_executed", tool=name, sub=user.sub)

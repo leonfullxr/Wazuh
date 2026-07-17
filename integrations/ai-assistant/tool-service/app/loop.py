@@ -26,7 +26,14 @@ from .admission import BusyError, get_admission
 from .answer_shapes import select_shape, transient_shape_messages
 from .auth import User
 from .config import CFG
-from .knowledge import knowledge_search, mitre_lookup
+from .knowledge import (
+    field_dictionary,
+    knowledge_search,
+    mitre_lookup,
+    rule_reference,
+)
+from .capabilities import describe_capabilities
+from .tool_router import tool_specs_for_turn
 from .auth_groups import BRUTE_FORCE_MITRE
 from .composite_dispatch import dispatch_composite
 from .evidence_guard import guard_evidence, guard_evidence_text
@@ -42,7 +49,7 @@ from .principal import (
     indexer_headers,
     is_env_scoped,
 )
-from .tools import REGISTRY, converse_tool_specs
+from .tools import REGISTRY
 from .actions.registry import get_action_by_tool
 from .actions.proposals import (
     confirm_proposal_principal,
@@ -71,7 +78,8 @@ Hard rules:
 - Answer in the user's language (Spanish or English).
 - Every claim about specific data must cite evidence inline as [alert:<_id>] \
 for a document, [agg:<name>] for an aggregation result you received, or \
-[kb:<technique_id>] for a MITRE technique returned by mitre_lookup.
+[kb:<technique_id>] for a MITRE technique returned by mitre_lookup, or \
+[kb:<id>] for a knowledge_search / rule_reference / field_dictionary hit.
 - Valid [agg:...] names are ONLY datastore result keys: total_matching; \
 aggregation bucket names returned under aggregations (by, over_time, timeline, \
 top_source_ips, top_target_users, and similar); and the tool name when the \
@@ -728,7 +736,9 @@ async def run_turn(
         messages: list[dict] = history + transient + [
             {"role": "user", "content": [{"text": text}]}
         ]
-        tool_specs = converse_tool_specs()
+        tool_specs, subset_meta = tool_specs_for_turn(text)
+        if subset_meta.get("subset"):
+            audit.emit("tool_subset", env=env_id, **subset_meta)
         # One clock per turn: every step of this turn shares the byte-identical
         # system prelude, so step N+1 reuses step N's prefill (P1.1/P1.2).
         turn_system = system_prompt(include_reporting=include_reporting)
@@ -873,12 +883,31 @@ async def run_turn(
                                 hid = hit.get("id")
                                 if hid:
                                     kb_ids.add(str(hid).upper())
+                        elif tool.name == "rule_reference":
+                            payload = rule_reference(params)
+                            if payload.get("found") and payload.get("id"):
+                                kb_ids.add(str(payload["id"]).upper())
+                        elif tool.name == "field_dictionary":
+                            payload = field_dictionary(params)
+                            if payload.get("found") and payload.get("id"):
+                                kb_ids.add(str(payload["id"]).upper())
+                        elif tool.name == "describe_capabilities":
+                            payload = describe_capabilities(
+                                params, principal=principal
+                            )
                         else:
                             payload = {"error": f"unknown knowledge tool '{name}'"}
                         lanes_used.add(tool.lane)
                         checks_all.add("knowledge_lookup")
                         if tool.name == "knowledge_search":
                             checks_all.add("public_kb_retrieval")
+                        if tool.name in {
+                            "rule_reference",
+                            "field_dictionary",
+                        }:
+                            checks_all.add("reference_lookup")
+                        if tool.name == "describe_capabilities":
+                            checks_all.add("capabilities_card")
                         agg_names.add(name)
                         payload = guard_evidence(
                             payload, env_id=env_id, source=f"tool:{name}"

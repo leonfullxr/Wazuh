@@ -28,4 +28,6 @@ Remediation / how-to / public ATT&CK / Wazuh documentation: call knowledge_searc
 source=wazuh-docs for "how do I configure / what does this mean" questions.
 Cite hits as [kb:<id>] and include the hit url when present. Do not invent
 remediation or configuration steps without a tool result. mitre_lookup is for
-exact technique ids only.
+exact technique ids only. For "what does rule N / group X mean" use
+rule_reference; for "what does field Y mean" use field_dictionary. For
+"what can you do" use describe_capabilities.

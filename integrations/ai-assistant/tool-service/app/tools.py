@@ -35,7 +35,13 @@ from .environment import (
     list_alert_fields,
     list_dashboards,
 )
-from .knowledge import KnowledgeSearchParams, MitreLookupParams
+from .capabilities import DescribeCapabilitiesParams
+from .knowledge import (
+    FieldDictionaryParams,
+    KnowledgeSearchParams,
+    MitreLookupParams,
+    RuleReferenceParams,
+)
 from .models import IRAggregation, IRFilter, QueryIR, TimeRange
 from .states_models import StatesQueryIR
 from .states_tools import (
@@ -266,6 +272,18 @@ def _knowledge_search_ir(_p: KnowledgeSearchParams) -> QueryIR:
     raise RuntimeError("knowledge tool - not an indexer query")
 
 
+def _rule_reference_ir(_p: RuleReferenceParams) -> QueryIR:
+    raise RuntimeError("knowledge tool - not an indexer query")
+
+
+def _field_dictionary_ir(_p: FieldDictionaryParams) -> QueryIR:
+    raise RuntimeError("knowledge tool - not an indexer query")
+
+
+def _describe_capabilities_ir(_p: DescribeCapabilitiesParams) -> QueryIR:
+    raise RuntimeError("knowledge tool - not an indexer query")
+
+
 def _list_dashboards_ir(_p: ListDashboardsParams) -> QueryIR:
     raise RuntimeError("environment tool - not an alerts-index IR query")
 
@@ -368,6 +386,35 @@ REGISTRY: dict[str, ToolDef] = {
             "Cite hits as [kb:<doc_id>] and include the hit url when present.",
             KnowledgeSearchParams,
             _knowledge_search_ir,
+            lane=1,
+            knowledge=True,
+        ),
+        ToolDef(
+            "rule_reference",
+            "Exact lookup of a Wazuh rule id, rule group, or decoder name "
+            "from the local curated catalog (no embeddings). Cite as "
+            "[kb:rule-<id>], [kb:group-<name>], or [kb:decoder-<name>].",
+            RuleReferenceParams,
+            _rule_reference_ir,
+            lane=1,
+            knowledge=True,
+        ),
+        ToolDef(
+            "field_dictionary",
+            "Look up what an alert field means (e.g. rule.level, data.srcip) "
+            "from the local field dictionary. Cite as [kb:field-<name>].",
+            FieldDictionaryParams,
+            _field_dictionary_ir,
+            lane=1,
+            knowledge=True,
+        ),
+        ToolDef(
+            "describe_capabilities",
+            "List what this assistant can do in the current environment: "
+            "tools, lanes, data families, and enabled action tiers. "
+            "Use for 'what can you do' / discoverability questions.",
+            DescribeCapabilitiesParams,
+            _describe_capabilities_ir,
             lane=1,
             knowledge=True,
         ),
@@ -497,12 +544,19 @@ if CFG.lane2_enabled:
     )
 
 
-def converse_tool_specs() -> list[dict]:
-    """pydantic schemas -> Bedrock Converse toolSpec list."""
+def converse_tool_specs(subset: set[str] | None = None) -> list[dict]:
+    """pydantic schemas -> Bedrock Converse toolSpec list.
+
+    When ``subset`` is set (D62), only those REGISTRY tools are offered.
+    Action propose_* tools are always included (writes stay reachable).
+    Callers should fail open to subset=None when intent is unclear.
+    """
     from .actions.registry import action_tool_specs
 
     specs = []
     for t in REGISTRY.values():
+        if subset is not None and t.name not in subset:
+            continue
         specs.append(
             {
                 "toolSpec": {
@@ -512,5 +566,8 @@ def converse_tool_specs() -> list[dict]:
                 }
             }
         )
+    # Fail open if subset stripped the catalog too aggressively.
+    if subset is not None and len(specs) < 4:
+        return converse_tool_specs(None)
     specs.extend(action_tool_specs())
     return specs

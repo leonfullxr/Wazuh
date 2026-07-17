@@ -20,7 +20,13 @@ from . import audit, metrics
 from .composite_dispatch import dispatch_composite
 from .config import CFG
 from .embeddings import embed_corpus, embed_text
-from .knowledge import knowledge_search, mitre_lookup
+from .knowledge import (
+    field_dictionary,
+    knowledge_search,
+    mitre_lookup,
+    rule_reference,
+)
+from .capabilities import describe_capabilities
 from .lane0 import extract_slots
 from .principal import Principal
 from .states_veracity import execute_vulnerabilities_ir
@@ -293,6 +299,47 @@ async def invoke_tool(
                     for h in (payload.get("hits") or [])
                     if h.get("id")
                 ],
+            }
+        if name == "rule_reference":
+            payload = rule_reference(params)
+            return {
+                "name": name,
+                "payload": payload,
+                "checks": ["knowledge_lookup", "reference_lookup"],
+                "hits": [],
+                "aggregations": {},
+                "total": 0,
+                "kb_ids": (
+                    [str(payload["id"]).upper()]
+                    if payload.get("found") and payload.get("id")
+                    else []
+                ),
+            }
+        if name == "field_dictionary":
+            payload = field_dictionary(params)
+            return {
+                "name": name,
+                "payload": payload,
+                "checks": ["knowledge_lookup", "reference_lookup"],
+                "hits": [],
+                "aggregations": {},
+                "total": 0,
+                "kb_ids": (
+                    [str(payload["id"]).upper()]
+                    if payload.get("found") and payload.get("id")
+                    else []
+                ),
+            }
+        if name == "describe_capabilities":
+            payload = describe_capabilities(params, principal=principal)
+            return {
+                "name": name,
+                "payload": payload,
+                "checks": ["knowledge_lookup", "capabilities_card"],
+                "hits": [],
+                "aggregations": {},
+                "total": 0,
+                "kb_ids": [],
             }
         raise VeracityError(f"unknown knowledge tool '{name}'")
     if tool.composite:

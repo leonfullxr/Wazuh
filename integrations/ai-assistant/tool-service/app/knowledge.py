@@ -1,9 +1,13 @@
-"""Static knowledge tools - exact MITRE lookup + public corpus search (D57/D60).
+"""Static knowledge tools - exact MITRE/rule/field lookup + public corpus search
+(D57/D60/D61).
 
 Tenant telemetry is never embedded. The only sanctioned vector store is over
 curated public reference content shipped with the deployment:
   - knowledge/corpus.json          (hand-curated remediation notes)
   - knowledge/wazuh_docs.json      (D60: version-pinned docs from llms.txt)
+Exact-match catalogs (no embeddings):
+  - knowledge/rule_reference.json  (D61)
+  - knowledge/field_dictionary.json (D61)
 """
 from __future__ import annotations
 
@@ -13,7 +17,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from . import embeddings
 from .config import CFG
@@ -22,6 +26,8 @@ _DIR = Path(__file__).parent / "knowledge"
 _TECHNIQUES: dict[str, dict[str, str]] = json.loads(
     (_DIR / "mitre_techniques.json").read_text()
 )
+_RULE_REF: dict[str, Any] = json.loads((_DIR / "rule_reference.json").read_text())
+_FIELD_DICT: dict[str, Any] = json.loads((_DIR / "field_dictionary.json").read_text())
 _MITRE_ID = re.compile(r"\bT\d{4}(?:\.\d{3})?\b", re.I)
 
 _corpus_vectors: list[list[float]] | None = None
@@ -50,6 +56,39 @@ class KnowledgeSearchParams(BaseModel):
     )
 
 
+class RuleReferenceParams(BaseModel):
+    """Exact-match lookup for a Wazuh rule id, rule group, or decoder name (D61)."""
+
+    rule_id: Optional[str] = Field(None, description="Numeric rule id, e.g. '5710'")
+    rule_group: Optional[str] = Field(
+        None, description="rule.groups value, e.g. authentication_failed"
+    )
+    decoder_name: Optional[str] = Field(
+        None, description="Decoder name, e.g. sshd"
+    )
+
+    @model_validator(mode="after")
+    def _one_key(self) -> "RuleReferenceParams":
+        provided = sum(
+            1
+            for v in (self.rule_id, self.rule_group, self.decoder_name)
+            if v and str(v).strip()
+        )
+        if provided != 1:
+            raise ValueError("provide exactly one of rule_id, rule_group, decoder_name")
+        return self
+
+
+class FieldDictionaryParams(BaseModel):
+    """Look up the meaning of an alert field name (D61)."""
+
+    field: str = Field(
+        min_length=1,
+        max_length=120,
+        description="Alert field or alias, e.g. rule.level or data.srcip",
+    )
+
+
 def mitre_lookup(params: MitreLookupParams) -> dict[str, Any]:
     tid = params.technique_id.strip().upper()
     if not _MITRE_ID.fullmatch(tid):
@@ -63,6 +102,109 @@ def mitre_lookup(params: MitreLookupParams) -> dict[str, Any]:
     if entry is None:
         return {"found": False, "technique_id": tid, "error": "technique not in local catalog"}
     return {"found": True, "technique_id": base, **entry}
+
+
+def rule_reference(params: RuleReferenceParams) -> dict[str, Any]:
+    """Exact curated lookup — never fabricates unknown ids (D61)."""
+    if params.rule_id and str(params.rule_id).strip():
+        rid = str(params.rule_id).strip()
+        entry = (_RULE_REF.get("rules") or {}).get(rid)
+        if entry is None:
+            return {
+                "found": False,
+                "kind": "rule",
+                "rule_id": rid,
+                "error": "rule id not in local reference catalog",
+            }
+        cite = f"rule-{rid}"
+        return {
+            "found": True,
+            "kind": "rule",
+            "rule_id": rid,
+            "id": cite,
+            "cite_as": f"[kb:{cite}]",
+            **entry,
+        }
+    if params.rule_group and str(params.rule_group).strip():
+        g = str(params.rule_group).strip()
+        entry = (_RULE_REF.get("groups") or {}).get(g)
+        if entry is None:
+            return {
+                "found": False,
+                "kind": "group",
+                "rule_group": g,
+                "error": "rule group not in local reference catalog",
+            }
+        cite = f"group-{g}"
+        return {
+            "found": True,
+            "kind": "group",
+            "rule_group": g,
+            "id": cite,
+            "cite_as": f"[kb:{cite}]",
+            **entry,
+        }
+    name = str(params.decoder_name or "").strip()
+    entry = (_RULE_REF.get("decoders") or {}).get(name)
+    if entry is None:
+        return {
+            "found": False,
+            "kind": "decoder",
+            "decoder_name": name,
+            "error": "decoder not in local reference catalog",
+        }
+    cite = f"decoder-{name}"
+    return {
+        "found": True,
+        "kind": "decoder",
+        "decoder_name": name,
+        "id": cite,
+        "cite_as": f"[kb:{cite}]",
+        **entry,
+    }
+
+
+def field_dictionary(params: FieldDictionaryParams) -> dict[str, Any]:
+    raw = params.field.strip()
+    aliases = _FIELD_DICT.get("aliases") or {}
+    fields = _FIELD_DICT.get("fields") or {}
+    resolved = aliases.get(raw, aliases.get(raw.lower(), raw))
+    entry = fields.get(resolved)
+    if entry is None:
+        # case-insensitive field match
+        lower_map = {k.lower(): k for k in fields}
+        key = lower_map.get(resolved.lower())
+        entry = fields.get(key) if key else None
+        resolved = key or resolved
+    if entry is None:
+        return {
+            "found": False,
+            "field": raw,
+            "error": "field not in local dictionary",
+        }
+    cite = f"field-{resolved.replace('.', '-')}"
+    return {
+        "found": True,
+        "field": resolved,
+        "requested": raw,
+        "id": cite,
+        "cite_as": f"[kb:{cite}]",
+        **entry,
+    }
+
+
+def reference_ids() -> set[str]:
+    """Citable ids from rule/field reference catalogs."""
+    ids: set[str] = set()
+    for rid in (_RULE_REF.get("rules") or {}):
+        ids.add(f"rule-{rid}")
+    for g in (_RULE_REF.get("groups") or {}):
+        ids.add(f"group-{g}")
+    for d in (_RULE_REF.get("decoders") or {}):
+        ids.add(f"decoder-{d}")
+    for f in (_FIELD_DICT.get("fields") or {}):
+        ids.add(f"field-{f.replace('.', '-')}")
+    return ids
 
 
 def _load_hand_corpus() -> list[dict[str, Any]]:
@@ -201,4 +343,4 @@ async def knowledge_search(params: KnowledgeSearchParams) -> dict[str, Any]:
 
 
 def corpus_ids() -> set[str]:
-    return {str(d["id"]) for d in _all_docs()}
+    return {str(d["id"]) for d in _all_docs()} | reference_ids()

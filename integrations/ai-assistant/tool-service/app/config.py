@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     docs_kb_enabled: bool = True
     docs_kb_path: str = ""  # empty -> knowledge/wazuh_docs.json beside this package
     docs_kb_top_k: int = 5
+    # D62: offer an intent-scoped tool subset per turn (fail open when unclear)
+    tool_subset_enabled: bool = True
     embed_provider: str = "openai"  # openai | mlcommons (C3)
     embed_base_url: str = "http://ollama:11434/v1"
     embed_model: str = "bge-m3"

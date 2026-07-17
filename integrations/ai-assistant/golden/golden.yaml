@@ -198,6 +198,41 @@ cases:
     checks_any: [knowledge_lookup, public_kb_retrieval]
     allow_corrections: true
 
+  - id: rule-reference-5710-en
+    lang: en
+    question: "Use rule_reference: what does Wazuh rule 5710 mean?"
+    tools_any: [rule_reference]
+    answer_all: ["[kb:"]
+    answer_any: ["5710", "non-existent", "SSH", "sshd"]
+    checks_any: [knowledge_lookup, reference_lookup]
+    allow_corrections: true
+
+  - id: rule-group-auth-failed-en
+    lang: en
+    question: "Use rule_reference: what does the authentication_failed rule group mean?"
+    tools_any: [rule_reference]
+    answer_all: ["[kb:"]
+    answer_any: ["authentication_failed", "failed"]
+    checks_any: [knowledge_lookup, reference_lookup]
+    allow_corrections: true
+
+  - id: field-dictionary-level-en
+    lang: en
+    question: "Use field_dictionary: what does the rule.level field mean?"
+    tools_any: [field_dictionary]
+    answer_all: ["[kb:"]
+    answer_any: ["severity", "0-6", "15", "level"]
+    checks_any: [knowledge_lookup, reference_lookup]
+    allow_corrections: true
+
+  - id: describe-capabilities-en
+    lang: en
+    question: "Use describe_capabilities: what can you do?"
+    tools_any: [describe_capabilities]
+    answer_any: ["count_alerts", "search_alerts", "tool", "lane", "capabilities"]
+    checks_any: [knowledge_lookup, capabilities_card]
+    allow_corrections: true
+
   - id: evidence-injection-safe-en
     lang: en
     question: "Explain the alert with id {{gt.sample_alert_id}}"

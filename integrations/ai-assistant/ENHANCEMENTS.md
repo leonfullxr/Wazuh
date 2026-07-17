@@ -65,36 +65,16 @@ no tenant index is embedded; the citation verifier still catches an invented
 
 ## Tier B - navigation aids
 
-### E10. Reference lookups: rule/decoder + field dictionary (D61)
+### E10. Reference lookups: rule/decoder + field dictionary (D61) — **shipped**
 
-**Why:** the most common navigation question about an alert is "what does this
-mean." Give exact, cited reference answers instead of the model guessing.
+See D61 in [`ARCHITECTURE.md`](ARCHITECTURE.md). Tools: `rule_reference`,
+`field_dictionary`; corpora in `knowledge/rule_reference.json` and
+`knowledge/field_dictionary.json`.
 
-**D61:** curated reference lookups are exact-match knowledge tools (no
-embeddings needed), sourced from the ruleset docs / a shipped field map, cited
-`[kb:]`.
+### E11. Self-describe / capabilities tool — **shipped**
 
-| File | Change |
-|---|---|
-| `tool-service/app/knowledge.py` + `knowledge/rule_reference.json`, `knowledge/field_dictionary.json` | `rule_reference(rule_id | rule_group | decoder_name)` -> purpose/description from a curated map (seed the common seeded/SOC rules + groups); `list_alert_fields`/`field_dictionary` -> the alert schema vocabulary (`rule.level` severity bands, `rule.groups` values, `data.*` meanings). Both are lane-1 knowledge tools, cited. |
-| `tool-service/app/tools.py` | Register both as `knowledge=True` tools. |
-| `golden/golden.yaml` | "what does rule 5710 / the authentication_failed group mean" returns the cited reference; a field-meaning question returns the dictionary entry. |
-
-**Acceptance:** rule/group/decoder and field questions answer from the curated
-reference with a `[kb:]` cite; unknown ids fail closed honestly (no fabrication).
-
-### E11. Self-describe / capabilities tool
-
-**Why:** discoverability - "what can you do / what can I ask?" Helps analysts
-navigate and nudges the model toward the right tool.
-
-| File | Change |
-|---|---|
-| `tool-service/app/tools.py` (+ a small `capabilities` helper) | A `describe_capabilities` tool returning the available lanes, tool catalog (names + one-line descriptions), action tiers enabled for this env, and data families (alerts, vuln states, dashboards, docs KB). Built from the live registry + env config - never hardcoded. No datastore access. |
-| `golden/golden.yaml` | "what can you do / que puedes hacer" lists real tools/actions for the env. |
-
-**Acceptance:** the tool reflects the actual registry and the env's enabled
-action tiers; disabling a tier removes it from the output.
+`describe_capabilities` builds the card from the live `REGISTRY` + env action
+tiers (`capabilities.py`).
 
 ### E12. Enrich the per-environment context card (extends the env card)
 
@@ -114,29 +94,11 @@ turn if a field errors.
 
 ## Tier C - optimizations
 
-### E13. Per-intent tool subsetting (D62)
+### E13. Per-intent tool subsetting (D62) — **shipped**
 
-**Why:** all ~16 tools are offered on every model turn - token cost and
-selection noise. The lane-0/scope embedding is already computed per turn; use it
-to offer only the relevant tool subset.
-
-**D62:** the model is offered an intent-scoped subset of the typed catalog per
-turn (e.g. vulnerability intent -> vuln + states tools; investigation ->
-correlation tools; always include a small always-on core). The subset is a
-routing optimization only - it never changes what a tool does or the veracity
-path, and lane 2 (`run_query_ir`) stays available so nothing becomes
-unanswerable. Fail open to the full catalog when intent is unclear or embeddings
-are unavailable.
-
-| File | Change |
-|---|---|
-| `tool-service/app/loop.py` + a small `tool_router` | Map intent (from the shared embedding / lane-0 near-miss signal) to a tool subset; pass only that subset to `converse_tool_specs()` for the model turn. Always include a core set; fail open to all tools on low confidence. |
-| `tool-service/app/config.py` | `WAI_TOOL_SUBSET_ENABLED` (default on when embeddings available). |
-| `golden/golden.yaml` | Existing cases stay green (proves nothing became unanswerable); add an audit/metric of offered-tool-count so the reduction is measurable. |
-
-**Acceptance:** offered-tool count drops on clearly-scoped questions; the full
-golden set stays green (nothing lost); low-confidence turns still see the full
-catalog.
+`tool_router.py` + `converse_tool_specs(subset)` / `tool_specs_for_turn`;
+`WAI_TOOL_SUBSET_ENABLED` (default on). Fail open; core always includes
+`run_query_ir` and knowledge tools.
 
 ### E14. Per-tool field projection
 
@@ -170,7 +132,6 @@ unchanged (still catches a real invented citation).
 
 ## Suggested order
 
-E9 first (the headline - it is the "navigate the environment" capability and
-reuses the D57 machinery), then E10-E11 (navigation aids on the same corpus
-pattern), then E13 (the optimization that pays off in cost and accuracy), then
-E12/E14/E15 as polish. Each item is independently shippable and eval-gated.
+E9–E11 and E13 are shipped. Remaining polish: E12 (env card), E14 (field
+projection), E15 (citation-token prompt hardening). Each item is independently
+shippable and eval-gated.

@@ -87,7 +87,9 @@ model runs (fails open).
    `auth_failures`, `brute_force_summary`, `top_rules`, `search_alerts`,
    `alert_histogram`, `alert_timeline`, `related_alerts`, `compare_windows`,
    `mitre_coverage`, `agent_posture`), knowledge (`mitre_lookup` exact ATT&CK
-   id; `knowledge_search` over curated public docs only - D57), environment
+   id; `knowledge_search` over curated public docs only - D57/D60;
+   `rule_reference` / `field_dictionary` exact catalogs - D61;
+   `describe_capabilities` from the live registry), environment
    (`list_agents`, `index_health`, `list_dashboards`), states
    (`count_vulnerabilities` over `wazuh-states-vulnerabilities-*`, its own
    allowlist).
@@ -205,6 +207,8 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D58 | Conversation store backends: memory (default) or indexer; rolling summary budget | active |
 | D59 | Evidence-side injection scan before synthesis (deterministic neutralize) | active |
 | D60 | Wazuh docs KB: version-pinned corpus from `llms.txt` at build time (`make docs-kb`) | active |
+| D61 | Exact-match reference lookups (`rule_reference`, `field_dictionary`) cited as `[kb:]` | active |
+| D62 | Per-intent tool subsetting: routing optimization only; fail open; lane 2 stays available | active |
 
 ## 8. Surfaces and configuration
 

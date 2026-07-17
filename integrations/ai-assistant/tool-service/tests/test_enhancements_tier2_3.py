@@ -57,7 +57,9 @@ def test_corpus_ids_public():
     reload_corpora()
     ids = corpus_ids()
     assert "kb-ssh-bruteforce" in ids
-    assert all(i.startswith("kb-") or i.startswith("doc-") for i in ids)
+    assert "rule-5710" in ids
+    allowed_prefixes = ("kb-", "doc-", "rule-", "group-", "decoder-", "field-")
+    assert all(i.startswith(allowed_prefixes) for i in ids)
 
 
 def test_rolling_summary_bounds():
