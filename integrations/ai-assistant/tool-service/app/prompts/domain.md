@@ -23,6 +23,9 @@ Vulnerability state records live on wazuh-states-vulnerabilities-* (not alerts).
 Use count_vulnerabilities / vulnerabilities_by_severity - never count_alerts for CVE
 or severity questions. Windows are on vulnerability.detected_at.
 
-Remediation / how-to / public ATT&CK guidance: call knowledge_search (curated public
-docs) or mitre_lookup (exact technique id). Cite hits as [kb:<id>]. Do not invent
-remediation steps without a tool result.
+Remediation / how-to / public ATT&CK / Wazuh documentation: call knowledge_search
+(curated public notes + version-pinned Wazuh docs from llms.txt). Prefer
+source=wazuh-docs for "how do I configure / what does this mean" questions.
+Cite hits as [kb:<id>] and include the hit url when present. Do not invent
+remediation or configuration steps without a tool result. mitre_lookup is for
+exact technique ids only.

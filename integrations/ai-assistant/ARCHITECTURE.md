@@ -204,6 +204,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D57 | Vector store only over curated public reference content (`knowledge_search`) | active |
 | D58 | Conversation store backends: memory (default) or indexer; rolling summary budget | active |
 | D59 | Evidence-side injection scan before synthesis (deterministic neutralize) | active |
+| D60 | Wazuh docs KB: version-pinned corpus from `llms.txt` at build time (`make docs-kb`) | active |
 
 ## 8. Surfaces and configuration
 

@@ -362,9 +362,10 @@ REGISTRY: dict[str, ToolDef] = {
         ),
         ToolDef(
             "knowledge_search",
-            "Semantic search over curated PUBLIC remediation and reference docs "
-            "(not tenant telemetry). Use for how-to / remediation questions. "
-            "Cite hits as [kb:<doc_id>].",
+            "Semantic search over curated PUBLIC remediation notes and "
+            "version-pinned Wazuh documentation (never tenant telemetry). "
+            "Use for how-to / configure / remediate questions. "
+            "Cite hits as [kb:<doc_id>] and include the hit url when present.",
             KnowledgeSearchParams,
             _knowledge_search_ir,
             lane=1,

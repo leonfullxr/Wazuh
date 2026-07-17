@@ -34,8 +34,9 @@ from .knowledge import knowledge_search, mitre_lookup
 from .environment import dashboard_design_guide, index_health, list_alert_fields, list_dashboards
 from .composite_dispatch import dispatch_composite
 from .evidence_guard import guard_evidence
+from . import embeddings
 from .loop import run_turn
-from .principal import EnvPrincipal
+from .principal import EnvPrincipal, indexer_headers
 from .actions import (
     confirm_proposal,
     create_proposal,
@@ -353,6 +354,7 @@ async def call_tool(name: str, params: dict, user: User = Depends(verify_jwt)) -
             if tool.name == "mitre_lookup":
                 payload = mitre_lookup(validated)
             elif tool.name == "knowledge_search":
+                embeddings.begin_turn(indexer_headers(user), getattr(user, "env_id", None) or CFG.tenant)
                 payload = await knowledge_search(validated)
             else:
                 raise HTTPException(404, f"unknown knowledge tool '{name}'")

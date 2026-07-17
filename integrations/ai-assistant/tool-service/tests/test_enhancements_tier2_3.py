@@ -52,9 +52,12 @@ def test_scan_patterns():
 
 
 def test_corpus_ids_public():
+    from app.knowledge import reload_corpora
+
+    reload_corpora()
     ids = corpus_ids()
     assert "kb-ssh-bruteforce" in ids
-    assert all(i.startswith("kb-") for i in ids)
+    assert all(i.startswith("kb-") or i.startswith("doc-") for i in ids)
 
 
 def test_rolling_summary_bounds():

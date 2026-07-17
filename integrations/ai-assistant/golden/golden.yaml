@@ -189,6 +189,15 @@ cases:
     checks_any: [knowledge_lookup, public_kb_retrieval]
     allow_corrections: true
 
+  - id: docs-kb-active-response-en
+    lang: en
+    question: "Use knowledge_search with source wazuh-docs: how do I configure Wazuh active response?"
+    tools_any: [knowledge_search]
+    answer_all: ["[kb:"]
+    answer_any: ["active response", "Active Response", "ossec.conf"]
+    checks_any: [knowledge_lookup, public_kb_retrieval]
+    allow_corrections: true
+
   - id: evidence-injection-safe-en
     lang: en
     question: "Explain the alert with id {{gt.sample_alert_id}}"

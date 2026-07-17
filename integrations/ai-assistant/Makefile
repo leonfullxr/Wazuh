@@ -14,7 +14,7 @@ COMPOSE := docker compose -f docker-compose.poc.yml
 # Profiled GPU/LLM backends are not stopped by a plain `compose down`.
 COMPOSE_ALL := $(COMPOSE) --profile ollama --profile airllm --profile litellm
 
-.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions evals-isolation bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors diagrams-png
+.PHONY: keys wazuh securityconfig poc ollama ollama-gpu-verify embed embed-mlcommons airllm seed evals evals-fresh evals-qwen3 evals-connector evals-actions evals-isolation bakeoff demo-storyline test logs down down-all clean dashboard-assistant assistant-setup manager-executors diagrams-png docs-kb
 .PHONY: dashboard-assistant assistant-setup
 .PHONY: kind-prereqs kind-up kind-keys kind-tenants kind-isolation kind-down
 
@@ -113,6 +113,10 @@ assistant-setup:
 manager-executors:
 	chmod +x scripts/manager_executor_setup.sh
 	./scripts/manager_executor_setup.sh
+
+# D60: build version-pinned Wazuh docs KB from documentation.wazuh.com/llms.txt
+docs-kb:
+	python3 scripts/wazuh_docs_ingest.py --version $(WAZUH_VERSION)
 
 evals-fresh: seed evals
 

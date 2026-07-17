@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     playbooks_threshold: float = 0.78  # slightly below lane0; verify per embed model
     knowledge_search_enabled: bool = True  # D57 public corpus semantic search
     knowledge_search_threshold: float = 0.55
+    # D60: version-pinned Wazuh docs corpus (from make docs-kb / llms.txt)
+    docs_kb_enabled: bool = True
+    docs_kb_path: str = ""  # empty -> knowledge/wazuh_docs.json beside this package
+    docs_kb_top_k: int = 5
     embed_provider: str = "openai"  # openai | mlcommons (C3)
     embed_base_url: str = "http://ollama:11434/v1"
     embed_model: str = "bge-m3"
