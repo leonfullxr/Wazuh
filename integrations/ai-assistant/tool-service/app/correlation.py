@@ -98,10 +98,13 @@ async def related_alerts(
             "note": "seed alert had no srcip, dstuser, or rule.id to pivot on",
         }
 
+    from .compiler import SOURCE_FIELDS_LIST
+
     search_ir = QueryIR(
         time_range=params.time_range,
         filters=filters,
         limit=params.size,
+        source_fields=SOURCE_FIELDS_LIST,
     )
     ev = await execute_ir(search_ir, principal)
     checks |= set(ev.checks_passed)

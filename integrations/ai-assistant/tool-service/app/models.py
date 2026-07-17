@@ -140,6 +140,12 @@ class QueryIR(BaseModel):
     aggregation: Optional[IRAggregation] = None
     limit: int = Field(20, ge=0, le=MAX_SIZE)
     sort: Literal["timestamp:desc", "timestamp:asc"] = "timestamp:desc"
+    # E14: optional _source projection; None -> compiler.SOURCE_FIELDS default
+    source_fields: Optional[list[str]] = Field(
+        default=None,
+        max_length=40,
+        description="Datastore _source fields to project; omit for default",
+    )
 
     @model_validator(mode="after")
     def _check_should_any(self) -> "QueryIR":

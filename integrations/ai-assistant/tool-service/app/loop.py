@@ -91,6 +91,11 @@ executed_window, hits, checks_passed, and checks_skipped.
 "rule 5710 [agg:by]", "[alert:abc123]". Use the aggregation key exactly as \
 returned (e.g. total_matching, by, over_time). Never invent syntax like \
 [agg:total_matching=301] or [agg:count_alerts].
+- Citable tokens only: alert document ids from this turn's alerts[]; \
+aggregation keys returned under aggregations / total_matching; \
+[kb:] ids from knowledge tools this turn. Do not cite tool JSON metadata \
+keys (veracity_*, zero_hit_diagnosis, executed_window, served_from_cache, \
+hits, alerts, checks_*).
 - Any number of alerts MUST come from a tool's total_matching field or an \
 aggregation value. Never count the listed alerts yourself: the list is a \
 truncated sample, the total is exact.

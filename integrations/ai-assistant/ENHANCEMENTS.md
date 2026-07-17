@@ -76,19 +76,11 @@ See D61 in [`ARCHITECTURE.md`](ARCHITECTURE.md). Tools: `rule_reference`,
 `describe_capabilities` builds the card from the live `REGISTRY` + env action
 tiers (`capabilities.py`).
 
-### E12. Enrich the per-environment context card (extends the env card)
+### E12. Enrich the per-environment context card (extends the env card) — **shipped**
 
-**Why:** more "what's in this environment" context, which also steers tool
-selection. Cheap - the env tools already exist.
-
-| File | Change |
-|---|---|
-| `tool-service/app/environment_card.py` | Add (best-effort, all read-only, cached with the existing TTL): Wazuh version, enabled modules/integrations if discoverable, alert index list + rough retention window, cluster health, and top rule groups (7d). Keep the card within its size cap; degrade fields that error rather than failing the card. |
-| `golden/golden.yaml` | (optional) assert the card injects the new fields when available; no telemetry beyond aggregate context. |
-
-**Acceptance:** the card carries the new fields when reachable, stays within the
-size cap, rides as transient context (cache-prefix stable), and never blocks a
-turn if a field errors.
+Best-effort fields: indexer/Wazuh versions, cluster health, alert index list +
+retention window, signal-family hints from 7d groups; each field degrades
+independently (`environment_card.py`).
 
 ---
 
@@ -100,38 +92,19 @@ turn if a field errors.
 `WAI_TOOL_SUBSET_ENABLED` (default on). Fail open; core always includes
 `run_query_ir` and knowledge tools.
 
-### E14. Per-tool field projection
+### E14. Per-tool field projection — **shipped**
 
-**Why:** shrink evidence payloads (eases the 16k local context and reduces
-compaction dropping hits) by returning only the fields relevant to the tool.
+`QueryIR.source_fields` + compiler defaults aligned with `_flatten_hit`;
+`get_alert` uses detail (incl. `full_log`); list/timeline tools use a narrower
+projection.
 
-| File | Change |
-|---|---|
-| `tool-service/app/compiler.py` / `veracity.py` (evidence shaping) or per-tool `to_ir` | Let a tool declare the source fields its answer needs; project the datastore `_source`/evidence to those. Counts/aggregations unaffected (already datastore-computed). |
-| `golden/golden.yaml` | Existing count/citation cases stay green with smaller payloads. |
+### E15. Citation-token prompt hardening — **shipped**
 
-**Acceptance:** evidence payloads shrink for narrow tools; no case regresses;
-citations still resolve.
-
-### E15. Citation-token prompt hardening
-
-**Why:** de-flake the two stochastic golden cases where gpt-oss cites evidence
-*metadata* keys (`zero_hit_diagnosis`, `veracity_checks_passed`) as if they were
-data refs - the verifier catches them (a `number`/citation correction), but it
-makes those cases flaky.
-
-| File | Change |
-|---|---|
-| `tool-service/app/loop.py` (system prompt / prompt module) | Enumerate the citable tokens (alert ids, agg keys, `total_matching`, `[kb:]` ids) and explicitly forbid citing metadata field names. |
-| `golden/golden.yaml` | The zero-hit and brute-force-summary cases pass consistently (no spurious corrections). |
-
-**Acceptance:** the previously-stochastic cases pass reliably; the verifier is
-unchanged (still catches a real invented citation).
+System prompt enumerates citable tokens and forbids metadata field citations
+(`zero_hit_diagnosis`, `veracity_*`, etc.).
 
 ---
 
 ## Suggested order
 
-E9–E11 and E13 are shipped. Remaining polish: E12 (env card), E14 (field
-projection), E15 (citation-token prompt hardening). Each item is independently
-shippable and eval-gated.
+E9–E15 shipped. Further work goes in a new ENHANCEMENTS round when needed.

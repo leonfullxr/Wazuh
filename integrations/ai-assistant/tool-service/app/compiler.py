@@ -10,19 +10,34 @@ from __future__ import annotations
 from .models import QueryIR
 
 # Fields projected into evidence. _id rides along implicitly.
+# Keep aligned with veracity._flatten_hit — unused fields waste evidence budget (E14).
 SOURCE_FIELDS = [
     "timestamp",
     "rule.id",
     "rule.level",
     "rule.description",
-    "rule.groups",
     "rule.mitre.id",
-    "agent.id",
     "agent.name",
     "data.srcip",
-    "data.srcuser",
     "data.dstuser",
-    "location",
+]
+
+# Narrower projection for timeline / related-list tools.
+SOURCE_FIELDS_LIST = [
+    "timestamp",
+    "rule.id",
+    "rule.level",
+    "rule.description",
+    "agent.name",
+    "data.srcip",
+    "data.dstuser",
+]
+
+# Detail projection for single-alert explain (includes attacker-controlled full_log).
+SOURCE_FIELDS_DETAIL = SOURCE_FIELDS + [
+    "full_log",
+    "rule.groups",
+    "agent.id",
 ]
 
 
@@ -68,10 +83,11 @@ def compile_opensearch(ir: QueryIR) -> dict:
     if must_clauses:
         bool_query["must"] = must_clauses
 
+    source = list(ir.source_fields) if ir.source_fields else list(SOURCE_FIELDS)
     body: dict = {
         "query": {"bool": bool_query},
         "track_total_hits": True,  # exact totals, the datastore-computed count
-        "_source": SOURCE_FIELDS,
+        "_source": source,
     }
 
     if ir.aggregation is None:

@@ -73,6 +73,17 @@ class Indexer:
         r.raise_for_status()
         return r.json()
 
+    async def get_json(self, headers: dict[str, str], path: str) -> dict[str, Any]:
+        """Best-effort GET of a JSON endpoint (cluster health, root info, …)."""
+        r = await self.http.get(path, headers=headers)
+        if r.status_code in (401, 403):
+            raise IndexerError(f"indexer rejected the credential for {path}")
+        r.raise_for_status()
+        data = r.json()
+        if not isinstance(data, dict):
+            raise IndexerError(f"expected object from {path}")
+        return data
+
     async def saved_objects_search(self, headers: dict[str, str], body: dict) -> dict:
         r = await self.http.post(
             f"/{self.saved_objects_index}/_search",

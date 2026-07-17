@@ -95,11 +95,14 @@ def _get_alert_ir(p: GetAlertParams) -> QueryIR:
     # Wide window: an id lookup should not miss because of the default 24h.
     from datetime import datetime, timedelta, timezone
 
+    from .compiler import SOURCE_FIELDS_DETAIL
+
     now = datetime.now(timezone.utc)
     return QueryIR(
         time_range=TimeRange(gte=now - timedelta(days=90), lte=now),
         filters=[IRFilter(field="_id", op="eq", value=p.alert_id)],
         limit=1,
+        source_fields=SOURCE_FIELDS_DETAIL,
     )
 
 
@@ -209,6 +212,8 @@ class AlertTimelineParams(BaseModel):
 
 
 def _alert_timeline_ir(p: AlertTimelineParams) -> QueryIR:
+    from .compiler import SOURCE_FIELDS_LIST
+
     filters: list[IRFilter] = []
     if p.agent_name:
         filters.append(IRFilter(field="agent.name", op="eq", value=p.agent_name))
@@ -225,6 +230,7 @@ def _alert_timeline_ir(p: AlertTimelineParams) -> QueryIR:
         aggregation=agg,
         limit=p.size,
         sort="timestamp:asc",
+        source_fields=SOURCE_FIELDS_LIST,
     )
 
 
