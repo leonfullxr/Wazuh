@@ -77,7 +77,7 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 | `dashboard-assistant/` | Dockerfile that bakes the Assistant plugins into the Wazuh dashboard image |
 | `golden/`, `seed/` | Deterministic seed data and the bilingual eval gate (`make evals*`) |
 | `environments.yaml.example` | The per-environment registry - copy, fill, and you are multi-environment |
-| `ARCHITECTURE.md`, `DESIGN-JOURNAL.md`, `ENHANCEMENTS.md` | Current design, journey, and forward tiers |
+| `ARCHITECTURE.md`, `DESIGN-JOURNAL.md` | Current design, and the journey that produced it (incl. the enhancement arc) |
 | `diagrams/` | draw.io sources; `diagrams/png/` holds the exported images used above |
 
 Not reproducible on a single box, deferred to a real cloud environment: per-tenant IAM/IRSA, PrivateLink, Bedrock Guardrails content policies, and NetworkPolicy walls. The `kind/` directory holds a two-tenant isolation harness for the multi-environment story.
