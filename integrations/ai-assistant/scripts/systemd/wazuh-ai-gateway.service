@@ -1,0 +1,19 @@
+[Unit]
+Description=Wazuh AI gateway (tool-service + auth-shim via docker compose)
+Documentation=file:///opt/wazuh-ai/README.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/wazuh-ai
+# Override WorkingDirectory to the ai-assistant repo root when installing.
+EnvironmentFile=-/opt/wazuh-ai/deploy.env
+ExecStart=/usr/bin/docker compose -f docker-compose.poc.yml up -d auth-shim tool-service
+ExecStop=/usr/bin/docker compose -f docker-compose.poc.yml stop auth-shim tool-service
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

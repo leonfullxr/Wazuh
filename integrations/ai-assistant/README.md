@@ -39,11 +39,60 @@ Open `https://localhost`, click the **Assistant** icon, and ask "How many alerts
 
 ![Self-hosted PoC on one machine](diagrams/png/wazuh-ai-selfhosted--self-hosted-poc-icons.png)
 
+## Automated self-hosted deployment
+
+For a **pre-existing** Wazuh (you already have indexer / manager / dashboard),
+two idempotent installers orchestrate the pieces that used to be eight manual
+steps. They never run `make wazuh`, pin TLS when you provide a CA, and print a
+preflight summary before mutating anything.
+
+Target shape:
+
+![Self-hosted PoC on one machine](diagrams/png/wazuh-ai-selfhosted--self-hosted-poc-icons.png)
+
+1. **Copy the config template** and fill your endpoints + credentials (placeholders only in git):
+
+   ```bash
+   cp deploy.env.example deploy.env
+   # edit deploy.env — INDEXER_URL, admin creds, INDEXER_CA_PATH, WAI_CONNECTOR_*, …
+   ```
+
+2. **Gateway node** (where `tool-service` + `auth-shim` run, reachable from the indexer):
+
+   ```bash
+   bash scripts/install_gateway.sh
+   ```
+
+   Applies `securityconfig/` (JWT domain + roles), writes `environments.yaml`,
+   optionally creates manager/AR executor users, starts Ollama (local LLM) and
+   the gateway compose services. Use `DEPLOY_MODE=systemd` to also install a
+   systemd unit that wraps compose.
+
+3. **Dashboard node** (where wazuh-dashboard is installed):
+
+   ```bash
+   sudo bash scripts/install_dashboard_assistant.sh
+   ```
+
+   Detects the OpenSearch Dashboards version from
+   `/usr/share/wazuh-dashboard/package.json`, installs matching
+   `assistantDashboards` + `mlCommonsDashboards`, sets `assistant.chat.enabled`,
+   then calls `scripts/dashboard_assistant_setup.sh` (and optionally
+   `mlcommons_embed_setup.sh`). For a containerized dashboard, set
+   `DASHBOARD_MODE=container` and bake via `dashboard-assistant/Dockerfile`.
+
+4. **Verify:** Assistant icon in the dashboard answers "Hi" through the gateway;
+   `curl` the gateway health port; optional `make evals-connector`.
+
+Re-running either script is safe (plugin download skipped when present; ML
+Commons wiring recreates named objects; keys refuse to overwrite). Details of
+what each underlying script does live in the manual section below.
+
 ## Apply it to your own self-hosted Wazuh
 
 The demo harness *creates* a Wazuh to talk to; a real deployment already has one. The assistant is the same - point it at your environment and register the edge. The only structural difference between one environment and many is the registry: each environment is one entry, resolved by its own credential (see the posture comparison in [`diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png`](diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png)).
 
-Steps, adapting the harness targets to your hosts (all commands read `.env` / `environments.yaml`):
+**Prefer the automated installers above.** The eight steps below are what those scripts do under the hood / for advanced customization (all commands read `.env` / `environments.yaml` / `deploy.env`):
 
 1. **Skip `make wazuh`.** Set `WAI_INDEXER_URL`, the manager and dashboard URLs, and `INDEXER_ADMIN_*` in `.env` to your existing Wazuh (4.8-4.16.x / OpenSearch 2.19.x). Provide the indexer CA and set `indexer_ca_path` rather than disabling TLS verification.
 2. **Add the security objects to your indexer** (`make securityconfig`, or apply `securityconfig/` by hand): the `wazuh-ai` JWT auth domain trusting `keys/jwt-public.pem`, the read-only `wazuh_ai_analyst_role` / `wazuh_ai_env_reader_role`, the `wazuh_ai_dashboard_writer` (backend role `kibanauser`) if you enable dashboard actions, and the `wazuh_ai_operator` / `wazuh_ai_responder` mappings for confirmers. Identity itself comes from **your** existing users, LDAP, or SSO - `authinfo` verifies whatever the security plugin already trusts; the lab's internal users are only for the demo.
@@ -73,7 +122,8 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 | `tool-service/` | The gateway: agent loop, Query IR + compiler, four veracity checks, lanes, actions, surfaces |
 | `auth-shim/` | The minting sidecar: verifies indexer credentials via `authinfo`, mints turn JWTs |
 | `securityconfig/` | Indexer JWT auth domain, roles, and users applied to the live indexer |
-| `scripts/` | ML Commons wiring, embeddings, and executor-RBAC setup |
+| `scripts/` | ML Commons wiring, embeddings, executor-RBAC, and E16 `install_*` entry points |
+| `deploy.env.example` | Operator inputs for the self-hosted installers (copy → `deploy.env`) |
 | `dashboard-assistant/` | Dockerfile that bakes the Assistant plugins into the Wazuh dashboard image |
 | `golden/`, `seed/` | Deterministic seed data and the bilingual eval gate (`make evals*`) |
 | `environments.yaml.example` | The per-environment registry - copy, fill, and you are multi-environment |

@@ -1,4 +1,5 @@
 .env
+deploy.env
 keys/**/*.pem
 .wazuh-docker/
 securityconfig/tmp/
