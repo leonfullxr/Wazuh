@@ -233,15 +233,64 @@ folded into the eval:
 The through-line of the whole project in one round: unit-green is not done,
 live is; and the eval must exercise the dangerous path, not just propose it.
 
-## 12. Deferred, with intent
+## 12. Context and navigation (E9-E15), and Round 8
+
+After the read/write catalog was complete, the next question was "what else,
+beyond RAG and prompt caching?" The framing that shaped it: give the model more
+context on the *environment* and on *how to navigate it* - all knowledge and
+routing, none of it touching the veracity guarantees. Delivered as E9-E15:
+
+- **Wazuh documentation knowledge base (D60)** - the headline. Wazuh publishes a
+  curated AI index (`documentation.wazuh.com/llms.txt`, llmstxt.org format); an
+  ingest script builds a version-pinned corpus (35 pages / 230 chunks for 4.14)
+  into the `knowledge_search` store, so "how do I configure X", "what does this
+  alert mean", "how do I remediate this CVE", "which control maps to this" get
+  grounded, `[kb:]`-cited doc answers. It is *public reference content only*
+  (D57) - the one sanctioned vector store; telemetry is still never embedded.
+  This turned the assistant from "reports what's there" into "explains and
+  guides."
+- **Reference and self-describe tools (D61):** `rule_reference` (what a rule /
+  group / decoder means), `field_dictionary` (the alert schema vocabulary), and
+  `describe_capabilities` (built from the live registry + the env's enabled
+  action tiers) - exact catalogs, cited, no telemetry.
+- **Richer environment context card:** Wazuh/indexer versions, cluster health,
+  index list + retention, and 7-day signal-family hints, each field degrading
+  independently.
+- **Per-intent tool subsetting (D62):** all ~16 tools were offered every turn -
+  token cost and selection noise. A keyword router now offers an intent-scoped
+  subset, always including a core with `run_query_ir`, and **fails open** to the
+  full catalog on any ambiguity. A routing optimization only; it never changes a
+  tool or the veracity path.
+- **Field projection and citation hardening:** per-tool `_source` projection to
+  shrink evidence payloads, and a system-prompt rule enumerating the citable
+  tokens and forbidding citations of metadata field names.
+
+**Round 8** caught the predictable failure: on a small local model, the three
+new *narrow* reference tools were never selected - gpt-oss reached for the broad
+`knowledge_search` (one case looped it seven times into the tool-call budget) or
+free-answered `describe_capabilities` with no tool at all. As shipped they were
+dead weight. The fix was the project's own recurring lesson applied again: these
+are **recognitions, not reasoning** ("what does rule N mean", "what can you
+do"), so they belong in a *deterministic* lane, not model tool-selection. A
+`reference_router` - sibling to lane 0, but for knowledge/metadata tools rather
+than alerts-IR - now recognizes the shapes, invokes the exact tool, and renders
+locally with no model, while failing open on open-ended "how do I / remediate"
+questions so the semantic docs KB still owns those. The same route absorbed the
+long-standing stochastic `brute_force_summary` miss. Golden set back to green
+(31/32, the one red a transient admission-429 that passes on re-ask); the eval
+had, once again, caught a capability that shipped but the model would not use.
+
+## 13. Deferred, with intent
 
 The multi-environment cross-tenant isolation suite (a `kind/` two-tenant
-harness exists; the full suite is partial), a streamable-HTTP `/mcp` surface
-(the stdio adapter ships today), the Amazon Bedrock fidelity leg (needs AWS
-credentials), and re-exporting the v3 diagram PNGs when the draw.io GUI is
-available. None block the self-hosted PoC.
+harness exists; set aside by choice for the self-hosted focus), a
+streamable-HTTP `/mcp` surface (the stdio adapter ships today), the Amazon
+Bedrock fidelity leg (needs AWS credentials), a shim audit-on-rejection
+hardening, and re-exporting the v3 diagram PNGs when the draw.io GUI is
+available. None block the self-hosted PoC; the live backlog is tracked in
+`ENHANCEMENTS.md`.
 
-## 13. Cross-cutting lessons
+## 14. Cross-cutting lessons
 
 - **Commit after every accepted pass.** Uncommitted work was clobbered twice;
   a stash rescue and several "the tree was uncommitted at review" notes trace
