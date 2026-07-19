@@ -11,7 +11,6 @@ This repository complements, rather than replaces, the
 Confirm paths and behavior against the installed Wazuh version and test
 changes outside production first.
 
-**Obsidian vault sync:** See [SYNC_MAPPING.md](SYNC_MAPPING.md) for how this repository maps to the personal Obsidian knowledge vault.
 
 **Disclaimer**: The content in this repository is provided "as is" without warranty of any kind, express or implied. Users are responsible for evaluating the security, quality, and compatibility of any code or configurations they choose to use. Test in a lab before applying to production.
 
