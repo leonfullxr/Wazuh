@@ -11,6 +11,7 @@ A diagnostic playbook for TLS failures across the Wazuh stack - most notably the
 - [Agent connectivity on 1514/1515](#agent-connectivity-on-15141515)
 - [API certificate errors on port 55000](#api-certificate-errors-on-port-55000)
 - [Let's Encrypt certificate renewed but not applied](#lets-encrypt-certificate-renewed-but-not-applied)
+- [Validating a server cert, key, and chain](#validating-a-server-cert-key-and-chain)
 - [Useful openssl one-liners](#useful-openssl-one-liners)
 
 ## What bad_certificate means
@@ -286,6 +287,31 @@ If **new** agents cannot enroll on 1515 while already-registered agents keep rep
 openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert
 ```
 
+The manager-side signature of an expired (or otherwise rejected) enrollment certificate is `authd` logging a handshake abort while `remoted` opens and immediately closes TCP connections as the agent retries:
+
+```text
+wazuh-authd: DEBUG: SSL handshake failed for socket=8: error:0A000126:SSL routines::unexpected eof while reading
+wazuh-remoted: DEBUG: New TCP connection [32]
+wazuh-remoted: DEBUG: handle incoming close socket [32].
+wazuh-remoted: DEBUG: TCP peer disconnected [32]
+```
+
+Confirm from a client with `openssl s_client` - an expired date here is conclusive:
+
+```bash
+echo | openssl s_client -connect <MANAGER_IP>:1515 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+```
+
+If it is expired and the default self-signed certificate is acceptable, the fastest fix is to delete both files and restart the manager so it regenerates a fresh 10-year pair - see [component-certificates.md](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert):
+
+```bash
+rm -f /var/ossec/etc/sslmanager.cert /var/ossec/etc/sslmanager.key
+systemctl restart wazuh-manager
+```
+
+> **`unexpected eof while reading` is the client hanging up mid-handshake - it is not always the certificate.** The message only means the peer closed the TCP connection before the TLS handshake completed. An expired server certificate is the common cause, but so is anything that stops the client finishing the handshake - most insidiously a path-MTU black hole, where small handshake/keepalive packets pass but larger records are silently dropped. If the certificate on 1515 is valid and you still see this signature (and agents connect but forward no logs), move to the [MTU / path-MTU black hole](../troubleshooting/agents/disconnections.md#agent-connects-but-forwards-no-logs-mtu--path-mtu-black-hole) check.
+
 ## API certificate errors on port 55000
 
 The Wazuh server REST API (TCP 55000) has its own certificate, separate from the indexer/Filebeat/dashboard bundle. A recurring failure mode after replacing it is that clients (agents doing remote upgrades, the dashboard, custom scripts) report:
@@ -358,6 +384,45 @@ Two ways to fix it:
     ```
 
 Remember to keep file ownership/permissions correct on the copied files (`chown wazuh-dashboard:wazuh-dashboard`, mode `400`).
+
+## Validating a server cert, key, and chain
+
+When a TLS-listening service (rsyslog, an ingest endpoint, a reverse proxy) refuses to start or rejects the handshake after a certificate change, validate the three files as a set before touching anything else. Two failure classes look different in the logs.
+
+**1. Do the key and certificate match?** Compare their public-key hashes - they must be identical:
+
+```bash
+openssl pkey -in server.key -pubout -outform pem | sha256sum
+openssl x509 -in server.crt -pubkey -noout -outform pem | sha256sum
+```
+
+If the key is passphrase-protected, `openssl pkey` prompts for it; a `bad decrypt` / `pkcs12 ... cipherfinal error` means the passphrase is wrong. Export an unencrypted copy for a service that cannot prompt: `openssl pkey -in server.key -out server-decrypted.key`.
+
+**2. Does the chain verify?** The `-CAfile` argument is the **CA chain** (intermediate + root); the leaf is the file being verified - not the other way round:
+
+```bash
+openssl verify -show_chain -CAfile ca-chain.pem server.crt
+# server.crt: OK   → then depth=0 leaf, depth=1 intermediate, depth=2 root ...
+```
+
+**3. Malformed PEM (the sneaky one).** If the service fails with OpenSSL **ASN.1 / PEM** errors rather than a mismatch or missing-file error, the file *content* is corrupted - the trust relationship is fine:
+
+```text
+asn1 encoding routines::too long
+asn1 encoding routines::bad object header
+asn1 encoding routines::nested asn1 error
+PEM routines::ASN1 lib
+SSL routines::PEM lib
+```
+
+These come from PEM mangled in transit: wrong line wrapping, a stray character or BOM, CRLF line endings, a truncated block, a DER file with a `.pem` extension, or concatenation that dropped a `-----END-----` / `-----BEGIN-----` boundary. The key/cert can be a perfectly valid pair and still fail here. Re-export the file cleanly and re-verify:
+
+```bash
+openssl x509 -in server.crt -out server-clean.crt   # normalize the certificate
+openssl pkey -in server.key -out server-clean.key   # normalize the key
+```
+
+> A `sha256sum` match in step 1 proves the key/cert pair even when the raw files are misformatted for a given consumer - so a passing match **plus** a failing service startup points squarely at step 3 (formatting), not at the wrong key.
 
 ## Useful openssl one-liners
 

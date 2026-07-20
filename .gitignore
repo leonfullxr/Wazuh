@@ -1,6 +1,11 @@
 .cache_ggshield
 meetings/
+.personal/
+.claude/skills/
 images/vagrant/**/.vagrant/
 __pycache__/
 *.pyc
 *.pyo
+*.bin
+*.pem
+.venv/

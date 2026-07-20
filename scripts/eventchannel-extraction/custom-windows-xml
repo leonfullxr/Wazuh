@@ -1,0 +1,168 @@
+#!/var/ossec/framework/python/bin/python3
+"""
+custom-windows-xml - extract XML-embedded fields from a Windows eventchannel message.
+
+Wazuh's windows_eventchannel decoder is built into the manager and cannot be
+replaced with a custom decoder, so values that live inside an event's XML
+`message` (for example ADFS `UserId` and `IpAddress`) never become their own
+fields. This integratord script is triggered by a rule, extracts the configured
+XML tags from `win.system.message` (falling back to `win.eventdata.data`), and
+re-injects the event as JSON so a second rule can alert on
+`data.win.system.parsed_fields.*`.
+
+This is the XML sibling of `custom-windows` (which parses key:value AV-style
+messages). For JSON logs, use ../custom-json instead - a different input format.
+
+Usage (Wazuh runs it via the <integration> block):
+    custom-windows-xml <path-to-alert.json> [debug]
+Self-test (no manager needed):
+    custom-windows-xml --selftest
+
+See ../../decoders/windows-eventchannel-fields.md for the rule/ossec.conf wiring
+and the scale caveat (each re-injection ~doubles the queue load for matches).
+"""
+
+import html
+import json
+import os
+import re
+import sys
+import time
+import traceback
+import xml.etree.ElementTree as ET
+from socket import socket, AF_UNIX, SOCK_DGRAM
+
+# --- Configuration -----------------------------------------------------------
+INTEGRATION_NAME = "custom-windows-xml"
+
+# XML tag -> output field name. Add tags here to extract more values.
+# (ADFS audit events expose UserId and IpAddress; adjust for your source.)
+TAGS = {
+    "UserId": "UserId",
+    "IpAddress": "IpAddress",
+}
+
+DEBUG_LOG = "/var/ossec/logs/custom-windows-xml.log"
+SOCKET_ADDR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+    "queue", "sockets", "queue",
+)
+
+debug_enabled = False
+
+
+def debug(msg):
+    if not debug_enabled:
+        return
+    line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}\n"
+    try:
+        with open(DEBUG_LOG, "a") as fh:
+            fh.write(line)
+    except OSError:
+        pass
+    print(line, end="")
+
+
+def extract_tags(message, tags=TAGS):
+    """Return {output_field: value_or_None} for each configured XML tag.
+
+    Tries a real XML parse first, then a regex fallback for the common case
+    where the payload is HTML-escaped (&lt;...&gt;) or truncated and therefore
+    not well-formed XML. `<IpAddress>` may be a comma-separated
+    "client,forwarded" list; the raw string is kept as-is.
+    """
+    result = {out: None for out in tags.values()}
+    if not message:
+        return result
+    text = html.unescape(message)
+
+    # 1) Structured XML parse (tolerant of namespaces via the local tag name).
+    try:
+        for elem in ET.fromstring(text).iter():
+            local = elem.tag.rsplit("}", 1)[-1]
+            if local in tags and elem.text and result[tags[local]] is None:
+                result[tags[local]] = elem.text.strip()
+    except ET.ParseError:
+        pass
+
+    # 2) Regex fallback for anything the XML parse could not read.
+    for tag, out in tags.items():
+        if result[out] is None:
+            m = re.search(rf"<{re.escape(tag)}>(.*?)</{re.escape(tag)}>",
+                          text, re.IGNORECASE | re.DOTALL)
+            if m:
+                result[out] = m.group(1).strip()
+    return result
+
+
+def read_alert(path):
+    with open(path) as fh:
+        alert = json.load(fh)
+    # Wazuh passes {"data": ...}; a raw indexer document uses {"_source": {"data": ...}}.
+    return alert.get("data") or alert.get("_source", {}).get("data", {}) or {}
+
+
+def send_to_queue(data):
+    data["integration"] = INTEGRATION_NAME
+    # Wazuh queue socket protocol: "<queue_id>:<location>:<message>"
+    payload = f"1:{INTEGRATION_NAME}:{json.dumps(data)}"
+    sock = socket(AF_UNIX, SOCK_DGRAM)
+    try:
+        sock.connect(SOCKET_ADDR)
+        sock.send(payload.encode())
+    finally:
+        sock.close()
+
+
+def process(alert_path):
+    data = read_alert(alert_path)
+    win = data.get("win", {})
+    message = (win.get("system", {}).get("message")
+               or win.get("eventdata", {}).get("data", ""))
+    if not message:
+        debug("no win.system.message / win.eventdata.data present")
+        return
+    fields = extract_tags(message)
+    debug(f"extracted {fields}")
+    if "system" in win:
+        win["system"].pop("message", None)   # drop the bulky raw message
+        win["system"]["parsed_fields"] = fields
+    send_to_queue(data)
+
+
+def _selftest():
+    clean = ("<AuditBase><ContextComponents>"
+             "<UserId>user@example.com</UserId>"
+             "<IpAddress>203.0.113.10,198.51.100.20</IpAddress>"
+             "</ContextComponents></AuditBase>")
+    assert extract_tags(clean) == {
+        "UserId": "user@example.com",
+        "IpAddress": "203.0.113.10,198.51.100.20",
+    }, extract_tags(clean)
+    # HTML-escaped and truncated (not well-formed) -> regex fallback path.
+    escaped = ("id, &lt;AuditBase&gt;&lt;UserId&gt;user@example.com&lt;/UserId&gt;"
+               "&lt;IpAddress&gt;203.0.113.10&lt;/IpAddress&gt;")
+    got = extract_tags(escaped)
+    assert got["UserId"] == "user@example.com" and got["IpAddress"] == "203.0.113.10", got
+    assert extract_tags("") == {"UserId": None, "IpAddress": None}
+    print("selftest OK")
+
+
+def main(argv):
+    if argv[1:2] == ["--selftest"]:
+        _selftest()
+        return 0
+    if len(argv) < 2:
+        debug("missing alert file path argument")
+        return 1
+    try:
+        process(argv[1])
+        return 0
+    except Exception:                        # never crash the integratord daemon
+        debug(f"error:\n{traceback.format_exc()}")
+        return 1
+
+
+if __name__ == "__main__":
+    debug_enabled = len(sys.argv) > 2 and sys.argv[2].lower() == "debug"
+    sys.exit(main(sys.argv))

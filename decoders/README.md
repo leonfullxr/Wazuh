@@ -16,6 +16,7 @@ repeat the tests after Wazuh or vendor upgrades.
 | FortiGate key/value syslog | [FortiGate decoders](fortigate/README.md) |
 | Vectra AI CEF events | [Vectra AI decoders](vectra/README.md) |
 | NetIQ Identity Manager CEF events | [NetIQ decoders](netIQ/README.md) |
+| Fields buried in a Windows eventchannel message (ADFS `UserId`/`IpAddress`) | [Windows eventchannel field extraction](windows-eventchannel-fields.md) |
 | Write or troubleshoot a decoder | [Decoder syntax and examples](syntax.md) |
 
 ## Safe deployment workflow

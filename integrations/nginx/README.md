@@ -88,6 +88,35 @@ protocol encryption remains end to end between the agent and Wazuh manager.
    Use the same address for enrollment. Preserve existing enrollment
    passwords or certificate settings.
 
+## Forwarding proxy for agents without internet access
+
+A common variant: the agents have **no direct route** to the manager (or Wazuh Cloud) and must egress through one internal proxy. The same `stream` mechanism applies, but with a **single upstream** (the manager or the Wazuh Cloud FQDN) instead of a worker pool:
+
+```nginx
+stream {
+    upstream wazuh_enrollment { server <MANAGER_OR_CLOUD_FQDN>:1515; }
+    upstream wazuh_agents     { server <MANAGER_OR_CLOUD_FQDN>:1514; }
+
+    server {
+        listen 1515;
+        proxy_pass wazuh_enrollment;
+        proxy_connect_timeout 30s;
+        proxy_timeout 1h;
+    }
+    server {
+        listen 1514;
+        proxy_pass wazuh_agents;
+        proxy_connect_timeout 30s;
+        proxy_timeout 1h;          # 1514 is a PERSISTENT session - do NOT use a short timeout
+    }
+}
+```
+
+Agents point their `<server><address>` at the **proxy**, not the manager. Two things bite in this topology:
+
+- **A short `proxy_timeout` on 1514 silently drops idle agents.** The event channel is a long-lived TCP session that can be quiet between events; a 60-120s timeout tears it down periodically, and on older agents (pre-4.11.1) that can leave the whole fleet wedged on a keyless retry - see [stuck enrollment](../../troubleshooting/agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment). Use `1h` or longer on 1514.
+- **Test through the proxy path, not around it.** Validate connectivity from an agent that egresses via the proxy (or against the proxy IP), so the test reflects what agents actually experience - a direct-to-manager test that passes proves nothing about the proxy path. Agent-to-manager traffic is already AES-encrypted end to end, so the proxy is only needed when the network requires it; connect agents directly to the manager/FQDN where you can.
+
 ## Verification
 
 From an agent network:

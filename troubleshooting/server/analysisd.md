@@ -9,6 +9,7 @@ This guide also covers general manager resource monitoring - the statistics file
 - [Step 1: Check the statistics files](#step-1-check-the-statistics-files)
 - [Step 2: Rule out the basics](#step-2-rule-out-the-basics)
 - [Measuring EPS](#measuring-eps)
+- [The EPS limit (`<limits><eps>`) throttles bursts](#the-eps-limit-limitseps-throttles-bursts)
 - [Tuning analysisd queues and threads](#tuning-analysisd-queues-and-threads)
   - [How much RAM does a bigger queue cost?](#how-much-ram-does-a-bigger-queue-cost)
 - [When tuning is not enough: reduce or scale](#when-tuning-is-not-enough-reduce-or-scale)
@@ -75,7 +76,34 @@ done
 
 > Remember to set `<logall>` back to `no` and restart the manager when done - archives will otherwise fill the disk.
 
-Wazuh does not impose a per-node EPS limit; sustainable EPS is a function of your hardware. Compare the measured EPS against the [architecture sizing recommendations](https://documentation.wazuh.com/current/quickstart.html#requirements) to know whether you are simply over capacity.
+By default Wazuh does not cap EPS - sustainable EPS is a function of your hardware. Compare the measured EPS against the [architecture sizing recommendations](https://documentation.wazuh.com/current/quickstart.html#requirements) to know whether you are simply over capacity. Note the optional `<limits><eps>` ceiling below, which *deliberately* drops events above a configured rate.
+
+## The EPS limit (`<limits><eps>`) throttles bursts
+
+Dropped events are not always queue saturation. Wazuh can enforce a **deliberate** events-per-second ceiling per node via `<global><limits><eps>`. It is optional and often unset on a self-hosted install, but is set to the sized capacity on managed or capacity-planned deployments:
+
+```xml
+<limits>
+  <eps>
+    <maximum>5000</maximum>
+    <timeframe>1</timeframe>
+  </eps>
+</limits>
+```
+
+Events arriving above `maximum` (averaged over `timeframe` seconds, via a credit bucket) are throttled - held back, and dropped if the burst is sustained. Two consequences catch people out:
+
+- **The limit is per node.** In a cluster the effective ceiling is `maximum × number of nodes` *only if traffic is spread evenly*. If syslog or agents pin to one node (see [load balancing syslog](../../integrations/syslog/README.md#load-balancing-syslog-across-cluster-workers)), that node hits its own limit and drops while the others sit idle - the drops look like a capacity problem when the real issue is distribution.
+- **Bursts matter more than the average.** A source comfortably under its average EPS across a day can still blow past `maximum` for a few minutes - scheduled batch forwarding, a login storm, a rebooted device flushing its backlog. Those short spikes throttle even though the 24-hour average looks fine. Size for the **peak burst**, not the mean.
+
+Check the configured limit and whether events are being dropped:
+
+```bash
+grep -A4 "<limits>" /var/ossec/etc/ossec.conf
+cat /var/ossec/var/run/wazuh-analysisd.state | grep -Ei "events_dropped|events_received"
+```
+
+If real peaks legitimately exceed the ceiling and you cannot reduce the source at collection time, raise `maximum` (only if the hardware can sustain it) and add worker nodes - but extra nodes help only once traffic actually distributes across them.
 
 ## Tuning analysisd queues and threads
 

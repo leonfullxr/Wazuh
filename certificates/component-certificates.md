@@ -314,7 +314,17 @@ The Wazuh manager presents a **separate** certificate for the agent enrollment s
 
 Key point before you touch it: **this certificate is used only during agent registration**. It is not involved in ongoing manager-to-manager traffic or in communication with agents that are already enrolled. Renewing or replacing it therefore does not disrupt an already-running deployment - only new enrollments (and re-enrollments) use it.
 
-To renew it you need a CA to sign the request. If you do not already have one, you can create a self-signed CA on the manager:
+**Quickest fix when the default self-signed certificate is acceptable:** delete both files and restart the manager - it regenerates a fresh self-signed pair (10-year validity) on startup.
+
+```bash
+rm -f /var/ossec/etc/sslmanager.cert /var/ossec/etc/sslmanager.key
+systemctl restart wazuh-manager
+openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert   # confirm the new window
+```
+
+On containerized deployments, run the deletion inside the manager container/pod and then restart it so startup regenerates the files (`kubectl delete pod wazuh-manager-master-0` on Kubernetes - EKS/AKS/self-managed; or `docker restart <manager-container>`). Use the CA-signed procedure below instead only when the enrollment certificate must be issued by a specific CA.
+
+To renew it with a signing CA, you need a CA to sign the request. If you do not already have one, you can create a self-signed CA on the manager:
 
 ```bash
 openssl req -x509 -new -nodes -newkey rsa:4096 \

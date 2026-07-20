@@ -50,6 +50,8 @@ Key facts to keep in mind:
 | Indexer logs `bad_certificate` | [TLS diagnostic flow](troubleshooting.md#step-by-step-diagnostic-flow) |
 | LDAPS works by IP only when verification is disabled | [Hostname and SAN diagnosis](troubleshooting.md#hostnamesan-mismatches-ldaps-example) |
 | New agents cannot enroll but existing agents stay connected | [Enrollment certificate](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert) |
+| `authd` logs `unexpected eof while reading` on 1515 (expired enrollment cert, or a network/MTU path issue) | [Agent TLS on 1514/1515](troubleshooting.md#agent-connectivity-on-15141515) |
+| `SSL routines::wrong version number` on 1514/1515 behind an AWS/load balancer | [Agents behind an AWS load balancer](../troubleshooting/agents/aws-load-balancer.md#use-tcp-listeners-not-tls) |
 | API clients reject port 55000 after certificate replacement | [API certificate chain](component-certificates.md#the-wazuh-server-api-certificate-port-55000) |
 | Certbot renewed but the dashboard still serves an expired cert | [Renewal deployment troubleshooting](troubleshooting.md#lets-encrypt-certificate-renewed-but-not-applied) |
 

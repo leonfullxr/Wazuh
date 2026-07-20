@@ -107,6 +107,26 @@ users:
 - Keep the `securityContext` blocks in your Kustomize overlays / values consistent with the SCCs you assign - a `securityContext` that contradicts the SCC produces confusing admission failures.
 - The StorageClass must honour `fsGroup`, or you must `chown` the volume with an init container, so the pod's UID can write to its PersistentVolume.
 
+## Deploying via Helm or GitOps (Argo CD)
+
+There is **no official Wazuh Helm chart** - the supported Kubernetes deployment is the Kustomize-based [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) repo. Two paths for GitOps shops:
+
+- **Argo CD supports Kustomize natively.** A "Helm-only" blocker is usually a *tenant-policy* constraint, not an Argo CD limitation - point an Argo CD `Application` straight at the Kustomize overlay path and no chart is needed. Try this first.
+- **If a Helm chart is mandatory**, wrap the manifests in a thin, **unofficial** chart - one template per workload (indexer/manager/dashboard StatefulSets + Services) - exposing only the overrides a tenant needs:
+
+    ```yaml
+    # values.yaml (the override surface, not the whole chart)
+    image:
+      registry: ""            # e.g. my-registry.example.com
+    indexer:   { replicas: 1, image: { repository: wazuh/wazuh-indexer,  tag: "4.14.4" }, heapSize: "512m", storage: { size: 50Gi, storageClass: "" }, existingSecret: "", resources: {} }
+    manager:   { replicas: 1, image: { repository: wazuh/wazuh-manager,   tag: "4.14.4" }, storage: { size: 20Gi, storageClass: "" }, existingSecret: "", resources: {} }
+    dashboard: { replicas: 1, image: { repository: wazuh/wazuh-dashboard, tag: "4.14.4" }, existingSecret: "", resources: {}, service: { type: ClusterIP, port: 443 } }
+    ```
+
+    This is a maintenance liability - it drifts from upstream on every Wazuh release and falls outside Wazuh support. Treat it as your artifact, not a supported one. Whichever path you choose, still apply the [SCC bindings](#binding-serviceaccounts-to-sccs) above.
+
+**OpenShift ingress = Route.** Expose the dashboard with an OpenShift `Route` (or the patterns in [load balancing and ingress](./load-balancing-and-ingress.md)); keep agent traffic on **1514/1515 over a plain TCP path** (a `LoadBalancer` Service or L4 passthrough), never an HTTP Route.
+
 ## Troubleshooting
 
 ```bash

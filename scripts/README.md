@@ -48,7 +48,9 @@ README with usage instructions plus the script/config files.
 ## Event processing
 
 - [eventchannel-extraction](eventchannel-extraction/) - extract structured
-  data from Windows eventchannel `message` fields via an integratord script.
+  data from Windows eventchannel `message` fields via an integratord script
+  (`custom-windows` for `key: value` messages, `custom-windows-xml` for
+  ADFS/XML `UserId`/`IpAddress`).
 - [otlp-syslog-extraction](otlp-syslog-extraction/) - realtime extraction of
   syslog lines embedded in OpenTelemetry JSON logs.
 - [custom-json](custom-json/) - custom JSON log extraction.

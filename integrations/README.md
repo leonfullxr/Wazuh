@@ -16,6 +16,7 @@ filter at a sustainable volume, and test both success and outage behavior.
 |---|---|
 | Receive firewall or appliance syslog | [Generic syslog ingestion](syslog/README.md) |
 | Forward FortiGate logs and deploy its decoder | [Fortinet FortiGate](fortinet/README.md) |
+| Ingest Palo Alto / Prisma Cloud logs (syslog over TLS, OCSP cert) | [Palo Alto / Prisma Cloud](prisma-cloud/README.md) |
 | Load-balance agent TCP connections across manager workers | [NGINX stream load balancer](nginx/README.md) |
 | Send selected alerts to an HTTPS endpoint | [Generic webhook](webhook/README.md) |
 | Monitor SQL Server login and audit events | [Microsoft SQL Server](mssql/README.md) |

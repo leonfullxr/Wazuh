@@ -95,6 +95,7 @@ Apr 01 19:21:24 hostname2 securityapp: INFO: action="logged on" srcuser="Bob"
 - Place custom decoders in `/var/ossec/etc/decoders/local_decoder.xml` and restart the manager.
 - CEF logs (Vectra, NetIQ) and key=value firewalls (FortiGate) benefit from sibling decoders when field order varies.
 - For nested JSON, see [custom JSON extraction](../scripts/custom-json/README.md).
+- For values trapped in a **Windows eventchannel** message that a custom decoder cannot reach (e.g. ADFS `UserId`/`IpAddress` inside XML), see [Windows eventchannel field extraction](windows-eventchannel-fields.md).
 
 ## See also
 

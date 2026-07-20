@@ -9,6 +9,7 @@ unassigned shards.
 
 - [Sizing guidelines](#sizing-guidelines)
 - [Worked example: resizing oversized shards](#worked-example-resizing-oversized-shards)
+- [Worked example: planning shard count for retention and many sources](#worked-example-planning-shard-count-for-retention-and-many-sources)
 - [Increasing the number of primary shards](#increasing-the-number-of-primary-shards)
 - [Monitoring shard count](#monitoring-shard-count)
 - [Cluster health: red and yellow states](#cluster-health-red-and-yellow-states)
@@ -83,6 +84,30 @@ remain until [retention policies](ilm-retention.md) delete them (or you
 search latency, node resource utilization and overall cluster health. If
 problems persist after old indices have aged out, the indexing architecture
 itself (index rotation scheme, node count, heap sizing) needs a redesign.
+
+## Worked example: planning shard count for retention and many sources
+
+Shard *size* (above) is only half of capacity planning; the other half is the shard *count* you accumulate over the retention window - especially when you split events into many index prefixes (per site, per tenant, per source, as in [alert separation](index-separation.md)). Each extra prefix is another daily index, so shard count grows with **sources × retention**, not just data volume.
+
+Index cadence sets the baseline:
+
+- **Alerts** and **archives** (if enabled) roll **daily**.
+- **Monitoring** and **statistics** roll **weekly**.
+- Every index costs `primary shards × (1 + number_of_replicas)` shards.
+
+Worked example - **11 alert index prefixes**, one primary shard each, **90-day** retention (~13 weeks):
+
+| Config | Shards/day (alerts) | Shards/week (+2 stats & monitoring) | ~90 days (+~20 base) | Indexer nodes (~1000 shards each) |
+|---|---|---|---|---|
+| 1 primary **+ 1 replica** | 22 | 156 | ~2048 | **3** (fits, with headroom) |
+| 1 primary, **0 replicas** | 11 | 79 | ~1047 | 1 only by raising the limit → **3 recommended** |
+
+Takeaways:
+
+- **Dropping replicas roughly halves both shard count and disk usage** - reasonable when HA is not required, at the cost of no redundancy (a lost node loses its primaries until it is restored).
+- **Never run exactly two indexer nodes.** Use **1** (lab / no HA) or **3+** (production); two nodes cannot form a reliable quorum.
+- More prefixes = faster shard accumulation, which **caps how long retention/ILM can extend before you must add indexer nodes**. If the number of sources will grow, plan the node count with it - or weigh [separate clusters](index-separation.md#single-cluster-with-logical-separation-vs-separate-clusters).
+- Watch the *other* limit too: many small per-source daily indices can leave each shard far below the [20-40 GB target](#sizing-guidelines) (oversharding). For low-volume sources prefer a longer index period or a size/age rollover over daily indices - and do **not** just raise `cluster.max_shards_per_node` to paper over it.
 
 ## Increasing the number of primary shards
 
