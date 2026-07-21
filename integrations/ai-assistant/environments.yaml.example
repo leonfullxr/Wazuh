@@ -1,0 +1,28 @@
+# Environment registry for V3.1 (D43). Copy to environments.yaml and fill secrets.
+- env_id: lab
+  gateway_key: ${WAI_ENV_LAB_KEY}
+  indexer_url: https://wazuh.indexer:9200
+  indexer_ca_path: ""
+  reader_basic: ${WAI_ENV_LAB_READER}
+  embed_ml_model_id: ${WAI_EMBED_ML_MODEL_ID}
+  locale: bilingual
+  # Per-tier action enablement (R6.6) — deny-by-default except listed tiers
+  actions:
+    - dashboard
+    # - manager
+    # - active_response
+  dashboard_api_url: ${WAI_ENV_LAB_DASHBOARD_API_URL}
+  dashboard_executor_basic: ${WAI_ENV_LAB_DASHBOARD_EXECUTOR}
+  # create_indexer_monitor — Alerting plugin write (not kibanauser / saved-objects).
+  # Provision via securityconfig (wazuh_ai_monitor_writer → alerting_full_access).
+  monitor_executor_basic: ${WAI_ENV_LAB_MONITOR_EXECUTOR}
+  manager_api_url: https://wazuh.manager:55000
+  manager_ca_path: ""
+  # Least-privilege manager executor from scripts/manager_executor_setup.sh
+  # (agent:restart, agent:modify_group + group:modify_assignments,
+  #  rules:update/delete, manager:read+restart for analysisd reload).
+  # manager:restart also permits a full manager restart — documented trade-off.
+  manager_executor_basic: ${WAI_ENV_LAB_MANAGER_EXECUTOR}
+  ar_executor_basic: ${WAI_ENV_LAB_AR_EXECUTOR}
+  manager_actions_per_hour: 10
+  active_response_actions_per_hour: 5

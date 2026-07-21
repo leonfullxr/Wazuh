@@ -1,0 +1,91 @@
+{
+  "name": "wazuh-ai chat",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "webhookId": "wazuh-ai-chat"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://auth-shim:8081/v1/token/exchange",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Env-Id", "value": "lab" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000002",
+      "name": "Get turn JWT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "wazuh-ai-analyst1",
+          "name": "wazuh-ai analyst1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tool-service:8080/v1/chat/sync",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": {{ JSON.stringify($('When chat message received').item.json.chatInput) }}\n}",
+        "options": { "timeout": 180000 }
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000004",
+      "name": "Ask wazuh-ai",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [560, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const answer = $json.answer ?? '';\nconst label = $json.verifiability ?? '';\nconst corrections = $json.corrections ?? [];\nlet text = `${answer}\\n\\n_${label}_`;\nif (corrections.length) {\n  text += `\\n\\n_Corrections: ${JSON.stringify(corrections)}_`;\n}\nreturn [{ json: { text } }];"
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000005",
+      "name": "Format chat response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, 300]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [[{ "node": "Get turn JWT", "type": "main", "index": 0 }]]
+    },
+    "Get turn JWT": {
+      "main": [[{ "node": "Ask wazuh-ai", "type": "main", "index": 0 }]]
+    },
+    "Ask wazuh-ai": {
+      "main": [[{ "node": "Format chat response", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": []
+}

@@ -22,16 +22,18 @@ the golden set: curated NL -> query pairs. One artifact, two jobs.
 """
 from __future__ import annotations
 
+import copy
+import json
 import math
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-import httpx
-
 from . import audit, metrics
+from .auth_groups import AUTH_FAILURE_GROUPS
 from .config import CFG
+from .embeddings import embed_corpus, embed_text
 
 # ---------------------------------------------------------------------------
 # Exemplar corpus (bilingual, D12). `params` is the template; `inject` maps
@@ -60,8 +62,30 @@ def _noisy_agents_ir(size: int = 5) -> dict:
 
 def _auth_fail_count_ir() -> dict:
     return {
-        "filters": [{"field": "rule.groups", "op": "eq", "value": "authentication_failed"}],
+        "filters": [
+            {
+                "field": "rule.groups",
+                "op": "in",
+                "value": list(AUTH_FAILURE_GROUPS),
+            }
+        ],
         "aggregation": {"kind": "count"},
+        "limit": 0,
+    }
+
+
+def _top_srcips_ir(size: int = 10) -> dict:
+    return {
+        "filters": [],
+        "aggregation": {"kind": "terms", "field": "data.srcip", "size": size},
+        "limit": 0,
+    }
+
+
+def _high_sev_by_agent_ir(size: int = 10) -> dict:
+    return {
+        "filters": [{"field": "rule.level", "op": "gte", "value": 10}],
+        "aggregation": {"kind": "terms", "field": "agent.name", "size": size},
         "limit": 0,
     }
 
@@ -115,6 +139,11 @@ EXEMPLARS: list[Exemplar] = [
     Exemplar("high-sev-count", "es", "cuantas alertas de severidad alta en los ultimos 7 dias",
              "count_alerts", {"severity_gte": 10},
              inject={"time_range": "time_range", "severity": "severity_gte"}),
+    # agents reporting in a window (C1 list_agents)
+    Exemplar("list-agents", "en", "which agents are reporting alerts in the last 7 days",
+             "list_agents", {}, inject={"time_range": "time_range"}),
+    Exemplar("list-agents", "es", "que agentes estan reportando alertas en los ultimos 7 dias",
+             "list_agents", {}, inject={"time_range": "time_range"}),
     # latest alerts for one agent (agent slot REQUIRED)
     Exemplar("agent-alerts", "en", "show me the latest alerts from the agent web-01",
              "search_alerts", {}, inject={"time_range": "time_range", "agent": "agent_names",
@@ -129,6 +158,47 @@ EXEMPLARS: list[Exemplar] = [
     Exemplar("rule-alerts", "es", "muestrame las alertas de la regla 5710",
              "search_alerts", {}, inject={"time_range": "time_range", "rule": "rule_ids",
                                           "size": "size"}, require=["rule"]),
+    # top source IPs
+    Exemplar("top-srcips", "en", "what are the top source ips this week",
+             "run_query_ir", _top_srcips_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    Exemplar("top-srcips", "es", "cuales son las ips de origen mas frecuentes esta semana",
+             "run_query_ir", _top_srcips_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    # high severity by agent
+    Exemplar("high-sev-by-agent", "en", "which agents have the most high severity alerts",
+             "run_query_ir", _high_sev_by_agent_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    Exemplar("high-sev-by-agent", "es", "que agentes tienen mas alertas de severidad alta",
+             "run_query_ir", _high_sev_by_agent_ir(),
+             inject={"time_range": "time_range", "size": "aggregation.size"}),
+    # most frequent MITRE technique
+    Exemplar("top-mitre", "en", "what is the most frequent mitre technique this week",
+             "mitre_coverage", {}, inject={"time_range": "time_range", "size": "size"}),
+    Exemplar("top-mitre", "es", "cual es la tecnica mitre mas frecuente esta semana",
+             "mitre_coverage", {}, inject={"time_range": "time_range", "size": "size"}),
+    # vulnerability count
+    Exemplar("vuln-count", "en", "how many vulnerabilities were detected in the last 30 days",
+             "count_vulnerabilities", {}, inject={"time_range": "time_range"}),
+    Exemplar("vuln-count", "es", "cuantas vulnerabilidades se detectaron en los ultimos 30 dias",
+             "count_vulnerabilities", {}, inject={"time_range": "time_range"}),
+    # high severity vulnerabilities
+    Exemplar("vuln-high", "en", "how many high severity vulnerabilities were detected in the last 30 days",
+             "count_vulnerabilities", {"severity": "high"},
+             inject={"time_range": "time_range"}),
+    Exemplar("vuln-high", "es", "cuantas vulnerabilidades de severidad alta se detectaron en los ultimos 30 dias",
+             "count_vulnerabilities", {"severity": "high"},
+             inject={"time_range": "time_range"}),
+    # agents with last-seen (stopped reporting / fleet posture approximation)
+    Exemplar("agents-last-seen", "en", "which agents stopped reporting or have stale last seen",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
+    Exemplar("agents-last-seen", "es", "que agentes dejaron de reportar o tienen last seen antiguo",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
+    # new / newly active agents in window
+    Exemplar("new-agents", "en", "which new agents reported alerts this week",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
+    Exemplar("new-agents", "es", "que agentes nuevos reportaron alertas esta semana",
+             "list_agents", {}, inject={"time_range": "time_range", "size": "size"}),
 ]
 
 # ---------------------------------------------------------------------------
@@ -181,21 +251,9 @@ def _set_path(params: dict, dotted: str, value: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Embedding client + matcher (pure-python cosine: ~20 exemplars, trivial)
+# Embedding matcher (pure-python cosine: ~20 exemplars, trivial)
 # ---------------------------------------------------------------------------
-_http = httpx.AsyncClient(timeout=30.0)
 _ready = False
-
-
-async def _embed(texts: list[str]) -> list[list[float]]:
-    headers = {"Authorization": f"Bearer {CFG.embed_api_key}"} if CFG.embed_api_key else {}
-    r = await _http.post(
-        f"{CFG.embed_base_url.rstrip('/')}/embeddings",
-        json={"model": CFG.embed_model, "input": texts},
-        headers=headers,
-    )
-    r.raise_for_status()
-    return [d["embedding"] for d in r.json()["data"]]
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -209,7 +267,7 @@ async def _ensure_ready() -> None:
     global _ready
     if _ready:
         return
-    vectors = await _embed([e.text for e in EXEMPLARS])
+    vectors = await embed_corpus([e.text for e in EXEMPLARS])
     for exemplar, vec in zip(EXEMPLARS, vectors):
         exemplar.vector = vec
     _ready = True
@@ -222,30 +280,32 @@ class Lane0Match:
     params: dict
 
 
-async def match(text: str) -> Optional[Lane0Match]:
-    """Best exemplar above the threshold with all required slots filled,
-    or None (escalate to the model loop). Any failure here is a miss, never
-    an error: lane 0 must not be able to break the assistant."""
-    if not CFG.lane0_enabled:
-        return None
-    try:
-        await _ensure_ready()
-        qvec = (await _embed([text]))[0]
-    except Exception as exc:  # embeddings endpoint down -> silent escalation
-        audit.emit("lane0_unavailable", reason=str(exc)[:200])
-        metrics.LANE0.labels(result="unavailable").inc()
-        return None
+@dataclass
+class Lane0NearMiss:
+    """A close miss: inject the exemplar as a transient user hint in the model loop."""
 
+    exemplar: Exemplar
+    score: float
+    hint: str
+
+
+@dataclass
+class Lane0Analysis:
+    qvec: list[float]
+    match: Lane0Match | None
+    near_miss: Lane0NearMiss | None
+
+
+def _best_exemplar(qvec: list[float]) -> tuple[Exemplar | None, float]:
     best, best_score = None, -1.0
     for exemplar in EXEMPLARS:
         score = _cosine(qvec, exemplar.vector)
         if score > best_score:
             best, best_score = exemplar, score
-    if best is None or best_score < CFG.lane0_threshold:
-        audit.emit("lane0_miss", best=best.id if best else None, score=round(best_score, 3))
-        metrics.LANE0.labels(result="miss").inc()
-        return None
+    return best, best_score
 
+
+def _build_match(best: Exemplar, best_score: float, text: str) -> Lane0Match | None:
     slots = extract_slots(text)
     for required in best.require:
         if required not in slots:
@@ -253,14 +313,59 @@ async def match(text: str) -> Optional[Lane0Match]:
                        score=round(best_score, 3))
             metrics.LANE0.labels(result="slot_miss").inc()
             return None
-
-    import copy
-
     params = copy.deepcopy(best.params)
     for slot, path in best.inject.items():
         if slot in slots:
             _set_path(params, path, slots[slot])
     return Lane0Match(exemplar=best, score=best_score, params=params)
+
+
+def _build_near_miss(best: Exemplar, best_score: float) -> Lane0NearMiss | None:
+    if (
+        best_score >= CFG.lane0_threshold
+        or best_score < CFG.lane0_near_miss_floor
+    ):
+        return None
+    hint = (
+        f"Near-match template {best.id!r} (similarity {best_score:.2f}): "
+        f"for questions like {best.text!r}, prefer tool {best.tool!r} with "
+        f"params shaped like {json.dumps(best.params, default=str)}."
+    )
+    audit.emit("lane0_near_miss", template=best.id, score=round(best_score, 3))
+    return Lane0NearMiss(exemplar=best, score=best_score, hint=hint)
+
+
+async def analyze(text: str) -> Lane0Analysis | None:
+    """One embed per question: match, near-miss, and scope share the vector."""
+    if not CFG.lane0_enabled:
+        return None
+    try:
+        await _ensure_ready()
+        qvec = await embed_text(text)
+    except Exception as exc:
+        audit.emit("lane0_unavailable", reason=str(exc)[:200])
+        metrics.LANE0.labels(result="unavailable").inc()
+        return None
+
+    best, best_score = _best_exemplar(qvec)
+    match = None
+    near_miss = None
+    if best is not None and best_score >= CFG.lane0_threshold:
+        match = _build_match(best, best_score, text)
+        if match is None:
+            audit.emit("lane0_miss", best=best.id, score=round(best_score, 3))
+            metrics.LANE0.labels(result="miss").inc()
+    else:
+        audit.emit("lane0_miss", best=best.id if best else None, score=round(best_score, 3))
+        metrics.LANE0.labels(result="miss").inc()
+        if best is not None:
+            near_miss = _build_near_miss(best, best_score)
+    return Lane0Analysis(qvec=qvec, match=match, near_miss=near_miss)
+
+
+async def match(text: str) -> Optional[Lane0Match]:
+    analysis = await analyze(text)
+    return analysis.match if analysis else None
 
 
 # ---------------------------------------------------------------------------
@@ -285,8 +390,11 @@ _STR = {
 }
 
 
-def render_local(match_: Lane0Match, ir, evidence) -> str:
-    lang = _STR.get(match_.exemplar.lang, _STR["en"])
+def render_local(match_: Lane0Match, ir, evidence, question: str = "") -> str:
+    from .language import detect
+
+    lang_key = detect(question or match_.exemplar.text)
+    lang = _STR.get(lang_key, _STR["en"])
     gte, lte = ir.time_range.iso()
     gte, lte = gte[:16].replace("T", " "), lte[:16].replace("T", " ")
 
@@ -296,7 +404,11 @@ def render_local(match_: Lane0Match, ir, evidence) -> str:
     buckets = evidence.aggregations.get("by")
     if buckets is not None:
         lines = [lang["terms"].format(n=len(buckets), gte=gte, lte=lte)]
-        lines += [f"{i + 1}. {b['key']} ({b['count']})" for i, b in enumerate(buckets)]
+        for i, b in enumerate(buckets):
+            line = f"{i + 1}. {b['key']} ({b['count']})"
+            if b.get("last_seen"):
+                line += f" · last seen {b['last_seen']}"
+            lines.append(line)
         return "\n".join(lines)
 
     over_time = evidence.aggregations.get("over_time")

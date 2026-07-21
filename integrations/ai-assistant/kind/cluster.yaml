@@ -1,0 +1,27 @@
+# Single-node kind cluster for Track B (D36). extraPortMappings forward tenant
+# NodePorts to the host so golden evals and the isolation suite hit the same
+# URLs from outside the cluster. Default kindnet CNI enforces NetworkPolicy.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: wazuh-ai
+networking:
+  apiServerAddress: "127.0.0.1"
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30880
+        hostPort: 30880
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 30881
+        hostPort: 30881
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 30771
+        hostPort: 30771
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 30772
+        hostPort: 30772
+        listenAddress: "127.0.0.1"
+        protocol: TCP

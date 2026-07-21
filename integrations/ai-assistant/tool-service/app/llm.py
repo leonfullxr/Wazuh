@@ -38,6 +38,23 @@ from . import audit
 from .config import CFG
 
 
+def _messages_with_history_cache(messages: list[dict]) -> list[dict]:
+    """Second cachePoint (P1.5): cache the stable message prefix per loop step.
+
+    On Bedrock, place a cache breakpoint immediately before the latest user
+    turn so prior assistant/tool-result history is reused across tool-call
+    steps within one turn.
+    """
+    if not CFG.prompt_cache or len(messages) < 2:
+        return messages
+    prefix, tail = messages[:-1], messages[-1]
+    tail_copy = dict(tail)
+    content = list(tail_copy.get("content", []))
+    content.insert(0, {"cachePoint": {"type": "default"}})
+    tail_copy["content"] = content
+    return prefix + [tail_copy]
+
+
 class BedrockProvider:
     """boto3 Converse/ConverseStream, bridged into the async loop."""
 
@@ -54,11 +71,11 @@ class BedrockProvider:
         system_blocks: list[dict] = [{"text": system}]
         if CFG.prompt_cache:
             # Prompt caching on the static system prelude (verify how cached tokens are billed).
-            # verify: cachePoint block shape and model support on your models.
             system_blocks.append({"cachePoint": {"type": "default"}})
+        cached_messages = _messages_with_history_cache(messages)
         kwargs: dict[str, Any] = {
             "modelId": model_id,
-            "messages": messages,
+            "messages": cached_messages,
             "system": system_blocks,
             "inferenceConfig": {"maxTokens": CFG.max_output_tokens},
         }
@@ -102,7 +119,7 @@ class BedrockProvider:
         blocks: list[dict] = []
         text_buf: str | None = None
         tool_buf: dict | None = None
-        usage = {"inputTokens": 0, "outputTokens": 0}
+        usage = {"inputTokens": 0, "outputTokens": 0, "cacheReadInputTokens": 0, "cacheWriteInputTokens": 0}
 
         while True:
             kind, payload = await queue.get()
@@ -150,6 +167,8 @@ class BedrockProvider:
                 usage = {
                     "inputTokens": u.get("inputTokens", 0),
                     "outputTokens": u.get("outputTokens", 0),
+                    "cacheReadInputTokens": u.get("cacheReadInputTokens", 0),
+                    "cacheWriteInputTokens": u.get("cacheWriteInputTokens", 0),
                 }
 
         if text_buf:
@@ -165,7 +184,12 @@ class BedrockProvider:
 class OpenAICompatProvider:
     """One adapter for every OpenAI-compatible endpoint. Translates the
     Converse message shape to chat-completions and back, so the loop never
-    knows the difference."""
+    knows the difference.
+
+    KV-prefix reuse (P1.6): Ollama reuses the KV cache for identical message
+    prefixes across loop steps. Keep the system prompt and prior history
+    stable; only append new tool results at the tail.
+    """
 
     def __init__(self, base_url: str, api_key: str = "") -> None:
         # Generous read timeout: a 14b model on CPU legitimately takes minutes,
@@ -206,6 +230,7 @@ class OpenAICompatProvider:
 
         payload = self._payload(model_id, messages, system, tool_specs)
         payload["stream"] = True
+        payload["stream_options"] = {"include_usage": True}
         content_parts: list[str] = []
         tools_by_index: dict[int, dict] = {}
         usage = {"prompt_tokens": 0, "completion_tokens": 0}

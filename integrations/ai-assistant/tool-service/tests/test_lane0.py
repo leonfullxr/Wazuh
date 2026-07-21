@@ -57,13 +57,23 @@ def test_exemplar_templates_validate_against_their_tools():
     """Every curated template must produce a valid IR out of the box - a
     template that cannot validate would silently escalate every time."""
     from app import tools as toolsmod
+    from app.states_models import StatesQueryIR
 
     for ex in EXEMPLARS:
         tool = toolsmod.REGISTRY.get(ex.tool)
         assert tool is not None, f"exemplar {ex.id} names unknown tool {ex.tool}"
         params = tool.schema.model_validate(ex.params)
+        if tool.knowledge or tool.environment or tool.composite:
+            # These do not produce an alerts QueryIR; lane 0 escalates them.
+            continue
         ir = tool.to_ir(params)
-        assert isinstance(ir, QueryIR)
+        assert isinstance(ir, (QueryIR, StatesQueryIR)), (
+            f"exemplar {ex.id} produced {type(ir).__name__}"
+        )
+        if tool.states:
+            assert isinstance(ir, StatesQueryIR)
+        else:
+            assert isinstance(ir, QueryIR)
 
 
 def test_render_local_terms():

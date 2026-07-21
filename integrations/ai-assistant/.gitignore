@@ -1,7 +1,35 @@
 .env
-keys/*.pem
+deploy.env
+keys/**/*.pem
 .wazuh-docker/
 securityconfig/tmp/
+securityconfig/tmp-*/
+
+# Golden / eval artifacts (generated at runtime)
 golden/ground_truth.json
+golden/last_run.json
+golden/last_run.*.json
+golden/last_run_actions.json
+
+# Python local env and test caches
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# MCP host-local install
+mcp/.venv/
+
+# kind local binaries
+.bin/
+
+# ML Commons model id (host-local)
+.mlcommons-embed-model-id
+.dashboard-assistant-agent-id
+.dashboard-assistant-model-id

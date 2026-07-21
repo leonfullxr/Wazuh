@@ -51,6 +51,18 @@ def test_aggregation_queries_return_no_documents():
     assert "sort" not in dsl
 
 
+def test_terms_last_seen_subaggregation():
+    ir = QueryIR(
+        time_range=TR,
+        aggregation=IRAggregation(
+            kind="terms", field="agent.name", size=5, last_seen=True
+        ),
+    )
+    dsl = compile_opensearch(ir)
+    assert dsl["aggs"]["by"]["terms"] == {"field": "agent.name", "size": 5}
+    assert dsl["aggs"]["by"]["aggs"] == {"last_seen": {"max": {"field": "timestamp"}}}
+
+
 def test_histogram_and_cardinality():
     hist = compile_opensearch(
         QueryIR(time_range=TR, aggregation=IRAggregation(kind="date_histogram", interval="1h"))

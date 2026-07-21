@@ -1,0 +1,17 @@
+{
+  "name": "wazuh-ai-actions",
+  "version": "1.0.0",
+  "revision": "01",
+  "pluginPlatform": {
+    "version": "2.19.5"
+  },
+  "description": "Wazuh AI action confirm cards (V3.5c)",
+  "private": true,
+  "scripts": {
+    "build": "yarn plugin-helpers build --skip-archive --opensearch-dashboards-version=$OPENSEARCH_DASHBOARDS_VERSION",
+    "plugin-helpers": "node ../../scripts/plugin_helpers.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.2"
+  }
+}

@@ -6,6 +6,7 @@ from prometheus_client import Counter, Histogram
 TURNS = Counter("wazuh_ai_turns_total", "Completed turns", ["lane"])
 TOOL_CALLS = Counter("wazuh_ai_tool_calls_total", "Tool executions", ["tool", "outcome"])
 LANE0 = Counter("wazuh_ai_lane0_total", "Lane 0 outcomes", ["result"])
+SCOPE = Counter("wazuh_ai_scope_total", "Scope classifier outcomes", ["result"])
 TOKENS = Counter("wazuh_ai_tokens_total", "Model tokens", ["direction"])
 ERRORS = Counter("wazuh_ai_errors_total", "Errors by kind", ["kind"])
 TURN_SECONDS = Histogram(

@@ -1,0 +1,250 @@
+# Golden cases for the V3.5 actions framework (propose → confirm).
+# Bilingual set (V3.5d) — exercises HTTP surface directly, no LLM.
+#
+# assertion keys:
+#   propose_status   expected HTTP status from POST /v1/actions/propose
+#   confirm_status   expected HTTP status from POST .../confirm
+#   result_ok        expected result.ok after confirm (true/false)
+#   result_status    expected result.status string after confirm
+#   dashboard_title  title substring verified after confirm
+#   skip_confirm     if true, only test propose (e.g. reject flow)
+#   reject_after_propose  call reject instead of confirm
+#   confirm_user     operator user override (default analyst1)
+#   confirm_password password override
+#   expect_operator  if false, confirm should 403 (analyst without operator role)
+
+#   preview_any      substrings that must appear in proposal preview (casefold)
+#   preview_min_panels minimum panel count mentioned in preview
+#   skip_confirm     if true, stop after propose (preview-only cases)
+
+cases:
+  - id: brute-force-geoip-dashboard-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Wazuh AI Brute Force GeoIP"
+      template: brute_force_geoip
+      description: "Golden eval — authentication failures with GeoIP triage"
+    propose_status: 200
+    confirm_status: 200
+    result_ok: true
+    result_status: created
+    dashboard_title: "Wazuh AI Brute Force GeoIP"
+
+  - id: brute-force-geoip-dashboard-es
+    lang: es
+    action: create_dashboard
+    params:
+      title: "Panel GeoIP fuerza bruta Wazuh AI"
+      template: brute_force_geoip
+      description: "Evaluacion golden — fallos de autenticacion con GeoIP"
+    propose_status: 200
+    confirm_status: 200
+    result_ok: true
+    result_status: created
+    dashboard_title: "Panel GeoIP fuerza bruta Wazuh AI"
+
+  - id: reject-proposal-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Rejected dashboard proposal"
+      template: auth_failures_top_users
+    propose_status: 200
+    reject_after_propose: true
+
+  - id: confirm-requires-operator-es
+    lang: es
+    action: create_dashboard
+    params:
+      title: "Solo analista sin operador"
+      template: auth_failures_top_users
+    propose_status: 200
+    confirm_status: 403
+    confirm_user: analyst_no_op
+    confirm_password: analyst_no_op
+    expect_operator: false
+
+  - id: brute-force-dashboard-preview-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Brute force triage preview"
+      template: brute_force_geoip
+      description: "Golden eval — panel layout quality"
+    propose_status: 200
+    skip_confirm: true
+    preview_min_panels: 4
+    preview_any: ["metric", "timeline", "region_map", "GeoIP"]
+
+  - id: custom-dashboard-propose-en
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Custom SSH overview"
+      template: custom
+      panels:
+        - title: "Failed logins"
+          viz_type: metric
+          query: "rule.groups: authentication_failed"
+        - title: "Top users"
+          viz_type: table
+          terms_field: data.dstuser
+          query: "rule.groups: authentication_failed"
+    propose_status: 200
+    skip_confirm: true
+    preview_any: ["custom", "metric", "table"]
+
+  # --- V3.8c conversational confirm (chat/sync or connector analyze) ---
+  - id: conv-yes-dashboard-en
+    mode: conversational
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Conv confirm EN"
+      template: brute_force_geoip
+    chat_text: "yes"
+    checks: ["action_confirmed", "action_executed"]
+    result_ok: true
+    result_status: created
+    dashboard_title: "Conv confirm EN"
+
+  - id: conv-no-dashboard-es
+    mode: conversational
+    lang: es
+    action: create_dashboard
+    params:
+      title: "Conv cancelar ES"
+      template: auth_failures_top_users
+    chat_text: "no"
+    checks: ["action_rejected"]
+
+  - id: conv-ambiguous-en
+    mode: conversational
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Ambiguous one"
+      template: auth_failures_top_users
+    multi_propose: 2
+    chat_text: "yes"
+    checks: ["action_ambiguous"]
+
+  - id: conv-connector-yes-en
+    mode: conversational
+    edge: connector
+    lang: en
+    action: create_dashboard
+    params:
+      title: "Connector conv yes"
+      template: auth_failures_top_users
+    chat_text: "yes"
+    checks: ["action_confirmed", "action_executed"]
+    result_ok: true
+    result_status: created
+    dashboard_title: "Connector conv yes"
+
+  - id: conv-ar-bare-yes-reprompt-en
+    mode: conversational
+    lang: en
+    action: active_response
+    params:
+      agent_id: "001"
+      command: restart-ossec
+      reason: "Golden eval high-risk conversational gate"
+    chat_text: "yes"
+    checks: ["confirm_target_required"]
+
+  - id: conv-tier-denial-manager-en
+    mode: conversational
+    lang: en
+    action: restart_agent
+    params:
+      agent_id: "001"
+      reason: "Golden eval tier denial at propose"
+    propose_status: 403
+    skip_if_tier_enabled: manager
+
+  - id: propose-indexer-monitor-en
+    lang: en
+    action: create_indexer_monitor
+    params:
+      title: "Wazuh AI auth failure monitor"
+      template: auth_failures
+      schedule_minutes: 5
+      reason: "Golden eval curated monitor proposal"
+    propose_status: 200
+    skip_confirm: true
+    preview_any: ["auth_failures", "monitor"]
+
+  - id: propose-add-agent-group-en
+    lang: en
+    action: add_agent_to_group
+    params:
+      agent_id: "001"
+      group: default
+      reason: "Golden eval add agent to group proposal"
+    propose_status: 200
+    skip_confirm: true
+    preview_any: ["001", "default"]
+    require_tier: manager
+
+  - id: conv-suppress-rule-bare-yes-en
+    mode: conversational
+    lang: en
+    action: suppress_noisy_rule
+    params:
+      rule_id: "5710"
+      reason: "Golden eval high-risk suppress requires target echo of rule id"
+    chat_text: "yes"
+    checks: ["confirm_target_required"]
+    require_tier: manager
+
+  # --- F3: confirm-execute for new write actions (opt-in) ---
+  # Enabled with WAI_EVAL_ACTIONS_EXECUTE=1 so propose-only runs stay safe.
+  - id: execute-add-agent-group-en
+    require_execute: true
+    lang: en
+    action: add_agent_to_group
+    params:
+      agent_id: "001"
+      group: wazuh_ai_eval
+      reason: "Golden eval confirm-execute add agent to group"
+    propose_status: 200
+    confirm_status: 200
+    confirm_target:
+      agent_id: "001"
+      group: wazuh_ai_eval
+    result_ok: true
+    result_status: grouped
+    require_tier: manager
+
+  - id: execute-indexer-monitor-en
+    require_execute: true
+    lang: en
+    action: create_indexer_monitor
+    params:
+      title: "Wazuh AI eval auth failure monitor"
+      template: auth_failures
+      schedule_minutes: 5
+      reason: "Golden eval confirm-execute curated monitor"
+    propose_status: 200
+    confirm_status: 200
+    result_ok: true
+    result_status: created
+
+  - id: execute-suppress-rule-en
+    require_execute: true
+    lang: en
+    action: suppress_noisy_rule
+    params:
+      # Lab-only synthetic id — does not silence real seeded auth rules.
+      rule_id: "99901"
+      reason: "Golden eval confirm-execute suppress with analysisd reload"
+    propose_status: 200
+    confirm_status: 200
+    confirm_target:
+      rule_id: "99901"
+    result_ok: true
+    result_status_any: ["suppressed", "suppressed_pending_reload"]
+    require_tier: manager

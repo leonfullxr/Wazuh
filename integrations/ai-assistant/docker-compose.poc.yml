@@ -6,35 +6,25 @@
 #   docker network ls | grep single-node
 
 services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0
-    command: ["start-dev", "--import-realm"]
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
-    volumes:
-      - ./keycloak:/opt/keycloak/data/import:ro
-    ports:
-      - "8085:8080"
-    networks: [wazuh]
-
   auth-shim:
     build: ./auth-shim
     environment:
-      SHIM_TENANT: ${WAI_TENANT:-lab}
-      SHIM_KC_URL: ${KC_URL:-http://keycloak:8080}
-      SHIM_KC_REALM: ${KC_REALM:-wazuh-poc}
       SHIM_JWT_ISSUER: ${WAI_JWT_ISSUER:-wazuh-ai-shim.lab}
       SHIM_BACKEND_AUDIENCE: ${WAI_JWT_AUDIENCE:-wazuh-ai-backend.lab}
       SHIM_INDEXER_AUDIENCE: ${WAI_JWT_INDEXER_AUDIENCE:-wazuh-indexer.lab}
       SHIM_TTL_SECONDS: ${WAI_JWT_TTL_SECONDS:-600}
       SHIM_REQUIRED_ROLE: wazuh_ai_analyst
+      SHIM_ENVS_FILE: /config/environments.yaml
+      SHIM_INDEXER_VERIFY_SSL: ${WAI_INDEXER_VERIFY_SSL:-false}
+      SHIM_EXCHANGES_PER_USER_PER_MINUTE: ${SHIM_EXCHANGES_PER_USER_PER_MINUTE:-20}
+      SHIM_EXCHANGES_PER_IP_PER_MINUTE: ${SHIM_EXCHANGES_PER_IP_PER_MINUTE:-60}
+      SHIM_CORS_ORIGINS: ${WAI_ACTIONS_CORS_ORIGINS:-https://localhost,http://localhost:5601,https://localhost:5601,http://localhost:8080}
     volumes:
       # The ONLY place the private key is mounted (D30)
       - ./keys:/keys:ro
+      - ./environments.poc.yaml:/config/environments.yaml:ro
     ports:
       - "8081:8081"
-    depends_on: [keycloak]
     networks: [wazuh]
 
   tool-service:
@@ -60,9 +50,13 @@ services:
       # Lane 0 semantic fast path + evidence cache (D40/D41, README s3.5)
       WAI_LANE0_ENABLED: ${WAI_LANE0_ENABLED:-false}
       WAI_LANE0_THRESHOLD: ${WAI_LANE0_THRESHOLD:-0.80}
+      WAI_LANE0_NEAR_MISS_FLOOR: ${WAI_LANE0_NEAR_MISS_FLOOR:-0.65}
       WAI_EMBED_BASE_URL: ${WAI_EMBED_BASE_URL:-http://ollama:11434/v1}
+      WAI_EMBED_PROVIDER: ${WAI_EMBED_PROVIDER:-openai}
       WAI_EMBED_MODEL: ${WAI_EMBED_MODEL:-bge-m3}
       WAI_EMBED_API_KEY: ${WAI_EMBED_API_KEY:-}
+      WAI_EMBED_ML_MODEL_ID: ${WAI_EMBED_ML_MODEL_ID:-}
+      WAI_SAVED_OBJECTS_INDEX: ${WAI_SAVED_OBJECTS_INDEX:-.kibana}
       WAI_EVIDENCE_CACHE_TTL: ${WAI_EVIDENCE_CACHE_TTL:-0}
       # Ops knobs (README s8)
       WAI_STREAMING: ${WAI_STREAMING:-true}
@@ -76,7 +70,28 @@ services:
       WAI_GUARDRAIL_VERSION: ${WAI_GUARDRAIL_VERSION:-DRAFT}
       WAI_LANE2_ENABLED: ${WAI_LANE2_ENABLED:-true}
       WAI_MAX_TOOL_CALLS: ${WAI_MAX_TOOL_CALLS:-6}
-      WAI_EVIDENCE_BUDGET_CHARS: ${WAI_EVIDENCE_BUDGET_CHARS:-24000}
+      WAI_MAX_OUTPUT_TOKENS: ${WAI_MAX_OUTPUT_TOKENS:-2048}
+      WAI_EVIDENCE_BUDGET_CHARS: ${WAI_EVIDENCE_BUDGET_CHARS:-8000}
+      WAI_CONNECTOR_TIMEOUT_S: ${WAI_CONNECTOR_TIMEOUT_S:-110}
+      WAI_ENVS_FILE: ${WAI_ENVS_FILE:-}
+      WAI_ENV_LAB_KEY: ${WAI_ENV_LAB_KEY:-}
+      WAI_ENV_LAB_READER: ${WAI_ENV_LAB_READER:-wazuh_ai_env_reader:EnvReaderLab1!}
+      WAI_ACTIONS_ENABLED: ${WAI_ACTIONS_ENABLED:-false}
+      WAI_ACTIONS_DIRECT: ${WAI_ACTIONS_DIRECT:-false}
+      WAI_OPERATOR_ROLE: ${WAI_OPERATOR_ROLE:-wazuh_ai_operator}
+      WAI_ACTION_PROPOSAL_TTL_S: ${WAI_ACTION_PROPOSAL_TTL_S:-900}
+      WAI_ENV_LAB_DASHBOARD_EXECUTOR: ${WAI_ENV_LAB_DASHBOARD_EXECUTOR:-}
+      WAI_ENV_LAB_DASHBOARD_API_URL: ${WAI_ENV_LAB_DASHBOARD_API_URL:-https://wazuh.dashboard:5601}
+      WAI_ENV_LAB_MONITOR_EXECUTOR: ${WAI_ENV_LAB_MONITOR_EXECUTOR:-}
+      WAI_ENV_LAB_MANAGER_URL: ${WAI_ENV_LAB_MANAGER_URL:-https://wazuh.manager:55000}
+      WAI_ENV_LAB_MANAGER_EXECUTOR: ${WAI_ENV_LAB_MANAGER_EXECUTOR:-}
+      WAI_ENV_LAB_AR_EXECUTOR: ${WAI_ENV_LAB_AR_EXECUTOR:-}
+      # Per-env action tiers (R6.6): deny-by-default; opt in per tier
+      WAI_ENV_LAB_ACTIONS: ${WAI_ENV_LAB_ACTIONS:-dashboard}
+      WAI_UI_PUBLIC_BASE_URL: ${WAI_UI_PUBLIC_BASE_URL:-http://localhost:8080}
+      WAI_ACTIONS_SHIM_PUBLIC_URL: ${WAI_ACTIONS_SHIM_PUBLIC_URL:-http://localhost:8081}
+      WAI_ACTIONS_ENV_ID: ${WAI_ACTIONS_ENV_ID:-lab}
+      WAI_ACTIONS_CORS_ORIGINS: ${WAI_ACTIONS_CORS_ORIGINS:-https://localhost,http://localhost:5601,https://localhost:5601}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -84,6 +99,9 @@ services:
     volumes:
       # Public key only - the reasoning core cannot mint (D30)
       - ./keys/jwt-public.pem:/keys/jwt-public.pem:ro
+      # Env registry: read only when WAI_ENVS_FILE points here (E16 installer sets it).
+      # Unmounted-but-set was a startup crash (env_registry loads at import).
+      - ./environments.poc.yaml:/config/environments.yaml:ro
       # CA pinning (recommended once the wazuh certs exist; verify the path):
       # - ./.wazuh-docker/single-node/config/wazuh_indexer_ssl_certs/root-ca.pem:/certs/root-ca.pem:ro
     ports:
@@ -94,9 +112,14 @@ services:
   #   make ollama    (or: docker compose -f docker-compose.poc.yml --profile ollama up -d ollama)
   # then set WAI_LLM_PROVIDER=openai and the model ids in .env (README s3.2).
   ollama:
-    image: ollama/ollama:latest
+    # ROCm image for AMD GPUs (RX 7600 XT and kin). Override with
+    # OLLAMA_IMAGE=ollama/ollama:latest for CPU-only or NVIDIA hosts.
+    image: ${OLLAMA_IMAGE:-ollama/ollama:rocm}
     profiles: ["ollama"]
     environment:
+      # Default Ollama context is 4096; the loop sends ~2k tokens of
+      # system+schemas plus up to the evidence budget per tool result.
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
       # Memory-optimization ladder, rung 3 (README s3.4): flash attention
       # enables the quantized KV cache; q8_0 roughly halves KV memory at
       # negligible quality cost. Two loaded models = both tiers resident.
@@ -110,7 +133,15 @@ services:
     ports:
       - "11434:11434"
     networks: [wazuh]
-    # NVIDIA GPU (optional) - uncomment to accelerate:
+    # AMD ROCm passthrough (default on this harness). For NVIDIA, set
+    # OLLAMA_IMAGE=ollama/ollama:latest and uncomment the deploy stanza.
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - "${RENDER_GID:-105}"
+      - "${VIDEO_GID:-44}"
+    # NVIDIA GPU (optional) - uncomment and remove devices/group_add above:
     # deploy:
     #   resources:
     #     reservations:
@@ -169,6 +200,20 @@ services:
       - "5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
+    networks: [wazuh]
+
+  # Test agent for the actions demo (V3.5): a real enrollment target so
+  # restart_agent and active-response verify end-to-end instead of stopping at
+  # "the manager API accepted the call". Start with: --profile agent
+  wazuh-agent:
+    image: wazuh/wazuh-agent:${WAZUH_VERSION:-4.14.5}
+    profiles: ["agent"]
+    hostname: test-agent-01
+    environment:
+      # verify: this image reads WAZUH_MANAGER_SERVER (not WAZUH_MANAGER)
+      WAZUH_MANAGER_SERVER: wazuh.manager
+      WAZUH_REGISTRATION_SERVER: wazuh.manager
+      WAZUH_AGENT_NAME: test-agent-01
     networks: [wazuh]
 
 volumes:

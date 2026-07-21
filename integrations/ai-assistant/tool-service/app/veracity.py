@@ -17,13 +17,14 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from .compiler import compile_opensearch
 from .config import CFG
-from .indexer import INDEXER
+from .indexer import Indexer, get_indexer
 from .models import ALLOWED_FIELDS, QueryIR
+from .principal import Principal, env_id_for, indexer_headers
 
 
 class VeracityError(Exception):
@@ -45,12 +46,14 @@ class Evidence:
     zero_hit_diagnosis: Optional[dict] = None
     compiled_query: dict = field(default_factory=dict)
     from_cache: bool = False
+    window: dict = field(default_factory=dict)
 
     def to_tool_result(self) -> dict:
         """The JSON handed back to the model, kept inside the evidence budget."""
         payload = {
             "total_matching": self.total,
             "total_computed_by": self.total_computed_by,
+            "executed_window": self.window,
             "aggregations": self.aggregations,
             "veracity_checks_passed": self.checks_passed,
             "veracity_checks_skipped": self.checks_skipped,
@@ -60,6 +63,20 @@ class Evidence:
             payload["served_from_cache"] = True  # honesty over freshness (D41)
         if self.zero_hit_diagnosis is not None:
             payload["zero_hit_diagnosis"] = self.zero_hit_diagnosis
+        if self.total == 0 and self.window.get("lte"):
+            try:
+                lte = datetime.fromisoformat(
+                    str(self.window["lte"]).replace("Z", "+00:00")
+                )
+                now = datetime.now(timezone.utc)
+                if (now - lte).total_seconds() > 3600:
+                    payload["time_range_stale_hint"] = (
+                        f"executed_window ends at {self.window['lte']}, but current "
+                        f"UTC is {now.isoformat()}. Re-call the tool with "
+                        f"time_range anchored to current UTC."
+                    )
+            except (TypeError, ValueError):
+                pass
         # Evidence compaction: drop hits until the payload fits.
         while (
             len(json.dumps(payload, default=str)) > CFG.evidence_budget_chars
@@ -68,6 +85,18 @@ class Evidence:
             payload["alerts"] = payload["alerts"][:-1]
             payload["alerts_truncated"] = True
         return payload
+
+
+def term_buckets(aggregations: dict, key: str) -> list[dict[str, Any]]:
+    """Normalized term/date buckets from Evidence.aggregations."""
+    node = aggregations.get(key)
+    if isinstance(node, list):
+        return node
+    if isinstance(node, dict):
+        raw = node.get("buckets")
+        if isinstance(raw, list):
+            return raw
+    return []
 
 
 def _flatten_hit(hit: dict) -> dict:
@@ -82,24 +111,34 @@ def _flatten_hit(hit: dict) -> dict:
         return node
 
     desc = get("rule.description")
+    mitre = get("rule.mitre.id")
+    if isinstance(mitre, list):
+        mitre = mitre[0] if mitre else None
+    full_log = get("full_log")
     return {
         "_id": hit["_id"],
         "timestamp": get("timestamp"),
         "rule.id": get("rule.id"),
         "rule.level": get("rule.level"),
         "rule.description": (desc or "")[:160],
+        "rule.mitre.id": mitre,
         "agent.name": get("agent.name"),
         "data.srcip": get("data.srcip"),
         "data.dstuser": get("data.dstuser"),
+        # Attacker-influenced; capped for budget + evidence_guard (E8).
+        "full_log": (full_log or "")[:400] if full_log else None,
     }
 
 
-async def _check_mapping(ir: QueryIR, user_jwt: str) -> Optional[str]:
+async def _check_mapping(
+    ir: QueryIR, indexer: Indexer, headers: dict[str, str]
+) -> Optional[str]:
     """Check 1. Returns the check name if it ran, None if it was skipped."""
-    mapping = await INDEXER.get_mapping(user_jwt)
+    mapping = await indexer.get_mapping(headers)
     if mapping is None:
         return None
     fields_used = [f.field for f in ir.filters if f.field != "_id"]
+    fields_used.extend(f.field for f in ir.should_any if f.field != "_id")
     if ir.aggregation and ir.aggregation.field:
         fields_used.append(ir.aggregation.field)
     for f in fields_used:
@@ -118,21 +157,21 @@ async def _check_mapping(ir: QueryIR, user_jwt: str) -> Optional[str]:
     return "mapping_validation"
 
 
-async def _diagnose_zero_hits(ir: QueryIR, user_jwt: str) -> dict:
+async def _diagnose_zero_hits(
+    ir: QueryIR, indexer: Indexer, headers: dict[str, str]
+) -> dict:
     """Check 4. A zero-result query is ambiguous between 'no such events' and
     'wrong query'. Probe the window and each filter individually so the answer
     can be precise instead of hopeful."""
     window_ir = QueryIR(time_range=ir.time_range, filters=[], limit=0)
-    window_res = await INDEXER.search_as_user(
-        user_jwt, compile_opensearch(window_ir)
-    )
+    window_res = await indexer.search(headers, compile_opensearch(window_ir))
     diagnosis: dict = {
         "documents_in_time_window": window_res["hits"]["total"]["value"],
         "per_filter_matches": {},
     }
     for f in ir.filters:
         probe = QueryIR(time_range=ir.time_range, filters=[f], limit=0)
-        res = await INDEXER.search_as_user(user_jwt, compile_opensearch(probe))
+        res = await indexer.search(headers, compile_opensearch(probe))
         key = f"{f.field} {f.op} {f.value}"
         diagnosis["per_filter_matches"][key] = res["hits"]["total"]["value"]
     diagnosis["interpretation"] = (
@@ -160,19 +199,22 @@ def _cache_key(ir: QueryIR) -> str:
     return hashlib.sha256(json.dumps(doc, sort_keys=True).encode()).hexdigest()
 
 
-async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
+async def execute_ir(ir: QueryIR, principal: Principal) -> Evidence:
     """The full pipeline. Every lane funnels through here."""
+    env_id = env_id_for(principal)
+    indexer = get_indexer(env_id)
+    headers = indexer_headers(principal)
+    cache_slot: str | None = None
     if CFG.evidence_cache_ttl > 0:
-        key = _cache_key(ir)
-        entry = _EVIDENCE_CACHE.get(key)
+        cache_slot = f"{env_id}:{_cache_key(ir)}"
+        entry = _EVIDENCE_CACHE.get(cache_slot)
         if entry and entry[0] > time.monotonic():
             return replace(entry[1], from_cache=True)
 
     checks_passed: list[str] = []
     checks_skipped: list[str] = []
 
-    # 1. mapping-aware validation
-    ran = await _check_mapping(ir, user_jwt)
+    ran = await _check_mapping(ir, indexer, headers)
     if ran:
         checks_passed.append(ran)
     else:
@@ -181,23 +223,30 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
     dsl = compile_opensearch(ir)
 
     # 2. pre-execution dry-run
-    validation = await INDEXER.dry_run_as_user(user_jwt, dsl)
+    validation = await indexer.dry_run(headers, dsl)
     if not validation.get("valid", False):
         raise VeracityError(f"compiled query failed validation: {validation}")
     checks_passed.append("dry_run")
 
     # 3. execute as the analyst
-    res = await INDEXER.search_as_user(user_jwt, dsl)
+    res = await indexer.search(headers, dsl)
     total = res["hits"]["total"]["value"]
     checks_passed.append("datastore_computed_counts")
 
     aggregations: dict = {}
     for name, agg in res.get("aggregations", {}).items():
         if "buckets" in agg:
-            aggregations[name] = [
-                {"key": b.get("key_as_string", b["key"]), "count": b["doc_count"]}
-                for b in agg["buckets"]
-            ]
+            buckets = []
+            for b in agg["buckets"]:
+                row = {
+                    "key": b.get("key_as_string", b["key"]),
+                    "count": b["doc_count"],
+                }
+                if "last_seen" in b:
+                    ls = b["last_seen"]
+                    row["last_seen"] = ls.get("value_as_string") or ls.get("value")
+                buckets.append(row)
+            aggregations[name] = buckets
         elif "value" in agg:
             aggregations[name] = agg["value"]
 
@@ -206,9 +255,10 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
     # 4. zero-hit differential diagnosis
     zero_diag = None
     if total == 0:
-        zero_diag = await _diagnose_zero_hits(ir, user_jwt)
+        zero_diag = await _diagnose_zero_hits(ir, indexer, headers)
         checks_passed.append("zero_hit_diagnosis")
 
+    gte, lte = ir.time_range.iso()
     evidence = Evidence(
         total=total,
         total_computed_by="datastore",
@@ -218,11 +268,15 @@ async def execute_ir(ir: QueryIR, user_jwt: str) -> Evidence:
         checks_skipped=checks_skipped,
         zero_hit_diagnosis=zero_diag,
         compiled_query=dsl,
+        window={"gte": gte, "lte": lte},
     )
-    if CFG.evidence_cache_ttl > 0:
-        if len(_EVIDENCE_CACHE) > 512:  # cheap bound: drop expired entries
+    if CFG.evidence_cache_ttl > 0 and cache_slot is not None:
+        if len(_EVIDENCE_CACHE) > 512:
             now = time.monotonic()
             for stale in [k for k, v in _EVIDENCE_CACHE.items() if v[0] <= now]:
                 del _EVIDENCE_CACHE[stale]
-        _EVIDENCE_CACHE[key] = (time.monotonic() + CFG.evidence_cache_ttl, evidence)
+        _EVIDENCE_CACHE[cache_slot] = (
+            time.monotonic() + CFG.evidence_cache_ttl,
+            evidence,
+        )
     return evidence

@@ -1,7 +1,4 @@
-"""Admission control (D14), lab-sized. There is no load balancer in front of
-Bedrock, so fairness is enforced here: one stream per user, a small per-user
-rate, and a per-tenant semaphore around every model invocation. Throttled
-requests get an honest, immediate rejection - no silent downgrade."""
+"""Admission control (D14), keyed per environment (D43)."""
 from __future__ import annotations
 
 import asyncio
@@ -33,16 +30,30 @@ class Admission:
         return True
 
     @asynccontextmanager
-    async def acquire(self, sub: str):
-        if self.user_streams[sub] >= 1:
-            raise BusyError("one concurrent conversation per user")
-        if not self._allow_rate(sub):
-            raise BusyError("per-user rate limit, try again in a minute")
-        self.user_streams[sub] += 1
+    async def acquire(self, sub: str, *, env_scoped: bool = False):
+        """Analyst turns: one stream + rate limit (D14). Connector/env turns skip
+        both — ML Commons owns conversation pacing and may overlap requests."""
+        if not env_scoped:
+            if self.user_streams[sub] >= 1:
+                raise BusyError("one concurrent conversation per user")
+            if not self._allow_rate(sub):
+                raise BusyError("per-user rate limit, try again in a minute")
+            self.user_streams[sub] += 1
         try:
             yield self
         finally:
-            self.user_streams[sub] -= 1
+            if not env_scoped:
+                self.user_streams[sub] -= 1
 
 
-ADMISSION = Admission()
+_ADMISSION: dict[str, Admission] = {}
+
+
+def get_admission(env_id: str) -> Admission:
+    if env_id not in _ADMISSION:
+        _ADMISSION[env_id] = Admission()
+    return _ADMISSION[env_id]
+
+
+# Backward-compatible default for tests importing ADMISSION
+ADMISSION = get_admission(CFG.tenant)

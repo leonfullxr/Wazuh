@@ -1,0 +1,27 @@
+{
+  "T1110": {
+    "name": "Brute Force",
+    "tactic": "Credential Access",
+    "description": "Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained."
+  },
+  "T1190": {
+    "name": "Exploit Public-Facing Application",
+    "tactic": "Initial Access",
+    "description": "Adversaries may attempt to exploit weaknesses in an Internet-facing host or application to initially access a network."
+  },
+  "T1078": {
+    "name": "Valid Accounts",
+    "tactic": "Defense Evasion",
+    "description": "Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion."
+  },
+  "T1059": {
+    "name": "Command and Scripting Interpreter",
+    "tactic": "Execution",
+    "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries."
+  },
+  "T1021": {
+    "name": "Remote Services",
+    "tactic": "Lateral Movement",
+    "description": "Adversaries may use valid accounts to log into remote services such as SSH, RDP, or SMB."
+  }
+}
