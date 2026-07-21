@@ -1,22 +1,44 @@
-# Wazuh
-Wazuh configuration, setup and scripts. This repository serves as my personal notes and configurations that I have created for **deployment and testing**
+# Wazuh Knowledge Base
 
-Repository: [github.com/leonfullxr/Wazuh](https://github.com/leonfullxr/Wazuh)
+Field-tested Wazuh configurations, operational guides, and scripts for
+administrators and detection engineers. The knowledge base focuses on
+repeatable production procedures: prerequisites, commands, verification,
+failure modes, and rollback or recovery considerations.
 
-Please refer to the official integration repository which is mantained and updated: https://github.com/wazuh/integrations
+This repository complements, rather than replaces, the
+[official Wazuh documentation](https://documentation.wazuh.com/) and
+[official integrations repository](https://github.com/wazuh/integrations).
+Confirm paths and behavior against the installed Wazuh version and test
+changes outside production first.
 
-**Disclaimer**: The integrations and content within this repository are provided "as is" without warranty of any kind, express or implied. Users are responsible for evaluating the security, quality, and compatibility of any code or configurations they choose to utilize from this repository. I do not guarantee the absence of vulnerabilities, errors, or suitability for any particular purpose.
+
+**Disclaimer**: The content in this repository is provided "as is" without warranty of any kind, express or implied. Users are responsible for evaluating the security, quality, and compatibility of any code or configurations they choose to use. Test in a lab before applying to production.
 
 ## Repository structure
 
-I will expand this repository in the near future, but for now, I will have the following directories:
-- containerization --> Here I will have everything related to containerization, such as Docker and Kubernetes configurations.
-    - Docker --> Here I will have single-node and multi-node Docker configurations, with HTTP and reverse proxy configurations (Traefik), and so on.
-- scripts --> Here I will have a few scripts, such as RestfulAPI connections, 
-- rules --> Here I will have custom wazuh rule configurations, mostly for FortiGate routers, for now.
-- decoders --> Here I will have custom wazuh decoder configurations, mostly for FortiGate routers, for now.
-- integrations --> Here I will have custom wazuh integration configurations, such as LDAPS, custom API connections, custom alerts integration, LLM integration, etc.
+### Infrastructure & operations
+
+- [containerization/](containerization/) - Wazuh in Docker and Kubernetes: EKS, AKS, GKE, OpenShift, persistent storage, agent DaemonSets, FIM inside containers, cluster debugging, Docker Swarm, backup/migration, Docker networking and proxy diagnostics.
+- [cloud/](cloud/) - Cloud log ingestion and infrastructure: AWS (`aws-s3` wodle, IAM), Azure (Log Analytics, MS Graph), GCP Pub/Sub, plus Wazuh Cloud usage and dashboard RBAC.
+- [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
+- [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and sizing, disaster recovery, Wazuh 5.0 migration FAQ.
+- [certificates/](certificates/) - TLS certificate lifecycle for every component, HTTPS for dashboards on private IPs, SAML SSO, and a certificate troubleshooting playbook.
+- [troubleshooting/](troubleshooting/) - Symptom-driven guides: agent disconnections, flooding and buffer tuning, enrollment conflicts, analysisd queue/EPS tuning, vulnerability detection internals and reset, password recovery, LDAP/AD, Windows registry monitoring.
+
+### Integrations & detection
+
+- [integrations/](integrations/) - Integration hub for Fortinet and generic syslog, NGINX agent load balancing, webhooks, MSSQL audit events, Splunk SOAR/Logstash forwarding, threat intelligence, and SaaS audit collection.
+- [rules/](rules/) - Custom rule deployment guidance, FortiGate and Vectra suites, and validated [`<var>` examples](rules/examples/var.md).
+- [decoders/](decoders/) - Decoder deployment workflow, FortiGate, Vectra, and NetIQ suites, plus a [syntax reference](decoders/syntax.md).
+- [sca/](sca/) - Security Configuration Assessment content and RHEL hardening scripts.
+
+### Automation & tooling
+
+- [scripts/](scripts/) - Operational scripts, each with its own README: agent management and deployment, service and resource monitoring, alert retention and deletion policies, syscheck email notifications, granular email alerting, active-response CDB blocklist, eventchannel extraction, EPS measurement, diagnosis, MaxMind updates, all-in-one installs.
+- [ansible/](ansible/) - Ansible playbooks (agent renaming).
+- [packages/](packages/) - Platform-specific packaging notes (Solaris).
+- [images/](images/) - Vagrant lab images (Windows, FreeBSD).
 
 ## Contributing
 
-Feel free to fork/edit/copy and do whatever you want with the files, although always at your own risk (some configurations might need further modifications, feel free to contact me if necessary).
+Feel free to fork, edit and reuse anything here at your own risk; some configurations may need adaptation to your environment. Contact me if something needs clarification.

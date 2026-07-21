@@ -1,5 +1,7 @@
 .cache_ggshield
 meetings/
+.personal/
+.claude/skills/
 images/vagrant/**/.vagrant/
 
 # Python
@@ -7,41 +9,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pyo
-.Python
-.venv/
-venv/
-env/
-*.egg-info/
-.eggs/
-dist/
-build/
-*.egg
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-.tox/
-pip-wheel-metadata/
-
-# Node / JS (n8n workflows, tooling)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Binaries and local artifacts
-*.so
-*.dylib
-*.dll
-*.exe
 *.bin
-
-# IDE / editor
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
+*.pem
+.venv/

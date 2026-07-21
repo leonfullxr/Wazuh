@@ -170,12 +170,12 @@ config  docker-compose.yml  generate-indexer-certs.yml  Migration-to-Wazuh-4.4.m
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !1 ?4                                                                                                                                           
 > ll config/wazuh_indexer           
 total 24K
-drwxr-xr-x 2 leon leon 4.0K Jul 24 09:42 geoip-data
--rw-r--r-- 1 leon leon 1.3K Jul 10 11:53 internal_users.yml
-drwxr-xr-x 2 leon leon 4.0K Jul 24 09:42 scripts
--rw-r--r-- 1 leon leon 1.8K Jul 10 11:53 wazuh1.indexer.yml
--rw-r--r-- 1 leon leon 1.8K Jul 10 11:53 wazuh2.indexer.yml
--rw-r--r-- 1 leon leon 1.8K Jul 10 11:53 wazuh3.indexer.yml
+drwxr-xr-x 2 wazuh-admin wazuh-admin 4.0K Jul 24 09:42 geoip-data
+-rw-r--r-- 1 wazuh-admin wazuh-admin 1.3K Jul 10 11:53 internal_users.yml
+drwxr-xr-x 2 wazuh-admin wazuh-admin 4.0K Jul 24 09:42 scripts
+-rw-r--r-- 1 wazuh-admin wazuh-admin 1.8K Jul 10 11:53 wazuh1.indexer.yml
+-rw-r--r-- 1 wazuh-admin wazuh-admin 1.8K Jul 10 11:53 wazuh2.indexer.yml
+-rw-r--r-- 1 wazuh-admin wazuh-admin 1.8K Jul 10 11:53 wazuh3.indexer.yml
 ```
 </details>
 
@@ -335,40 +335,40 @@ The script will:
 ```bash
 > ls -la config/wazuh_indexer/geoip-data
 total 8
-drwxr-xr-x 2 leon leon 4096 Jul 24 09:42 .
-drwxr-xr-x 4 leon leon 4096 Jul 24 09:42 ..
+drwxr-xr-x 2 wazuh-admin wazuh-admin 4096 Jul 24 09:42 .
+drwxr-xr-x 4 wazuh-admin wazuh-admin 4096 Jul 24 09:42 ..
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?4                                                                                                                                           
 > ls -la config/wazuh_indexer/scripts   
 total 16
-drwxr-xr-x 2 leon leon 4096 Jul 24 09:42 .
-drwxr-xr-x 4 leon leon 4096 Jul 24 09:42 ..
--rwxr-xr-x 1 leon leon 7373 Jul 24 09:42 update_maxmind.sh
+drwxr-xr-x 2 wazuh-admin wazuh-admin 4096 Jul 24 09:42 .
+drwxr-xr-x 4 wazuh-admin wazuh-admin 4096 Jul 24 09:42 ..
+-rwxr-xr-x 1 wazuh-admin wazuh-admin 7373 Jul 24 09:42 update_maxmind.sh
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?4                                                                                                                                           
 > sudo docker ps
 CONTAINER ID   IMAGE                          COMMAND                  CREATED       STATUS       PORTS                                                                                                                                                       NAMES
-0a80f36d5933   nginx:stable                   "/docker-entrypoint.…"   4 hours ago   Up 4 hours   80/tcp, 0.0.0.0:1514->1514/tcp, [::]:1514->1514/tcp                                                                                                         multi-node-nginx-1
+0a80f36d5933   nginx:stable                   "/docker-entrypoint...."   4 hours ago   Up 4 hours   80/tcp, 0.0.0.0:1514->1514/tcp, [::]:1514->1514/tcp                                                                                                         multi-node-nginx-1
 12e1eeb4b0f9   wazuh/wazuh-dashboard:4.12.0   "/entrypoint.sh"         4 hours ago   Up 4 hours   443/tcp, 0.0.0.0:443->5601/tcp, [::]:443->5601/tcp                                                                                                          multi-node-wazuh.dashboard-1
 a70a1efb2466   wazuh/wazuh-manager:4.12.0     "/init"                  4 hours ago   Up 4 hours   1514/tcp, 0.0.0.0:1515->1515/tcp, [::]:1515->1515/tcp, 0.0.0.0:514->514/udp, [::]:514->514/udp, 1516/tcp, 0.0.0.0:55000->55000/tcp, [::]:55000->55000/tcp   multi-node-wazuh.master-1
-6447b133bbd1   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open…"   4 hours ago   Up 4 hours   0.0.0.0:9200->9200/tcp, [::]:9200->9200/tcp                                                                                                                 multi-node-wazuh1.indexer-1
-f1a27f9deccc   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open…"   4 hours ago   Up 4 hours   9200/tcp                                                                                                                                                    multi-node-wazuh2.indexer-1
+6447b133bbd1   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open..."   4 hours ago   Up 4 hours   0.0.0.0:9200->9200/tcp, [::]:9200->9200/tcp                                                                                                                 multi-node-wazuh1.indexer-1
+f1a27f9deccc   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open..."   4 hours ago   Up 4 hours   9200/tcp                                                                                                                                                    multi-node-wazuh2.indexer-1
 7dc2fba75c98   wazuh/wazuh-manager:4.12.0     "/init"                  4 hours ago   Up 4 hours   1514-1516/tcp, 514/udp, 55000/tcp                                                                                                                           multi-node-wazuh.worker-1
-f136d9308022   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open…"   4 hours ago   Up 4 hours   9200/tcp                                                                                                                                                    multi-node-wazuh3.indexer-1
+f136d9308022   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open..."   4 hours ago   Up 4 hours   9200/tcp                                                                                                                                                    multi-node-wazuh3.indexer-1
 > ./config/wazuh_indexer/scripts/update_maxmind.sh
 Found indexer containers:
   • multi-node-wazuh3.indexer-1
   • multi-node-wazuh2.indexer-1
   • multi-node-wazuh1.indexer-1
 Detected services to recreate: wazuh3.indexer wazuh2.indexer wazuh1.indexer
-GeoIP dir is empty; bootstrapping default .mmdb files…
+GeoIP dir is empty; bootstrapping default .mmdb files...
   • Copying GeoLite2-City.mmdb
-Successfully copied 62.9MB to /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
+Successfully copied 62.9MB to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
   • Copying GeoLite2-Country.mmdb
-Successfully copied 3.99MB to /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
+Successfully copied 3.99MB to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
   • Copying GeoLite2-ASN.mmdb
-Successfully copied 6.61MB to /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
-Bootstrapped GeoIP DBs into /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
+Successfully copied 6.61MB to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
+Bootstrapped GeoIP DBs into /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
 Stopping indexer...
-Stopping all indexer containers…
+Stopping all indexer containers...
   • multi-node-wazuh3.indexer-1
 multi-node-wazuh3.indexer-1
   • multi-node-wazuh2.indexer-1
@@ -379,18 +379,18 @@ multi-node-wazuh1.indexer-1
 Checking GeoLite2-Country...
   Extracted GeoLite2-Country.mmdb to temporary file.
   New or changed GeoLite2-Country detected; installing updated .mmdb...
-  Moved GeoLite2-Country.mmdb to /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-Country.mmdb
+  Moved GeoLite2-Country.mmdb to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-Country.mmdb
 Checking GeoLite2-City...
   Extracted GeoLite2-City.mmdb to temporary file.
   New or changed GeoLite2-City detected; installing updated .mmdb...
-  Moved GeoLite2-City.mmdb to /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-City.mmdb
+  Moved GeoLite2-City.mmdb to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-City.mmdb
 Checking GeoLite2-ASN...
   Extracted GeoLite2-ASN.mmdb to temporary file.
   New or changed GeoLite2-ASN detected; installing updated .mmdb...
-  Moved GeoLite2-ASN.mmdb to /home/leon/MyVagrant/docker/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-ASN.mmdb
+  Moved GeoLite2-ASN.mmdb to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-ASN.mmdb
 Updates applied; restarting indexer...
-Updates applied; recreating indexer containers to pick up new mounts…
-  • Removing old container for service 'wazuh3.indexer'…
+Updates applied; recreating indexer containers to pick up new mounts...
+  • Removing old container for service 'wazuh3.indexer'...
 [+] Running 1/0
  ⠿ Container multi-node-wazuh3.indexer-1  Stopped                                                                                                                                                  0.0s
 Going to remove multi-node-wazuh3.indexer-1
@@ -399,7 +399,7 @@ Going to remove multi-node-wazuh3.indexer-1
 [+] Running 1/1
  ⠿ Container multi-node-wazuh3.indexer-1  Started                                                                                                                                                  0.2s
      Recreated wazuh3.indexer
-  • Removing old container for service 'wazuh2.indexer'…
+  • Removing old container for service 'wazuh2.indexer'...
 [+] Running 1/0
  ⠿ Container multi-node-wazuh2.indexer-1  Stopped                                                                                                                                                  0.0s
 Going to remove multi-node-wazuh2.indexer-1
@@ -408,7 +408,7 @@ Going to remove multi-node-wazuh2.indexer-1
 [+] Running 1/1
  ⠿ Container multi-node-wazuh2.indexer-1  Started                                                                                                                                                  0.2s
      Recreated wazuh2.indexer
-  • Removing old container for service 'wazuh1.indexer'…
+  • Removing old container for service 'wazuh1.indexer'...
 [+] Running 1/0
  ⠿ Container multi-node-wazuh1.indexer-1  Stopped                                                                                                                                                  0.0s
 Going to remove multi-node-wazuh1.indexer-1
@@ -420,7 +420,7 @@ Going to remove multi-node-wazuh1.indexer-1
 All indexer containers have been recreated with updated mounts.
 MaxMind GeoLite2 databases have been updated successfully.
 Ensuring indexer is running...
-Ensuring all indexers are running…
+Ensuring all indexers are running...
   • multi-node-wazuh3.indexer-1 is already running.
   • multi-node-wazuh2.indexer-1 is already running.
   • multi-node-wazuh1.indexer-1 is already running.
@@ -440,11 +440,11 @@ total 82116
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?5                                                                  
 > ls -la config/wazuh_indexer/geoip-data
 total 80284
-drwxr-xr-x 2 leon leon     4096 Jul 24 14:04 .
-drwxr-xr-x 4 leon leon     4096 Jul 24 09:42 ..
--rw-r--r-- 1 leon leon 10706647 Jul 24 14:04 GeoLite2-ASN.mmdb
--rw-r--r-- 1 leon leon 61731202 Jul 24 14:04 GeoLite2-City.mmdb
--rw-r--r-- 1 leon leon  9752788 Jul 24 14:04 GeoLite2-Country.mmdb
+drwxr-xr-x 2 wazuh-admin wazuh-admin     4096 Jul 24 14:04 .
+drwxr-xr-x 4 wazuh-admin wazuh-admin     4096 Jul 24 09:42 ..
+-rw-r--r-- 1 wazuh-admin wazuh-admin 10706647 Jul 24 14:04 GeoLite2-ASN.mmdb
+-rw-r--r-- 1 wazuh-admin wazuh-admin 61731202 Jul 24 14:04 GeoLite2-City.mmdb
+-rw-r--r-- 1 wazuh-admin wazuh-admin  9752788 Jul 24 14:04 GeoLite2-Country.mmdb
 ```
 </details>
 
@@ -467,11 +467,11 @@ total 82116
 -rw-r----- 1 wazuh-indexer wazuh-indexer     1764 Apr 30 10:54 plugin-security.policy
 > ls -la config/wazuh_indexer/geoip-data
 total 80284
-drwxr-xr-x 2 leon leon     4096 Jul 24 14:04 .
-drwxr-xr-x 4 leon leon     4096 Jul 24 09:42 ..
--rw-r--r-- 1 leon leon 10706647 Jul 24 14:04 GeoLite2-ASN.mmdb
--rw-r--r-- 1 leon leon 61731202 Jul 24 14:04 GeoLite2-City.mmdb
--rw-r--r-- 1 leon leon  9752788 Jul 24 14:04 GeoLite2-Country.mmdb
+drwxr-xr-x 2 wazuh-admin wazuh-admin     4096 Jul 24 14:04 .
+drwxr-xr-x 4 wazuh-admin wazuh-admin     4096 Jul 24 09:42 ..
+-rw-r--r-- 1 wazuh-admin wazuh-admin 10706647 Jul 24 14:04 GeoLite2-ASN.mmdb
+-rw-r--r-- 1 wazuh-admin wazuh-admin 61731202 Jul 24 14:04 GeoLite2-City.mmdb
+-rw-r--r-- 1 wazuh-admin wazuh-admin  9752788 Jul 24 14:04 GeoLite2-Country.mmdb
 ```
 
 </details>
@@ -491,7 +491,7 @@ Found indexer containers:
 Detected services to recreate: wazuh1.indexer wazuh2.indexer wazuh3.indexer
 GeoIP dir already populated; skipping bootstrap.
 Stopping indexer...
-Stopping all indexer containers…
+Stopping all indexer containers...
   • multi-node-wazuh1.indexer-1
 multi-node-wazuh1.indexer-1
   • multi-node-wazuh2.indexer-1
@@ -510,7 +510,7 @@ Checking GeoLite2-ASN...
   GeoLite2-ASN is up to date (contents identical).
 No updates needed; indexer will be ensured up by trap.
 Ensuring indexer is running...
-Ensuring all indexers are running…
+Ensuring all indexers are running...
 multi-node-wazuh1.indexer-1
   • Started multi-node-wazuh1.indexer-1
 multi-node-wazuh2.indexer-1
@@ -522,11 +522,11 @@ multi-node-wazuh3.indexer-1
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?5                                                                                                                                       4s 
 > ls -la config/wazuh_indexer/geoip-data
 total 80284
-drwxr-xr-x 2 leon leon     4096 Jul 24 14:04 .
-drwxr-xr-x 4 leon leon     4096 Jul 24 09:42 ..
--rw-r--r-- 1 leon leon 10706647 Jul 24 14:04 GeoLite2-ASN.mmdb
--rw-r--r-- 1 leon leon 61731202 Jul 24 14:04 GeoLite2-City.mmdb
--rw-r--r-- 1 leon leon  9752788 Jul 24 14:04 GeoLite2-Country.mmdb
+drwxr-xr-x 2 wazuh-admin wazuh-admin     4096 Jul 24 14:04 .
+drwxr-xr-x 4 wazuh-admin wazuh-admin     4096 Jul 24 09:42 ..
+-rw-r--r-- 1 wazuh-admin wazuh-admin 10706647 Jul 24 14:04 GeoLite2-ASN.mmdb
+-rw-r--r-- 1 wazuh-admin wazuh-admin 61731202 Jul 24 14:04 GeoLite2-City.mmdb
+-rw-r--r-- 1 wazuh-admin wazuh-admin  9752788 Jul 24 14:04 GeoLite2-Country.mmdb
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?5                                                                                                                                          
 > sudo docker exec multi-node-wazuh2.indexer-1 ls -l /usr/share/wazuh-indexer/modules/ingest-geoip
 total 82116

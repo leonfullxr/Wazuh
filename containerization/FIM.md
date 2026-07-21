@@ -1,132 +1,121 @@
-# Recommended Approaches for FIM within Containerized Environments
+# FIM in containerized environments
 
-## Introduction
-Basically, our implementation of container security will be done at two different layers:
+**Applies to:** Wazuh 4.x · Docker hosts and Kubernetes nodes
 
-1.- The infrastructure layer
+[Back to containerization README](./README.md)
 
-In order to monitor the Docker host or the K8s node, we do have a solution that makes use of different monitoring mechanisms:
+## Table of Contents
 
-APIs integration: Being able to pull data directly from the Docker engine API or from the K8s API. Here you will find a guide on how to accomplish this step by step: https://documentation.wazuh.com/4.0/docker-monitor/monitoring_containers_activity.html 
+- [Overview](#overview)
+- [Layer 1: the infrastructure](#layer-1-the-infrastructure)
+- [Layer 2: the containers](#layer-2-the-containers)
+- [Recommended setup: agent on the host](#recommended-setup-agent-on-the-host)
+- [Volumes vs bind mounts](#volumes-vs-bind-mounts)
+- [Monitoring container files through shared volumes](#monitoring-container-files-through-shared-volumes)
+- [Example centralized syscheck configuration](#example-centralized-syscheck-configuration)
 
-When the infrastructure is self-managed (on-premises): We typically deploy the Wazuh agent to the Docker host or K8s node. Then, the agent monitors the host itself (looking for threats or anomalies) and communicates with the Docker and K8s APIs. Here you will find a guide on how to accomplish this step by step: https://documentation.wazuh.com/4.0/docker-monitor/monitoring_docker_server.html 
-and for the deployment: https://documentation.wazuh.com/4.0/deploying-with-kubernetes/index.html 
+## Overview
 
-When the infrastructure is hosted (e.g. Google GKE, Amazon EKS, etc.): We do connect one of the Wazuh agents (sometimes even the manager directly), to the cloud provider, downloading the audit logs (which are forwarded to the Wazuh manager for analysis): https://wazuh.com/blog/monitoring-gke-audit-logs/ 
+Container security monitoring with Wazuh works at two layers, and where you can run FIM (syscheck) depends on where the agent runs:
 
-Example of security alerts at an infrastructure level:
+| Where the agent runs | FIM available? | What it can see |
+|----------------------|----------------|-----------------|
+| On the Docker host / K8s node (recommended) | Yes - full | Host filesystem, plus any container data exposed via volumes/bind mounts; Docker & K8s APIs |
+| Inside a container (DaemonSet) | Limited | Only volumes mounted into the agent container - not officially supported |
+| EKS Fargate / fully managed pods | No | No node access; use cloud log ingestion instead ([details](./kubernetes/agent-daemonset.md#eks-fargate-ship-logs-to-cloudwatch)) |
 
-A Docker image is modified.
+## Layer 1: the infrastructure
 
-A container is running in privileged mode.
+Monitoring the Docker host or Kubernetes node itself:
 
-A user runs a command inside a container.
+- **API integration:** the agent (or manager) pulls events directly from the [Docker engine API](https://documentation.wazuh.com/current/user-manual/capabilities/container-security/monitoring-docker.html) or the Kubernetes API.
+- **Self-managed infrastructure:** deploy the Wazuh agent on the Docker host / K8s node. The agent monitors the host for threats and anomalies and talks to the Docker/K8s APIs. See [monitoring Docker servers](https://documentation.wazuh.com/current/user-manual/capabilities/container-security/index.html) and [deploying with Kubernetes](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html).
+- **Hosted infrastructure (GKE, EKS, ...):** connect an agent (or the manager) to the cloud provider and ingest the audit logs, e.g. [monitoring GKE audit logs](https://wazuh.com/blog/monitoring-gke-audit-logs/).
 
-A new pod is created.
+Typical alerts at this layer: a Docker image is modified, a container runs in privileged mode, a user runs a command inside a container, a new pod is created, K8s network configuration changes, new software installed on the host, host vulnerabilities, failed hardening checks.
 
-K8s network configuration is changed.
+## Layer 2: the containers
 
-A new application is installed on the host.
+Two options for monitoring the containers themselves:
 
-Vulnerabilities are detected on the host.
+1. **Agent as a DaemonSet pod:** the agent accesses the filesystems other containers expose through volumes - reading logs, detecting config changes. **Not officially supported, and FIM is not available** against arbitrary container filesystems; the agent only sees what is mounted into its own pod. See [containerized agent (custom image)](./kubernetes/agent-daemonset.md).
+2. **Agent directly on the host (recommended):** full agent capabilities - FIM, log collection, SCA, Docker listener. See [deploying an agent on a K8s node](./kubernetes/agent-on-node.md).
 
-Hardening checks fail for the host.
+## Recommended setup: agent on the host
 
-2.- The container layer
+If installing the agent on the host is feasible:
 
-In order to monitor the containers we do usually go with one of these two options:
+1. [Install the Wazuh agent](https://documentation.wazuh.com/current/installation-guide/wazuh-agent/index.html) and connect it to the manager.
+2. Enable the [Docker listener](https://documentation.wazuh.com/current/user-manual/capabilities/container-security/monitoring-docker.html) to capture container events.
+3. [Configure FIM](https://documentation.wazuh.com/current/user-manual/capabilities/file-integrity/how-to-configure-fim.html) on the directories backing the Docker volumes.
+4. Optionally monitor command output (`docker ps`, etc.) - see [Docker container security monitoring with Wazuh](https://wazuh.com/blog/docker-container-security-monitoring-with-wazuh/).
 
-Run the Wazuh agent in a DaemonSet container/pod: This agent will access the file system of other containers, in order to read log messages, detect changes to configuration files, get a list of applications installed, run hardening checks, etc.
+## Volumes vs bind mounts
 
-However, this is not officially supported yet and FIM is not available.
+Both mechanisms expose container data where a host-level agent can watch it:
 
-Run the Wazuh agent directly in the host: Same features as described above. I do recommend this option: https://documentation.wazuh.com/current/docker-monitor/monitoring_docker_server.html
+- **Volumes** are managed entirely by Docker, live outside the container lifecycle, and work reliably across platforms (including Windows container hosts). Good for sharing data between containers or with other compute services.
+- **Bind mounts** map an explicit host directory into the container, which makes the path on the host predictable - convenient for pointing syscheck at it.
 
-If the installation of the agent in the host, is feasible, then you should:
+```bash
+# Bind mounts
+docker run --mount type=bind,source="$(pwd)"/mariadb_data,target=/var/lib/mysql ...
+docker run -v "$(pwd)"/mariadb_data:/var/lib/mysql ...
 
-Install the Wazuh Agent and connect it to the Wazuh Manager: https://documentation.wazuh.com/current/installation-guide/wazuh-agent/index.html
-
-Configure the Docker listener: https://documentation.wazuh.com/current/user-manual/capabilities/container-security/monitoring-docker.html
-
-Configure FIM for the docker volumes: https://documentation.wazuh.com/current/user-manual/capabilities/file-integrity/how-to-configure-fim.html
-
-Then you can monitor extra commands as docker ps, or other docker commands with Wazuh: https://wazuh.com/blog/docker-container-security-monitoring-with-wazuh/
-
-But inside the Docker container you can not run Wazuh Agents by default, so when running it (as daemon set) you can not make the most of all the capabilities from the agent. For Instance, FIM will not be available, but you will be able to read logs inside that container.
-
-If you want to monitor the files of the containers within the containers itself, a good way would be to do it through the centralized configuration https://wazuh.com/blog/agent-groups-and-centralized-configuration/#:~:text=This%20enables%20you%20to%20apply,to%20agents%20within%20a%20group  although I would need to run some tests to ensure this will work and come up with a detailed answer.
-
-## Installation of the Wazuh agent in a Docker Host
-Run the Wazuh agent directly in the host: https://documentation.wazuh.com/current/docker-monitor/monitoring_docker_server.html
-
-By doing so, you can perform FIM, log collection, and all the Wazuh capabilities.
-
-## Daemonset Installation
-The DaemonSet option is when you cannot install an agent on the host and you need to monitor the container layer.
-
-### Wazuh Agent Dockerized Installation
-```xml
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: wazuh-agent
-  namespace: wazuh
-  labels:
-    k8s-app: wazuh-agent
-spec:
-  selector:
-    matchLabels:
-      name: wazuh-agent
-  template:
-    metadata:
-      labels:
-        name: wazuh-agent
-    spec:
-      containers:
-      - name: wazuh-agent 
-        image: wazuh-agent:4.1.4
-        env:
-        - name: WAZUH_MANAGER_IP
-          value: "192.168.1.240"
-        - name: WAZUH_AGENT_GROUP
-          value: "kubernetes"
-        volumeMounts:
-        - name: nginx-logs
-          mountPath: /var/log/wazuh/nginx/
-      volumes:
-      - name: nginx-logs
-        hostPath:
-          path: /var/log/kubernetes/nginx/
+# Volumes
+docker run --mount source=mariadb_data,target=/var/lib/mysql ...
+docker run -v mariadb_data:/var/lib/mysql ...
 ```
 
-```xml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-test-app
-  namespace: wazuh
-  labels:
-    k8s-app: nginx-test
+## Monitoring container files through shared volumes
+
+On Kubernetes, expose the files to the node with a `hostPath` volume; the node-level agent then runs FIM/log collection on the host directory:
+
+```yaml
 spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      name: nginx-app
-  template:
-    metadata:
-      labels:
-        name: nginx-app
-    spec:
-      containers:
-      - name: nginx 
-        image: nginx 
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: nginx-logs
-          mountPath: /var/log/nginx/
-      volumes:
-      - name: nginx-logs
-        hostPath:
-          path: /var/log/kubernetes/nginx/
+  containers:
+  - image: nginx
+    name: nginx-container
+    volumeMounts:
+    - mountPath: /var/log/nginx
+      name: nginx-logs
+  volumes:
+  - name: nginx-logs
+    hostPath:
+      path: /nginx-app-logs   # directory on the node the agent monitors
+      type: Directory
 ```
+
+## Example centralized syscheck configuration
+
+Apply syscheck settings to all node agents at once through a group's shared `agent.conf` (see [agent groups and centralized configuration](https://wazuh.com/blog/agent-groups-and-centralized-configuration/)). Example combining broad host FIM with the mounted volume above:
+
+```xml
+<agent_config>
+  <labels>
+    <label key="group">FIM</label>
+  </labels>
+  <syscheck>
+    <directories check_all="yes">/run,/home,/tmp,/root,/var</directories>
+    <ignore>/var/cache</ignore>
+    <ignore>/var/spool</ignore>
+    <ignore>/var/lib/apt</ignore>
+    <ignore>/var/log</ignore>
+    <ignore>/media</ignore>
+    <scan_time>6:00</scan_time>
+    <frequency>86400</frequency>
+  </syscheck>
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/nginx-app-logs/*.log</location>
+  </localfile>
+</agent_config>
+```
+
+Tune the `<directories>` and `<ignore>` entries to your workloads - excluding high-churn paths (package caches, spool, logs) keeps FIM noise and database size manageable.
+
+## Related
+
+- [Deploying an agent on a Kubernetes node](./kubernetes/agent-on-node.md)
+- [Containerized agent as a DaemonSet](./kubernetes/agent-daemonset.md)
+- [Wazuh agent deployment - DaemonSet & Sidecar](./kubernetes/wazuh-agent-deployment.md)

@@ -4,12 +4,13 @@ import sys
 import os
 import json
 import logging
+import ssl
 import time
 from argparse import ArgumentParser
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from urllib.parse import urlparse
 import urllib3
-from urllib3.exceptions import InsecureRequestWarning
 
 # === Constants ===
 CONTENT_TYPE    = "application/json"
@@ -32,15 +33,24 @@ QUEUE_FILE = LOG_DIR / "splunk_queue.json"
 QUEUE_TMP  = LOG_DIR / "splunk_queue.json.inprocess"
 
 # === Initialize HTTP client ===
-urllib3.disable_warnings(InsecureRequestWarning)
-http = urllib3.PoolManager(cert_reqs="CERT_NONE")
+# Use the system trust store by default. For a private CA, set
+# SPLUNK_SOAR_CA_FILE to the PEM bundle path.
+http = urllib3.PoolManager(
+    cert_reqs=ssl.CERT_REQUIRED,
+    ca_certs=os.environ.get("SPLUNK_SOAR_CA_FILE"),
+)
 
 # === Logging Setup ===
 def setup_logging() -> logging.Logger:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     logger = logging.getLogger("splunk_soar")
     logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
-    handler = logging.FileHandler(str(LOG_FILE), encoding="utf-8")
+    handler = RotatingFileHandler(
+        str(LOG_FILE),
+        maxBytes=10 * 1024 * 1024,
+        backupCount=5,
+        encoding="utf-8",
+    )
     fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
     handler.setFormatter(fmt)
     logger.addHandler(handler)
@@ -59,8 +69,8 @@ def validate_token(raw: str, logger: logging.Logger) -> str:
 
 def validate_url(url: str, logger: logging.Logger):
     parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        logger.error("Invalid hook URL: %s", url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        logger.error("Hook URL must be a valid HTTPS URL")
         sys.exit(ERR_BAD_ARGUMENTS)
 
 def load_event(path: Path, logger: logging.Logger) -> dict:
@@ -106,11 +116,11 @@ def send_payload(hook_url: str, token: str, container: dict, logger: logging.Log
         return False
 
     body = resp.data.decode('utf-8', errors='ignore')
-    if resp.status >= 400:
-        logger.error('Webhook POST error %s: %s', resp.status, body)
+    if not 200 <= resp.status < 300:
+        logger.error('Webhook POST error %s: %.500s', resp.status, body)
         return False
 
-    logger.info('Webhook POST succeeded: %s', body)
+    logger.info('Webhook POST succeeded: HTTP %s', resp.status)
     return True
 
 # === Queue Management ===
@@ -185,11 +195,9 @@ def main():
         logger.setLevel(logging.DEBUG)
         logger.debug("Debug logging enabled")
 
-    # 4) Log everything we got
-    if DEBUG:
-        logger.info("RAW ARGV: %r", sys.argv)
-        if extras:
-            logger.info("Ignoring extra args: %r", extras)
+    # 4) Never log argv: it contains the API token and webhook URL.
+    if extras:
+        logger.debug("Ignoring %d extra argument(s)", len(extras))
 
     try:
         token = validate_token(args.api_token, logger)

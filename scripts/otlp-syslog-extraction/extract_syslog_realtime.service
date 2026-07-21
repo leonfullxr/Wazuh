@@ -1,0 +1,16 @@
+# /etc/systemd/system/extract_syslog_realtime.service
+[Unit]
+Description=OpenTelemetry JSON - syslog extractor for Wazuh
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /usr/local/bin/otlp_syslog_follow.sh \
+  /var/log/otlp/syslog.log \
+  /var/log/otlp/syslog_extracted.log
+Restart=always
+RestartSec=2
+# Writes go to the journal by default; adjust if you want separate logs.
+
+[Install]
+WantedBy=multi-user.target

@@ -1,212 +1,93 @@
-# json converted - Confluence Audit logs
-Convert the embedded json log to various properly formatted json logs.
+# Collecting Confluence Audit Exports
 
-## Overview
-The one line initial log has the following format:
+Confluence audit API responses wrap events in a `results` array. This
+integration converts a downloaded response to newline-delimited JSON (NDJSON)
+so a Wazuh agent can collect each audit record independently.
 
-{"offset":0,"limit":1000,"total":5141,"records":[{json_log},{json_log},{json_log},...]
+The procedure covers normalization and Wazuh ingestion, not the vendor API
+client. Automate downloads with the current Atlassian authentication,
+pagination, and rate-limit guidance, and keep credentials outside scripts and
+the repository.
 
-And this needs to be broken down into:
+## Prerequisites
 
-{json_log}
-{json_log}
-{json_log}
-....
-{json_log}
+- A Confluence audit response shaped as `{"results":[...],"start":0,...}`.
+- `jq` on the normalization host.
+- A Wazuh agent with read access to the output directory.
+- An approved audit-event and severity policy.
 
-Initial log:
-```json
-{"results":[
-  {
-    "author": {
-      "type": "user",
-      "displayName": "System",
-      "operations": null,
-      "isExternalCollaborator": false,
-      "accountType": "",
-      "publicName": "Unknown user",
-      "externalCollaborator": false
-    },
-    "remoteAddress": "",
-    "creationDate": 1746601154321,
-    "summary": "User removed from group",
-    "description": "",
-    "category": "Users and groups",
-    "sysAdmin": false,
-    "superAdmin": false,
-    "affectedObject": {
-      "name": "alpha-admins:1a2b3c4d",
-      "objectType": "Group"
-    },
-    "changedValues": [],
-    "associatedObjects": [
-      {
-        "name": "Jane Doe",
-        "objectType": "User"
-      }
-    ]
-  },
-  {
-    "author": {
-      "type": "user",
-      "displayName": "Alice Johnson",
-      "operations": null,
-      "isExternalCollaborator": false,
-      "username": "a1b2c3d4",
-      "userKey": "key1234abcd",
-      "accountId": "a1b2c3d4e5f6",
-      "accountType": "",
-      "publicName": "Alice J.",
-      "externalCollaborator": false
-    },
-    "remoteAddress": "203.0.113.5",
-    "creationDate": 1746601098765,
-    "summary": "Permission revoked",
-    "description": "",
-    "category": "Permissions",
-    "sysAdmin": false,
-    "superAdmin": false,
-    "affectedObject": {
-      "name": "finance-team:55e6f7g8-9h10-11i12-13j14",
-      "objectType": "Group"
-    },
-    "changedValues": [
-      {
-        "name": "Permission",
-        "oldValue": "Edit",
-        "newValue": "View",
-        "hiddenOldValue": "",
-        "hiddenNewValue": ""
-      }
-    ],
-    "associatedObjects": [
-      {
-        "name": "Budget Report",
-        "objectType": "Page"
-      },
-      {
-        "name": "Finance Space",
-        "objectType": "Space"
-      }
-    ]
-  },
-  {
-    "author": {
-      "type": "user",
-      "displayName": "Bob Smith",
-      "operations": null,
-      "isExternalCollaborator": false,
-      "username": "b2c3d4e5",
-      "userKey": "key5678efgh",
-      "accountId": "b2c3d4e5f6g7",
-      "accountType": "",
-      "publicName": "Bob S.",
-      "externalCollaborator": false
-    },
-    "remoteAddress": "198.51.100.23",
-    "creationDate": 1746601032100,
-    "summary": "Content restriction removed",
-    "description": "",
-    "category": "Permissions",
-    "sysAdmin": false,
-    "superAdmin": false,
-    "affectedObject": {
-      "name": "Project Plan:9a8b7c6d-5e4f-3g2h-1i0j",
-      "objectType": "Page"
-    },
-    "changedValues": [
-      {
-        "name": "Restriction",
-        "oldValue": "Read",
-        "newValue": "None",
-        "hiddenOldValue": "",
-        "hiddenNewValue": ""
-      }
-    ],
-    "associatedObjects": [
-      {
-        "name": "Operations Manual",
-        "objectType": "Page"
-      }
-    ]
-  },
-  {
-    "author": {
-      "type": "user",
-      "displayName": "Charlie Lee",
-      "operations": null,
-      "isExternalCollaborator": false,
-      "username": "c3d4e5f6",
-      "userKey": "key9012ijkl",
-      "accountId": "c3d4e5f6g7h8",
-      "accountType": "",
-      "publicName": "Charlie L.",
-      "externalCollaborator": false
-    },
-    "remoteAddress": "",
-    "creationDate": 1746600987654,
-    "summary": "Page moved",
-    "description": "",
-    "category": "Content management",
-    "sysAdmin": false,
-    "superAdmin": false,
-    "affectedObject": {
-      "name": "Team Roadmap",
-      "objectType": "Page"
-    },
-    "changedValues": [
-      {
-        "name": "Old Space",
-        "oldValue": "Development",
-        "newValue": "Management",
-        "hiddenOldValue": "",
-        "hiddenNewValue": ""
-      },
-      {
-        "name": "New Space",
-        "oldValue": "",
-        "newValue": "Management",
-        "hiddenOldValue": "",
-        "hiddenNewValue": ""
-      }
-    ],
-    "associatedObjects": [
-      {
-        "name": "Team Roadmap",
-        "objectType": "Page"
-      }
-    ]
-  }
-],
-"start":0,
-"limit":1000,
-"size":4,
-"_links":{
-  "base":"https://acmecorp.atlassian.net/wiki",
-  "context":"/wiki",
-  "self":"https://acmecorp.atlassian.net/wiki/rest/api/audit?endDate=2025-05-07T11:45:32.100Z&startDate=2025-05-07T06:45:32.100Z"
-}}
+Confluence records can contain user names, account identifiers, source
+addresses, page/space names, and permission changes. Treat the output as
+security-sensitive.
 
+## Procedure
+
+1. Install the normalizer and create a protected output directory:
+
+   ```bash
+   sudo install -o root -g wazuh -m 750 confluence-format_json.sh \
+     /usr/local/sbin/confluence-format-json
+   sudo install -d -o root -g wazuh -m 750 /var/log/atlassian/confluence
+   ```
+
+2. Normalize one API response:
+
+   ```bash
+   sudo /usr/local/sbin/confluence-format-json \
+     /var/lib/atlassian/confluence-audit-2026-07-10T120000Z.json \
+     /var/log/atlassian/confluence/confluence-audit-2026-07-10T120000Z.ndjson
+   sudo chown root:wazuh \
+     /var/log/atlassian/confluence/confluence-audit-2026-07-10T120000Z.ndjson
+   ```
+
+   The script validates every record and atomically renames the complete
+   output into place.
+
+3. Configure the local Wazuh agent:
+
+   ```xml
+   <localfile>
+     <location>/var/log/atlassian/confluence/*.ndjson</location>
+     <log_format>json</log_format>
+     <only-future-events>yes</only-future-events>
+   </localfile>
+   ```
+
+4. Install [`confluence_rules.xml`](confluence_rules.xml) on every manager:
+
+   ```bash
+   sudo install -o wazuh -g wazuh -m 640 confluence_rules.xml \
+     /var/ossec/etc/rules/confluence_audit_rules.xml
+   sudo /var/ossec/bin/wazuh-analysisd -t
+   sudo systemctl restart wazuh-manager
+   sudo systemctl restart wazuh-agent
+   ```
+
+## Verification
+
+```bash
+jq -e -c . /var/log/atlassian/confluence/*.ndjson >/dev/null
+wc -l /var/log/atlassian/confluence/*.ndjson
 ```
 
-Formated json log:
-```json
-{"author":{"type":"user","displayName":"System","operations":null,"isExternalCollaborator":false,"accountType":"","publicName":"Unknown user","externalCollaborator":false},"remoteAddress":"203.0.113.1","creationDate":1746600954321,"summary":"User removed from group","description":"","category":"Users and groups","sysAdmin":false,"superAdmin":false,"affectedObject":{"name":"alpha-admins:1a2b3c4d","objectType":"Group"},"changedValues":[],"associatedObjects":[{"name":"Jane Doe","objectType":"User"}]}
+Paste one sanitized line into `/var/ossec/bin/wazuh-logtest`. Confirm the JSON
+decoder extracts nested fields and the intended Confluence rule matches.
 
-{"author":{"type":"user","displayName":"Emily Clark","operations":null,"isExternalCollaborator":false,"username":"e1f2a3b4c5d6","userKey":"f1e2d3c4b5a6","accountId":"e1f2a3b4c5d6f7","accountType":"","publicName":"Emily C.","externalCollaborator":false},"remoteAddress":"198.51.100.42","creationDate":1746600906789,"summary":"Content restriction removed","description":"","category":"Permissions","sysAdmin":false,"superAdmin":false,"affectedObject":{"name":"team-admins:d4e5f678-1234-5678-9ab0-cdef12345678","objectType":"Group"},"changedValues":[{"name":"Restriction","oldValue":"Read","newValue":"None","hiddenOldValue":"","hiddenNewValue":""}],"associatedObjects":[{"name":"Project Overview","objectType":"Page"},{"name":"Engineering Docs","objectType":"Space"}]}
+In the dashboard, verify actor, source address, `summary`, `category`,
+`affectedObject`, `associatedObjects`, rule ID, and timestamp. Compare source
+and output record counts before relying on the pipeline.
 
-{"author":{"type":"user","displayName":"Michael Brown","operations":null,"isExternalCollaborator":false,"username":"f7e6d5c4b3a2","userKey":"a1b2c3d4e5f6","accountId":"f7e6d5c4b3a2f1","accountType":"","publicName":"Michael B.","externalCollaborator":false},"remoteAddress":"","creationDate":1746600851234,"summary":"Content restriction added","description":"","category":"Permissions","sysAdmin":false,"superAdmin":false,"affectedObject":{"name":"John Doe","objectType":"User"},"changedValues":[{"name":"Type","oldValue":"","newValue":"Edit","hiddenOldValue":"","hiddenNewValue":""},{"name":"User","oldValue":"","newValue":"John Doe","hiddenOldValue":"","hiddenNewValue":""}],"associatedObjects":[{"name":"Team Playbook","objectType":"Page"},{"name":"HR Space","objectType":"Space"}]}
+## Operations
 
-{"author":{"type":"user","displayName":"Sarah Johnson","operations":null,"isExternalCollaborator":false,"username":"c3b2a1d4e5f6","userKey":"b1c2d3e4f5g6","accountId":"c3b2a1d4e5f6g7","accountType":"","publicName":"Sarah J.","externalCollaborator":false},"remoteAddress":"203.0.113.88","creationDate":1746600807890,"summary":"Permission updated","description":"","category":"Permissions","sysAdmin":false,"superAdmin":false,"affectedObject":{"name":"Project Plan:9a8b7c6d-5e4f-3g2h-1i0j","objectType":"Page"},"changedValues":[{"name":"Permission","oldValue":"View","newValue":"Edit","hiddenOldValue":"","hiddenNewValue":""}],"associatedObjects":[{"name":"Budget Tracker","objectType":"Page"}]}
+- Fetch every page and maintain a durable interval/cursor checkpoint.
+- Write a timestamped file only after a complete successful API response.
+- Rotate consumed NDJSON files based on audit volume and retention.
+- Review rule field paths and text when Atlassian changes the response schema.
+- Rules matching `sysAdmin` or `superAdmin` activity should add context, not
+  automatically imply malicious behavior.
 
-```
+## See also
 
-# Alerts
-I have added this to the manager's `ossec.conf` file to monitor the converted logs. The `log_format` is set to `json` to parse the logs correctly.
-
-```xml
-<localfile>
-    <log_format>json</log_format>
-    <location>/tmp/confluence_json/converted_confluence-audit-log_*T*.json</loc$
-</localfile>
-```
+- [Jira audit exports](../jira/README.md)
+- [Generic webhook delivery](../../webhook/README.md)
+- [Wazuh JSON log collection](https://documentation.wazuh.com/current/user-manual/capabilities/log-data-collection/log-data-configuration.html)

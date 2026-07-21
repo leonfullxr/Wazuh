@@ -2,6 +2,8 @@
 
 `custom-swift_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts.
 
+> **Scope:** this is for **JSON** logs. For values buried in a Windows **eventchannel** message (`key: value` or XML, e.g. ADFS `UserId`/`IpAddress`), use [`../eventchannel-extraction`](../eventchannel-extraction) instead - a different input format and a different script.
+
 The idea is to have a wodle that executes this script when a custom rule gets triggered, and then the content of the custom rule gets ingested into the script for its extraction.
 
 Note: this script has been modified based on Azure Graph logs. The fields can be modifief accordingly to specific client/log requirements.
@@ -75,7 +77,7 @@ Create or edit a rules file, e.g. `/var/ossec/ruleset/local_rules.xml`:
 </group>
 ```
 
-Adjust rule IDs and `<if_sid>` values to suit your environment and avoid conflicts with other Azure rules (e.g., 87802, 87803…).
+Adjust rule IDs and `<if_sid>` values to suit your environment and avoid conflicts with other Azure rules (e.g., 87802, 87803...).
 
 ## Script Details & Workflow
 
@@ -134,7 +136,7 @@ sock.close()
 logging.info("SWIFT log has been sent to the analysis queue.")
 ```
 
-* **Socket path**: `…/queue/sockets/queue` (built relative to script’s parent directory).
+* **Socket path**: `.../queue/sockets/queue` (built relative to script’s parent directory).
 * Prepends `"SWIFT:"` to the enriched JSON.
 * Any send errors are logged and printed.
 

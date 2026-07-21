@@ -1,0 +1,169 @@
+#!/var/ossec/framework/python/bin/python3
+# custom-windows - Wazuh integratord script that extracts key/value pairs from
+# the free-text `message` field of Windows eventchannel alerts (e.g. antivirus
+# events) and re-injects the structured result into the analysis queue.
+#
+# Install to /var/ossec/integrations/custom-windows with:
+#   chmod 750 custom-windows && chown root:wazuh custom-windows
+# See README.md for the ossec.conf <integration> block and matching rule.
+#
+# Usage (called by wazuh-integratord): custom-windows <alert_file> [debug]
+import json
+import sys
+import time
+import os
+import re
+from socket import socket, AF_UNIX, SOCK_DGRAM
+
+# Globals
+debug_enabled = False
+pwd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+socket_addr = f"{pwd}/queue/sockets/queue"
+INTEGRATION_NAME = "custom-windows"
+
+# Keys to extract from the message block. Adjust to match the fields your
+# event source (e.g. your antivirus product) writes in its messages.
+EXTRACT_KEYS = [
+    "Scan type",
+    "Event",
+    "Security risk detected",
+    "File",
+    "Location",
+    "Computer",
+    "User",
+    "Action taken",
+    "Date found",
+    "Risks",
+    "Scanned",
+    "Files/Folders/Drives Omitted",
+    "Trusted Files Skipped",
+    "Version",
+    "Product",
+    "Language",
+    "Moniker",
+    "Sequence",
+    "Publish Date",
+    "Revision"
+]
+
+# Precompiled regex for free-text metrics
+METRIC_PATTERNS = {
+    "Risks": re.compile(r"Risks[:\s]+(\d+)"),
+    "Scanned": re.compile(r"Scanned[:\s]+(\d+)"),
+    "Files/Folders/Drives Omitted": re.compile(r"Files/Folders/Drives Omitted[:\s]+(\d+)"),
+    "Trusted Files Skipped": re.compile(r"Trusted Files Skipped[:\s]+(\d+)"),
+    "Version": re.compile(r"Version[:\s]+([\w\.\-]+)")
+}
+
+def debug(msg, to_console=True):
+    """Log message to console only; file write disabled."""
+    logmsg = f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}\n"
+    if debug_enabled and to_console:
+        print(logmsg, end='')
+
+def parse_kv_message_to_json(message):
+    """Parse key:value lines and metrics; text before first key -> Information."""
+    result = {}
+    if not message:
+        return result
+
+    line = message.strip().strip('"')
+
+    # Find first key occurrence
+    key_pos = len(line)
+    first_key = None
+    for key in EXTRACT_KEYS + list(METRIC_PATTERNS.keys()):
+        pos = line.find(key + ":")
+        if pos != -1 and pos < key_pos:
+            key_pos = pos
+            first_key = key
+
+    if first_key:
+        if key_pos > 0:
+            result["Information"] = line[:key_pos].strip()
+
+        remaining = line[key_pos:]
+        for key in EXTRACT_KEYS:
+            pattern = re.compile(rf"{re.escape(key)}[:\s]+([^\n\r]+)")
+            match = pattern.search(remaining)
+            if match:
+                result[key] = match.group(1).strip()
+        for key, pattern in METRIC_PATTERNS.items():
+            match = pattern.search(remaining)
+            if match:
+                result[key] = match.group(1).strip()
+    else:
+        result["Information"] = line
+
+    return result
+
+def send_to_queue(data):
+    """Send parsed event to Wazuh queue with custom integration name."""
+    try:
+        # Add integration field
+        data["integration"] = INTEGRATION_NAME
+
+        sock = socket(AF_UNIX, SOCK_DGRAM)
+        sock.connect(socket_addr)
+        string = f'1:{INTEGRATION_NAME}:{json.dumps(data)}'
+        sock.send(string.encode())
+        sock.close()
+        debug(f"Sent parsed data to queue with integration={INTEGRATION_NAME}.", to_console=False)
+    except Exception as e:
+        debug(f"Failed to send to queue: {e}", to_console=False)
+
+def extract_message(alert_json):
+    """Extract message from full_log, win.system.message, or win.eventdata.data."""
+    message = ""
+    if "full_log" in alert_json:
+        try:
+            full_log_data = json.loads(alert_json["full_log"])
+            if "win" in full_log_data and "system" in full_log_data["win"]:
+                message = full_log_data["win"]["system"].get("message", "")
+        except Exception:
+            full_log_data = alert_json.get("data", {})
+            if "win" in full_log_data and "system" in full_log_data["win"]:
+                message = full_log_data["win"]["system"].get("message", "")
+    else:
+        full_log_data = alert_json.get("data", {})
+        if "win" in full_log_data and "system" in full_log_data["win"]:
+            message = full_log_data["win"]["system"].get("message", "")
+
+    if not message and "win" in full_log_data and "eventdata" in full_log_data["win"]:
+        message = full_log_data["win"]["eventdata"].get("data", "")
+
+    return full_log_data, message
+
+def main(args):
+    if len(args) < 2:
+        debug("Missing required argument: path to alert file.")
+        return
+
+    alert_file_path = args[1]
+    debug(f"Reading alert JSON file: {alert_file_path}")
+
+    try:
+        with open(alert_file_path, 'r') as alert_file:
+            alert_json = json.load(alert_file)
+
+        full_log_data, message = extract_message(alert_json)
+
+        parsed_message_json = {}
+        if message:
+            parsed_message_json = parse_kv_message_to_json(message)
+            if "win" in full_log_data and "system" in full_log_data["win"]:
+                full_log_data["win"]["system"].pop("message", None)
+                full_log_data["win"]["system"]["messages"] = parsed_message_json
+
+        send_to_queue(full_log_data)
+
+    except Exception as e:
+        debug(f"Exception while processing alert: {e}", to_console=False)
+
+if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[2].lower() == 'debug':
+        debug_enabled = True
+    else:
+        debug_enabled = False
+
+    main(sys.argv)
