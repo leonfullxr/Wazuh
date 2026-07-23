@@ -32,7 +32,7 @@ A genericized ADFS "failed credential" event (`win.system.eventID` **1203**; ext
 
 Three things to know before parsing:
 
-- **Two possible sources.** `data.win.system.message` is usually clean XML; `data.win.eventdata.data` carries the same content **HTML-escaped** (`&lt;…&gt;`) and is sometimes truncated. Prefer `system.message`, fall back to `eventdata.data`.
+- **Two possible sources.** `data.win.system.message` is usually clean XML; `data.win.eventdata.data` carries the same content **HTML-escaped** (`&lt;...&gt;`) and is sometimes truncated. Prefer `system.message`, fall back to `eventdata.data`.
 - **`<IpAddress>` can be a comma-separated list** - client IP plus a forwarded/proxy IP (`203.0.113.10,198.51.100.20`). Split it downstream if you need the true client IP.
 - **ADFS audit EventIDs worth alerting on:** `1203` (failed credential validation) and `1210` (extranet lockout).
 
@@ -47,7 +47,7 @@ Three things to know before parsing:
 
 ## Recommended: an integration script that extracts and re-injects
 
-The pattern: a rule fires the extractor → the script parses the tags out of the message → it re-injects the event as JSON to the analysis queue → a second rule alerts on the now-first-class fields. The ready-made, enhanced script lives in [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/) as **`custom-windows-xml`** (its `custom-windows` sibling handles `key: value` messages). For **JSON** logs the analogous tool is [scripts/custom-json](../scripts/custom-json/README.md) - a different input format and a different script, not this one.
+The pattern: a rule fires the extractor -> the script parses the tags out of the message -> it re-injects the event as JSON to the analysis queue -> a second rule alerts on the now-first-class fields. The ready-made, enhanced script lives in [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/) as **`custom-windows-xml`** (its `custom-windows` sibling handles `key: value` messages). For **JSON** logs the analogous tool is [scripts/custom-json](../scripts/custom-json/README.md) - a different input format and a different script, not this one.
 
 **1. Trigger rule** - fire the extractor on the ADFS EventIDs (as a child of the bundled ADFS/eventchannel rule for these events):
 
@@ -61,7 +61,7 @@ The pattern: a rule fires the extractor → the script parses the tags out of th
 </group>
 ```
 
-**2. Extractor script** - install [`custom-windows-xml`](../scripts/eventchannel-extraction/) into `/var/ossec/integrations/` (`chmod 750`, `chown root:wazuh`, on **every** manager node). Its core is unescape → XML parse → **regex fallback** → re-inject; the extraction itself is just:
+**2. Extractor script** - install [`custom-windows-xml`](../scripts/eventchannel-extraction/) into `/var/ossec/integrations/` (`chmod 750`, `chown root:wazuh`, on **every** manager node). Its core is unescape -> XML parse -> **regex fallback** -> re-inject; the extraction itself is just:
 
 ```python
 def extract_tags(message, tags={"UserId": "UserId", "IpAddress": "IpAddress"}):
@@ -73,7 +73,7 @@ def extract_tags(message, tags={"UserId": "UserId", "IpAddress": "IpAddress"}):
             if local in tags and elem.text and result[tags[local]] is None:
                 result[tags[local]] = elem.text.strip()
     except ET.ParseError:
-        pass                              # 2) escaped/truncated XML → regex fallback
+        pass                              # 2) escaped/truncated XML -> regex fallback
     for tag, out in tags.items():
         if result[out] is None:
             m = re.search(rf"<{tag}>(.*?)</{tag}>", text, re.I | re.S)

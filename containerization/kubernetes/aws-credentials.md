@@ -1,6 +1,6 @@
 # Persisting AWS credentials for the Wazuh manager on Kubernetes
 
-**Applies to:** Wazuh 4.x manager on Kubernetes (EKS or any distribution) · Wazuh AWS module (`aws-s3` wodle)
+**Applies to:** Wazuh 4.x manager on Kubernetes (EKS or any distribution) - Wazuh AWS module (`aws-s3` wodle)
 
 [Back to Kubernetes README](./README.md)
 

@@ -2,7 +2,7 @@
 
 Reference for writing custom Wazuh decoders. For vendor-specific suites see [FortiGate](fortigate/README.md), [Vectra](vectra/README.md), and [NetIQ](netIQ/README.md).
 
-Official docs: [Decoders syntax](https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/decoders.html) · [Dynamic fields](https://documentation.wazuh.com/current/user-manual/ruleset/decoders/dynamic-fields.html#traditional-decoders)
+Official docs: [Decoders syntax](https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/decoders.html) - [Dynamic fields](https://documentation.wazuh.com/current/user-manual/ruleset/decoders/dynamic-fields.html#traditional-decoders)
 
 ## Overview
 
@@ -11,7 +11,7 @@ Wazuh decoders extract fields from log lines using its own regex dialect (`OS_Re
 1. **Sibling decoders** - a parent matches the log source; child decoders each extract one field independently. Tolerates optional or reordered key/value pairs.
 2. **Static vs dynamic fields** - thirteen predefined static fields (`user`, `srcip`, `dstip`, ...) cannot be renamed; any other name in `<order>` becomes a dynamic field usable in rules.
 
-Test decoders with `/var/ossec/bin/wazuh-logtest` or **Server management → Log test** in the Wazuh Dashboard.
+Test decoders with `/var/ossec/bin/wazuh-logtest` or **Server management -> Log test** in the Wazuh Dashboard.
 
 ## Regex (OS_Regex) syntax
 

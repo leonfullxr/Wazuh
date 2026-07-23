@@ -1,6 +1,6 @@
 # Archives disabled after pod update
 
-**Applies to:** Wazuh 4.x · Kubernetes StatefulSet deployments (Manager + Worker + Indexers)
+**Applies to:** Wazuh 4.x - Kubernetes StatefulSet deployments (Manager + Worker + Indexers)
 
 [Back to Kubernetes README](./README.md)
 
@@ -19,7 +19,7 @@ Source template (inside image):
   /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
 
 Written to at startup:
-  /etc/filebeat/filebeat.yml   ← standard ConfigMap mounts target this path
+  /etc/filebeat/filebeat.yml   <- standard ConfigMap mounts target this path
 ```
 
 The write happens after the volume mount is applied, so the ConfigMap is silently overwritten. The default template ships with `archives: enabled: false`.
@@ -58,7 +58,7 @@ data:
         alerts:
           enabled: true
         archives:
-          enabled: true    # ← change this from false to true
+          enabled: true    # <- change this from false to true
     # Paste the remaining sections from the extracted default here.
 ```
 

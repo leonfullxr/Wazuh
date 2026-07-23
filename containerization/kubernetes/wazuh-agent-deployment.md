@@ -1,6 +1,6 @@
 # Wazuh agent deployment on Kubernetes
 
-**Applies to:** Wazuh 4.x · Kubernetes (EKS, self-managed, k3s)
+**Applies to:** Wazuh 4.x - Kubernetes (EKS, self-managed, k3s)
 
 [Back to Kubernetes README](./README.md)
 

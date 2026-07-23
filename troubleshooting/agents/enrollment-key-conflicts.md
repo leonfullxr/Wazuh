@@ -44,7 +44,7 @@ The first three are all controlled by the [force re-enrollment settings](#enable
 
 If agents legitimately change IPs or hit key mismatches, configure the manager to overwrite the existing (disconnected) registration when an agent with the same name re-enrolls.
 
-**Step 1** - Open the manager configuration from the dashboard: **☰ → Server Management → Settings → Edit Configuration** (or edit `/var/ossec/etc/ossec.conf` directly).
+**Step 1** - Open the manager configuration from the dashboard: **Menu -> Server Management -> Settings -> Edit Configuration** (or edit `/var/ossec/etc/ossec.conf` directly).
 
 **Step 2** - Add the following inside the `<auth>` section:
 
@@ -84,7 +84,7 @@ A flood of duplicate-name rejections for names that **are** already registered (
     wazuh-agentd: ERROR: If Agent verification is enabled, agent key and certificates may be incorrect!
     ```
 
-That ~60-second wait is the tell. It is a **read timeout waiting for the server's reply**, not a certificate/key mismatch (which fails within a second). `authd` may even log `Agent key generated` successfully - but if that reply never reaches the agent, the agent gives up and re-requests a key, producing the storm. The problem is the **manager → agent return path**, not the agent's credentials.
+That ~60-second wait is the tell. It is a **read timeout waiting for the server's reply**, not a certificate/key mismatch (which fails within a second). `authd` may even log `Agent key generated` successfully - but if that reply never reaches the agent, the agent gives up and re-requests a key, producing the storm. The problem is the **manager -> agent return path**, not the agent's credentials.
 
 Work through the return path, cheapest first:
 

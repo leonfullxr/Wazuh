@@ -1,6 +1,6 @@
 # Load balancing, ingress, and proxies for Wazuh on Kubernetes
 
-**Applies to:** Wazuh 4.x on Kubernetes / OpenShift · ingress-nginx · AWS ALB/NLB · HAProxy
+**Applies to:** Wazuh 4.x on Kubernetes / OpenShift - ingress-nginx - AWS ALB/NLB - HAProxy
 
 [Back to Kubernetes README](./README.md)
 
@@ -57,8 +57,8 @@ ingress-nginx forwards raw TCP through its **TCP services** ConfigMap (a separat
       name: tcp-services
       namespace: ingress-nginx
     data:
-      "1515": "<namespace>/wazuh:1515"          # enrollment → master service
-      "1514": "<namespace>/wazuh-workers:1514"   # events → workers service
+      "1515": "<namespace>/wazuh:1515"          # enrollment -> master service
+      "1514": "<namespace>/wazuh-workers:1514"   # events -> workers service
     ```
 
 2. Make sure the controller is **started with** that ConfigMap and exposes the ports on its own Service:
@@ -102,7 +102,7 @@ PROXY protocol prepends the original client IP to a TCP stream. It is all-or-not
 Adding an **AWS ALB Ingress** in front of the manager can leave the manager StatefulSet stuck `not Ready`, even though the pod itself is healthy. Two things combine:
 
 1. The AWS Load Balancer Controller injects a **pod readiness gate** into the namespace, so a pod is only `Ready` once the ALB target-group health check passes.
-2. The ALB health-checks the Wazuh **API (55000)**, which correctly returns **HTTP 401** to an unauthenticated probe. The ALB treats 401 as unhealthy → the gate never opens → the STS never becomes Ready.
+2. The ALB health-checks the Wazuh **API (55000)**, which correctly returns **HTTP 401** to an unauthenticated probe. The ALB treats 401 as unhealthy -> the gate never opens -> the STS never becomes Ready.
 
 Fix by telling the ALB that 401 is healthy (and to probe over HTTPS):
 
@@ -130,8 +130,8 @@ kubectl label namespace <namespace> elbv2.k8s.aws/pod-readiness-gate-inject=disa
 For larger clusters, Wazuh's built-in **HAProxy helper** (inside `wazuh-clusterd`) keeps an HAProxy backend in sync with cluster membership automatically - when worker nodes join or leave, it updates HAProxy through its **Data Plane API**, with no manual config edits or restarts. Agents then connect to one stable HAProxy address and are balanced across workers with `leastconn`.
 
 ```
-Agents ──▶ HAProxy :1514 / :1515 ──▶ backend pool (manager + workers)
-Cluster membership change ──▶ Wazuh helper ──▶ Data Plane API ──▶ HAProxy (live reload)
+Agents --> HAProxy :1514 / :1515 --> backend pool (manager + workers)
+Cluster membership change --> Wazuh helper --> Data Plane API --> HAProxy (live reload)
 ```
 
 Deployment shape (HAProxy as a Deployment, Data Plane API as a sidecar in the same pod):

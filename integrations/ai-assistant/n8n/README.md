@@ -9,7 +9,7 @@ Open n8n at http://localhost:5678, create an owner account, then either
 **import** the committed workflow or build it by hand:
 
 ```text
-Workflows → … → Import from file → n8n/wazuh-ai-chat.workflow.json
+Workflows -> ... -> Import from file -> n8n/wazuh-ai-chat.workflow.json
 ```
 
 Activate the workflow, open the Chat Trigger's public URL, and ask questions.
@@ -60,13 +60,13 @@ field to prototype the explain-this-alert deep link (D34).
 The label line under each answer is where the enhancement pass becomes
 visible, so know what each shape means before demoing:
 
-- `lane 0 · template <id> (similarity 0.9x) · no model involved · checks: ...`
+- `lane 0 - template <id> (similarity 0.9x) - no model involved - checks: ...`
   - the question matched a curated template; code wrote the answer. A second
-  identical question inside the cache TTL appends `· served from cache`.
-- `scope classifier · out of scope · no model involved` - the refusal is
+  identical question inside the cache TTL appends `- served from cache`.
+- `scope classifier - out of scope - no model involved` - the refusal is
   structural: no model ran, no tools were offered.
-- `typed tools, verified by construction · checks: ...` and
-  `constrained query plan, verified by validation · checks: ...` - the model
+- `typed tools, verified by construction - checks: ...` and
+  `constrained query plan, verified by validation - checks: ...` - the model
   loop, lane 1 and lane 2 respectively.
 - Citations in the text: `[alert:<id>]`, `[agg:<name>]`, `[kb:T####]` (the
   MITRE knowledge tool). If the response carries a non-empty `corrections`

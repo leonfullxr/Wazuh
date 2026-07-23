@@ -147,11 +147,11 @@ idempotency, and two operator roles (`wazuh_ai_operator` for dashboards,
 ## 8. Live actions sign-off
 
 The first real writes against the live stack, all end to end: a brute-force
-dashboard proposed in chat → confirmed → the saved object verified present;
+dashboard proposed in chat -> confirmed -> the saved object verified present;
 agent 001 restarted (the daemon actually restarted, confirmed in its logs) via
 a least-privilege operator; active-response `restart-ossec` with the high-risk
-`confirm_target` gate proven (missing target → 409, wrong target → 409, correct
-→ executed). Two bugs only a live run could surface were fixed: the Wazuh API's
+`confirm_target` gate proven (missing target -> 409, wrong target -> 409, correct
+-> executed). Two bugs only a live run could surface were fixed: the Wazuh API's
 `?raw=true` token endpoint returns bare text (not JSON, which had 500'd every
 manager/AR confirm), and the dashboard executor needs the `kibanauser` backend
 role (no underscore) or saved-object writes 403.
@@ -178,7 +178,7 @@ prompt caching?" The framing that shaped the answer: in this system a **skill
 is a typed tool, action, or playbook** (the model only acts through the typed
 catalog), and **more context** splits into input recognition, multi-step
 investigations, and output structure. Everything was constrained by the design
-laws - query-don't-embed, veracity by construction, propose→confirm, no
+laws - query-don't-embed, veracity by construction, propose->confirm, no
 semantic answer cache, no LLM-judge in the live path, lane 3 off. Delivered as
 tiers, each eval-gated:
 
@@ -198,7 +198,7 @@ tiers, each eval-gated:
   `mitre_coverage`, `agent_posture` - correlation and trend the catalog lacked,
   all compiling to IR and veracity-checked.
 - **New write actions (D20/D35):** `add_agent_to_group`,
-  `create_indexer_monitor`, `suppress_noisy_rule` - each propose→confirm with a
+  `create_indexer_monitor`, `suppress_noisy_rule` - each propose->confirm with a
   tiered executor and, for high-risk, target echo.
 - **Tier 3 depth:** the first sanctioned vector store (D57) - `knowledge_search`
   over *public* reference content only, never telemetry; a persistent
@@ -285,10 +285,10 @@ had, once again, caught a capability that shipped but the model would not use.
 Onboarding a *pre-existing* Wazuh was eight manual steps plus harness `make`
 targets that assume the bundled docker stack. E16 collapses that into two
 idempotent, env-driven installers that orchestrate the existing scripts rather
-than duplicate them: `install_dashboard_assistant.sh` (OSD-version detection →
-Assistant/ML-Commons plugins → `dashboard_assistant_setup.sh` → optional
-`mlcommons_embed_setup.sh`) and `install_gateway.sh` (keys → securityconfig →
-generated `environments.yaml` → optional executor RBAC → compose/systemd for
+than duplicate them: `install_dashboard_assistant.sh` (OSD-version detection ->
+Assistant/ML-Commons plugins -> `dashboard_assistant_setup.sh` -> optional
+`mlcommons_embed_setup.sh`) and `install_gateway.sh` (keys -> securityconfig ->
+generated `environments.yaml` -> optional executor RBAC -> compose/systemd for
 tool-service + auth-shim + Ollama). Operator inputs live in `deploy.env`; shared
 preflight/TLS helpers in `scripts/lib/deploy_common.sh`. They never run
 `make wazuh` and pin the env CA. Review caught one deploy-breaking gap: the
@@ -322,5 +322,5 @@ available. None block the self-hosted PoC; the live backlog is tracked in
   grounded-number and citation checks caught real model errors that no
   assertion was looking for.
 - **Review before merge caught a command that could have hit every agent.**
-  The single strongest argument for the propose→review→confirm discipline the
+  The single strongest argument for the propose->review->confirm discipline the
   product is built on.

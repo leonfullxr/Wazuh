@@ -1,6 +1,6 @@
 # Archives disabled after container update
 
-**Applies to:** Wazuh 4.x · Docker Compose multi-node clusters (Manager + Worker + Indexers)
+**Applies to:** Wazuh 4.x - Docker Compose multi-node clusters (Manager + Worker + Indexers)
 
 [Back to Docker README](./README.md)
 
@@ -19,7 +19,7 @@ Source template (inside image):
   /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
 
 Written to at startup:
-  /etc/filebeat/filebeat.yml   ← this is what a standard bind mount targets
+  /etc/filebeat/filebeat.yml   <- this is what a standard bind mount targets
 ```
 
 The write happens after the bind mount is applied, so the mount is silently overwritten. The default template ships with `archives: enabled: false`.
@@ -47,7 +47,7 @@ filebeat.modules:
     alerts:
       enabled: true
     archives:
-      enabled: true    # ← change this from false to true
+      enabled: true    # <- change this from false to true
 ```
 
 **2. Update `docker-compose.yml` for both Manager and Worker**

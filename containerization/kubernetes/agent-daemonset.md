@@ -1,6 +1,6 @@
 # Containerized Wazuh agent - custom image as a DaemonSet
 
-**Applies to:** Wazuh 4.x · Docker / Kubernetes · custom-built agent image
+**Applies to:** Wazuh 4.x - Docker / Kubernetes - custom-built agent image
 
 [Back to Kubernetes README](./README.md)
 

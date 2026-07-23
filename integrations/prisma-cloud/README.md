@@ -17,7 +17,7 @@ Wazuh has **no HTTPS event-collector listener**, so the supported path is **sysl
 ## Architecture
 
 ```
-Strata Logging Service ──TLS syslog (TCP/6514)──▶  rsyslog TLS collector  ──▶  Wazuh manager
+Strata Logging Service --TLS syslog (TCP/6514)-->  rsyslog TLS collector  -->  Wazuh manager
  (Syslog Forwarding Profile)                        (terminates TLS)            (decoder + rules)
 ```
 

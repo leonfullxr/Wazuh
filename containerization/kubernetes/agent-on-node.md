@@ -1,6 +1,6 @@
 # Deploying a Wazuh agent on a Kubernetes node
 
-**Applies to:** Wazuh 4.x · any Kubernetes distribution (tested on Rancher/k3s-style clusters)
+**Applies to:** Wazuh 4.x - any Kubernetes distribution (tested on Rancher/k3s-style clusters)
 
 [Back to Kubernetes README](./README.md)
 

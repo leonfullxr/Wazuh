@@ -9,8 +9,8 @@ Named templates (server auto-layouts 48-column grid - never set x/y/w/h):
 - auth_failures_top_users - simple failed-login leaderboard
 
 Custom dashboards: panels array (1-6), each with viz_type, optional query and terms_field.
-Field aliases: geo.country → GeoLocation.country_name; src_ip → data.srcip;
-dst_user → data.dstuser. Region maps: EMS joins on iso2. On stock Wazuh register
+Field aliases: geo.country -> GeoLocation.country_name; src_ip -> data.srcip;
+dst_user -> data.dstuser. Region maps: EMS joins on iso2. On stock Wazuh register
 GeoLocation.country_iso2 (scripted index-pattern field) before create_dashboard;
 the region map aggregates on that field.
 

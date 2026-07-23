@@ -1,6 +1,6 @@
 # Overview
 
-`custom-swift_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user’s principal name, IP address, and target resource group display names visible in subsequent alerts.
+`custom-swift_extractor.py` is a script designed to run on a Wazuh manager. It listens for JSON-formatted alerts (triggered via a custom rule), extracts additional fields from the alert payload, enriches the JSON, and forwards the result to the Wazuh analysis daemon (`analysisd`) via a UNIX datagram socket. The goal is to make fields like the initiating user's principal name, IP address, and target resource group display names visible in subsequent alerts.
 
 > **Scope:** this is for **JSON** logs. For values buried in a Windows **eventchannel** message (`key: value` or XML, e.g. ADFS `UserId`/`IpAddress`), use [`../eventchannel-extraction`](../eventchannel-extraction) instead - a different input format and a different script.
 
@@ -108,8 +108,8 @@ logging.basicConfig(
 2. Parses into `initiated_by = json.loads(...)`.
 3. If `initiated_by["user"]` exists, extracts:
 
-   * `userPrincipalName` → `alert_data["InitiatedBy_user_PrincipalName"]`
-   * `ipAddress` → `alert_data["InitiatedBy_user_ipAddress"]`
+   * `userPrincipalName` -> `alert_data["InitiatedBy_user_PrincipalName"]`
+   * `ipAddress` -> `alert_data["InitiatedBy_user_ipAddress"]`
 
 Otherwise logs a parse error.
 
@@ -119,11 +119,11 @@ Otherwise logs a parse error.
 2. Parses it into Python list `target_resources`.
 3. From the **first** element:
 
-   * `userPrincipalName` → `alert_data["TargetResources_userPrincipalName"]`
+   * `userPrincipalName` -> `alert_data["TargetResources_userPrincipalName"]`
    * In `modifiedProperties`, finds `displayName == "Group.DisplayName"` and captures:
 
-     * `newValue` → `alert_data["TargetResources_GroupDisplayName_newValue"]`
-     * `oldValue` → `alert_data["TargetResources_GroupDisplayName_oldValue"]`
+     * `newValue` -> `alert_data["TargetResources_GroupDisplayName_newValue"]`
+     * `oldValue` -> `alert_data["TargetResources_GroupDisplayName_oldValue"]`
 
 ### Forwarding to analysisd
 
@@ -136,10 +136,10 @@ sock.close()
 logging.info("SWIFT log has been sent to the analysis queue.")
 ```
 
-* **Socket path**: `.../queue/sockets/queue` (built relative to script’s parent directory).
+* **Socket path**: `.../queue/sockets/queue` (built relative to script's parent directory).
 * Prepends `"SWIFT:"` to the enriched JSON.
 * Any send errors are logged and printed.
 
 ## Implications & Notes
 * The script only runs for alerts matching your custom rule (e.g., 113006).
-* It “duplicates” the alert as an enriched version (rule 113007). This would be the only downside...
+* It "duplicates" the alert as an enriched version (rule 113007). This would be the only downside...

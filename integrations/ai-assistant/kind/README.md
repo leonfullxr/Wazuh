@@ -60,9 +60,9 @@ is untouched.
 
 ## What each assertion proves
 
-1. **Happy path** - tenant-a Basic auth → tenant-a shim → tenant-a tool-service
+1. **Happy path** - tenant-a Basic auth -> tenant-a shim -> tenant-a tool-service
    returns a labeled answer (lane 0 OK).
-2. **Cross-tenant token** - tenant-a turn JWT on tenant-b service → HTTP
+2. **Cross-tenant token** - tenant-a turn JWT on tenant-b service -> HTTP
    401/403 and `cross_tenant_token_rejected` in tenant-b audit logs.
 3. **Cross-namespace network** - a curl pod in tenant-a cannot reach
    `tool-service.tenant-b.svc` (timeout/refused - the wall, not the guard).

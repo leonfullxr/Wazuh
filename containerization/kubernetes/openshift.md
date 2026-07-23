@@ -1,6 +1,6 @@
 # Wazuh on Red Hat OpenShift / OKD
 
-**Applies to:** Wazuh 4.x · OpenShift / OKD 4.x · [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
+**Applies to:** Wazuh 4.x - OpenShift / OKD 4.x - [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
 
 [Back to Kubernetes README](./README.md)
 

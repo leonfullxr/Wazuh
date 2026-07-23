@@ -123,7 +123,7 @@ Routing multiple environments (sites, tenants) into one indexer cluster and sepa
 | Per-source resourcing | Not possible - one shared resource pool | Each environment sized independently |
 | Main scaling limit | **Shard growth** (below) caps retention before adding nodes | Each cluster scales on its own |
 
-The decisive constraint for the single-cluster model is **shard accumulation**: every prefix is another daily index, so total shards grow with sources × retention, and each indexer node handles ~1000 shards by default. The more logical environments you fold into one cluster, the sooner you reach that ceiling. Work the numbers for your retention and source count with the [shard-planning example](shard-management.md#worked-example-planning-shard-count-for-retention-and-many-sources) before committing.
+The decisive constraint for the single-cluster model is **shard accumulation**: every prefix is another daily index, so total shards grow with sources x retention, and each indexer node handles ~1000 shards by default. The more logical environments you fold into one cluster, the sooner you reach that ceiling. Work the numbers for your retention and source count with the [shard-planning example](shard-management.md#worked-example-planning-shard-count-for-retention-and-many-sources) before committing.
 
 Rule of thumb: a single cluster with logical separation is fine for a **small, stable** number of sources; lean toward separate environments with a centralized console when the number of sources is **medium-to-large or growing**, or when you need per-source resourcing or hard data isolation.
 
@@ -131,7 +131,7 @@ Rule of thumb: a single cluster with logical separation is fine for a **small, s
 
 A related design choice is how agents reach the manager cluster, because it decides whether events are even separable at the manager level:
 
-- **Load balancer → any worker** (agents connect to one LB address on 1514/1515, distributed across workers). What most multi-node deployments use: any worker can replace another, giving the best availability and resource use. The trade-off is that **events from all sites are mixed** across workers, so separation can then happen only at the index level (the pipeline routing above).
+- **Load balancer -> any worker** (agents connect to one LB address on 1514/1515, distributed across workers). What most multi-node deployments use: any worker can replace another, giving the best availability and resource use. The trade-off is that **events from all sites are mixed** across workers, so separation can then happen only at the index level (the pipeline routing above).
 - **Dedicated worker per agent group** (agents statically assigned to a specific worker per site). Keeps each site's events **separated from ingestion** at the manager level - convenient when you must hand a client only their own logs, or recover one site's data in isolation. The trade-off is weaker resilience: no automatic failover to another worker.
 
 The LB choice does not fully lock you in: even with mixed logs you can still separate at the index level **provided agents carry a group label or have identifiable names** to key the pipeline condition on (`ctx.agent?.labels?.group`, agent-name patterns). But separating cleanly from the start - by dedicated worker, or by a planned label scheme - is far less work than untangling mixed data later.

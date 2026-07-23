@@ -7,7 +7,7 @@ This README covers the basic steps to install and configure a specific Wazuh Age
 
 ## Prerequisites
 
-Ensure you have root (or sudo) access. You’ll need the following packages:
+Ensure you have root (or sudo) access. You'll need the following packages:
 
 ```sh
 sudo pkg install -y pkgconf git cmake gmake gcc bash libinotify sqlite3
@@ -17,7 +17,7 @@ sudo pkg install -y pkgconf git cmake gmake gcc bash libinotify sqlite3
 
 ## Downloading the Wazuh Agent Package
 
-Locate the FreeBSD 14 binary for **wazuh-agent-4.11.2.pkg**. In this example, it’s hosted on an OPNsense mirror:
+Locate the FreeBSD 14 binary for **wazuh-agent-4.11.2.pkg**. In this example, it's hosted on an OPNsense mirror:
 
 ```
 https://mirror.uvensys.de/opnsense/FreeBSD:14:amd64/snapshots/latest/All/wazuh-agent-4.11.2.pkg
@@ -30,7 +30,7 @@ You can substitute that URL with any other mirror or an older `.pkg` version you
 ## Installing Wazuh Agent
 
 1. **Add the `.pkg` file**
-   Replace the URL below if you’re using a different mirror or version:
+   Replace the URL below if you're using a different mirror or version:
 
    ```sh
    sudo pkg add https://mirror.uvensys.de/opnsense/FreeBSD:14:amd64/snapshots/latest/All/wazuh-agent-4.11.2.pkg
@@ -53,7 +53,7 @@ You can substitute that URL with any other mirror or an older `.pkg` version you
 ## Configuration
 
 1. **Sync local time to the agent**
-   This ensures that Wazuh’s logs and timestamps match your system timezone:
+   This ensures that Wazuh's logs and timestamps match your system timezone:
 
    ```sh
    cp /etc/localtime /var/ossec/etc/
@@ -69,7 +69,7 @@ You can substitute that URL with any other mirror or an older `.pkg` version you
    </server>
    ```
 
-   Replace `WAZUH-MANAGER-IP-ADDRESS` with your manager’s IP or hostname.
+   Replace `WAZUH-MANAGER-IP-ADDRESS` with your manager's IP or hostname.
 
 ---
 
@@ -89,7 +89,7 @@ wazuh_agent_enable="YES"
 
 ### (Optional) Create a Symlink for a Custom Service Name
 
-If you’d rather not modify the original script name, you can symlink it:
+If you'd rather not modify the original script name, you can symlink it:
 
 ```sh
 ln -s /usr/local/etc/rc.d/wazuh-agent /usr/local/etc/rc.d/wazuh-agent.sh
@@ -145,5 +145,5 @@ If you enroll an agent multiple times, you may see errors about duplicate names.
 
 Replace `<agent_id>` with the numerical ID of the agent you want to remove.
 
-That’s it! Your Wazuh Agent 4.11.2 should now be installed, configured, and running on FreeBSD 14.
+That's it! Your Wazuh Agent 4.11.2 should now be installed, configured, and running on FreeBSD 14.
 

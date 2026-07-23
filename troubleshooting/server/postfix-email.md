@@ -41,8 +41,8 @@ If instead you see the SMTP banner (`220 ...`) followed by an SMTP error code, t
 ## Checklist
 
 1. `telnet <SMTP_HOST> 587` - does a banner appear?
-2. No banner + RST in tcpdump → firewall/network path. Engage the network team.
-3. Banner + SMTP 4xx/5xx → Postfix relay settings: credentials (`sasl_passwd`), TLS (`smtp_use_tls`), allowed sender addresses on the mail service side.
+2. No banner + RST in tcpdump -> firewall/network path. Engage the network team.
+3. Banner + SMTP 4xx/5xx -> Postfix relay settings: credentials (`sasl_passwd`), TLS (`smtp_use_tls`), allowed sender addresses on the mail service side.
 4. Once `telnet` reaches a banner and authentication works, restart Postfix and send a test message:
 
    ```bash

@@ -162,7 +162,7 @@ Confirm you are not silently dropping events either side of this (`events_droppe
 
 ## Resetting cleanly on a cluster
 
-Once the keystore is set, do a full VD state reset so RocksDB starts from a clean slate and sheds the backlog. Use the step-by-step procedure in [vulnerability-detection.md → Full reset of the VD state](vulnerability-detection.md#full-reset-of-the-vd-state).
+Once the keystore is set, do a full VD state reset so RocksDB starts from a clean slate and sheds the backlog. Use the step-by-step procedure in [vulnerability-detection.md -> Full reset of the VD state](vulnerability-detection.md#full-reset-of-the-vd-state).
 
 > **Cluster caveat that catches everyone:** `ossec.conf` is **per-node** - the `<vulnerability-detection>` block does **not** propagate through cluster sync. You must set `<enabled>no</enabled>` on **every** manager and worker individually, not just the master. Disabling it only on the master is a silent no-op on the workers, and the reset appears to "do nothing."
 
@@ -184,7 +184,7 @@ So the question is not "is it big?" but "does it **plateau**?":
 | RocksDB LOG | Total size trend | Verdict |
 |---|---|---|
 | `0 writes / 0 compaction` | climbs relentlessly | **Broken** - drain failure. Fix keystore + reset. Do not just clean. |
-| writing & compacting | climbs without bound, far past a few × the index | **Escalate** - collect LOGs and open a support case / check the [community issues](#related-guides). |
+| writing & compacting | climbs without bound, far past a few x the index | **Escalate** - collect LOGs and open a support case / check the [community issues](#related-guides). |
 | writing & compacting | rises then **flattens** and stays flat | **Expected** - size disks for it and (optionally) alert on a ceiling. |
 
 ### The definitive test: live data vs. amplification
@@ -198,9 +198,9 @@ ldb --db=$DB get_property rocksdb.total-sst-files-size      # physical footprint
 ldb --db=$DB get_property rocksdb.levelstats                # files/size per level
 ```
 
-- **`total-sst-files-size` ≈ 1.1-1.15 × `estimate-live-data-size`** → normal. Leveled compaction targets ~10-15% space amplification; healthy, nothing to fix.
-- **`estimate-live-data-size` ≈ the `wazuh-states-vulnerabilities` index size** (`_cat/indices`) → the replica is a faithful copy. The bytes are legitimate.
-- **`total-sst-files-size` ≫ live data (2×+)** → tombstone/SST bloat compaction has not reclaimed yet → run [manual compaction](#reclaiming-space-compaction-and-compression).
+- **`total-sst-files-size` ~ 1.1-1.15 x `estimate-live-data-size`** -> normal. Leveled compaction targets ~10-15% space amplification; healthy, nothing to fix.
+- **`estimate-live-data-size` ~ the `wazuh-states-vulnerabilities` index size** (`_cat/indices`) -> the replica is a faithful copy. The bytes are legitimate.
+- **`total-sst-files-size` >> live data (2x+)** -> tombstone/SST bloat compaction has not reclaimed yet -> run [manual compaction](#reclaiming-space-compaction-and-compression).
 
 If the *live data itself* is enormous, the store is honestly holding that many vulnerabilities - the next part explains why, and it is not a leak.
 
@@ -260,14 +260,14 @@ grep -A10 "Compression algorithms supported" \
 # stock builds have shown "kZSTD supported: 0"
 ```
 
-The development team's testing found **ZSTD** the clear winner - roughly **halving** the replica (e.g. 5.1 GB → 2.1 GB, ~60%) at negligible CPU, where BZip2 shrank it similarly but at far higher CPU. On builds that expose it, compression and compaction parallelism are tunable via `local_internal_options.conf`:
+The development team's testing found **ZSTD** the clear winner - roughly **halving** the replica (e.g. 5.1 GB -> 2.1 GB, ~60%) at negligible CPU, where BZip2 shrank it similarly but at far higher CPU. On builds that expose it, compression and compaction parallelism are tunable via `local_internal_options.conf`:
 
 | Option | Default | Range | Effect |
 |---|---|---|---|
 | `indexer.rocksdb_background_jobs` | 2 | 2-16 | Compaction/flush threads. The default of 2 is low for large fleets; raising it (e.g. 8) helps compaction keep pace with thousands of agents. |
 | `indexer.rocksdb_compression_level` | 3 | 3-22 | ZSTD level. Higher = smaller but more CPU; gains above the default are marginal in practice. |
 | `indexer.rocksdb_compression_parallel_threads` | 1 | 1-12 | Parallelism for compression. |
-| `indexer.rocksdb_max_sub_compactions` | 1 | 1-12 | Parallelism within a compaction. Note that `background_jobs × max_sub_compactions` bounds total threads. |
+| `indexer.rocksdb_max_sub_compactions` | 1 | 1-12 | Parallelism within a compaction. Note that `background_jobs x max_sub_compactions` bounds total threads. |
 
 > **Availability is version-dependent.** ZSTD support and these options arrived through development builds during this investigation. On a stock install, confirm ZSTD shows `supported: 1` in the LOG and that the option is honoured before relying on either. Changing compression only affects data written afterwards, so it takes a store rebuild (a [reset](#resetting-cleanly-on-a-cluster), or removal + rebuild) to apply to existing data. Do **not** hand-swap `/var/ossec/lib` RocksDB libraries from another host - mismatched `glibc`/`libstdc++` breaks the manager (see the [appendix](#appendix-inspecting-the-rocksdb-stores)). If you need this on 4.x, raise it with Wazuh support rather than patching binaries yourself.
 
@@ -331,7 +331,7 @@ Cheap sizing properties (no full dump required):
 DB=/var/ossec/queue/indexer/db/wazuh-states-vulnerabilities-<cluster>
 ldb --db=$DB get_property rocksdb.estimate-live-data-size   # real data held
 ldb --db=$DB get_property rocksdb.total-sst-files-size      # physical SST footprint
-ldb --db=$DB get_property rocksdb.levelstats                # files + MB per level (~10× each step)
+ldb --db=$DB get_property rocksdb.levelstats                # files + MB per level (~10x each step)
 ldb --db=$DB dump --count_only                              # key count + value-size distribution
 ```
 

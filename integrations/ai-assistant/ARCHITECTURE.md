@@ -22,20 +22,20 @@ under a credential the model never holds.
 ## 2. Topology - two edges, one gateway, N environments
 
 ```
-Dashboard Assistant (in Wazuh Dashboard) ─ ML Commons connector ─┐
-n8n · direct API · MCP · confirm UI ─ auth-shim (turn JWT) ───────┤
-                                                                  ▼
+Dashboard Assistant (in Wazuh Dashboard) - ML Commons connector -+
+n8n - direct API - MCP - confirm UI - auth-shim (turn JWT) -------+
+                                                                  v
                         wazuh-ai GATEWAY (the tool-service)
-        env registry · admission · lanes · IR · compiler · 4 checks
-        · citations · grounded numbers · actions · audit · per-env state
-                    │ queries as the principal        │ inference port
-                    ▼                                  ▼
-        Environment's Wazuh Indexer +          Ollama · Bedrock ·
+        env registry - admission - lanes - IR - compiler - 4 checks
+        - citations - grounded numbers - actions - audit - per-env state
+                    | queries as the principal        | inference port
+                    v                                  v
+        Environment's Wazuh Indexer +          Ollama - Bedrock -
         Manager API (per environment)          OpenAI-compatible
 ```
 
 - **The chat lives inside the Wazuh Dashboard.** The Dashboards Assistant
-  plugin → OpenSearch ML Commons → an HTTP connector → our
+  plugin -> OpenSearch ML Commons -> an HTTP connector -> our
   `/v1/connector/analyze`. We adopt this edge from the official
   [wazuh/integrations AI_assistant](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant)
   but replace its query-writing gateway with this veracity core (D44: the
@@ -55,8 +55,8 @@ n8n · direct API · MCP · confirm UI ─ auth-shim (turn JWT) ─────�
 
 | Edge | Runs as | Verified by |
 |---|---|---|
-| Dashboard Assistant (connector) | `wazuh_ai_env_reader` - per-env, read-only (D42) | per-env `X-Env-Key` in the ML Commons connector → env registry |
-| n8n · direct API · MCP · confirm UI | the analyst, per-user (D11) | indexer Basic creds → auth-shim `authinfo` verify → turn JWT ≤10 min (D52) |
+| Dashboard Assistant (connector) | `wazuh_ai_env_reader` - per-env, read-only (D42) | per-env `X-Env-Key` in the ML Commons connector -> env registry |
+| n8n - direct API - MCP - confirm UI | the analyst, per-user (D11) | indexer Basic creds -> auth-shim `authinfo` verify -> turn JWT <=10 min (D52) |
 
 - The **auth-shim** is the only holder of the mint key; the core verifies with
   the public key and never mints (D30). Identity is verified against each
@@ -67,7 +67,7 @@ n8n · direct API · MCP · confirm UI ─ auth-shim (turn JWT) ─────�
 - Telemetry executes **as the principal** through the indexer JWT auth domain
   (D11), so the assistant can never surface more than that identity may read.
   The dashboard edge's read-only downgrade is disclosed in every answer's
-  label (`· environment-scoped identity`) and in audit (`claimed_user=null`).
+  label (`- environment-scoped identity`) and in audit (`claimed_user=null`).
 
 ## 4. A read turn - the lane cascade
 
@@ -77,7 +77,7 @@ embedding scope classifier refuses off-topic/injection questions before any
 model runs (fails open).
 
 1. **Lane 0 (D40):** one embedding matches the question to a curated bilingual
-   template → typed IR → executed with no model in the loop; a near-miss just
+   template -> typed IR -> executed with no model in the loop; a near-miss just
    under threshold becomes a few-shot hint instead of being discarded.
 2. **Playbooks (D55):** on a lane-0 miss, an embedding may match a curated
    investigation playbook (ordered typed tool steps). Every step runs the
@@ -120,13 +120,13 @@ citation must equal an evidence value); mismatches surface as `corrections`,
 never silently. Every answer carries a verifiability label derived from its
 lane and checks (D23).
 
-## 5. Write actions (propose → confirm)
+## 5. Write actions (propose -> confirm)
 
 The assistant is write-capable by design, but the model never calls a write API
 directly.
 
 - **Two phases (D20):** the model calls a `propose_*` tool (typed schema +
-  preview) → a proposal card, nothing executed. A human confirms; only then
+  preview) -> a proposal card, nothing executed. A human confirms; only then
   does a **per-tier executor credential - never the model (D35)** - run it.
   Executors: dashboard (saved-objects via the Dashboards API), manager
   (`agent:restart`), active-response (`active-response:command`), each a
@@ -173,7 +173,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D12 | Bilingual (EN/ES) by construction | active |
 | D14 | Admission control with honest rejection; no silent downgrade | active |
 | D18 | Access gated by an opt-in analyst role | active |
-| D20 | Two-phase actions: propose (model) → confirm (human + executor) | active |
+| D20 | Two-phase actions: propose (model) -> confirm (human + executor) | active |
 | D21 | Headless core, multiple surfaces (SSE chat, sync JSON, per-tool HTTP, MCP, connector) | active |
 | D22 / D29 | Typed Query IR, per-datastore compilers, OpenSearch DSL first | active |
 | D23 | Every answer carries a verifiability label | active |
@@ -199,7 +199,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D50 | Action catalog is code, not prompt | active |
 | D51 | Risk tiers gate confirmation UX | active |
 | D52 | Identity via the environment's own indexer authinfo; no external IdP (Keycloak removed) | active |
-| D53 | Dashboard-edge conversational "yes" executes under the env principal (dashboard access = authority) | active (bounded by §5 guardrails) |
+| D53 | Dashboard-edge conversational "yes" executes under the env principal (dashboard access = authority) | active (bounded by Section5 guardrails) |
 | D54 | Confirmation is a deterministic intent match outside the model; high-risk needs target echo | active |
 | D55 | Investigation playbooks: curated ordered typed tool sequences; model only synthesizes | active |
 | D56 | Per-intent answer shapes (triage card / incident / exec) as transient context | active |

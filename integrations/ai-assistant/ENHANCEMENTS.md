@@ -17,7 +17,7 @@ deferred-with-intent.
   store is permitted only over curated *public reference content* (D57).
 - **The model never writes a query / computes a number (D4).** New capability is
   typed tools/IR, veracity-checked server-side.
-- **Writes are propose→confirm (D20)** with a tiered executor credential the
+- **Writes are propose->confirm (D20)** with a tiered executor credential the
   model never holds.
 - **Cache-stability:** per-turn context rides as transient messages, never the
   static prelude.

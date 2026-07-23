@@ -1,6 +1,6 @@
 # Backup, restore, and migration of Wazuh Docker installations
 
-**Applies to:** Wazuh 4.x · Docker Compose deployments (single-node and multi-node)
+**Applies to:** Wazuh 4.x - Docker Compose deployments (single-node and multi-node)
 
 [Back to Docker README](./README.md)
 

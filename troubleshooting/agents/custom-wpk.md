@@ -15,7 +15,7 @@ Runbook for remote agent upgrades (WPK packages) that fail with certificate erro
 
 ## Background
 
-Remote upgrades deliver a signed WPK package to the agent, which verifies the signature against a root CA stored locally (`wpk_root.pem`, referenced by `<ca_store>` in the agent's `ossec.conf`). Older agents (≤ 4.3.7) shipped a root CA that has since been rotated; those agents reject current WPK packages with certificate verification errors until the new CA is installed.
+Remote upgrades deliver a signed WPK package to the agent, which verifies the signature against a root CA stored locally (`wpk_root.pem`, referenced by `<ca_store>` in the agent's `ossec.conf`). Older agents (<= 4.3.7) shipped a root CA that has since been rotated; those agents reject current WPK packages with certificate verification errors until the new CA is installed.
 
 The CA cannot be pushed centrally from the dashboard - it must be placed on each agent, so use your systems-management tooling (GPO, Ansible, Intune, etc.) to run the commands below at scale.
 
@@ -90,7 +90,7 @@ Recovery procedure:
 
    > Re-enable verification after testing - leaving it off removes package-authenticity checks.
 
-2. Confirm agent ↔ manager connectivity is stable (see [disconnections.md](disconnections.md)).
+2. Confirm agent <-> manager connectivity is stable (see [disconnections.md](disconnections.md)).
 3. Retry the upgrade **one agent at a time**, pinning the target version. From the manager:
 
    ```bash

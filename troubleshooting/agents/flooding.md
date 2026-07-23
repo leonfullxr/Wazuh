@@ -29,7 +29,7 @@ The agent buffer is a purely **in-memory leaky-bucket queue** that smooths burst
 Two practical consequences:
 
 1. A buffer overflow **cannot** harm the monitored application (e.g. a database); it only loses telemetry.
-2. Raising `queue_size` only increases RAM usage *when the queue fills* (roughly `queue_size × average event size`; events are typically a few hundred bytes to a few KB). It does not fix the flood - it postpones it.
+2. Raising `queue_size` only increases RAM usage *when the queue fills* (roughly `queue_size x average event size`; events are typically a few hundred bytes to a few KB). It does not fix the flood - it postpones it.
 
 A common failure mode: FIM (syscheck) configured over fast-changing data directories (database datafiles, log spools) floods the buffer with file-change events. Check the agent's `/var/ossec/logs/ossec.log` to see which module is active right before the buffer fills, and exclude those paths from monitoring.
 
@@ -47,9 +47,9 @@ Before changing anything, establish:
 
 Build a quick data-table visualization in the dashboard:
 
-1. Go to **Explore → Visualize → Create visualization**.
+1. Go to **Explore -> Visualize -> Create visualization**.
 2. Choose **Data Table** over the `wazuh-alerts-*` index pattern.
-3. Add a bucket → **Split rows** → Aggregation **Terms** → Field `rule.id` → **Update**.
+3. Add a bucket -> **Split rows** -> Aggregation **Terms** -> Field `rule.id` -> **Update**.
 4. Add a filter: `agent.id` **is** `<AGENT_ID>`.
 
 The result is the top alerting rules for that agent. Review whether they are actually needed - most floods are dominated by a handful of low-value rules.
@@ -126,8 +126,8 @@ Reference: [`localfile` options](https://documentation.wazuh.com/current/user-ma
 
 If the events must still reach the manager but the alert is worthless, overwrite the rule with level `0` (alerts are suppressed at level 0):
 
-1. In the dashboard go to **Server Management → Rules**, search for the rule ID (e.g. `60106`) and copy the original rule definition.
-2. Open **Custom rules** → `local_rules.xml`, paste the rule, set `level="0"` and add `overwrite="yes"`:
+1. In the dashboard go to **Server Management -> Rules**, search for the rule ID (e.g. `60106`) and copy the original rule definition.
+2. Open **Custom rules** -> `local_rules.xml`, paste the rule, set `level="0"` and add `overwrite="yes"`:
 
    ```xml
    <rule id="60106" level="0" overwrite="yes">
@@ -160,7 +160,7 @@ Only when the traffic is genuinely legitimate (you actually need all those event
 ```
 
 - Raise `events_per_second` gradually (steps of ~100, up to 1000) and observe whether the buffer-full alerts stop - higher rates increase agent and manager load.
-- `queue_size` can go up to 100,000; memory cost is `queue_size × average event size` only while the queue is occupied.
+- `queue_size` can go up to 100,000; memory cost is `queue_size x average event size` only while the queue is occupied.
 - Restart the agent after each change.
 
 Reference: [`client_buffer` options](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/client-buffer.html)

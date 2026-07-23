@@ -1,6 +1,6 @@
 # Wazuh on Google Kubernetes Engine (GKE)
 
-**Applies to:** Wazuh 4.x · GKE · [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
+**Applies to:** Wazuh 4.x - GKE - [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
 
 [Back to Kubernetes README](./README.md)
 

@@ -2,7 +2,7 @@
 
 An AI security assistant for Wazuh where **veracity is a property of the architecture, not a prompt**. The model never writes a datastore query and never computes a number: it picks typed tools or emits a typed query plan, the gateway compiles and validates it, executes it *as the asking analyst*, and verifies every citation and number against what was actually retrieved. Write operations (create a dashboard, restart an agent, run active response) are proposed by the model and executed only after a human confirms, under a credential the model never holds. It runs fully self-hosted - the chat lives inside the Wazuh Dashboard and inference can be a local model, so neither questions nor evidence need ever leave the box.
 
-Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) · [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/). Full design in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) - [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/). Full design in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ![v3.8 architecture at a glance](diagrams/png/wazuh-ai-v3-icons--v38-topology-icons.png)
 
@@ -54,7 +54,7 @@ Target shape:
 
    ```bash
    cp deploy.env.example deploy.env
-   # edit deploy.env — INDEXER_URL, admin creds, INDEXER_CA_PATH, WAI_CONNECTOR_*, …
+   # edit deploy.env - INDEXER_URL, admin creds, INDEXER_CA_PATH, WAI_CONNECTOR_*, ...
    ```
 
 2. **Gateway node** (where `tool-service` + `auth-shim` run, reachable from the indexer):
@@ -113,7 +113,7 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 |---|---|
 | `WAI_LLM_PROVIDER` + `WAI_MODEL_*` | Inference backend and the two model tiers (`bedrock` or any `openai`-compatible endpoint) |
 | `WAI_LANE0_ENABLED` / `WAI_EMBED_*` | The no-model semantic fast path and its embeddings endpoint |
-| `WAI_ACTIONS_ENABLED` / `WAI_ACTIONS_DIRECT` | Enable write actions (propose→confirm; `direct=false` is the default) |
+| `WAI_ACTIONS_ENABLED` / `WAI_ACTIONS_DIRECT` | Enable write actions (propose->confirm; `direct=false` is the default) |
 | `WAI_ENV_*` / `environments.yaml` | Per-environment credential, indexer, executors, and action tiers |
 | `WAI_INDEXER_URL` / `WAI_INDEXER_CA_PATH` | Your indexer and its CA |
 
@@ -123,7 +123,7 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 | `auth-shim/` | The minting sidecar: verifies indexer credentials via `authinfo`, mints turn JWTs |
 | `securityconfig/` | Indexer JWT auth domain, roles, and users applied to the live indexer |
 | `scripts/` | ML Commons wiring, embeddings, executor-RBAC, and E16 `install_*` entry points |
-| `deploy.env.example` | Operator inputs for the self-hosted installers (copy → `deploy.env`) |
+| `deploy.env.example` | Operator inputs for the self-hosted installers (copy -> `deploy.env`) |
 | `dashboard-assistant/` | Dockerfile that bakes the Assistant plugins into the Wazuh dashboard image |
 | `golden/`, `seed/` | Deterministic seed data and the bilingual eval gate (`make evals*`) |
 | `environments.yaml.example` | The per-environment registry - copy, fill, and you are multi-environment |

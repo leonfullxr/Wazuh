@@ -1,6 +1,6 @@
 # Docker network and proxy debugging
 
-**Applies to:** Wazuh Docker deployments (single/multi-node) · proxy-authenticated environments
+**Applies to:** Wazuh Docker deployments (single/multi-node) - proxy-authenticated environments
 
 [Back to Docker README](./README.md)
 

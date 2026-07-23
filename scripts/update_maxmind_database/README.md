@@ -31,7 +31,7 @@ This script essentially does the following:
 1. Authenticates to MaxMind using your Account ID and License Key.
 2. Downloads the latest GeoLite2 Country, City, and ASN databases via curl -sSL.
 3. Checks checksums to avoid unnecessary downloads.
-4. Extracts and installs the .mmdb files into Wazuh’s ingest-geoip module.
+4. Extracts and installs the .mmdb files into Wazuh's ingest-geoip module.
 5. Restarts the Wazuh Indexer service to pick up the new databases.
 
 ## Execution
@@ -149,13 +149,13 @@ INDEXER_IMAGE="wazuh/wazuh-indexer:4.12.0"
 > sudo docker-compose up -d
 
 [+] Running 7/7
- ⠿ Container multi-node-wazuh2.indexer-1   Running                                                                                                                                                 0.0s
- ⠿ Container multi-node-wazuh3.indexer-1   Running                                                                                                                                                 0.0s
- ⠿ Container multi-node-wazuh.worker-1     Running                                                                                                                                                 0.0s
- ⠿ Container multi-node-nginx-1            Started                                                                                                                                                 1.1s
- ⠿ Container multi-node-wazuh1.indexer-1   Started                                                                                                                                                 0.3s
- ⠿ Container multi-node-wazuh.master-1     Started                                                                                                                                                 0.3s
- ⠿ Container multi-node-wazuh.dashboard-1  Started                                                                                                                                                 0.2s
+ - Container multi-node-wazuh2.indexer-1   Running                                                                                                                                                 0.0s
+ - Container multi-node-wazuh3.indexer-1   Running                                                                                                                                                 0.0s
+ - Container multi-node-wazuh.worker-1     Running                                                                                                                                                 0.0s
+ - Container multi-node-nginx-1            Started                                                                                                                                                 1.1s
+ - Container multi-node-wazuh1.indexer-1   Started                                                                                                                                                 0.3s
+ - Container multi-node-wazuh.master-1     Started                                                                                                                                                 0.3s
+ - Container multi-node-wazuh.dashboard-1  Started                                                                                                                                                 0.2s
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !1 ?3                                                                                                                                           
 > xdg-open  docker-compose.yml 
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !1 ?3                                                                                                                                           
@@ -355,25 +355,25 @@ f1a27f9deccc   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open..."   4 hours
 f136d9308022   wazuh/wazuh-indexer:4.12.0     "/entrypoint.sh open..."   4 hours ago   Up 4 hours   9200/tcp                                                                                                                                                    multi-node-wazuh3.indexer-1
 > ./config/wazuh_indexer/scripts/update_maxmind.sh
 Found indexer containers:
-  • multi-node-wazuh3.indexer-1
-  • multi-node-wazuh2.indexer-1
-  • multi-node-wazuh1.indexer-1
+  - multi-node-wazuh3.indexer-1
+  - multi-node-wazuh2.indexer-1
+  - multi-node-wazuh1.indexer-1
 Detected services to recreate: wazuh3.indexer wazuh2.indexer wazuh1.indexer
 GeoIP dir is empty; bootstrapping default .mmdb files...
-  • Copying GeoLite2-City.mmdb
+  - Copying GeoLite2-City.mmdb
 Successfully copied 62.9MB to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
-  • Copying GeoLite2-Country.mmdb
+  - Copying GeoLite2-Country.mmdb
 Successfully copied 3.99MB to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
-  • Copying GeoLite2-ASN.mmdb
+  - Copying GeoLite2-ASN.mmdb
 Successfully copied 6.61MB to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
 Bootstrapped GeoIP DBs into /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data
 Stopping indexer...
 Stopping all indexer containers...
-  • multi-node-wazuh3.indexer-1
+  - multi-node-wazuh3.indexer-1
 multi-node-wazuh3.indexer-1
-  • multi-node-wazuh2.indexer-1
+  - multi-node-wazuh2.indexer-1
 multi-node-wazuh2.indexer-1
-  • multi-node-wazuh1.indexer-1
+  - multi-node-wazuh1.indexer-1
 multi-node-wazuh1.indexer-1
   Wazuh Indexer stopped.
 Checking GeoLite2-Country...
@@ -390,40 +390,40 @@ Checking GeoLite2-ASN...
   Moved GeoLite2-ASN.mmdb to /opt/wazuh-docker/multi-node/config/wazuh_indexer/geoip-data/GeoLite2-ASN.mmdb
 Updates applied; restarting indexer...
 Updates applied; recreating indexer containers to pick up new mounts...
-  • Removing old container for service 'wazuh3.indexer'...
+  - Removing old container for service 'wazuh3.indexer'...
 [+] Running 1/0
- ⠿ Container multi-node-wazuh3.indexer-1  Stopped                                                                                                                                                  0.0s
+ - Container multi-node-wazuh3.indexer-1  Stopped                                                                                                                                                  0.0s
 Going to remove multi-node-wazuh3.indexer-1
 [+] Running 1/0
- ⠿ Container multi-node-wazuh3.indexer-1  Removed                                                                                                                                                  0.0s
+ - Container multi-node-wazuh3.indexer-1  Removed                                                                                                                                                  0.0s
 [+] Running 1/1
- ⠿ Container multi-node-wazuh3.indexer-1  Started                                                                                                                                                  0.2s
+ - Container multi-node-wazuh3.indexer-1  Started                                                                                                                                                  0.2s
      Recreated wazuh3.indexer
-  • Removing old container for service 'wazuh2.indexer'...
+  - Removing old container for service 'wazuh2.indexer'...
 [+] Running 1/0
- ⠿ Container multi-node-wazuh2.indexer-1  Stopped                                                                                                                                                  0.0s
+ - Container multi-node-wazuh2.indexer-1  Stopped                                                                                                                                                  0.0s
 Going to remove multi-node-wazuh2.indexer-1
 [+] Running 1/0
- ⠿ Container multi-node-wazuh2.indexer-1  Removed                                                                                                                                                  0.0s
+ - Container multi-node-wazuh2.indexer-1  Removed                                                                                                                                                  0.0s
 [+] Running 1/1
- ⠿ Container multi-node-wazuh2.indexer-1  Started                                                                                                                                                  0.2s
+ - Container multi-node-wazuh2.indexer-1  Started                                                                                                                                                  0.2s
      Recreated wazuh2.indexer
-  • Removing old container for service 'wazuh1.indexer'...
+  - Removing old container for service 'wazuh1.indexer'...
 [+] Running 1/0
- ⠿ Container multi-node-wazuh1.indexer-1  Stopped                                                                                                                                                  0.0s
+ - Container multi-node-wazuh1.indexer-1  Stopped                                                                                                                                                  0.0s
 Going to remove multi-node-wazuh1.indexer-1
 [+] Running 1/0
- ⠿ Container multi-node-wazuh1.indexer-1  Removed                                                                                                                                                  0.0s
+ - Container multi-node-wazuh1.indexer-1  Removed                                                                                                                                                  0.0s
 [+] Running 1/1
- ⠿ Container multi-node-wazuh1.indexer-1  Started                                                                                                                                                  0.3s
+ - Container multi-node-wazuh1.indexer-1  Started                                                                                                                                                  0.3s
      Recreated wazuh1.indexer
 All indexer containers have been recreated with updated mounts.
 MaxMind GeoLite2 databases have been updated successfully.
 Ensuring indexer is running...
 Ensuring all indexers are running...
-  • multi-node-wazuh3.indexer-1 is already running.
-  • multi-node-wazuh2.indexer-1 is already running.
-  • multi-node-wazuh1.indexer-1 is already running.
+  - multi-node-wazuh3.indexer-1 is already running.
+  - multi-node-wazuh2.indexer-1 is already running.
+  - multi-node-wazuh1.indexer-1 is already running.
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?5                                                                                                                                        5s 
 > sudo docker exec multi-node-wazuh2.indexer-1 ls -l /usr/share/wazuh-indexer/modules/ingest-geoip
 total 82116
@@ -485,18 +485,18 @@ You should see the three `.mmdb` files alongside the plugin JARs and properties.
 ```bash
 > ./config/wazuh_indexer/scripts/update_maxmind.sh
 Found indexer containers:
-  • multi-node-wazuh1.indexer-1
-  • multi-node-wazuh2.indexer-1
-  • multi-node-wazuh3.indexer-1
+  - multi-node-wazuh1.indexer-1
+  - multi-node-wazuh2.indexer-1
+  - multi-node-wazuh3.indexer-1
 Detected services to recreate: wazuh1.indexer wazuh2.indexer wazuh3.indexer
 GeoIP dir already populated; skipping bootstrap.
 Stopping indexer...
 Stopping all indexer containers...
-  • multi-node-wazuh1.indexer-1
+  - multi-node-wazuh1.indexer-1
 multi-node-wazuh1.indexer-1
-  • multi-node-wazuh2.indexer-1
+  - multi-node-wazuh2.indexer-1
 multi-node-wazuh2.indexer-1
-  • multi-node-wazuh3.indexer-1
+  - multi-node-wazuh3.indexer-1
 multi-node-wazuh3.indexer-1
   Wazuh Indexer stopped.
 Checking GeoLite2-Country...
@@ -512,11 +512,11 @@ No updates needed; indexer will be ensured up by trap.
 Ensuring indexer is running...
 Ensuring all indexers are running...
 multi-node-wazuh1.indexer-1
-  • Started multi-node-wazuh1.indexer-1
+  - Started multi-node-wazuh1.indexer-1
 multi-node-wazuh2.indexer-1
-  • Started multi-node-wazuh2.indexer-1
+  - Started multi-node-wazuh2.indexer-1
 multi-node-wazuh3.indexer-1
-  • Started multi-node-wazuh3.indexer-1
+  - Started multi-node-wazuh3.indexer-1
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?5                                                                                                                                       4s 
 > 
  ~/MyVagrant/docker/wazuh-docker/multi-node | #v4.12.0 !2 ?5                                                                                                                                       4s 

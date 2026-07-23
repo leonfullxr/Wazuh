@@ -1,6 +1,6 @@
 # FIM in containerized environments
 
-**Applies to:** Wazuh 4.x · Docker hosts and Kubernetes nodes
+**Applies to:** Wazuh 4.x - Docker hosts and Kubernetes nodes
 
 [Back to containerization README](./README.md)
 

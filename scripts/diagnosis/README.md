@@ -13,7 +13,7 @@ This script collects diagnostic information from a Wazuh environment and perform
 - **Upgrade Readiness Healthcheck:**  
   - Checks that the Wazuh version is at least 4.5.0.
   - Monitors disk usage on the Wazuh Managers root partition (must be less than 85%).
-  - Checks disk usage metrics for all Indexer nodes from the allocation API and flags any nodes with disk usage ≥ 85%.
+  - Checks disk usage metrics for all Indexer nodes from the allocation API and flags any nodes with disk usage >= 85%.
   - Verifies that Indexer cluster health is green.
   - Confirms that both Manager and Indexer APIs respond with HTTP 200.
 
@@ -75,11 +75,11 @@ bash diagnosis.sh --help
 
 The script organizes its output under `/tmp/wazuh_diagnostic_reports` as follows:
 
-- **manager/** – Contains Manager API checks, configuration, health, hardware info, and service status.
-- **indexer/** – Contains Indexer API checks and related JSON (including indices, allocation, settings, nodes stats and nodes info).
-- **cluster/** – Contains overall cluster health and per-node API calls (for worker nodes).
-- **agents/** – Contains agent status information.
-- **Base files** – Logs, state files, and groups information are also saved in the base output directory.
+- **manager/** - Contains Manager API checks, configuration, health, hardware info, and service status.
+- **indexer/** - Contains Indexer API checks and related JSON (including indices, allocation, settings, nodes stats and nodes info).
+- **cluster/** - Contains overall cluster health and per-node API calls (for worker nodes).
+- **agents/** - Contains agent status information.
+- **Base files** - Logs, state files, and groups information are also saved in the base output directory.
 
 After execution, the report is compressed and saved in `/tmp` as either a ZIP or TAR.GZ archive.
 

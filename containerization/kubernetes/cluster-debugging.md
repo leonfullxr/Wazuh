@@ -1,6 +1,6 @@
 # Debugging a Wazuh Kubernetes deployment
 
-**Applies to:** Wazuh 4.x on Kubernetes · kubectl · minikube (local labs)
+**Applies to:** Wazuh 4.x on Kubernetes - kubectl - minikube (local labs)
 
 [Back to Kubernetes README](./README.md)
 
@@ -98,7 +98,7 @@ Short service names (`wazuh-indexer`, `wazuh`) resolve fine **as long as every c
 </nodes>
 ```
 
-When you change the namespace, update it there (and audit the overlay for any other FQDN that includes the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time - do **not** hand-edit those. Verify the cluster formed from **Server management → Cluster**, or:
+When you change the namespace, update it there (and audit the overlay for any other FQDN that includes the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time - do **not** hand-edit those. Verify the cluster formed from **Server management -> Cluster**, or:
 
 ```bash
 kubectl exec -n <namespace> wazuh-manager-master-0 -- /var/ossec/bin/cluster_control -l
@@ -169,5 +169,5 @@ cat ~/.kube/config
 ## Related
 
 - [Wazuh on Amazon EKS](./eks.md) - storage classes, affinity, ingress, SSO
-- [Wazuh on GKE](./gke.md) · [Wazuh on AKS](./aks.md)
+- [Wazuh on GKE](./gke.md) - [Wazuh on AKS](./aks.md)
 - [Docker network and proxy debugging](../docker/network-proxy-debugging.md) - the container-level equivalent

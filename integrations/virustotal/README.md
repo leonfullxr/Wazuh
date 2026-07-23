@@ -16,12 +16,12 @@
 
 ## Introduction
 
-This integration enriches Wazuh alerts with **VirusTotal IP reputation** and returns a clear verdict: **malicious**, **suspicious**, or **unknown**. It’s built on Wazuh’s Integrator framework and the VirusTotal **v3** API.
+This integration enriches Wazuh alerts with **VirusTotal IP reputation** and returns a clear verdict: **malicious**, **suspicious**, or **unknown**. It's built on Wazuh's Integrator framework and the VirusTotal **v3** API.
 
 This integration can be broken down into the following steps:
 
 * Extracts the **source IP** from matching Wazuh alerts.
-* Queries VirusTotal’s **IP object** (`/api/v3/ip_addresses/{ip}`) and (optionally) pivots to **communicating files** for borderline cases.
+* Queries VirusTotal's **IP object** (`/api/v3/ip_addresses/{ip}`) and (optionally) pivots to **communicating files** for borderline cases.
 * Computes a verdict using **engine consensus, freshness, community reputation, risk tags**, and **light engine-weighting**.
 * Emits an enriched JSON block under `virustotal_ip` and a flat `verdict_line` string for easy rule matching.
 
@@ -39,23 +39,23 @@ Here is the decision flow:
 
 1. **Start with engine counts**
 
-      * If `malicious` ≥ 3 → **malicious**.
-      * Else if `malicious` ≥ 1 and `reputation` < 0 → **malicious**.
-      * Else if (`malicious` + `suspicious`) ≥ 1 → **suspicious** (unless weak due to date).
-      * Else → **unknown**.
+      * If `malicious` >= 3 -> **malicious**.
+      * Else if `malicious` >= 1 and `reputation` < 0 -> **malicious**.
+      * Else if (`malicious` + `suspicious`) >= 1 -> **suspicious** (unless weak due to date).
+      * Else -> **unknown**.
 
 2. **Apply date (only affects weak hits as IPs can get refreshed):**
 
-      * If `age_days` > 90, `malicious` ≤ 1, and `reputation` ≥ 0 → downgrade to **unknown**.
+      * If `age_days` > 90, `malicious` <= 1, and `reputation` >= 0 -> downgrade to **unknown**.
 
 3. **Apply lightweight engine weighting**
 
-      * If score ≥ 3.0 → **malicious** (consensus by score).
-      * Else if score ≥ 1.5 and verdict was **unknown** → **suspicious**.
+      * If score >= 3.0 -> **malicious** (consensus by score).
+      * Else if score >= 1.5 and verdict was **unknown** -> **suspicious**.
 
 4. **Apply risk tags guardrail**
 
-      * If there’s any hit (`malicious` or `suspicious` > 0) and tag in `RISK_TAGS`, make sure it’s at least **suspicious**.
+      * If there's any hit (`malicious` or `suspicious` > 0) and tag in `RISK_TAGS`, make sure it's at least **suspicious**.
 
 For a better visual, please refer to [Workflow Diagram](#workflow-diagram)
 
@@ -338,18 +338,18 @@ Address: 108.157.98.48
 
 ```mermaid
 flowchart TD
-    Start([Start: Analyze IP]) --> CheckMal3{Malicious ≥ 3?}
+    Start([Start: Analyze IP]) --> CheckMal3{Malicious >= 3?}
     
     CheckMal3 -->|Yes| Malicious1[Verdict: MALICIOUS]
-    CheckMal3 -->|No| CheckMal1Rep{Malicious ≥ 1<br/>AND<br/>Reputation < 0?}
+    CheckMal3 -->|No| CheckMal1Rep{Malicious >= 1<br/>AND<br/>Reputation < 0?}
     
     CheckMal1Rep -->|Yes| Malicious2[Verdict: MALICIOUS]
-    CheckMal1Rep -->|No| CheckMalSus{Malicious +<br/>Suspicious ≥ 1?}
+    CheckMal1Rep -->|No| CheckMalSus{Malicious +<br/>Suspicious >= 1?}
     
     CheckMalSus -->|Yes| Suspicious1[Verdict: SUSPICIOUS]
     CheckMalSus -->|No| Unknown1[Verdict: UNKNOWN]
     
-    Suspicious1 --> DateCheck{Age > 90 days<br/>AND<br/>Malicious ≤ 1<br/>AND<br/>Reputation ≥ 0?}
+    Suspicious1 --> DateCheck{Age > 90 days<br/>AND<br/>Malicious <= 1<br/>AND<br/>Reputation >= 0?}
     Unknown1 --> WeightCheck
     
     DateCheck -->|Yes| Downgrade[Downgrade to UNKNOWN]
@@ -359,8 +359,8 @@ flowchart TD
     Malicious1 --> WeightCheck
     Malicious2 --> WeightCheck
     
-    WeightCheck -->|Score ≥ 3.0| UpgradeMal[Upgrade to MALICIOUS]
-    WeightCheck -->|Score ≥ 1.5<br/>AND<br/>Current = UNKNOWN| UpgradeSus[Upgrade to SUSPICIOUS]
+    WeightCheck -->|Score >= 3.0| UpgradeMal[Upgrade to MALICIOUS]
+    WeightCheck -->|Score >= 1.5<br/>AND<br/>Current = UNKNOWN| UpgradeSus[Upgrade to SUSPICIOUS]
     WeightCheck -->|Neither| RiskTagCheck
     
     UpgradeMal --> RiskTagCheck{Any hits AND<br/>Risk Tag present?}

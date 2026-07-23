@@ -87,20 +87,20 @@ itself (index rotation scheme, node count, heap sizing) needs a redesign.
 
 ## Worked example: planning shard count for retention and many sources
 
-Shard *size* (above) is only half of capacity planning; the other half is the shard *count* you accumulate over the retention window - especially when you split events into many index prefixes (per site, per tenant, per source, as in [alert separation](index-separation.md)). Each extra prefix is another daily index, so shard count grows with **sources × retention**, not just data volume.
+Shard *size* (above) is only half of capacity planning; the other half is the shard *count* you accumulate over the retention window - especially when you split events into many index prefixes (per site, per tenant, per source, as in [alert separation](index-separation.md)). Each extra prefix is another daily index, so shard count grows with **sources x retention**, not just data volume.
 
 Index cadence sets the baseline:
 
 - **Alerts** and **archives** (if enabled) roll **daily**.
 - **Monitoring** and **statistics** roll **weekly**.
-- Every index costs `primary shards × (1 + number_of_replicas)` shards.
+- Every index costs `primary shards x (1 + number_of_replicas)` shards.
 
 Worked example - **11 alert index prefixes**, one primary shard each, **90-day** retention (~13 weeks):
 
 | Config | Shards/day (alerts) | Shards/week (+2 stats & monitoring) | ~90 days (+~20 base) | Indexer nodes (~1000 shards each) |
 |---|---|---|---|---|
 | 1 primary **+ 1 replica** | 22 | 156 | ~2048 | **3** (fits, with headroom) |
-| 1 primary, **0 replicas** | 11 | 79 | ~1047 | 1 only by raising the limit → **3 recommended** |
+| 1 primary, **0 replicas** | 11 | 79 | ~1047 | 1 only by raising the limit -> **3 recommended** |
 
 Takeaways:
 

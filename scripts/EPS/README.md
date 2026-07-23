@@ -7,7 +7,7 @@ To perform the EPS calculation, I attach the following zip file containing the e
 
 `/var/ossec/logs/archives mv epschat_log.sh /var/ossec/logs/archives`
 
-- Edit the `ossec.conf` file on the server where Wazuh-Manager is installed by modifying the contents of the `<logall>` tag to ‘yes’:
+- Edit the `ossec.conf` file on the server where Wazuh-Manager is installed by modifying the contents of the `<logall>` tag to 'yes':
     
 
 `nano /var/ossec/etc/ossec. conf <logall>yes</logall>`

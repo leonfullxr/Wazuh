@@ -1,6 +1,6 @@
 # Persisting configuration and custom content across pod restarts
 
-**Applies to:** Wazuh 4.x · Kubernetes StatefulSet deployments · [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
+**Applies to:** Wazuh 4.x - Kubernetes StatefulSet deployments - [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
 
 [Back to Kubernetes README](./README.md)
 

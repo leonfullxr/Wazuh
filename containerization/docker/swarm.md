@@ -1,6 +1,6 @@
 # Wazuh on Docker Swarm and Portainer
 
-**Applies to:** Wazuh 4.x · Docker Swarm / Portainer stacks · [wazuh-docker](https://github.com/wazuh/wazuh-docker) images
+**Applies to:** Wazuh 4.x - Docker Swarm / Portainer stacks - [wazuh-docker](https://github.com/wazuh/wazuh-docker) images
 
 [Back to Docker README](./README.md)
 

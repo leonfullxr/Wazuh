@@ -83,8 +83,8 @@ Choose one front-end mechanism and document activation/failback before go-live.
 **How it works:**
 
 1. LB listens on agent-facing ports and forwards to the **primary** manager pool when health checks pass.
-2. Health checks fail (HTTP/TCP to manager API, agent port, or a dedicated health endpoint) → traffic shifts to the **DR** pool.
-3. After primary recovery, health checks succeed again → traffic returns (automatic or manual, depending on product).
+2. Health checks fail (HTTP/TCP to manager API, agent port, or a dedicated health endpoint) -> traffic shifts to the **DR** pool.
+3. After primary recovery, health checks succeed again -> traffic returns (automatic or manual, depending on product).
 
 **NGINX (open source):** provides **passive** health checks only. **Active** health checks (required for reliable automatic failover/failback) need [NGINX Plus](https://docs.nginx.com/nginx/admin-guide/load-balancer/http-health-check/) or another LB with active probes. See [NGINX in a Wazuh cluster](https://wazuh.com/blog/nginx-load-balancer-in-a-wazuh-cluster/).
 
@@ -93,7 +93,7 @@ Choose one front-end mechanism and document activation/failback before go-live.
 - **Listeners** - TCP 1514/1515 for agents; HTTPS 443 for API/dashboard as needed. [NLB](https://aws.amazon.com/blogs/aws/new-application-load-balancing-via-ip-address-to-aws-on-premises-resources/) supports TCP to on-prem targets.
 - **Health checks** - target primary pool; on failure, route to DR targets.
 - **Security groups** - restrict sources to authorized agent networks.
-- **IAM** - least-privilege roles for ELB → target registration.
+- **IAM** - least-privilege roles for ELB -> target registration.
 - **Optional** - Auto Scaling groups, cross-zone load balancing for zone resilience.
 - **Operations** - CloudWatch alarms when failover triggers.
 
@@ -122,7 +122,7 @@ Applies to both LB and DNS designs:
 | Phase | Actions |
 |---|---|
 | **Normal operation** | Front-end routes to primary. Replicate config (and optionally indexer data). Run health checks continuously. |
-| **Activation** | Primary fails health checks → front-end points to DR. DR site serves agents and generates alerts. |
+| **Activation** | Primary fails health checks -> front-end points to DR. DR site serves agents and generates alerts. |
 | **DR operation** | Monitor DR capacity. Operate as production until failback. |
 | **Failback** | Restore primary; sync any DR-only data (alerts, config drift); gradually or fully shift front-end back to primary; DR returns to standby. |
 | **Ongoing** | Test failover on a schedule. Update runbooks when architecture changes. |

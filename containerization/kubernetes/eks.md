@@ -1,6 +1,6 @@
 # Wazuh on Amazon EKS
 
-**Applies to:** Wazuh 4.x · Amazon EKS · [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
+**Applies to:** Wazuh 4.x - Amazon EKS - [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
 
 [Back to Kubernetes README](./README.md)
 
