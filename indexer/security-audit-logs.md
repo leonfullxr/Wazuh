@@ -28,7 +28,7 @@ Wazuh. Test `GET <PREFIX>/api/audit/config` before changing anything.
 
 ### 1. Configure the storage backend
 
-Add these static settings to `/etc/wazuh-indexer/opensearch.yml` on **every**
+Add these static settings to `/etc/wazuh-indexer/opensearch.yml` on every
 indexer node:
 
 ```yaml
@@ -55,7 +55,7 @@ GET _cat/nodes?v
 
 ### 2. Configure audit scope
 
-In Wazuh Dashboard, open **Indexer management > Security > Audit logs** and
+In Wazuh Dashboard, open Indexer management > Security > Audit logs and
 enable audit logging. Start with REST auditing and high-value failure events;
 enable transport auditing only if the additional volume is required.
 

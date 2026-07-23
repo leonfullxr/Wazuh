@@ -1,13 +1,13 @@
 # Replica Management
 
-Replica shards provide redundancy - but a replica can never be allocated on
-the same node as its primary. On a **single-node** deployment (the default
+Replica shards provide redundancy, but a replica can never be allocated on
+the same node as its primary. On a single-node deployment (the default
 Wazuh all-in-one install), every index created with 1 replica leaves an
 unassigned replica shard behind, and the cluster sits permanently
 [yellow](shard-management.md#cluster-health-red-and-yellow-states).
 
 Wazuh's own template creates `wazuh-*` indices with 0 replicas on
-all-in-one installs, but the **`.opendistro-*` system indices** (alerting,
+all-in-one installs, but the `.opendistro-*` system indices (alerting,
 ISM history, ...) are created by OpenSearch plugins with their own defaults
 and are the usual culprit behind a stubbornly yellow single-node cluster.
 
@@ -27,8 +27,8 @@ PUT wazuh-monitoring*/_settings
 { "index": { "number_of_replicas": 0 } }
 ```
 
-For the `.opendistro-*` system indices, also disable `auto_expand_replicas`
-- otherwise the plugin re-expands the replica count as nodes join:
+For the `.opendistro-*` system indices, also disable `auto_expand_replicas`,
+since otherwise the plugin re-expands the replica count as nodes join:
 
 ```http
 PUT .opendistro-*/_settings
@@ -84,7 +84,7 @@ PUT _index_template/ism_history_indices
 ```
 
 The ISM plugin's history indices additionally honor a dedicated cluster
-setting - set it too:
+setting; set it too:
 
 ```http
 PUT .opendistro-ism-managed-index-history-*/_settings
@@ -164,9 +164,9 @@ indices; the `retry` block handles transient failures.
 
 ## Notes for multi-node clusters
 
-- On multi-node clusters, **keep at least 1 replica** on `wazuh-alerts-*`:
+- On multi-node clusters, keep at least 1 replica on `wazuh-alerts-*`:
   losing a node without replicas means a red cluster and lost data. Replicas
-  are configured alongside shards in `/etc/filebeat/wazuh-template.json` -
+  are configured alongside shards in `/etc/filebeat/wazuh-template.json`;
   see [Increasing shards](shard-management.md#increasing-the-number-of-primary-shards).
 - Replicas double the disk footprint and cluster-wide shard count; factor
   them into the [shard-per-heap budget](shard-management.md#sizing-guidelines)

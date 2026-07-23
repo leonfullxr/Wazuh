@@ -1,6 +1,6 @@
 # TLS and Certificate Troubleshooting
 
-A diagnostic playbook for TLS failures across the Wazuh stack - most notably the indexer's `Received fatal alert: bad_certificate`, but the same flow applies to Filebeat-to-indexer, dashboard-to-indexer, LDAPS, and agent enrollment problems.
+A diagnostic playbook for TLS failures across the Wazuh stack, most notably the indexer's `Received fatal alert: bad_certificate`, but the same flow applies to Filebeat-to-indexer, dashboard-to-indexer, LDAPS, and agent enrollment problems.
 
 ## Table of Contents
 
@@ -18,9 +18,9 @@ A diagnostic playbook for TLS failures across the Wazuh stack - most notably the
 
 When the indexer logs `Received fatal alert: bad_certificate`, Java attempted a TLS handshake and one of the following is true:
 
-- the certificate it loaded is **expired, malformed, or doesn't match the private key**;
-- the peer (client or server) did not present a certificate **signed by your CA** - or you pointed Java at the wrong truststore;
-- there is a **hostname or time mismatch** (clock skew, or the CN/SAN doesn't match the address being connected to).
+- the certificate it loaded is expired, malformed, or doesn't match the private key;
+- the peer (client or server) did not present a certificate signed by your CA, or you pointed Java at the wrong truststore;
+- there is a hostname or time mismatch (clock skew, or the CN/SAN doesn't match the address being connected to).
 
 ## Step-by-step diagnostic flow
 
@@ -49,7 +49,7 @@ openssl x509 -in /etc/wazuh-indexer/certs/indexer.pem -noout \
 
 Check:
 
-- `notBefore` / `notAfter` - today must be inside the window;
+- `notBefore` / `notAfter`: today must be inside the window;
 - the SAN (or CN) includes the hostname/IP that clients actually use to connect.
 
 If either is wrong, regenerate the certificate ([component-certificates.md](component-certificates.md)).
@@ -65,7 +65,7 @@ openssl rsa  -noout -modulus -in /etc/wazuh-indexer/certs/indexer-key.pem | open
 
 ### 5. Test a live handshake
 
-Connect the same way Java will - transport layer (9300) with mutual TLS, and HTTP layer (9200):
+Connect the same way Java will: transport layer (9300) with mutual TLS, and HTTP layer (9200):
 
 ```bash
 # Transport layer, presenting the node's cert as a client
@@ -94,11 +94,11 @@ If Java is configured with a keystore instead of PEM files:
 keytool -list -v -keystore /path/to/your.jks -storepass <STORE_PASSWORD>
 ```
 
-The CA belongs in the **truststore**; the node's cert+key in the **keystore**.
+The CA belongs in the truststore; the node's cert+key in the keystore.
 
 ### 7. Regenerate and restart
 
-If anything above failed (expired dates, wrong CN/SAN, missing CA, modulus mismatch), reissue the certificate against the root CA - either with `wazuh-certs-tool.sh` or a manual `openssl x509 -req ... -CA root-ca.pem` (see [component-certificates.md](component-certificates.md#signing-additional-certificates-with-an-existing-root-ca)). Then:
+If anything above failed (expired dates, wrong CN/SAN, missing CA, modulus mismatch), reissue the certificate against the root CA, either with `wazuh-certs-tool.sh` or a manual `openssl x509 -req ... -CA root-ca.pem` (see [component-certificates.md](component-certificates.md#signing-additional-certificates-with-an-existing-root-ca)). Then:
 
 ```bash
 systemctl restart wazuh-indexer
@@ -107,7 +107,7 @@ journalctl -u wazuh-indexer -f
 
 The `bad_certificate` errors should stop and cluster nodes should join cleanly.
 
-**TL;DR:** clock -> `openssl x509 -dates -ext subjectAltName` -> modulus match -> `openssl s_client` -> CA in truststore -> regenerate -> restart.
+**TL;DR:** clock, then `openssl x509 -dates -ext subjectAltName`, then modulus match, then `openssl s_client`, then CA in truststore, then regenerate, then restart.
 
 ## Case study: inverted validity window
 
@@ -118,7 +118,7 @@ notBefore=May 16 07:34:51 2035 GMT
 notAfter =May 14 07:34:51 2035 GMT
 ```
 
-The certificate is "valid" *from* a date *after* its expiry - it can never be valid, and Java rejects it with `bad_certificate` no matter what else is configured. The fix is simply to reissue with a sane window:
+The certificate is "valid" *from* a date *after* its expiry: it can never be valid, and Java rejects it with `bad_certificate` no matter what else is configured. The fix is simply to reissue with a sane window:
 
 ```bash
 openssl x509 -req -in indexer.csr \
@@ -170,7 +170,7 @@ nc -zv <MANAGER_IP> 1514 1515 55000
 /var/ossec/bin/agent_control -i <AGENT_ID> | grep Status
 ```
 
-To probe both ports at protocol level - including timing the TLS handshake on 1515, useful when a proxy or load balancer sits in between - this Python script sends the `#ping` probe on 1514 and performs a TLS echo test on 1515:
+To probe both ports at protocol level (including timing the TLS handshake on 1515, useful when a proxy or load balancer sits in between), this Python script sends the `#ping` probe on 1514 and performs a TLS echo test on 1515:
 
 <details>
 <summary>tls_agent_ping.py</summary>
@@ -272,16 +272,16 @@ if __name__ == "__main__":
 
 </details>
 
-Run it against both a direct manager address and (if applicable) the proxy/load-balancer address and compare - a handshake that works direct but fails through the proxy points at the proxy configuration. See also the official [agent enrollment troubleshooting guide](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/troubleshooting.html).
+Run it against both a direct manager address and (if applicable) the proxy/load-balancer address and compare: a handshake that works direct but fails through the proxy points at the proxy configuration. See also the official [agent enrollment troubleshooting guide](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/troubleshooting.html).
 
-If agents repeatedly try to **re-register** instead of reconnecting (rejected because a valid key already exists), tune the agent's `ossec.conf`:
+If agents repeatedly try to re-register instead of reconnecting (rejected because a valid key already exists), tune the agent's `ossec.conf`:
 
 ```xml
 <force_reconnect_interval>1h</force_reconnect_interval>
 <time-reconnect>300</time-reconnect>
 ```
 
-If **new** agents cannot enroll on 1515 while already-registered agents keep reporting normally, suspect the manager's dedicated enrollment certificate `/var/ossec/etc/sslmanager.cert` rather than the shared bundle - most often it has expired. It is only used during registration, so its expiry does not disconnect existing agents. Check and renew it as described in [component-certificates.md](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert):
+If new agents cannot enroll on 1515 while already-registered agents keep reporting normally, suspect the manager's dedicated enrollment certificate `/var/ossec/etc/sslmanager.cert` rather than the shared bundle: most often it has expired. It is only used during registration, so its expiry does not disconnect existing agents. Check and renew it as described in [component-certificates.md](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert):
 
 ```bash
 openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert
@@ -296,21 +296,21 @@ wazuh-remoted: DEBUG: handle incoming close socket [32].
 wazuh-remoted: DEBUG: TCP peer disconnected [32]
 ```
 
-Confirm from a client with `openssl s_client` - an expired date here is conclusive:
+Confirm from a client with `openssl s_client`: an expired date here is conclusive:
 
 ```bash
 echo | openssl s_client -connect <MANAGER_IP>:1515 2>/dev/null \
   | openssl x509 -noout -subject -issuer -dates
 ```
 
-If it is expired and the default self-signed certificate is acceptable, the fastest fix is to delete both files and restart the manager so it regenerates a fresh 10-year pair - see [component-certificates.md](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert):
+If it is expired and the default self-signed certificate is acceptable, the fastest fix is to delete both files and restart the manager so it regenerates a fresh 10-year pair, see [component-certificates.md](component-certificates.md#the-manager-enrollment-certificate-sslmanagercert):
 
 ```bash
 rm -f /var/ossec/etc/sslmanager.cert /var/ossec/etc/sslmanager.key
 systemctl restart wazuh-manager
 ```
 
-> **`unexpected eof while reading` is the client hanging up mid-handshake - it is not always the certificate.** The message only means the peer closed the TCP connection before the TLS handshake completed. An expired server certificate is the common cause, but so is anything that stops the client finishing the handshake - most insidiously a path-MTU black hole, where small handshake/keepalive packets pass but larger records are silently dropped. If the certificate on 1515 is valid and you still see this signature (and agents connect but forward no logs), move to the [MTU / path-MTU black hole](../troubleshooting/agents/disconnections.md#agent-connects-but-forwards-no-logs-mtu--path-mtu-black-hole) check.
+> `unexpected eof while reading` is the client hanging up mid-handshake: it is not always the certificate. The message only means the peer closed the TCP connection before the TLS handshake completed. An expired server certificate is the common cause, but so is anything that stops the client finishing the handshake, most insidiously a path-MTU black hole, where small handshake/keepalive packets pass but larger records are silently dropped. If the certificate on 1515 is valid and you still see this signature (and agents connect but forward no logs), move to the [MTU / path-MTU black hole](../troubleshooting/agents/disconnections.md#agent-connects-but-forwards-no-logs-mtu--path-mtu-black-hole) check.
 
 ## API certificate errors on port 55000
 
@@ -320,7 +320,7 @@ The Wazuh server REST API (TCP 55000) has its own certificate, separate from the
 tls: failed to verify certificate: x509: certificate signed by unknown authority
 ```
 
-while a plain `openssl s_client` against the certificate file looks valid. This is almost always an **incomplete chain**: the certificate is signed by an intermediate CA, and the API serves only the leaf certificate, so a client that does not already hold the intermediate cannot build a path to the root.
+while a plain `openssl s_client` against the certificate file looks valid. This is almost always an incomplete chain: the certificate is signed by an intermediate CA, and the API serves only the leaf certificate, so a client that does not already hold the intermediate cannot build a path to the root.
 
 Confirm it by looking at what the API actually sends on the wire:
 
@@ -328,7 +328,7 @@ Confirm it by looking at what the API actually sends on the wire:
 openssl s_client -connect <MANAGER_IP>:55000 -showcerts
 ```
 
-The tell-tale is a `verify error:num=20:unable to get local issuer certificate` with only the leaf (and no intermediate) in the `Certificate chain` block. The fix has two halves - serve the full chain from the manager and trust the CA on the client - both detailed in [component-certificates.md](component-certificates.md#the-wazuh-server-api-certificate-port-55000). In short:
+The tell-tale is a `verify error:num=20:unable to get local issuer certificate` with only the leaf (and no intermediate) in the `Certificate chain` block. The fix has two halves: serve the full chain from the manager, and trust the CA on the client, both detailed in [component-certificates.md](component-certificates.md#the-wazuh-server-api-certificate-port-55000). In short:
 
 ```bash
 # On the manager: build leaf + intermediate and point api.yaml at it
@@ -352,7 +352,7 @@ curl -X GET "https://<MANAGER_IP>:55000/?pretty=true" -H "Authorization: Bearer 
 
 A dashboard that was secure at install time starts being reported as "not secure" roughly 90 days later, and the dashboard log shows a TLS alert such as `sslv3 alert certificate unknown`. `certbot renew` reports success, yet the browser still sees the expired certificate.
 
-The usual root cause is that the deployment **copied** `fullchain.pem` / `privkey.pem` from `/etc/letsencrypt/live/<domain>/` into the component's certs directory (e.g. `/etc/wazuh-dashboard/certs/`) instead of pointing the service straight at the live files. Certbot renews the files under `/etc/letsencrypt/live/`, but the stale copies the dashboard actually serves are never refreshed. Compare the timestamps to confirm:
+The usual root cause is that the deployment copied `fullchain.pem` / `privkey.pem` from `/etc/letsencrypt/live/<domain>/` into the component's certs directory (e.g. `/etc/wazuh-dashboard/certs/`) instead of pointing the service straight at the live files. Certbot renews the files under `/etc/letsencrypt/live/`, but the stale copies the dashboard actually serves are never refreshed. Compare the timestamps to confirm:
 
 ```bash
 ls -l /etc/letsencrypt/live/<domain>/fullchain.pem
@@ -389,7 +389,7 @@ Remember to keep file ownership/permissions correct on the copied files (`chown 
 
 When a TLS-listening service (rsyslog, an ingest endpoint, a reverse proxy) refuses to start or rejects the handshake after a certificate change, validate the three files as a set before touching anything else. Two failure classes look different in the logs.
 
-**1. Do the key and certificate match?** Compare their public-key hashes - they must be identical:
+**1. Do the key and certificate match?** Compare their public-key hashes: they must be identical:
 
 ```bash
 openssl pkey -in server.key -pubout -outform pem | sha256sum
@@ -398,14 +398,14 @@ openssl x509 -in server.crt -pubkey -noout -outform pem | sha256sum
 
 If the key is passphrase-protected, `openssl pkey` prompts for it; a `bad decrypt` / `pkcs12 ... cipherfinal error` means the passphrase is wrong. Export an unencrypted copy for a service that cannot prompt: `openssl pkey -in server.key -out server-decrypted.key`.
 
-**2. Does the chain verify?** The `-CAfile` argument is the **CA chain** (intermediate + root); the leaf is the file being verified - not the other way round:
+**2. Does the chain verify?** The `-CAfile` argument is the CA chain (intermediate + root); the leaf is the file being verified, not the other way round:
 
 ```bash
 openssl verify -show_chain -CAfile ca-chain.pem server.crt
 # server.crt: OK   -> then depth=0 leaf, depth=1 intermediate, depth=2 root ...
 ```
 
-**3. Malformed PEM (the sneaky one).** If the service fails with OpenSSL **ASN.1 / PEM** errors rather than a mismatch or missing-file error, the file *content* is corrupted - the trust relationship is fine:
+**3. Malformed PEM (the sneaky one).** If the service fails with OpenSSL ASN.1 / PEM errors rather than a mismatch or missing-file error, the file *content* is corrupted: the trust relationship is fine:
 
 ```text
 asn1 encoding routines::too long
@@ -422,7 +422,7 @@ openssl x509 -in server.crt -out server-clean.crt   # normalize the certificate
 openssl pkey -in server.key -out server-clean.key   # normalize the key
 ```
 
-> A `sha256sum` match in step 1 proves the key/cert pair even when the raw files are misformatted for a given consumer - so a passing match **plus** a failing service startup points squarely at step 3 (formatting), not at the wrong key.
+> A `sha256sum` match in step 1 proves the key/cert pair even when the raw files are misformatted for a given consumer, so a passing match plus a failing service startup points squarely at step 3 (formatting), not at the wrong key.
 
 ## Useful openssl one-liners
 

@@ -1,6 +1,6 @@
 # Wazuh agent deployment on Kubernetes
 
-**Applies to:** Wazuh 4.x - Kubernetes (EKS, self-managed, k3s)
+**Applies to:** Wazuh 4.x, Kubernetes (EKS, self-managed, k3s)
 
 [Back to Kubernetes README](./README.md)
 
@@ -10,8 +10,8 @@ The Wazuh agent can be deployed natively within a Kubernetes cluster to monitor 
 
 | Model | Scope | Best for |
 |-------|-------|----------|
-| [DaemonSet](#daemonset-deployment) | One agent per node - monitors the node and all containers on it | Full-cluster coverage, general-purpose monitoring |
-| [Sidecar](#sidecar-deployment) | One agent per pod - monitors a specific application only | Targeted monitoring of sensitive workloads, isolated log collection |
+| [DaemonSet](#daemonset-deployment) | One agent per node: monitors the node and all containers on it | Full-cluster coverage, general-purpose monitoring |
+| [Sidecar](#sidecar-deployment) | One agent per pod: monitors a specific application only | Targeted monitoring of sensitive workloads, isolated log collection |
 
 ### How agent configuration works in both models
 
@@ -279,7 +279,7 @@ The sidecar model runs the Wazuh agent as a companion container inside a specifi
 
 Key differences from the DaemonSet model:
 
-- Uses a **PersistentVolumeClaim** for agent data rather than a hostPath, making it suitable for managed node pools where hostPath access may be restricted
+- Uses a PersistentVolumeClaim for agent data rather than a hostPath, making it suitable for managed node pools where hostPath access may be restricted
 - Agent name is derived from `metadata.name` (the pod name) rather than the node name
 - A shared `application-data` volume allows the agent container to read application logs directly
 
@@ -574,4 +574,4 @@ The Tomcat example can be adapted to any application by modifying three things i
 2. **`localfile` block in `write-ossec-config`** - update the `<location>` path to point to your application's log file
 3. **`application-data` PVC size** - adjust `storage` under `volumeClaimTemplates` to match expected log volume
 
-Everything else - the init container chain, the Secret mount, the enrollment flow - remains unchanged.
+Everything else (the init container chain, the Secret mount, the enrollment flow) remains unchanged.

@@ -1,6 +1,6 @@
 # Debugging a Wazuh Kubernetes deployment
 
-**Applies to:** Wazuh 4.x on Kubernetes - kubectl - minikube (local labs)
+**Applies to:** Wazuh 4.x on Kubernetes, kubectl, minikube (local labs)
 
 [Back to Kubernetes README](./README.md)
 
@@ -50,7 +50,7 @@ kubectl describe pod <POD_NAME> -n wazuh   # events: scheduling, image pulls, mo
 
 ## Master pod OOMKilled and cluster restart loops
 
-A cluster that "crashes every 2-5 minutes" - the master restarts, workers then restart, cluster comms drop and re-form on a loop - is very often the master being **OOMKilled**, not a Wazuh bug. Confirm it:
+A cluster that "crashes every 2-5 minutes" (the master restarts, workers then restart, cluster comms drop and re-form on a loop) is very often the master being OOMKilled, not a Wazuh bug. Confirm it:
 
 ```bash
 kubectl get pods -n <namespace> -o wide                    # RESTARTS climbing on the master
@@ -58,9 +58,9 @@ kubectl describe pod wazuh-manager-master-0 -n <namespace> | grep -A3 "Last Stat
 # Last State: Terminated   Reason: OOMKilled
 ```
 
-The stock manifests ship deliberately small limits (the master defaults to roughly `400m` CPU / `512Mi` RAM). That is below what a manager with enrolled agents needs, so it is killed the moment memory spikes - taking cluster communication down with it. Raise the requests/limits in your overlay and redeploy.
+The stock manifests ship deliberately small limits (the master defaults to roughly `400m` CPU / `512Mi` RAM). That is below what a manager with enrolled agents needs, so it is killed the moment memory spikes, taking cluster communication down with it. Raise the requests/limits in your overlay and redeploy.
 
-The documented "minimum requirements" are for the **whole cluster with no agents**; they are not per-pod values. As a starting point per component (mirrors the non-container [sizing guide](https://documentation.wazuh.com/current/quickstart.html#requirements)):
+The documented "minimum requirements" are for the whole cluster with no agents; they are not per-pod values. As a starting point per component (mirrors the non-container [sizing guide](https://documentation.wazuh.com/current/quickstart.html#requirements)):
 
 | Component | ~50 agents | ~100 agents |
 |---|---|---|
@@ -88,9 +88,9 @@ minikube start --extra-config=kubelet.resolvConf=/etc/resolv.conf
 
 ## Changing the namespace breaks cluster DNS
 
-The `wazuh-kubernetes` manifests rely on Kubernetes DNS service discovery, and several config values embed the namespace. Deploy into any namespace other than the default `wazuh` **without updating those references** and the cluster silently fails to form. A common signature is the agent successfully getting a key from the master but then failing to send logs - the master cannot hand the agent off to a worker because cluster communication is broken.
+The `wazuh-kubernetes` manifests rely on Kubernetes DNS service discovery, and several config values embed the namespace. Deploy into any namespace other than the default `wazuh` without updating those references and the cluster silently fails to form. A common signature is the agent successfully getting a key from the master but then failing to send logs: the master cannot hand the agent off to a worker because cluster communication is broken.
 
-Short service names (`wazuh-indexer`, `wazuh`) resolve fine **as long as every component is in the same namespace** - Kubernetes expands `wazuh-indexer` to `wazuh-indexer.<namespace>.svc.cluster.local`. The breakage comes from **fully-qualified names that hard-code the namespace**, most importantly the master node entry in the cluster config (`master.conf` / `worker.conf`), which uses the headless-service form `<pod>.<service>.<namespace>`:
+Short service names (`wazuh-indexer`, `wazuh`) resolve fine as long as every component is in the same namespace: Kubernetes expands `wazuh-indexer` to `wazuh-indexer.<namespace>.svc.cluster.local`. The breakage comes from fully-qualified names that hard-code the namespace, most importantly the master node entry in the cluster config (`master.conf` / `worker.conf`), which uses the headless-service form `<pod>.<service>.<namespace>`:
 
 ```xml
 <nodes>
@@ -98,13 +98,13 @@ Short service names (`wazuh-indexer`, `wazuh`) resolve fine **as long as every c
 </nodes>
 ```
 
-When you change the namespace, update it there (and audit the overlay for any other FQDN that includes the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time - do **not** hand-edit those. Verify the cluster formed from **Server management -> Cluster**, or:
+When you change the namespace, update it there (and audit the overlay for any other FQDN that includes the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time: do not hand-edit those. Verify the cluster formed from Server management to Cluster, or:
 
 ```bash
 kubectl exec -n <namespace> wazuh-manager-master-0 -- /var/ossec/bin/cluster_control -l
 ```
 
-Setting the namespace once via the Kustomize overlay (`kustomization.yml`) is the intended workflow, but the FQDN above still has to match the namespace you choose - that one is not rewritten for you.
+Setting the namespace once via the Kustomize overlay (`kustomization.yml`) is the intended workflow, but the FQDN above still has to match the namespace you choose: that one is not rewritten for you.
 
 ## Working with the indexer pods
 

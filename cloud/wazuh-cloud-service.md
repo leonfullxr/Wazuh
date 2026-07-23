@@ -20,30 +20,30 @@ Everything here is based on the official [Wazuh Cloud service documentation](htt
 
 ## Credential Types
 
-Wazuh Cloud uses **separate credential sets per component** -- they are not interchangeable:
+Wazuh Cloud uses separate credential sets per component. They are not interchangeable:
 
-1. **Cloud Console credentials** -- the username/password for [the Wazuh Cloud console](https://console.cloud.wazuh.com/). Valid only for the console itself (environment management, API keys, billing).
-2. **Wazuh dashboard / manager API credentials** -- the internal users (`wazuh`, `wazuh-wui`, or custom internal users) used to log into the dashboard and to authenticate against the Wazuh server API.
-3. **Cloud API keys** -- generated in the console under **API keys**; used by tooling such as `wcloud-cli` (see [below](#retrieving-archive-cold-data-with-wcloud-cli)), not for the server API.
+1. **Cloud Console credentials:** the username/password for [the Wazuh Cloud console](https://console.cloud.wazuh.com/). Valid only for the console itself (environment management, API keys, billing).
+2. **Wazuh dashboard / manager API credentials:** the internal users (`wazuh`, `wazuh-wui`, or custom internal users) used to log into the dashboard and to authenticate against the Wazuh server API.
+3. **Cloud API keys:** generated in the console under API keys; used by tooling such as `wcloud-cli` (see [below](#retrieving-archive-cold-data-with-wcloud-cli)), not for the server API.
 
-If you lose the `wazuh`/`wazuh-wui` credentials, create a new internal user from **Server management > Security** instead (see [RBAC documentation](https://documentation.wazuh.com/current/user-manual/user-administration/rbac.html)).
+If you lose the `wazuh`/`wazuh-wui` credentials, create a new internal user from Server management > Security instead (see [RBAC documentation](https://documentation.wazuh.com/current/user-manual/user-administration/rbac.html)).
 
 ## API Access on Wazuh Cloud
 
 ### Endpoints
 
-Cloud environments do **not** expose ports 55000 (server API) or 9200 (indexer API). Use path-based endpoints instead, with no port:
+Cloud environments do not expose ports 55000 (server API) or 9200 (indexer API). Use path-based endpoints instead, with no port:
 
 | On-premises | Wazuh Cloud |
 |---|---|
 | `https://<manager>:55000/<endpoint>` | `https://<CLOUD_ID>.cloud.wazuh.com/api/wazuh/<endpoint>` |
 | `https://<indexer>:9200/<endpoint>` | `https://<CLOUD_ID>.cloud.wazuh.com/api/elastic/<endpoint>` |
 
-Additionally, the source IP address of your API client must be **whitelisted** for the environment -- request this through Wazuh Cloud support if API calls time out from an otherwise correct setup.
+Additionally, the source IP address of your API client must be whitelisted for the environment. Request this through Wazuh Cloud support if API calls time out from an otherwise correct setup.
 
 ### Creating an API User
 
-1. On the dashboard, go to **Server management > Security > Users** and create an internal user, assigning roles according to your needs.
+1. On the dashboard, go to Server management > Security > Users and create an internal user, assigning roles according to your needs.
 2. Generate a JWT token (replace credentials and Cloud ID):
 
    ```bash
@@ -106,12 +106,12 @@ A list of `wazuh-alerts-*` (and possibly `wazuh-archives-*`) indices confirms th
 
 ## Storage Tiers: Indexed Data vs Archive Data
 
-Two distinct concepts share the word "archive" -- do not confuse them:
+Two distinct concepts share the word "archive", so do not confuse them:
 
-- **`wazuh-archives-*` (index name).** By default Wazuh only indexes alerts of **level 3 or higher** into `wazuh-alerts-*`. Raw events of *all* levels can additionally be stored in `wazuh-archives-*`, but this is disabled by default (`<logall_json>no</logall_json>`) because it significantly increases alert volume and disk usage. See [Wazuh indexer indices](https://documentation.wazuh.com/current/user-manual/wazuh-indexer/wazuh-indexer-indices.html) and [Archive data configuration](https://documentation.wazuh.com/current/cloud-service/archive-data/configuration.html).
+- **`wazuh-archives-*` (index name).** By default Wazuh only indexes alerts of level 3 or higher into `wazuh-alerts-*`. Raw events of *all* levels can additionally be stored in `wazuh-archives-*`, but this is disabled by default (`<logall_json>no</logall_json>`) because it significantly increases alert volume and disk usage. See [Wazuh indexer indices](https://documentation.wazuh.com/current/user-manual/wazuh-indexer/wazuh-indexer-indices.html) and [Archive data configuration](https://documentation.wazuh.com/current/cloud-service/archive-data/configuration.html).
 - **Storage stages** (Wazuh Cloud lifecycle for your indexed data, per [Archive data](https://documentation.wazuh.com/current/cloud-service/archive-data/index.html)):
-  - **Indexed data** (formerly *hot storage*) -- recent data, actively readable and writable. Default retention: 3 months.
-  - **Archive data** (formerly *cold storage*) -- older data, moved out of the cluster. Indices are frozen/read-only to reduce overhead. Default retention: 1 year.
+  - **Indexed data** (formerly *hot storage*): recent data, actively readable and writable. Default retention: 3 months.
+  - **Archive data** (formerly *cold storage*): older data, moved out of the cluster. Indices are frozen/read-only to reduce overhead. Default retention: 1 year.
 
 Example: an index named `wazuh-alerts-4.x-2025.07.30` is queryable and writable for about 3 months (until 2025-10-30), then transitions automatically to cold storage where it remains accessible read-only.
 
@@ -121,7 +121,7 @@ The [`wcloud-cli` tool](https://documentation.wazuh.com/current/cloud-service/cl
 
 **Prerequisites:** a Linux system (WSL works) with internet access, Python 3.x, and the `boto3` and `requests` packages.
 
-1. **Get a Cloud API key.** In the [Wazuh Cloud console](https://console.cloud.wazuh.com/), open **API keys** in the left menu. Reuse an existing active key or click **Generate API key**, give it a name, and generate it. Copy the key and store it somewhere safe -- it is shown only once.
+1. **Get a Cloud API key.** In the [Wazuh Cloud console](https://console.cloud.wazuh.com/), open API keys in the left menu. Reuse an existing active key or click Generate API key, give it a name, and generate it. Copy the key and store it somewhere safe (it is shown only once).
 
 2. **Install the tool:**
 

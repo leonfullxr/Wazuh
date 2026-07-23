@@ -16,18 +16,18 @@ Wazuh integrates with Microsoft Azure through two components:
    - **`<log_analytics>`** -- runs KQL queries against a Log Analytics workspace via the Log Analytics API (Azure Monitor / Activity logs, any table in the workspace).
    - **`<graph>`** -- pulls Microsoft Entra ID (Azure AD) logs via the Microsoft Graph API (e.g. `auditLogs/directoryAudits`, `auditLogs/signIns`).
    - **`<storage>`** -- reads log blobs from an Azure Storage account container (e.g. diagnostics exported to blob storage).
-2. **`ms-graph` module** -- a native `modulesd` module (Wazuh >= 4.6, configured as `<ms-graph>` in `ossec.conf`) that polls the Microsoft Graph Security API: Defender / Microsoft 365 Defender alerts and incidents (`security` -> `alerts_v2`, `incidents`), Entra ID Protection (`identityProtection` -> `riskDetections`), Intune device management, and more.
+2. **`ms-graph` module** -- a native `modulesd` module (Wazuh >= 4.6, configured as `<ms-graph>` in `ossec.conf`) that polls the Microsoft Graph Security API: Defender / Microsoft 365 Defender alerts and incidents (`security` to `alerts_v2`, `incidents`), Entra ID Protection (`identityProtection` to `riskDetections`), Intune device management, and more.
 
 Official docs: [Using Wazuh to monitor Microsoft Azure](https://documentation.wazuh.com/current/cloud-security/azure/index.html) and [ms-graph module reference](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/ms-graph-module.html)
 
 ## Prerequisites
 
-- **App registration** in Microsoft Entra ID: note the **tenant (directory) ID** and **application (client) ID**, and create a **client secret**.
-- **API permissions** (Application type) granted **with admin consent**:
+- **App registration** in Microsoft Entra ID: note the tenant (directory) ID and application (client) ID, and create a client secret.
+- **API permissions** (Application type) granted with admin consent:
   - Log Analytics: `Data.Read` on the Log Analytics API; the app also needs a Reader role on the workspace.
   - Graph wodle: `AuditLog.Read.All`, `Directory.Read.All` on Microsoft Graph.
   - ms-graph module: `SecurityEvents.Read.All` / `SecurityAlert.Read.All`, `SecurityIncident.Read.All`, `IdentityRiskEvent.Read.All`, depending on the resources queried.
-- The **storage** sub-integration instead uses the storage account name and an access key (no app registration required).
+- The storage sub-integration instead uses the storage account name and an access key (no app registration required).
 - Credentials for the wodle should go in an `auth_path` file (`application_id` / `application_key` lines) rather than inline in `ossec.conf`.
 
 ## Minimal Configuration Examples

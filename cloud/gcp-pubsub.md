@@ -13,7 +13,7 @@
 
 ## Introduction
 
-This guide integrates Google Cloud logs into Wazuh using **Pub/Sub with Application Default Credentials (ADC)**. The Wazuh manager runs on a GCE VM with an attached service account, so **no private key or credential JSON files are required** -- authentication happens through the instance metadata server.
+This guide integrates Google Cloud logs into Wazuh using Pub/Sub with Application Default Credentials (ADC). The Wazuh manager runs on a GCE VM with an attached service account, so no private key or credential JSON files are required -- authentication happens through the instance metadata server.
 
 The flow: Google Cloud services publish logs to a Pub/Sub topic (typically via a Cloud Logging sink), a small subscriber script on the Wazuh manager pulls the messages, writes them to a local log file wrapped in a `{"gcp": ...}` envelope, and a `localfile` monitor feeds them into the Wazuh pipeline. GKE audit logs are typically ingested through this same pipeline.
 
@@ -25,22 +25,22 @@ Follow the official Wazuh documentation: [Installing dependencies - Wazuh docume
 
 ## Step 2: Create a Service Account
 
-1. In the Google Cloud Console, navigate to **IAM & Admin > Service Accounts**.
-2. Click **+ CREATE SERVICE ACCOUNT**.
-3. Provide a **name** and **description**, then click **CREATE AND CONTINUE**.
-4. Assign the following **roles** to the service account:
-   - **Pub/Sub Publisher**
-   - **Pub/Sub Subscriber**
-   - **Pub/Sub Viewer**
-5. Click **Done**.
+1. In the Google Cloud Console, navigate to IAM & Admin > Service Accounts.
+2. Click + CREATE SERVICE ACCOUNT.
+3. Provide a name and description, then click CREATE AND CONTINUE.
+4. Assign the following roles to the service account:
+   - Pub/Sub Publisher
+   - Pub/Sub Subscriber
+   - Pub/Sub Viewer
+5. Click Done.
 
 ## Step 3: Attach the Service Account to the Wazuh Manager VM
 
-1. Go to the **VM instances** page in GCP and select the VM running the Wazuh manager.
-2. **Stop** the VM, then click **Edit**.
-3. In the **Service Account** section, select the service account created earlier from the drop-down list.
-4. In the **Access scopes** section, select **Set access for each API** and enable the **Cloud Pub/Sub** scope (leave the other APIs at their defaults unless you need them).
-5. Click **Save**, then **Start/Resume** the VM.
+1. Go to the VM instances page in GCP and select the VM running the Wazuh manager.
+2. Stop the VM, then click Edit.
+3. In the Service Account section, select the service account created earlier from the drop-down list.
+4. In the Access scopes section, select Set access for each API and enable the Cloud Pub/Sub scope (leave the other APIs at their defaults unless you need them).
+5. Click Save, then Start/Resume the VM.
 
 ## Step 4: Test Connectivity with the Metadata Server
 
@@ -51,7 +51,7 @@ curl "http://metadata.google.internal/computeMetadata/v1/instance/service-accoun
   -H "Metadata-Flavor: Google"
 ```
 
-If the setup is correct, this returns an **access token**, confirming the VM can authenticate without a private key.
+If the setup is correct, this returns an access token, confirming the VM can authenticate without a private key.
 
 ## Step 5: Configure the Subscriber Script and Local File Monitor
 
@@ -121,7 +121,7 @@ If the setup is correct, this returns an **access token**, confirming the VM can
    chown root:wazuh /var/ossec/integrations/gcp_pubsub.py
    ```
 
-4. Enable the file monitor and the script. On the Wazuh dashboard go to **Menu > Server management > Settings > Edit configuration** and add at the end of the file:
+4. Enable the file monitor and the script. On the Wazuh dashboard go to Menu > Server management > Settings > Edit configuration and add at the end of the file:
 
    ```xml
    <localfile>
@@ -140,11 +140,11 @@ If the setup is correct, this returns an **access token**, confirming the VM can
    </wodle>
    ```
 
-   Click **Save** and restart the manager.
+   Click Save and restart the manager.
 
 ## Step 6: Configure Rules
 
-Go to **Menu > Server management > Rules > Add new rule file**, name the file `gcp_overwrite`, and paste the following base rule so the wrapped JSON events are decoded:
+Go to Menu > Server management > Rules > Add new rule file, name the file `gcp_overwrite`, and paste the following base rule so the wrapped JSON events are decoded:
 
 ```xml
 <group name="gcp,">
@@ -158,11 +158,11 @@ Go to **Menu > Server management > Rules > Add new rule file**, name the file `g
 </group>
 ```
 
-Click **Save**, then **Restart**. Build child rules on top of `65000` (raising the level for the event types you care about) so events actually alert.
+Click Save, then Restart. Build child rules on top of `65000` (raising the level for the event types you care about) so events actually alert.
 
 ## Step 7: Verify Events
 
-Go to **Menu > Threat Intelligence > Threat hunting > Events** and add a filter such as `rule.groups: gcp` (or filter on the `data.gcp` fields). Incoming Pub/Sub messages should appear with their payload under `data.gcp.*`.
+Go to Menu > Threat Intelligence > Threat hunting > Events and add a filter such as `rule.groups: gcp` (or filter on the `data.gcp` fields). Incoming Pub/Sub messages should appear with their payload under `data.gcp.*`.
 
 ## References
 

@@ -34,10 +34,10 @@ A default Wazuh deployment (created with `wazuh-certs-tool.sh`) uses one interna
 
 Key facts to keep in mind:
 
-- Every node certificate must be signed by the **same root CA** (`root-ca.pem`) that the other components trust. A cert signed by a different CA is the most common cause of `bad_certificate` handshake failures.
-- Certificates must contain the node's hostname or IP in the **Subject Alternative Name (SAN)** - the CN alone is not enough for modern clients.
-- The **admin certificate** is a client certificate, not a server certificate. Keep it: without it you cannot run `securityadmin.sh` to load security configuration changes (users, roles, SAML config).
-- SAML SSO does not add TLS certificates to Wazuh itself, but relies on the IdP's **signing certificate** (exchanged through SAML metadata files) and on the dashboard being served over HTTPS.
+- Every node certificate must be signed by the same root CA (`root-ca.pem`) that the other components trust. A cert signed by a different CA is the most common cause of `bad_certificate` handshake failures.
+- Certificates must contain the node's hostname or IP in the Subject Alternative Name (SAN): the CN alone is not enough for modern clients.
+- The admin certificate is a client certificate, not a server certificate. Keep it: without it you cannot run `securityadmin.sh` to load security configuration changes (users, roles, SAML config).
+- SAML SSO does not add TLS certificates to Wazuh itself, but relies on the IdP's signing certificate (exchanged through SAML metadata files) and on the dashboard being served over HTTPS.
 
 ## Quick reference
 

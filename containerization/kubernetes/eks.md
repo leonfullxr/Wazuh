@@ -1,6 +1,6 @@
 # Wazuh on Amazon EKS
 
-**Applies to:** Wazuh 4.x - Amazon EKS - [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
+**Applies to:** Wazuh 4.x, Amazon EKS, [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) deployment
 
 [Back to Kubernetes README](./README.md)
 
@@ -38,7 +38,7 @@ Yes, and it is actively recommended. It delays volume provisioning until a pod u
 
 **`reclaimPolicy: Delete` vs `Retain`?**
 
-The Wazuh manifests default to `Retain`, which keeps the volume for manual reclamation when its claim is deleted - safer against accidental data loss. `Delete` cleans up automatically. Choose based on your data retention policy; see the Kubernetes [persistent volumes documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+The Wazuh manifests default to `Retain`, which keeps the volume for manual reclamation when its claim is deleted: safer against accidental data loss. `Delete` cleans up automatically. Choose based on your data retention policy; see the Kubernetes [persistent volumes documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
 Example storage class for EKS:
 
@@ -85,7 +85,7 @@ distributed across those zones.
 
 **Where should changes be made in the wazuh-kubernetes repository?**
 
-All environment-specific changes belong in the `envs/` directory (Kustomize overlays). Do not modify the base manifests under the `wazuh/` subfolders - keeping the base pristine makes upgrades to newer Wazuh versions a clean rebase instead of a merge conflict hunt.
+All environment-specific changes belong in the `envs/` directory (Kustomize overlays). Do not modify the base manifests under the `wazuh/` subfolders: keeping the base pristine makes upgrades to newer Wazuh versions a clean rebase instead of a merge conflict hunt.
 
 **Pulling images from a private ECR**
 
@@ -100,13 +100,13 @@ Set resource requests/limits in the Kustomize overlays, then monitor actual usag
 **Moving from a LoadBalancer to an Ingress**
 
 1. Deploy an Ingress controller in the cluster (e.g. AWS Load Balancer Controller or ingress-nginx).
-2. Create Ingress resources with routing rules pointing at the Wazuh dashboard service - verify the service name and port match the deployment.
+2. Create Ingress resources with routing rules pointing at the Wazuh dashboard service. Verify the service name and port match the deployment.
 3. Update DNS records to point to the Ingress controller's external address.
 4. Include TLS settings in the Ingress resource for secure external access.
 
 **Can an AWS NLB terminate TLS to simplify certificate management?**
 
-An NLB can terminate TLS for *external* access (e.g. the dashboard), but it cannot replace the certificates used for communication **between the central components** (indexer, manager, dashboard). Inter-component TLS must follow the [certificate setup](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-deployment.html#setup-ssl-certificates) described in the official documentation.
+An NLB can terminate TLS for *external* access (e.g. the dashboard), but it cannot replace the certificates used for communication between the central components (indexer, manager, dashboard). Inter-component TLS must follow the [certificate setup](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/kubernetes-deployment.html#setup-ssl-certificates) described in the official documentation.
 
 ## Authentication and secrets
 
@@ -142,8 +142,8 @@ Manage custom rules in Git: a dedicated repository (or branch) with a pull-reque
 
 **Alerting when a rule file is modified or disabled**
 
-- Enable Wazuh **FIM (syscheck)** on the custom rules directory so any modification generates an alert.
-- Optionally add **auditd** monitoring on the manager host/pod for who-did-what detail.
+- Enable Wazuh FIM (syscheck) on the custom rules directory so any modification generates an alert.
+- Optionally add auditd monitoring on the manager host/pod for who-did-what detail.
 - Build alert rules/notifications for unexpected changes.
 
 ## Agent enrollment and custom CAs
@@ -156,7 +156,7 @@ Manage custom rules in Git: a dedicated repository (or branch) with a pull-reque
 
 **Private vs public CA**
 
-Both work. You can use a public CA (Let's Encrypt, DigiCert, ...) or an internal CA - the certificate just needs to be properly signed and trusted by the agents, so distribute the CA cert to all managed systems.
+Both work. You can use a public CA (Let's Encrypt, DigiCert, ...) or an internal CA: the certificate just needs to be properly signed and trusted by the agents, so distribute the CA cert to all managed systems.
 
 **Recommended enrollment method**
 
@@ -175,7 +175,7 @@ pod does not need to re-enroll automatically.
 
 **Are pre-shared keys supported?**
 
-The enrollment password stored in `/var/ossec/etc/authd.pass` on the manager acts as a pre-shared key **for enrollment only**. It is not used for ongoing communication - after enrollment, agents talk to the manager over TLS on port 1514 using their individual agent keys.
+The enrollment password stored in `/var/ossec/etc/authd.pass` on the manager acts as a pre-shared key for enrollment only. It is not used for ongoing communication: after enrollment, agents talk to the manager over TLS on port 1514 using their individual agent keys.
 
 ## Useful commands
 

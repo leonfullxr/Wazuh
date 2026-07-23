@@ -2,15 +2,15 @@
 
 The default Wazuh installation ships an
 [ingest pipeline](https://github.com/wazuh/wazuh/blob/master/extensions/filebeat/7.x/wazuh-module/alerts/ingest/pipeline.json)
-that runs the GeoIP processor at **index time**, enriching alerts with a
+that runs the GeoIP processor at index time, enriching alerts with a
 `GeoLocation` object (country, city, coordinates) derived from the source IP.
 
-The key architectural consequence: enrichment happens **after** the manager
+The key architectural consequence: enrichment happens after the manager
 has already decoded the event and evaluated the ruleset. Therefore:
 
-- You **cannot** write Wazuh rules that match on `GeoLocation.*` fields, and
+- You cannot write Wazuh rules that match on `GeoLocation.*` fields, and
   you cannot lower/raise an alert level with a custom rule based on country.
-- You **can** act on GeoLocation at the indexer layer: OpenSearch Alerting
+- You can act on GeoLocation at the indexer layer: OpenSearch Alerting
   monitors on `GeoLocation.country_name`, or pipeline processors that rewrite
   the alert (see [below](#filtering-alerts-by-country)).
 
@@ -201,7 +201,7 @@ level 12 with a dedicated rule ID.
 
 1. Back up and edit
    `/usr/share/filebeat/module/wazuh/alerts/ingest/pipeline.json` on the
-   manager, adding these processors **after** the GeoIP processors:
+   manager, adding these processors after the GeoIP processors:
 
    ```json
    {
@@ -240,18 +240,18 @@ level 12 with a dedicated rule ID.
    systemctl restart filebeat
    ```
 
-3. Apply the same change on **all** manager nodes.
+3. Apply the same change on all manager nodes.
 
 Notes:
 
-- This rewrites the indexed document only - manager-side outputs (email,
+- This rewrites the indexed document only: manager-side outputs (email,
   integrations, active response) still see the original level.
-- For notification-only use cases, an OpenSearch **Alerting monitor** on
+- For notification-only use cases, an OpenSearch Alerting monitor on
   `GeoLocation.country_name` is simpler and requires no pipeline surgery.
 - `pipeline.json` is shared with the
   [index separation](index-separation.md#coordinating-pipelinejson-changes)
   and [timestamp formatting](ingest-pipeline-customization.md)
-  customizations - keep them coordinated and re-apply after upgrades.
+  customizations, keep them coordinated and re-apply after upgrades.
 
 ## References
 

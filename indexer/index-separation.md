@@ -8,7 +8,7 @@ dashboards.
 
 The routing happens in the Filebeat ingest pipeline that names the
 destination index: `date_index_name` processors are evaluated in order, and
-a conditional one placed **before** the default catches matching alerts
+a conditional one placed before the default catches matching alerts
 first.
 
 ## Table of Contents
@@ -49,8 +49,8 @@ On **every Wazuh manager node**:
    },
    ```
 
-   This exact-equality condition only matches alerts whose rule has **that
-   single group** - see the next section for the common multi-group case.
+   This exact-equality condition only matches alerts whose rule has that
+   single group: see the next section for the common multi-group case.
 
 3. Upload the pipeline and restart services:
 
@@ -81,7 +81,7 @@ instead:
 
 You can key the condition on other fields the same way - for example on an
 agent label: `"if": "ctx.agent?.labels?.group == 'db'"`. A processor accepts
-only **one** `if`; combine multiple criteria with `&&` / `||` inside it.
+only one `if`; combine multiple criteria with `&&` / `||` inside it.
 
 ## Make the new pattern usable
 
@@ -95,7 +95,7 @@ only **one** `if`; combine multiple criteria with `&&` / `||` inside it.
   **Dashboard management > Index patterns** so the new indices are
   searchable from the UI.
 - **Retention:** add the new pattern to your
-  [ISM policy](ilm-retention.md#example-delete-alerts-after-90-days) -
+  [ISM policy](ilm-retention.md#example-delete-alerts-after-90-days):
   separated indices are usually separated precisely to give them different
   retention.
 - Historical alerts already indexed into `wazuh-alerts-4.x-*` are not moved
@@ -113,19 +113,19 @@ documented diff.
 
 ## Single cluster with logical separation vs. separate clusters
 
-Routing multiple environments (sites, tenants) into one indexer cluster and separating them only by index prefix - as the [procedure above](#procedure) does - is perfectly valid for Wazuh; the manager and indexer do not care that several prefixes coexist. Wazuh does not mandate one model over the other; the right choice depends on scale and how you operate the data.
+Routing multiple environments (sites, tenants) into one indexer cluster and separating them only by index prefix (as the [procedure above](#procedure) does) is perfectly valid for Wazuh; the manager and indexer do not care that several prefixes coexist. Wazuh does not mandate one model over the other; the right choice depends on scale and how you operate the data.
 
 | | One cluster, logical (index-prefix) separation | Separate clusters / environments per site |
 |---|---|---|
 | Resources & cost | Fewer nodes, less overhead | More nodes and infrastructure |
-| Central visibility | Simple - everything in one dashboard | Needs a centralized console / cross-cluster search |
-| Data isolation | Weaker - all data shares one cluster | Strong - physical separation |
-| Per-source resourcing | Not possible - one shared resource pool | Each environment sized independently |
-| Main scaling limit | **Shard growth** (below) caps retention before adding nodes | Each cluster scales on its own |
+| Central visibility | Simple: everything in one dashboard | Needs a centralized console / cross-cluster search |
+| Data isolation | Weaker: all data shares one cluster | Strong: physical separation |
+| Per-source resourcing | Not possible: one shared resource pool | Each environment sized independently |
+| Main scaling limit | Shard growth (below) caps retention before adding nodes | Each cluster scales on its own |
 
-The decisive constraint for the single-cluster model is **shard accumulation**: every prefix is another daily index, so total shards grow with sources x retention, and each indexer node handles ~1000 shards by default. The more logical environments you fold into one cluster, the sooner you reach that ceiling. Work the numbers for your retention and source count with the [shard-planning example](shard-management.md#worked-example-planning-shard-count-for-retention-and-many-sources) before committing.
+The decisive constraint for the single-cluster model is shard accumulation: every prefix is another daily index, so total shards grow with sources x retention, and each indexer node handles ~1000 shards by default. The more logical environments you fold into one cluster, the sooner you reach that ceiling. Work the numbers for your retention and source count with the [shard-planning example](shard-management.md#worked-example-planning-shard-count-for-retention-and-many-sources) before committing.
 
-Rule of thumb: a single cluster with logical separation is fine for a **small, stable** number of sources; lean toward separate environments with a centralized console when the number of sources is **medium-to-large or growing**, or when you need per-source resourcing or hard data isolation.
+Rule of thumb: a single cluster with logical separation is fine for a small, stable number of sources; lean toward separate environments with a centralized console when the number of sources is medium-to-large or growing, or when you need per-source resourcing or hard data isolation.
 
 ## Where separation happens: manager vs index level
 

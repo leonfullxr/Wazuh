@@ -51,7 +51,7 @@ certificates separate from edge TLS.
 
 ## Deployment gotchas
 
-**Indexer pods stuck `Pending` / `Init` with `ImagePullBackOff`.** The indexer StatefulSet runs two `busybox`-based init containers before the main container starts: one that `chown`s the data directory (`volume-mount-hack`) and one that sets `vm.max_map_count` (`increase-the-vm-max-map-count`). If the node cannot pull `busybox` from Docker Hub - Docker Hub anonymous pull-rate limits, or blocked egress to the registry - these init containers loop on `ImagePullBackOff` and the pod never leaves initialization. `kubectl describe pod` shows the failing pull.
+**Indexer pods stuck `Pending` / `Init` with `ImagePullBackOff`.** The indexer StatefulSet runs two `busybox`-based init containers before the main container starts: one that `chown`s the data directory (`volume-mount-hack`) and one that sets `vm.max_map_count` (`increase-the-vm-max-map-count`). If the node cannot pull `busybox` from Docker Hub (Docker Hub anonymous pull-rate limits, or blocked egress to the registry), these init containers loop on `ImagePullBackOff` and the pod never leaves initialization. `kubectl describe pod` shows the failing pull.
 
 Fix the registry access rather than the manifest: allow egress to the image registry, authenticate to Docker Hub to lift the rate limit, or mirror the `busybox` image into Artifact Registry and point the init containers at it. This surfaces on GKE more than on other platforms because outbound access is often restricted by default.
 

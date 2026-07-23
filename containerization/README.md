@@ -36,7 +36,7 @@ after every rollout.
 
 ## General notes
 
-- All Docker Compose examples target **Wazuh 4.x** and have been tested on 4.12-4.14.
+- All Docker Compose examples target Wazuh 4.x and have been tested on 4.12-4.14.
 - Kubernetes manifests follow the official Wazuh single-index multi-node layout (Manager + Worker + 3 Indexers).
 - Where a fix or workaround targets a specific Wazuh version range, it is noted inline in the relevant README.
-- Configurations marked `:ro` (read-only mounts) are intentional - they prevent the container entrypoint from overwriting customisations at runtime.
+- Configurations marked `:ro` (read-only mounts) are intentional: they prevent the container entrypoint from overwriting customisations at runtime.

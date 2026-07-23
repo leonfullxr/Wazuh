@@ -1,16 +1,16 @@
 # Wazuh on Docker Swarm and Portainer
 
-**Applies to:** Wazuh 4.x - Docker Swarm / Portainer stacks - [wazuh-docker](https://github.com/wazuh/wazuh-docker) images
+**Applies to:** Wazuh 4.x, Docker Swarm / Portainer stacks, [wazuh-docker](https://github.com/wazuh/wazuh-docker) images
 
 [Back to Docker README](./README.md)
 
 ## Overview
 
-Wazuh does not ship official Docker Swarm or Portainer deployment files - the official `wazuh-docker` repository targets plain Docker Compose. The compose files can nevertheless be adapted to run as Swarm stacks (including Portainer-managed ones), and this guide collects the adaptations and failure modes seen in real deployments: certificate generation, service naming, shared (NFS) volume storage, port remapping for multiple stacks on one host, and agent enrollment against non-default ports.
+Wazuh does not ship official Docker Swarm or Portainer deployment files: the official `wazuh-docker` repository targets plain Docker Compose. The compose files can nevertheless be adapted to run as Swarm stacks (including Portainer-managed ones), and this guide collects the adaptations and failure modes seen in real deployments: certificate generation, service naming, shared (NFS) volume storage, port remapping for multiple stacks on one host, and agent enrollment against non-default ports.
 
 ## Certificate generation: why Portainer alone is not enough
 
-The official deployment is a two-step process - a throwaway `generator` service creates the TLS certificates, then the actual stack mounts them:
+The official deployment is a two-step process: a throwaway `generator` service creates the TLS certificates, then the actual stack mounts them:
 
 ```bash
 git clone https://github.com/wazuh/wazuh-docker.git -b v4.x.y
@@ -19,20 +19,20 @@ docker compose -f generate-indexer-certs.yml run --rm generator
 docker compose up -d
 ```
 
-Portainer stacks only accept a single compose file per stack, so the generator cannot run as part of the stack. Merging the two files (`docker compose -f generate-indexer-certs.yml -f docker-compose.yml config > merged.yml`) does **not** work either: the Wazuh services declare file bind mounts of certificates that do not exist yet, so container creation fails with:
+Portainer stacks only accept a single compose file per stack, so the generator cannot run as part of the stack. Merging the two files (`docker compose -f generate-indexer-certs.yml -f docker-compose.yml config > merged.yml`) does not work either: the Wazuh services declare file bind mounts of certificates that do not exist yet, so container creation fails with:
 
 ```text
 error mounting ".../config/wazuh_indexer_ssl_certs/admin-key.pem" ...
 Are you trying to mount a directory onto a file (or vice-versa)?
 ```
 
-Docker creates a *directory* at the missing host path, and the mount of a directory onto a file inside the container is rejected. The same happens with Portainer's "upload compose file" and "git repository" stack options - the certificates are simply not there.
+Docker creates a *directory* at the missing host path, and the mount of a directory onto a file inside the container is rejected. The same happens with Portainer's "upload compose file" and "git repository" stack options: the certificates are simply not there.
 
 **Working approach:** SSH into the Swarm/Portainer host, clone the repository, run the certificate generator once from the CLI, and only then deploy the stack (from the CLI or by pointing Portainer at the on-disk compose file). After that, the running stack is fully manageable from the Portainer UI.
 
 ## Service names: no underscores, ever
 
-Swarm prefixes service container hostnames with the stack name using an underscore (e.g. `mystack_wazuh1-indexer`). This breaks the indexer cluster in a non-obvious way: **underscores are not valid in hostnames used for TLS certificates and OpenSearch cluster discovery.** The symptom is a cluster that never forms, with errors such as:
+Swarm prefixes service container hostnames with the stack name using an underscore (e.g. `mystack_wazuh1-indexer`). This breaks the indexer cluster in a non-obvious way: underscores are not valid in hostnames used for TLS certificates and OpenSearch cluster discovery. The symptom is a cluster that never forms, with errors such as:
 
 ```text
 BindTransportException[Failed to resolve host [wazuh1.indexer]]; nested: UnknownHostException
@@ -43,7 +43,7 @@ and TLS handshake rejections between nodes, because the node name, DNS name, and
 
 Mitigations, all of which must be applied consistently:
 
-- Set explicit `hostname:` values on every service using **hyphens only** (e.g. `wazuh-cluster-b-wazuh1-indexer` instead of `wazuh-cluster-b_wazuh1-indexer`).
+- Set explicit `hostname:` values on every service using hyphens only (e.g. `wazuh-cluster-b-wazuh1-indexer` instead of `wazuh-cluster-b_wazuh1-indexer`).
 - Use the same hyphenated names in every `opensearch.yml` (`node.name`, `discovery.seed_hosts`, `cluster.initial_master_nodes`, `plugins.security.nodes_dn`).
 - Regenerate the node certificates so the CN/SANs match those exact hostnames. When a service is reachable under more than one name (compose alias plus stack-prefixed name), include both as `subjectAltName` entries:
 
@@ -72,10 +72,10 @@ If the infrastructure may change, issue certificates against FQDNs rather than I
 
 For Swarm high availability the data volumes usually live on shared storage (NFS) rather than named local volumes. Two gotchas:
 
-- **Ownership/permissions are lost on the NFS share.** Volume directories that worked with local root-owned storage will fail once moved - the indexer in particular refuses to start (misleading Java errors) when it cannot write its data path. Fix the permissions on the share so the container users (non-root UIDs such as 1000/994) can read and write their volume directories.
+- **Ownership/permissions are lost on the NFS share.** Volume directories that worked with local root-owned storage will fail once moved: the indexer in particular refuses to start (misleading Java errors) when it cannot write its data path. Fix the permissions on the share so the container users (non-root UIDs such as 1000/994) can read and write their volume directories.
 - **Plan the location up front.** Cloning the repo and letting volumes default under a small root filesystem fills the disk quickly; place configs and volume bind paths on the large shared mount (e.g. `/share/wazuh/<stack>/volumes`) from the start.
 
-Note that the indexer data path on NFS works, but network storage adds latency to an I/O-sensitive component - prefer local or guaranteed-IOPS storage for production indexers.
+Note that the indexer data path on NFS works, but network storage adds latency to an I/O-sensitive component: prefer local or guaranteed-IOPS storage for production indexers.
 
 ## Multiple stacks on one host: port remapping and agent enrollment
 
@@ -89,13 +89,13 @@ Running two Wazuh stacks (e.g. a single-node and a multi-node cluster) on the sa
 | Indexer HTTP | 9200 | 9200 | 9210 |
 | Indexer transport | 9300 | 9300 | 9310 |
 
-The classic failure mode: agents deployed against the remapped stack with only `WAZUH_MANAGER_PORT` set enroll against the **default** 1515 - which belongs to the other stack - and then show up there as `never_connected`, while logging:
+The classic failure mode: agents deployed against the remapped stack with only `WAZUH_MANAGER_PORT` set enroll against the default 1515 (which belongs to the other stack) and then show up there as `never_connected`, while logging:
 
 ```text
 wazuh-agentd: ERROR: (1208): Unable to connect to enrollment service at '[<ip>]:1515'
 ```
 
-Always set **both** ports in the deployment variables when the registration port is remapped:
+Always set both ports in the deployment variables when the registration port is remapped:
 
 ```powershell
 msiexec.exe /i wazuh-agent.msi /q WAZUH_MANAGER='<manager-fqdn>' `
@@ -134,7 +134,7 @@ stream {
 }
 ```
 
-Ports to open between components: 443 (dashboard UI), 9200 (indexer HTTP), **9300 (indexer transport - required for Cross-Cluster Search from an external console)**, 55000 (API), 1514/1515 (agents).
+Ports to open between components: 443 (dashboard UI), 9200 (indexer HTTP), 9300 (indexer transport, required for Cross-Cluster Search from an external console), 55000 (API), 1514/1515 (agents).
 
 ## Connecting a stack to an external Cross-Cluster Search console
 
@@ -166,7 +166,7 @@ To add an indexer (for example an extra hot node) to a running Docker-based clus
    node.roles: [ data, ingest ]
    ```
 
-4. **Update every existing indexer's `opensearch.yml`** - this is the step that is easy to miss:
+4. **Update every existing indexer's `opensearch.yml`**: this is the step that is easy to miss:
    - add the new node to `discovery.seed_hosts` and `cluster.initial_master_nodes`
    - add the new node's certificate DN to `plugins.security.nodes_dn`
    - bump `node.max_local_storage_nodes` if you use it

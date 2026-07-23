@@ -3,7 +3,7 @@
 <!-- Support: WS-31921, WS-35178, WS-32949, WS-27627, WS-33856 -->
 
 Cross-cluster search lets a central ("main") Wazuh Indexer cluster query the
-indices of one or more remote Wazuh environments - typical for multi-site or
+indices of one or more remote Wazuh environments: typical for multi-site or
 multi-tenant setups where each site keeps its own full Wazuh stack but a
 central SOC needs a single pane of glass.
 
@@ -11,8 +11,8 @@ Requirements that trip most deployments:
 
 - **All nodes across all environments must trust a common root CA.** In
   practice this means regenerating certificates for every node from one CA.
-- The main cluster reaches the remote indexers on the **transport port
-  (9300)**, not 9200.
+- The main cluster reaches the remote indexers on the transport port
+  (9300), not 9200.
 - Remote indexers must list the main cluster's node certificates in
   `plugins.security.nodes_dn`.
 
@@ -46,8 +46,8 @@ Requirements that trip most deployments:
    curl -sO https://packages.wazuh.com/4.12/config.yml
    ```
 
-3. Edit `config.yml` and declare **every node of every environment** - main
-   and remote indexers, all managers, the dashboard:
+3. Edit `config.yml` and declare every node of every environment (main
+   and remote indexers, all managers, the dashboard):
 
    ```yaml
    nodes:
@@ -150,7 +150,7 @@ filebeat test output
 
 ## 3. Register the remote cluster
 
-On the **main** cluster, declare the remote seed nodes (transport port 9300):
+On the main cluster, declare the remote seed nodes (transport port 9300):
 
 ```http
 PUT _cluster/settings
@@ -171,7 +171,7 @@ PUT _cluster/settings
 }
 ```
 
-Test - remote indices are addressed as `<cluster-alias>:<index-pattern>`:
+Test: remote indices are addressed as `<cluster-alias>:<index-pattern>`:
 
 ```http
 GET remote_cluster:wazuh-alerts-*/_search
@@ -231,9 +231,9 @@ alerts.
 
 CCS introduces two separate authorization planes:
 
-1. The **central indexer cluster** authorizes searches against local and
+1. The central indexer cluster authorizes searches against local and
    remote index patterns through OpenSearch Security roles.
-2. Each **tenant Wazuh manager API** authorizes agent and configuration
+2. Each tenant Wazuh manager API authorizes agent and configuration
    operations through Wazuh server RBAC.
 
 Configure LDAP authentication and authorization on the central indexer using
@@ -286,8 +286,8 @@ sudo bash "$SECURITY_ADMIN" \
 ```
 
 On the central dashboard, set `run_as: true` for each manager API entry only
-after the corresponding Wazuh server role mappings are ready. In **Server
-management > Security > Roles mapping** on every tenant manager:
+after the corresponding Wazuh server role mappings are ready. In Server
+management > Security > Roles mapping on every tenant manager:
 
 - Map the LDAP administrator backend role to the Wazuh `administrator` role.
 - Map the LDAP read-only backend role to the Wazuh `readonly` role.
@@ -312,7 +312,7 @@ automatically covers `<cluster-alias>:<index-pattern>`.
 ## Adding a cluster later
 
 To onboard a new tenant/environment without regenerating everything, sign the
-new nodes' certificates with the **same root CA**:
+new nodes' certificates with the same root CA:
 
 ```bash
 openssl genrsa -out filebeat-remote2-key.pem 2048

@@ -1,13 +1,13 @@
 # Enhancements - forward backlog (for Cursor)
 
 Current design: [`ARCHITECTURE.md`](ARCHITECTURE.md). What has already shipped
-and why - the E1-E15 arc and the eight review rounds - lives in
-[`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md); this file holds only work **not yet
-built**. When a new round starts, add it here as a spec (files + change +
+and why (the E1-E15 arc and the eight review rounds) lives in
+[`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md); this file holds only work not yet
+built. When a new round starts, add it here as a spec (files + change +
 acceptance + a golden case), then fold it into the journal once shipped and
 reviewed.
 
-Status: **E1-E16 shipped** (E1-E15 feature arc live-validated; E16 self-hosted
+Status: E1-E16 shipped (E1-E15 feature arc live-validated; E16 self-hosted
 installers). The PoC is feature-complete. Everything in Backlog is
 deferred-with-intent.
 
@@ -17,11 +17,11 @@ deferred-with-intent.
   store is permitted only over curated *public reference content* (D57).
 - **The model never writes a query / computes a number (D4).** New capability is
   typed tools/IR, veracity-checked server-side.
-- **Writes are propose->confirm (D20)** with a tiered executor credential the
+- **Writes are propose, then confirm (D20)** with a tiered executor credential the
   model never holds.
 - **Cache-stability:** per-turn context rides as transient messages, never the
   static prelude.
-- **Recognitions route deterministically** (lane 0 / playbooks / reference
+- Recognitions route deterministically (lane 0 / playbooks / reference
   router), not via model tool-selection.
 - Rejected: semantic answer cache, LLM-judge in the live path, lane 3, ML
   Commons as orchestrator.

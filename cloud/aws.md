@@ -12,7 +12,7 @@
 
 ## Introduction
 
-Wazuh ingests AWS security data through the **AWS module**, configured as the `aws-s3` wodle in `ossec.conf`. It is a Python module (it lives in `/var/ossec/wodles/aws/aws-s3`) that runs on the manager or on an agent, pulls logs from S3 buckets, AWS service APIs, or SQS queues, and feeds them to `analysisd` as JSON. Events show up with `aws.*` fields and are matched by the built-in `amazon` rule group, with a dedicated Amazon Web Services dashboard module.
+Wazuh ingests AWS security data through the AWS module, configured as the `aws-s3` wodle in `ossec.conf`. It is a Python module (it lives in `/var/ossec/wodles/aws/aws-s3`) that runs on the manager or on an agent, pulls logs from S3 buckets, AWS service APIs, or SQS queues, and feeds them to `analysisd` as JSON. Events show up with `aws.*` fields and are matched by the built-in `amazon` rule group, with a dedicated Amazon Web Services dashboard module.
 
 Official docs: [Amazon Web Services - Wazuh documentation](https://documentation.wazuh.com/current/cloud-security/amazon/index.html)
 

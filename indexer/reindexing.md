@@ -3,7 +3,7 @@
 Some changes cannot be applied to a live index: fixing a field mapping
 conflict, or applying a new
 [primary shard count](shard-management.md#increasing-the-number-of-primary-shards)
-to historical indices. In both cases you update the **index template** first
+to historical indices. In both cases you update the index template first
 and then copy the data into a fresh index with `_reindex`.
 
 ## Table of Contents
@@ -16,9 +16,9 @@ and then copy the data into a fresh index with `_reindex`.
 
 ## Step 1: Name the destination index carefully
 
-Templates apply **by index name pattern**. After updating the template (e.g.
+Templates apply by index name pattern. After updating the template (e.g.
 changing a field mapping from `keyword` to `long`), the destination index
-must match the template's pattern - usually `wazuh-alerts-4.x-*`. If you
+must match the template's pattern (usually `wazuh-alerts-4.x-*`). If you
 reindex into a name like `backup-2023`, the template will not apply and the
 indexer will dynamically map the field right back to the wrong type.
 
@@ -28,7 +28,7 @@ The pragmatic convention: append `-reindexed` to the original name.
 - New index: `wazuh-alerts-4.x-2023.10.01-reindexed`
 
 Because the Wazuh dashboards query with the wildcard pattern
-`wazuh-alerts-*`, the `-reindexed` index is picked up automatically - no
+`wazuh-alerts-*`, the `-reindexed` index is picked up automatically: no
 saved objects need touching.
 
 ## Step 2: Pre-tune the destination index
@@ -68,7 +68,7 @@ POST /_reindex?slices=auto&wait_for_completion=false
 }
 ```
 
-`wait_for_completion=false` returns a **task ID** immediately so the console
+`wait_for_completion=false` returns a task ID immediately so the console
 does not time out on large indices. Track progress with:
 
 ```http
@@ -103,7 +103,7 @@ DELETE /wazuh-alerts-4.x-2023.10.01
 ```
 
 Repeat per historical index. Weigh the effort against simply letting
-[retention](ilm-retention.md) age the old indices out - reindexing months of
+[retention](ilm-retention.md) age the old indices out: reindexing months of
 daily indices is expensive.
 
 ## Alternative: re-ingesting archived logs with Filebeat
@@ -127,5 +127,5 @@ Then restart Filebeat:
 systemctl restart filebeat
 ```
 
-Revert to the defaults after the backfill - permanently oversized bulk
+Revert to the defaults after the backfill: permanently oversized bulk
 requests increase memory pressure on both Filebeat and the indexer.

@@ -1,6 +1,6 @@
 # HTTPS for the Wazuh Dashboard on a Private IP
 
-How to serve the Wazuh dashboard (and optionally a self-hosted OpenSearch maps server) over HTTPS when the deployment is only reachable on a **private IP address** - where Let's Encrypt and public CAs cannot help - using a self-signed IP-SAN certificate and NGINX.
+How to serve the Wazuh dashboard (and optionally a self-hosted OpenSearch maps server) over HTTPS when the deployment is only reachable on a private IP address (where Let's Encrypt and public CAs cannot help), using a self-signed IP-SAN certificate and NGINX.
 
 ## Table of Contents
 
@@ -14,18 +14,18 @@ How to serve the Wazuh dashboard (and optionally a self-hosted OpenSearch maps s
 
 ## Background
 
-- Public CAs (including Let's Encrypt) do **not** issue certificates for private RFC1918 addresses such as `192.168.x.x` or `10.x.x.x`. Let's Encrypt began issuing certificates for *public* IP addresses in mid-2025, but those are short-lived and still unusable for private ranges. For private networks, use a **self-signed certificate or a private CA**, or register an internal DNS name and issue a certificate for the FQDN instead.
-- Browsers only trust an IP certificate if the IP appears in the certificate's **Subject Alternative Name (SAN)**; the CN alone is not enough.
-- If the dashboard is HTTPS but loads resources (e.g. map tiles) over plain HTTP, browsers block them as **mixed content** - so everything must be served over HTTPS.
+- Public CAs (including Let's Encrypt) do not issue certificates for private RFC1918 addresses such as `192.168.x.x` or `10.x.x.x`. Let's Encrypt began issuing certificates for *public* IP addresses in mid-2025, but those are short-lived and still unusable for private ranges. For private networks, use a self-signed certificate or a private CA, or register an internal DNS name and issue a certificate for the FQDN instead.
+- Browsers only trust an IP certificate if the IP appears in the certificate's Subject Alternative Name (SAN); the CN alone is not enough.
+- If the dashboard is HTTPS but loads resources (e.g. map tiles) over plain HTTP, browsers block them as mixed content, so everything must be served over HTTPS.
 - To get a padlock with no warnings, sign the server certificate with a private root CA and import that root CA into the client trust stores.
 
 Throughout this guide, replace `<WAZUH_DASHBOARD_IP>` with your dashboard's private IP (e.g. `192.168.1.100`).
 
 ## Option A: same-origin setup (dashboard and maps under one HTTPS origin)
 
-The cleanest layout: NGINX terminates TLS on 443 and serves both the dashboard (`/`) and the maps server (`/maps/`) from the **same origin**, so the browser never loads `http://` content. The dashboard listens internally on an arbitrary port (6000 here) and the maps server on loopback `127.0.0.1:18080`.
+The cleanest layout: NGINX terminates TLS on 443 and serves both the dashboard (`/`) and the maps server (`/maps/`) from the same origin, so the browser never loads `http://` content. The dashboard listens internally on an arbitrary port (6000 here) and the maps server on loopback `127.0.0.1:18080`.
 
-1. Deploy the local maps server. `HOST_URL` must be the **external HTTPS URL** so the generated manifest and tile links are HTTPS:
+1. Deploy the local maps server. `HOST_URL` must be the external HTTPS URL so the generated manifest and tile links are HTTPS:
 
     ```bash
     docker rm -f opensearch-maps || true
@@ -101,7 +101,7 @@ The cleanest layout: NGINX terminates TLS on 443 and serves both the dashboard (
     }
     ```
 
-    > Note: every directive must end with a semicolon - a missing `;` produces `nginx: [emerg] unexpected "}"` on `nginx -t`.
+    > Note: every directive must end with a semicolon: a missing `;` produces `nginx: [emerg] unexpected "}"` on `nginx -t`.
 
 5. Restart everything:
 
@@ -224,7 +224,7 @@ sudo openssl x509 -req -in /etc/nginx/certs/ip.csr \
   -days 825 -extensions v3_req -extfile /etc/nginx/openssl-ip.cnf
 ```
 
-> To avoid browser warnings, sign with a **private root CA** and import that CA into the client trust stores.
+> To avoid browser warnings, sign with a private root CA and import that CA into the client trust stores.
 
 ## Public FQDNs: Let's Encrypt and commercial CAs
 
@@ -248,11 +248,11 @@ sudo certbot renew --dry-run
 
 Certbot writes `privkey.pem` and `fullchain.pem` under `/etc/letsencrypt/live/wazuh.example.com/`; point `ssl_certificate`/`ssl_certificate_key` (or the dashboard's `server.ssl.*` settings) at them. Wildcard certificates (`*.example.com`) require the DNS-01 challenge; in Kubernetes, cert-manager automates issuance and renewal.
 
-**Commercial CA:** generate a key and CSR (`openssl genrsa` + `openssl req -new`, CN/SAN matching the FQDN), submit the CSR through the CA portal, then install the issued certificate **together with the intermediate chain** - see [component-certificates.md](component-certificates.md#using-a-corporate-or-commercial-ca-custom-csr).
+**Commercial CA:** generate a key and CSR (`openssl genrsa` + `openssl req -new`, CN/SAN matching the FQDN), submit the CSR through the CA portal, then install the issued certificate together with the intermediate chain: see [component-certificates.md](component-certificates.md#using-a-corporate-or-commercial-ca-custom-csr).
 
 ## Disabling HTTPS on the dashboard (lab only)
 
-Not recommended for production, but useful in a lab to sidestep mixed-content issues. Back up and edit **both** `/etc/wazuh-dashboard/opensearch_dashboards.yml` and `/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml` (comment rather than delete, so it's easy to undo):
+Not recommended for production, but useful in a lab to sidestep mixed-content issues. Back up and edit both `/etc/wazuh-dashboard/opensearch_dashboards.yml` and `/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml` (comment rather than delete, so it's easy to undo):
 
 ```yaml
 server.port: 80

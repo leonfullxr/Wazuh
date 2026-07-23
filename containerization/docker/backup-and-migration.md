@@ -1,12 +1,12 @@
 # Backup, restore, and migration of Wazuh Docker installations
 
-**Applies to:** Wazuh 4.x - Docker Compose deployments (single-node and multi-node)
+**Applies to:** Wazuh 4.x, Docker Compose deployments (single-node and multi-node)
 
 [Back to Docker README](./README.md)
 
 ## Overview
 
-Wazuh data in a Docker deployment lives in named Docker volumes (indexer data, manager `etc`/`queue`/`logs`, dashboard config, etc.), plus the `docker-compose.yml` and `config/` directory (including certificates) on the host. To move an installation to new machines - or to take a recoverable backup - copy the **volumes and the config**, not the underlying disk.
+Wazuh data in a Docker deployment lives in named Docker volumes (indexer data, manager `etc`/`queue`/`logs`, dashboard config, etc.), plus the `docker-compose.yml` and `config/` directory (including certificates) on the host. To move an installation to new machines (or to take a recoverable backup), copy the volumes and the config, not the underlying disk.
 
 Physically moving the data disk to a new host can work, but only if the directory structure, permissions, Docker volume names, and certificates are all identical. It is fragile and not recommended for production. The reliable procedure is a volume-level backup and restore.
 
@@ -35,7 +35,7 @@ for vol in $(docker volume ls -q | grep wazuh); do
 done
 ```
 
-`tar: socket ignored` warnings for files under `queue/`, `sockets/`, `router/`, `alerts/` are expected and harmless - those are UNIX sockets, not data.
+`tar: socket ignored` warnings for files under `queue/`, `sockets/`, `router/`, `alerts/` are expected and harmless: those are UNIX sockets, not data.
 
 For large production volumes the plain command shows no progress. Add tar checkpoints:
 
@@ -61,11 +61,11 @@ Finally, back up the configuration and certificates:
 cp -a docker-compose.yml config/ /backup/wazuh/
 ```
 
-In older image versions the certificates may live outside `config/` - back those up too.
+In older image versions the certificates may live outside `config/`, so back those up too.
 
 ## 2. Restore on the new host
 
-Recreate the **empty** volumes by deploying the same Wazuh version once, then stopping it. This guarantees the volume names match exactly what the restore loop expects:
+Recreate the empty volumes by deploying the same Wazuh version once, then stopping it. This guarantees the volume names match exactly what the restore loop expects:
 
 ```bash
 git clone https://github.com/wazuh/wazuh-docker.git -b v<same-version>

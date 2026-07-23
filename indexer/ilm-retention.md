@@ -7,9 +7,9 @@ primary tool for keeping [disk usage](disk-management.md) under control.
 
 Terminology matters here:
 
-- **ISM (Index State Management)** - the OpenSearch plugin shipped with the
-  **Wazuh Indexer**. This is what you should use.
-- **ILM (Index Lifecycle Management)** - the Elasticsearch equivalent, only
+- **ISM (Index State Management):** the OpenSearch plugin shipped with the
+  Wazuh Indexer. This is what you should use.
+- **ILM (Index Lifecycle Management):** the Elasticsearch equivalent, only
   relevant for legacy Wazuh deployments backed by Elasticsearch/ODFE.
 
 ## Table of Contents
@@ -99,7 +99,7 @@ PUT _plugins/_ism/policies/wazuh_alerts_retention
 
 Key points:
 
-- The `ism_template` block auto-attaches the policy to **newly created**
+- The `ism_template` block auto-attaches the policy to newly created
   indices matching the patterns. Existing indices must be attached manually:
   dashboard **Index Management > Indices > select indices > Apply policy**,
   or via `POST _plugins/_ism/add/<index-pattern>` with the policy ID.
@@ -127,7 +127,7 @@ GET _plugins/_ism/explain/wazuh-alerts-*
   [disk watermarks](shard-management.md#disk-watermarks) on your data nodes.
 - After [increasing shard counts](shard-management.md#increasing-the-number-of-primary-shards)
   or other template changes, the cluster only fully converges once ISM has
-  deleted the old-format indices - plan the observation window accordingly.
+  deleted the old-format indices, so plan the observation window accordingly.
 - Snapshot before delete if you have compliance requirements; deletion via
   ISM is not recoverable.
 
@@ -158,7 +158,7 @@ POST _ilm/start
 ### Switching lifecycle policies safely
 
 Assigning a new policy on top of an old one can make phase execution
-**silently fail**. Always remove the existing policy first:
+silently fail. Always remove the existing policy first:
 
 1. Remove the current policy (target a data stream or alias to cover all its
    indices):
@@ -170,8 +170,8 @@ Assigning a new policy on top of an old one can make phase execution
 2. **Check the index state before proceeding.** Policy removal strips all ILM
    metadata regardless of what the index was doing at that moment. For
    example, the `forcemerge` action temporarily closes an index before
-   reopening it - removing the policy mid-forcemerge can leave the index
-   **closed indefinitely**. Verify and repair:
+   reopening it: removing the policy mid-forcemerge can leave the index
+   closed indefinitely. Verify and repair:
 
    ```http
    GET <index-or-alias>

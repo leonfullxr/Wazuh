@@ -3,11 +3,11 @@
 Disk-full events are the most common Wazuh Indexer emergency: once a data
 node crosses the [disk watermarks](shard-management.md#disk-watermarks),
 shards stop allocating and indices are eventually forced read-only, which
-means **alerts stop being indexed**. This guide covers finding where the
+means alerts stop being indexed. This guide covers finding where the
 space went, freeing it quickly, and moving or expanding storage properly.
 
 Long-term, the real fix is a [retention policy](ilm-retention.md) sized to
-your ingestion rate - everything below buys you time or capacity.
+your ingestion rate: everything below buys you time or capacity.
 
 ## Table of Contents
 
@@ -29,8 +29,8 @@ du -sh /var/* | sort -hr | head
 
 ### When `df` and `du` disagree
 
-`df -h` reports blocks used by the **filesystem**; `du -sh DIR` only sums
-what is reachable under that **one directory**. If `df` shows far more usage
+`df -h` reports blocks used by the filesystem; `du -sh DIR` only sums
+what is reachable under that one directory. If `df` shows far more usage
 than `du` can account for, something on that filesystem is holding space that
 `du` cannot see. Checklist, in order of likelihood:
 
@@ -41,7 +41,7 @@ than `du` can account for, something on that filesystem is holding space that
    sudo du -xhd1 /mount/point | sort -h     # top-level dirs, no crossing mounts
    ```
 
-2. **Deleted-but-still-open files** (the classic cause - a process holds a
+2. **Deleted-but-still-open files** (the classic cause: a process holds a
    file descriptor to a log that was rotated/deleted; counts in `df`, not in
    `du`):
 
@@ -54,7 +54,7 @@ than `du` can account for, something on that filesystem is holding space that
    `:> /proc/<PID>/fd/<FD>`. Common culprits: application logs, rotated
    logs, `journald`, Docker container logs.
 
-3. **Filesystem snapshots / CoW subvolumes** - `du` does not see snapshot
+3. **Filesystem snapshots / CoW subvolumes.** `du` does not see snapshot
    data, `df` does:
 
    ```bash
@@ -78,8 +78,8 @@ than `du` can account for, something on that filesystem is holding space that
    sudo ls -lh /var/lib/docker/containers/*/*-json.log
    ```
 
-6. **Inode exhaustion** - lots of tiny files can exhaust inodes while bytes
-   look fine. Note `du -i` shows inode counts, **not** sizes:
+6. **Inode exhaustion.** Lots of tiny files can exhaust inodes while bytes
+   look fine. Note `du -i` shows inode counts, not sizes:
 
    ```bash
    df -i /mount/point
@@ -102,7 +102,7 @@ reserved-block percentage.
 When the indexer node is at the flood-stage watermark and you need headroom
 *now*:
 
-- **Vacuum the systemd journal** - archived journals routinely accumulate
+- **Vacuum the systemd journal.** Archived journals routinely accumulate
   gigabytes:
 
   ```bash
@@ -110,17 +110,17 @@ When the indexer node is at the flood-stage watermark and you need headroom
   sudo journalctl --vacuum-size=2048M
   ```
 
-- **Temporarily lower the ext4 root reserve** (default 5% - on a large data
+- **Temporarily lower the ext4 root reserve** (default 5%, on a large data
   partition that is a lot of space):
 
   ```bash
   sudo tune2fs -m 1 /dev/<data-partition>
   ```
 
-  Treat this as an emergency measure and **revert it** once real capacity is
+  Treat this as an emergency measure and revert it once real capacity is
   restored.
 
-- **Delete the oldest indices** (irreversible - snapshot first if you must
+- **Delete the oldest indices** (irreversible, snapshot first if you must
   keep them):
 
   ```

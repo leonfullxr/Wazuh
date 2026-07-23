@@ -23,16 +23,16 @@ Elasticsearch-based deployments are marked explicitly.
 Understanding the write path makes most indexer problems much easier to reason
 about:
 
-1. The Wazuh **manager** generates alerts (`/var/ossec/logs/alerts/alerts.json`)
+1. The Wazuh manager generates alerts (`/var/ossec/logs/alerts/alerts.json`)
    and, optionally, archives of every received event.
-2. **Filebeat**, running on each manager node, ships those documents to the
+2. Filebeat, running on each manager node, ships those documents to the
    indexer. Two Filebeat artifacts control how data lands:
-   - `/etc/filebeat/wazuh-template.json` - the **index template**: mappings,
+   - `/etc/filebeat/wazuh-template.json` - the index template: mappings,
      number of primary shards and replicas for new indices.
    - `/usr/share/filebeat/module/wazuh/alerts/ingest/pipeline.json` - the
-     **ingest pipeline**: runs inside the indexer at index time and handles
+     ingest pipeline: runs inside the indexer at index time and handles
      timestamp parsing, GeoIP enrichment and daily index naming.
-3. The indexer creates **one index per day** per data type:
+3. The indexer creates one index per day per data type:
 
    | Index pattern | Contents |
    |---|---|
@@ -43,13 +43,13 @@ about:
    | `.opendistro-*` / `.opensearch-*` | Internal plugin indices (alerting, ISM history, ...) |
    | `.kibana*` | Dashboard saved objects |
 
-4. Each index is split into **primary shards** (configurable in the template)
-   and **replica shards** (copies for redundancy). Shard count and size drive
-   most of the cluster's performance and stability characteristics - see
+4. Each index is split into primary shards (configurable in the template)
+   and replica shards (copies for redundancy). Shard count and size drive
+   most of the cluster's performance and stability characteristics: see
    [Shard management](shard-management.md).
 
 Because indices are created daily, template or pipeline changes only affect
-**indices created after the change**. Historical indices keep their old
+indices created after the change. Historical indices keep their old
 settings until you [reindex](reindexing.md) them or they age out via
 [retention policies](ilm-retention.md).
 
@@ -61,11 +61,11 @@ headroom before and after a change.
 
 | Decision | Production baseline |
 |---|---|
-| Primary shard size | Aim for roughly **20-40 GB** for time-series indices and normally keep shards below **50 GB** so recovery and relocation remain manageable. Very small deployments may need a longer index period to avoid many tiny shards. |
+| Primary shard size | Aim for roughly 20-40 GB for time-series indices and normally keep shards below 50 GB so recovery and relocation remain manageable. Very small deployments may need a longer index period to avoid many tiny shards. |
 | Primary shard count | Start with a multiple of the number of data nodes so primaries distribute evenly, then choose enough primaries to keep the expected index size in the target range. Change the template before the next index is created. |
-| Shards per heap | Use **fewer than 20 primary plus replica shards per GB of JVM heap** as a conservative planning ceiling. This is a legacy rule of thumb, not an OpenSearch limit; benchmark the bundled OpenSearch version and also monitor the hard `cluster.max_shards_per_node` budget. |
+| Shards per heap | Use fewer than 20 primary plus replica shards per GB of JVM heap as a conservative planning ceiling. This is a legacy rule of thumb, not an OpenSearch limit; benchmark the bundled OpenSearch version and also monitor the hard `cluster.max_shards_per_node` budget. |
 | Replicas | Use `0` on a single-node deployment because a replica cannot share a node with its primary. Use at least `1` in HA clusters, with enough nodes and disk capacity to place it. Include replicas in shard and storage calculations. |
-| Retention and rollover | Use OpenSearch **ISM** for Wazuh Indexer deployments. Apply retention before adding capacity. The stock daily indices are usually sufficient; consider size/age rollover only when daily indices consistently produce shards outside the target range, and test alias/template behavior before production rollout. |
+| Retention and rollover | Use OpenSearch ISM for Wazuh Indexer deployments. Apply retention before adding capacity. The stock daily indices are usually sufficient; consider size/age rollover only when daily indices consistently produce shards outside the target range, and test alias/template behavior before production rollout. |
 | Heap and disk | Set equal JVM minimum and maximum heap values, normally around half of system RAM, and prevent swapping. Keep enough free disk for shard relocation; do not plan steady-state operation near the low watermark. |
 
 Estimate the primary count for a daily index as:

@@ -1,6 +1,6 @@
 # Extracting fields buried in a Windows eventchannel message (ADFS example)
 
-Some Windows events carry the value you actually want - a user, a source IP - **inside** `data.win.system.message` as free text or escaped XML, not as a first-class field. You cannot write a clean rule or dashboard on it until it is its own field. **ADFS audit events are the canonical case:** the `UserId` and `IpAddress` live inside an XML blob in the message. This guide explains why a normal decoder cannot reach them and the supported ways to extract them.
+Some Windows events carry the value you actually want (a user, a source IP) inside `data.win.system.message` as free text or escaped XML, not as a first-class field. You cannot write a clean rule or dashboard on it until it is its own field. ADFS audit events are the canonical case: the `UserId` and `IpAddress` live inside an XML blob in the message. This guide explains why a normal decoder cannot reach them and the supported ways to extract them.
 
 ## Table of Contents
 
@@ -14,16 +14,16 @@ Some Windows events carry the value you actually want - a user, a source IP - **
 
 ## Why a custom decoder does not work here
 
-Windows eventchannel logs (`<log_format>eventchannel</log_format>`) are parsed by Wazuh's **built-in** `windows_eventchannel` decoder. Two consequences trip people up:
+Windows eventchannel logs (`<log_format>eventchannel</log_format>`) are parsed by Wazuh's built-in `windows_eventchannel` decoder. Two consequences trip people up:
 
-- **A custom `<decoder>` you write for the same events is overridden** by the internal decoder - you cannot re-decode eventchannel with your own decoder the way you would for a syslog source ([decoder syntax](syntax.md)).
-- **`<out_format>` in the `<localfile>` block is ignored for eventchannel** (the JSON is produced by internal logic), so you cannot reshape the event at collection time either.
+- A custom `<decoder>` you write for the same events is overridden by the internal decoder, so you cannot re-decode eventchannel with your own decoder the way you would for a syslog source ([decoder syntax](syntax.md)).
+- `<out_format>` in the `<localfile>` block is ignored for eventchannel (the JSON is produced by internal logic), so you cannot reshape the event at collection time either.
 
 So the normal decoder route does not apply to eventchannel message bodies. Use one of the options below.
 
 ## The data: XML inside the message
 
-A genericized ADFS "failed credential" event (`win.system.eventID` **1203**; extranet lockout is **1210**). The useful values are XML elements inside the message:
+A genericized ADFS "failed credential" event (`win.system.eventID` 1203; extranet lockout is 1210). The useful values are XML elements inside the message:
 
 ```xml
 <UserId>user@example.com</UserId>
@@ -32,8 +32,8 @@ A genericized ADFS "failed credential" event (`win.system.eventID` **1203**; ext
 
 Three things to know before parsing:
 
-- **Two possible sources.** `data.win.system.message` is usually clean XML; `data.win.eventdata.data` carries the same content **HTML-escaped** (`&lt;...&gt;`) and is sometimes truncated. Prefer `system.message`, fall back to `eventdata.data`.
-- **`<IpAddress>` can be a comma-separated list** - client IP plus a forwarded/proxy IP (`203.0.113.10,198.51.100.20`). Split it downstream if you need the true client IP.
+- **Two possible sources.** `data.win.system.message` is usually clean XML; `data.win.eventdata.data` carries the same content HTML-escaped (`&lt;...&gt;`) and is sometimes truncated. Prefer `system.message`, fall back to `eventdata.data`.
+- `<IpAddress>` can be a comma-separated list: client IP plus a forwarded/proxy IP (`203.0.113.10,198.51.100.20`). Split it downstream if you need the true client IP.
 - **ADFS audit EventIDs worth alerting on:** `1203` (failed credential validation) and `1210` (extranet lockout).
 
 ## Options and their limits
@@ -47,9 +47,9 @@ Three things to know before parsing:
 
 ## Recommended: an integration script that extracts and re-injects
 
-The pattern: a rule fires the extractor -> the script parses the tags out of the message -> it re-injects the event as JSON to the analysis queue -> a second rule alerts on the now-first-class fields. The ready-made, enhanced script lives in [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/) as **`custom-windows-xml`** (its `custom-windows` sibling handles `key: value` messages). For **JSON** logs the analogous tool is [scripts/custom-json](../scripts/custom-json/README.md) - a different input format and a different script, not this one.
+The pattern: a rule fires the extractor, then the script parses the tags out of the message, then it re-injects the event as JSON to the analysis queue, then a second rule alerts on the now-first-class fields. The ready-made, enhanced script lives in [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/) as `custom-windows-xml` (its `custom-windows` sibling handles `key: value` messages). For JSON logs the analogous tool is [scripts/custom-json](../scripts/custom-json/README.md) (a different input format and a different script, not this one).
 
-**1. Trigger rule** - fire the extractor on the ADFS EventIDs (as a child of the bundled ADFS/eventchannel rule for these events):
+**1. Trigger rule**: fire the extractor on the ADFS EventIDs (as a child of the bundled ADFS/eventchannel rule for these events):
 
 ```xml
 <group name="adfs,custom-windows,">
@@ -61,7 +61,7 @@ The pattern: a rule fires the extractor -> the script parses the tags out of the
 </group>
 ```
 
-**2. Extractor script** - install [`custom-windows-xml`](../scripts/eventchannel-extraction/) into `/var/ossec/integrations/` (`chmod 750`, `chown root:wazuh`, on **every** manager node). Its core is unescape -> XML parse -> **regex fallback** -> re-inject; the extraction itself is just:
+**2. Extractor script**: install [`custom-windows-xml`](../scripts/eventchannel-extraction/) into `/var/ossec/integrations/` (`chmod 750`, `chown root:wazuh`, on every manager node). Its core is unescape, then XML parse, then regex fallback, then re-inject; the extraction itself is just:
 
 ```python
 def extract_tags(message, tags={"UserId": "UserId", "IpAddress": "IpAddress"}):
@@ -106,7 +106,7 @@ Restart the manager (every node) and debug with `integrator.debug=2` in `interna
 
 ## Parsing gotchas
 
-- **Escaped / malformed XML.** `win.eventdata.data` is HTML-escaped and can be truncated, which makes a strict parser fail (`Failed XML parse: unclosed token`). Always `html.unescape()` first **and** keep the regex fallback - that is why the script tries `ElementTree`, then regex.
+- **Escaped / malformed XML.** `win.eventdata.data` is HTML-escaped and can be truncated, which makes a strict parser fail (`Failed XML parse: unclosed token`). Always `html.unescape()` first and keep the regex fallback: that is why the script tries `ElementTree`, then regex.
 - **Comma-separated IPs.** `<IpAddress>` may be `client,forwarded`; keep the whole string, or split on `,` and take the first for the true client.
 - **Pick the right source.** Prefer `win.system.message` (clean); only fall back to `win.eventdata.data` when the message is empty.
 

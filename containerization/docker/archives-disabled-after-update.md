@@ -1,14 +1,14 @@
 # Archives disabled after container update
 
-**Applies to:** Wazuh 4.x - Docker Compose multi-node clusters (Manager + Worker + Indexers)
+**Applies to:** Wazuh 4.x, Docker Compose multi-node clusters (Manager + Worker + Indexers)
 
 [Back to Docker README](./README.md)
 
 ## Problem
 
-After updating the Wazuh Manager image or recreating the containers, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk at `/var/ossec/logs/archives/archives.json`. No data is lost - the issue is with ingestion, not storage.
+After updating the Wazuh Manager image or recreating the containers, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk at `/var/ossec/logs/archives/archives.json`. No data is lost: the issue is with ingestion, not storage.
 
-A bind mount of a custom `filebeat.yml` (with `archives: enabled: true`) to `/etc/filebeat/filebeat.yml` has no lasting effect - the setting reverts to `false` on every container startup.
+A bind mount of a custom `filebeat.yml` (with `archives: enabled: true`) to `/etc/filebeat/filebeat.yml` has no lasting effect: the setting reverts to `false` on every container startup.
 
 ## Root cause
 

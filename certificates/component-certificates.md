@@ -1,6 +1,6 @@
 # Wazuh Component Certificates
 
-How to generate, deploy, regenerate and replace the TLS certificates used by the Wazuh indexer, server (Filebeat), and dashboard - including custom CSRs for corporate CAs and the special cases of cross-cluster search and WPK agent upgrades. It also covers two certificates that are easy to forget because they live outside the shared bundle: the manager's agent-enrollment certificate (`sslmanager.cert`) and the server API certificate on port 55000.
+How to generate, deploy, regenerate and replace the TLS certificates used by the Wazuh indexer, server (Filebeat), and dashboard, including custom CSRs for corporate CAs and the special cases of cross-cluster search and WPK agent upgrades. It also covers two certificates that are easy to forget because they live outside the shared bundle: the manager's agent-enrollment certificate (`sslmanager.cert`) and the server API certificate on port 55000.
 
 ## Table of Contents
 
@@ -151,7 +151,7 @@ filebeat test output
 
 ## Regenerating certificates across environments (cross-cluster search)
 
-Cross-cluster search (CCS) between a main and one or more remote indexer clusters requires **all nodes in all environments to share the same root CA**. The practical approach is to list every node from every environment in a single `config.yml`, generate one certificate bundle, and deploy it everywhere (steps above).
+Cross-cluster search (CCS) between a main and one or more remote indexer clusters requires all nodes in all environments to share the same root CA. The practical approach is to list every node from every environment in a single `config.yml`, generate one certificate bundle, and deploy it everywhere (steps above).
 
 Two extra CCS-specific steps:
 
@@ -187,7 +187,7 @@ Two extra CCS-specific steps:
     GET remote_cluster:wazuh-alerts-*/_search
     ```
 
-To add a new environment later without regenerating everything, sign the new node's certificate with the **existing** CCS root CA key - see [Signing additional certificates](#signing-additional-certificates-with-an-existing-root-ca).
+To add a new environment later without regenerating everything, sign the new node's certificate with the existing CCS root CA key, see [Signing additional certificates](#signing-additional-certificates-with-an-existing-root-ca).
 
 ## Using a corporate or commercial CA (custom CSR)
 
@@ -201,7 +201,7 @@ When the certificate must be issued by your organization's PKI or a commercial C
       -topk8 -nocrypt -v1 PBE-SHA1-3DES -out wazuh-server-key.pem
     ```
 
-2. Create an OpenSSL config with your hostnames/IPs in the **`alt_names`** section (the SAN must contain every name or IP clients will use):
+2. Create an OpenSSL config with your hostnames/IPs in the `alt_names` section (the SAN must contain every name or IP clients will use):
 
     ```bash
     cat <<EOL > openssl.cnf
@@ -233,9 +233,9 @@ When the certificate must be issued by your organization's PKI or a commercial C
     openssl req -new -key wazuh-server-key.pem -out wazuh-server.csr -config openssl.cnf
     ```
 
-4. Submit `wazuh-server.csr` to the CA (portal upload or internal PKI workflow), complete domain validation, and download the issued certificate **plus any intermediate CA bundle**.
+4. Submit `wazuh-server.csr` to the CA (portal upload or internal PKI workflow), complete domain validation, and download the issued certificate plus any intermediate CA bundle.
 
-5. Install the certificate and key on the component (for example the dashboard) and reference the **full chain**, otherwise clients cannot build a path to a trusted root:
+5. Install the certificate and key on the component (for example the dashboard) and reference the full chain, otherwise clients cannot build a path to a trusted root:
 
     ```yaml
     server.ssl.enabled: true
@@ -243,17 +243,17 @@ When the certificate must be issued by your organization's PKI or a commercial C
     server.ssl.certificate: "/etc/wazuh-dashboard/certs/wazuh-server.pem"
     ```
 
-> For public FQDNs you can also use **Let's Encrypt** (free, automated, 90-day validity) instead of a paid CA - see [https-for-private-ip.md](https-for-private-ip.md#public-fqdns-lets-encrypt-and-commercial-cas) for the certbot workflow.
+> For public FQDNs you can also use Let's Encrypt (free, automated, 90-day validity) instead of a paid CA, see [https-for-private-ip.md](https-for-private-ip.md#public-fqdns-lets-encrypt-and-commercial-cas) for the certbot workflow.
 
 ## Nodes reachable on multiple addresses (multi-SAN certificates)
 
-A very common cause of "certificate is valid but the connection is rejected" is a certificate whose Subject Alternative Name (SAN) does not list the address the client actually used. Hostname/IP verification checks the **SAN**, not the CN, so a certificate can be perfectly valid and still fail because the name the client dialed is missing from it. This bites hardest when a node is reachable through more than one address, for example:
+A very common cause of "certificate is valid but the connection is rejected" is a certificate whose Subject Alternative Name (SAN) does not list the address the client actually used. Hostname/IP verification checks the SAN, not the CN, so a certificate can be perfectly valid and still fail because the name the client dialed is missing from it. This bites hardest when a node is reachable through more than one address, for example:
 
 - an internal IP for component-to-component traffic and a public FQDN for browser access;
 - the node's own IP and a load balancer / reverse-proxy FQDN in front of it;
 - both a short hostname and a fully qualified domain name.
 
-The fix is to put **every** name and IP that any client will use into the `alt_names` section before generating the CSR (see [Using a corporate or commercial CA](#using-a-corporate-or-commercial-ca-custom-csr) for the full workflow). Add as many `DNS.n` and `IP.n` entries as needed:
+The fix is to put every name and IP that any client will use into the `alt_names` section before generating the CSR (see [Using a corporate or commercial CA](#using-a-corporate-or-commercial-ca-custom-csr) for the full workflow). Add as many `DNS.n` and `IP.n` entries as needed:
 
 ```ini
 [ alt_names ]
@@ -272,7 +272,7 @@ After issuing the certificate, confirm the SAN actually contains what you expect
 openssl x509 -in node.pem -noout -ext subjectAltName
 ```
 
-If an address is missing, adding it to the CN does **not** help - regenerate the certificate with the address in `alt_names`.
+If an address is missing, adding it to the CN does not help: regenerate the certificate with the address in `alt_names`.
 
 ## Extracting certificates from a PKCS#12 (.pfx) bundle
 
@@ -310,11 +310,11 @@ The `-extfile` line is important: without a SAN, hostname verification will fail
 
 ## The manager enrollment certificate (sslmanager.cert)
 
-The Wazuh manager presents a **separate** certificate for the agent enrollment service (`authd`, TCP 1515): `/var/ossec/etc/sslmanager.cert` (with its key `sslmanager.key`). It is not part of the `wazuh-certificates.tar` bundle and is generated independently at install time, which is why it is easy to overlook until it expires and monitoring flags it.
+The Wazuh manager presents a separate certificate for the agent enrollment service (`authd`, TCP 1515): `/var/ossec/etc/sslmanager.cert` (with its key `sslmanager.key`). It is not part of the `wazuh-certificates.tar` bundle and is generated independently at install time, which is why it is easy to overlook until it expires and monitoring flags it.
 
-Key point before you touch it: **this certificate is used only during agent registration**. It is not involved in ongoing manager-to-manager traffic or in communication with agents that are already enrolled. Renewing or replacing it therefore does not disrupt an already-running deployment - only new enrollments (and re-enrollments) use it.
+Key point before you touch it: this certificate is used only during agent registration. It is not involved in ongoing manager-to-manager traffic or in communication with agents that are already enrolled. Renewing or replacing it therefore does not disrupt an already-running deployment: only new enrollments (and re-enrollments) use it.
 
-**Quickest fix when the default self-signed certificate is acceptable:** delete both files and restart the manager - it regenerates a fresh self-signed pair (10-year validity) on startup.
+**Quickest fix when the default self-signed certificate is acceptable:** delete both files and restart the manager, it regenerates a fresh self-signed pair (10-year validity) on startup.
 
 ```bash
 rm -f /var/ossec/etc/sslmanager.cert /var/ossec/etc/sslmanager.key
@@ -322,7 +322,7 @@ systemctl restart wazuh-manager
 openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert   # confirm the new window
 ```
 
-On containerized deployments, run the deletion inside the manager container/pod and then restart it so startup regenerates the files (`kubectl delete pod wazuh-manager-master-0` on Kubernetes - EKS/AKS/self-managed; or `docker restart <manager-container>`). Use the CA-signed procedure below instead only when the enrollment certificate must be issued by a specific CA.
+On containerized deployments, run the deletion inside the manager container/pod and then restart it so startup regenerates the files (`kubectl delete pod wazuh-manager-master-0` on Kubernetes: EKS/AKS/self-managed; or `docker restart <manager-container>`). Use the CA-signed procedure below instead only when the enrollment certificate must be issued by a specific CA.
 
 To renew it with a signing CA, you need a CA to sign the request. If you do not already have one, you can create a self-signed CA on the manager:
 
@@ -365,7 +365,7 @@ cp sslmanager.cert sslmanager.key /var/ossec/etc
 systemctl restart wazuh-manager
 ```
 
-You can reuse the same issuer/subject details as the old certificate - Wazuh does not require IP-based CN or SAN values for enrollment unless you have explicitly enabled agent-side manager verification. Confirm the new expiry:
+You can reuse the same issuer/subject details as the old certificate: Wazuh does not require IP-based CN or SAN values for enrollment unless you have explicitly enabled agent-side manager verification. Confirm the new expiry:
 
 ```bash
 openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert
@@ -375,7 +375,7 @@ openssl x509 -enddate -noout -in /var/ossec/etc/sslmanager.cert
 
 The Wazuh server REST API (TCP 55000) has its own TLS certificate under `/var/ossec/api/configuration/ssl/` (`server.crt` / `server.key`), referenced from `/var/ossec/api/configuration/api.yaml`. It is independent of the indexer/Filebeat/dashboard bundle, so replacing an expired API certificate is a self-contained change.
 
-The pitfall appears when the API certificate is signed by an **intermediate** CA. The API serves only the leaf certificate it is pointed at; it does not build and send the rest of the chain. A client that does not already hold the intermediate then cannot build a path to the root and fails with `x509: certificate signed by unknown authority` (or `unable to get local issuer certificate`) - even though `openssl s_client` run locally against the file looks fine.
+The pitfall appears when the API certificate is signed by an intermediate CA. The API serves only the leaf certificate it is pointed at; it does not build and send the rest of the chain. A client that does not already hold the intermediate then cannot build a path to the root and fails with `x509: certificate signed by unknown authority` (or `unable to get local issuer certificate`), even though `openssl s_client` run locally against the file looks fine.
 
 Fix it on both ends:
 
@@ -401,7 +401,7 @@ Fix it on both ends:
 
     Restart the manager afterwards (`systemctl restart wazuh-manager`).
 
-2. **On each API client, trust the CA.** Any host that calls the API (agents doing remote upgrades, scripts, the dashboard) must trust the signing CA. On Debian/Ubuntu, drop a file containing the intermediate **and** root CA into the system trust store and refresh it:
+2. **On each API client, trust the CA.** Any host that calls the API (agents doing remote upgrades, scripts, the dashboard) must trust the signing CA. On Debian/Ubuntu, drop a file containing the intermediate and root CA into the system trust store and refresh it:
 
     ```bash
     cp root-wazuh-api.crt /usr/local/share/ca-certificates/
@@ -450,14 +450,14 @@ Restart the agent (`systemctl restart wazuh-agent` on Linux, `net stop Wazuh && 
 
 Notes:
 
-- This cannot be done centrally from the dashboard - distribute the CA file with your configuration management tooling.
+- This cannot be done centrally from the dashboard: distribute the CA file with your configuration management tooling.
 - Once the new CA is in place, upgrade agents remotely as described in the [agent upgrade guide](https://documentation.wazuh.com/current/upgrade-guide/wazuh-agent/index.html), e.g.:
 
     ```bash
     /var/ossec/bin/agent_upgrade -v v4.7.4 -a <AGENT_ID>
     ```
 
-- `Send lock restart error` / `Send open file error` during an upgrade mean the manager did not get an acknowledgment for its upgrade commands - usually network congestion or packet loss, not a certificate problem. Confirm stable agent-manager connectivity and retry one agent at a time.
+- `Send lock restart error` / `Send open file error` during an upgrade mean the manager did not get an acknowledgment for its upgrade commands, usually network congestion or packet loss, not a certificate problem. Confirm stable agent-manager connectivity and retry one agent at a time.
 - As a last-resort test (not for production), CA verification can be disabled on the agent:
 
     ```xml
