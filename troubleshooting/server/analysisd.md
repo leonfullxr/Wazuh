@@ -10,6 +10,7 @@ This guide also covers general manager resource monitoring - the statistics file
 - [Step 2: Rule out the basics](#step-2-rule-out-the-basics)
 - [Measuring EPS](#measuring-eps)
 - [The EPS limit (`<limits><eps>`) throttles bursts](#the-eps-limit-limitseps-throttles-bursts)
+- [Event size limit (`Message too long`)](#event-size-limit-message-too-long)
 - [Tuning analysisd queues and threads](#tuning-analysisd-queues-and-threads)
   - [How much RAM does a bigger queue cost?](#how-much-ram-does-a-bigger-queue-cost)
 - [When tuning is not enough: reduce or scale](#when-tuning-is-not-enough-reduce-or-scale)
@@ -93,7 +94,7 @@ Dropped events are not always queue saturation. Wazuh can enforce a **deliberate
 
 Events arriving above `maximum` (averaged over `timeframe` seconds, via a credit bucket) are throttled - held back, and dropped if the burst is sustained. Two consequences catch people out:
 
-- **The limit is per node.** In a cluster the effective ceiling is `maximum × number of nodes` *only if traffic is spread evenly*. If syslog or agents pin to one node (see [load balancing syslog](../../integrations/syslog/README.md#load-balancing-syslog-across-cluster-workers)), that node hits its own limit and drops while the others sit idle - the drops look like a capacity problem when the real issue is distribution.
+- **The limit is per node.** In a cluster the effective ceiling is `maximum x number of nodes` *only if traffic is spread evenly*. If syslog or agents pin to one node (see [load balancing syslog](../../integrations/syslog/README.md#load-balancing-syslog-across-cluster-workers)), that node hits its own limit and drops while the others sit idle - the drops look like a capacity problem when the real issue is distribution.
 - **Bursts matter more than the average.** A source comfortably under its average EPS across a day can still blow past `maximum` for a few minutes - scheduled batch forwarding, a login storm, a rebooted device flushing its backlog. Those short spikes throttle even though the 24-hour average looks fine. Size for the **peak burst**, not the mean.
 
 Check the configured limit and whether events are being dropped:
@@ -104,6 +105,23 @@ cat /var/ossec/var/run/wazuh-analysisd.state | grep -Ei "events_dropped|events_r
 ```
 
 If real peaks legitimately exceed the ceiling and you cannot reduce the source at collection time, raise `maximum` (only if the hardware can sustain it) and add worker nodes - but extra nodes help only once traffic actually distributes across them.
+
+## Event size limit (`Message too long`)
+
+Individual events (not just the queue) have a hard size cap: a single event over 65535 bytes (64 KiB, minus ~256 bytes reserved for headers) is skipped, not truncated. The signatures:
+
+```text
+DEBUG: Event size exceeds the maximum allowed limit of 65535 bytes.
+ERROR: Message too long to send to Wazuh.  Skipping message...
+DEBUG: +++ ERROR: Message longer than buffer socket for Wazuh. Consider increasing rmem_max. Skipping message...
+```
+
+This is a per-record problem, not a volume problem: one log line is enormous, almost always because an entire file was shipped as a single event instead of one event per line. Common causes and fixes:
+
+- **A whole log file sent as one line.** An S3 object, a multi-line stack trace, or a batch export collapsed into one record. Fix at the source: emit one log per line; for CSV, include a header row so each row is decoded separately. This is a frequent [AWS custom-bucket](../../cloud/aws-sqs-troubleshooting.md#event-too-large---message-too-long) failure (a multi-MB text file shipped whole).
+- **A genuinely large but valid record.** The `Consider increasing rmem_max` hint refers to the OS UDP receive-buffer for the analysisd socket (`sysctl net.core.rmem_max`); raising it can help a borderline case, but it does not lift the 64 KiB per-event ceiling. Splitting the record at the source is the real fix.
+
+The event is dropped before decoding, so it never reaches a rule: it will not appear in `alerts.json` or `archives.json`. If entire sources go missing, grep the manager log for `Message too long` before suspecting decoders or rules.
 
 ## Tuning analysisd queues and threads
 
@@ -127,7 +145,7 @@ Notes:
 
 ### How much RAM does a bigger queue cost?
 
-Rule of thumb: `RAM ≈ queue_size × average event size`, consumed **only while the queue is occupied** - larger queues do not pre-reserve memory. For a 65,536-event queue:
+Rule of thumb: `RAM ~ queue_size x average event size`, consumed only while the queue is occupied; larger queues do not pre-reserve memory. For a 65,536-event queue:
 
 | Average event size | Approx. RAM when full |
 |---|---|

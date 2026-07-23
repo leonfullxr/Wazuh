@@ -15,6 +15,7 @@ indexing as separate layers.
 | Document | Description |
 |---|---|
 | [aws.md](aws.md) | AWS log ingestion with the `aws-s3` wodle: CloudTrail, GuardDuty, VPC Flow Logs, CloudWatch, Security Lake; IAM/credential setup, Kubernetes secret mounts, state-database gotchas, debugging |
+| [aws-sqs-troubleshooting.md](aws-sqs-troubleshooting.md) | Symptom-driven troubleshooting for the SQS `<subscriber>` path: exit codes (2/12/20/21), `Queue does not exist`, `NoSuchKey`, gzip `0x8b` decode, cross-account `iam_role_arn` bug, one-consumer-per-queue, custom-bucket logs not alerting, event-size limit, scaling |
 | [azure.md](azure.md) | Azure log ingestion: `azure-logs` wodle (Log Analytics, Graph, blob storage) and the native `ms-graph` module (Defender, Entra ID Protection); app registration, admin consent, indexer mapping conflicts |
 | [gcp-pubsub.md](gcp-pubsub.md) | Google Cloud log ingestion via Pub/Sub with Application Default Credentials -- no service account key files; subscriber script, localfile monitor, base rule |
 | [wazuh-cloud-service.md](wazuh-cloud-service.md) | Wazuh Cloud SaaS from the customer side: credential types, `/api/wazuh/` and `/api/elastic/` endpoints, hot vs cold storage stages, downloading archive data with `wcloud-cli` |
@@ -33,6 +34,7 @@ All three provider integrations follow the same shape: create a low-privilege id
 | Task or symptom | Guide |
 |---|---|
 | Collect CloudTrail, GuardDuty, VPC Flow Logs, or Security Lake | [AWS](aws.md) |
+| Debug an SQS `<subscriber>` failure (`Queue does not exist`, `NoSuchKey`, gzip, cross-account, duplicates) | [AWS S3/SQS troubleshooting](aws-sqs-troubleshooting.md) |
 | Collect Log Analytics, Blob, Defender, or Entra events | [Azure](azure.md) |
 | Route Cloud Logging or GKE audit logs through Pub/Sub | [Google Cloud Pub/Sub](gcp-pubsub.md) |
 | Use Wazuh Cloud API endpoints or archive storage | [Wazuh Cloud service](wazuh-cloud-service.md) |

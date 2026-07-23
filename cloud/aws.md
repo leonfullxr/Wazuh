@@ -26,6 +26,8 @@ Three configuration blocks are available inside `<wodle name="aws-s3">`:
 | `<service type="...">` | Direct API polling | `cloudwatchlogs` (CloudWatch Logs log groups), `inspector` (Inspector Classic) |
 | `<subscriber type="...">` | SQS-driven ingestion | `security_lake` (Amazon Security Lake, OCSF/parquet), plus `buckets` and `security_hub` subscribers for SQS-notified bucket/Security Hub data |
 
+> The SQS `<subscriber>` path has its own recurring failures (`Queue does not exist`, `NoSuchKey`, gzip decode errors, cross-account `iam_role_arn`, one-consumer-per-queue, scaling). They are collected as a symptom-driven runbook in [aws-sqs-troubleshooting.md](aws-sqs-troubleshooting.md).
+
 ## Prerequisites and Credentials
 
 - An IAM principal with read access to the sources. At minimum:
@@ -171,5 +173,6 @@ Troubleshooting page: [AWS troubleshooting - Wazuh documentation](https://docume
 
 - [Using Wazuh to monitor AWS](https://documentation.wazuh.com/current/cloud-security/amazon/index.html)
 - [wodle name="aws-s3" reference](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/wodle-s3.html)
+- [AWS S3/SQS ingestion troubleshooting](aws-sqs-troubleshooting.md) - exit codes, cross-account, gzip, scaling
 - [Google Cloud Pub/Sub ingestion](gcp-pubsub.md) -- the GCP counterpart of this module
 - [Azure log ingestion](azure.md)
