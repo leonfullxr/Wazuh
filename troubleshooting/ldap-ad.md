@@ -20,7 +20,7 @@ Official integration guide: [Active Directory LDAP authentication](https://docum
 
 ## Prepare the AD side
 
-All commands run in PowerShell on a domain controller (adjust the DNs to your domain - the examples use `example.local`).
+All commands run in PowerShell on a domain controller (adjust the DNs to your domain: the examples use `example.local`).
 
 ### 1. Create Organizational Units
 
@@ -108,9 +108,9 @@ The most common integration failure with `ldaps://` (port 636): the security plu
    openssl s_client -connect <LDAP_SERVER>:636 -showcerts
    ```
 
-   Look at the Common Name (CN) and Subject Alternative Names, and use that value in the configuration. The Wazuh/indexer host must also be able to **resolve** that name (DNS or `/etc/hosts`).
+   Look at the Common Name (CN) and Subject Alternative Names, and use that value in the configuration. The Wazuh/indexer host must also be able to resolve that name (DNS or `/etc/hosts`).
 
-3. **Temporary test-only workaround** - disable hostname verification in the LDAP section of `config.yml`:
+3. **Temporary test-only workaround:** disable hostname verification in the LDAP section of `config.yml`:
 
    ```yaml
    verify_hostnames: false
@@ -145,7 +145,7 @@ LDAPTLS_REQCERT=never ldapsearch -d 1 -H ldaps://<LDAP_SERVER>:636 \
   "(sAMAccountName=<USER>)"
 ```
 
-If `ldapsearch` fails, fix the bind DN / password / network reachability first - the Wazuh configuration cannot work until these succeed.
+If `ldapsearch` fails, fix the bind DN / password / network reachability first: the Wazuh configuration cannot work until these succeed.
 
 ## Related guides
 

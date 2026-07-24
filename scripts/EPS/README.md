@@ -22,7 +22,7 @@ To perform the EPS calculation, I attach the following zip file containing the e
 
 `cd /var/ossec/logs/archives/ chmod +x epschat_log. sh`
 
-- Run the script by suffixing it with the name of the file containing the logs, in this case `archives.log`_**:**_
+- Run the script by suffixing it with the name of the file containing the logs, in this case `archives.log`_:_
     
 
 `./epschat_log.sh.sh.sh archives.log`

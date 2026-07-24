@@ -1,12 +1,12 @@
 # Track B - kind cluster and cross-tenant isolation
 
-Move the **same** `auth-shim` and `tool-service` images from Compose into a
+Move the same `auth-shim` and `tool-service` images from Compose into a
 single-node [kind](https://kind.sigs.k8s.io/) cluster with two namespaces.
 Wazuh and Ollama stay on the host Docker stack; pods reach them via the Docker
 bridge gateway IP (`kind/host-gateway.sh`).
 
-This proves what Compose cannot: **NetworkPolicy walls**, **per-tenant mint
-keys**, and **tenant-claim rejection** (D30/D36).
+This proves what Compose cannot: NetworkPolicy walls, per-tenant mint
+keys, and tenant-claim rejection (D30/D36).
 
 ## Prerequisites
 
@@ -31,15 +31,15 @@ export PATH="$PWD/.bin:$PATH"
 | `tenant-a` namespace | auth-shim NodePort `:30771`, tool-service NodePort `:30880` |
 | `tenant-b` namespace | auth-shim NodePort `:30772`, tool-service NodePort `:30881` |
 
-**Key material**
+Key material
 
-- **tenant-a** uses `keys/` - the same keypair the indexer JWT domain trusts
+- **tenant-a** uses `keys/`: the same keypair the indexer JWT domain trusts
   (golden evals must pass).
-- **tenant-b** uses `keys/tenant-b/` - valid RSA mint key, but **not** trusted
+- **tenant-b** uses `keys/tenant-b/`: valid RSA mint key, but not trusted
   by the lab indexer. Tenant-b can pass service-level auth yet cannot read
   telemetry; per-tenant indexers are an AWS-stage concern.
 
-**Identity**
+Identity
 
 - Both tenants verify `analyst1` against the host indexer via authinfo (V3.6).
 - Each shim mints a turn JWT with `tenant` = `tenant-a` or `tenant-b` from its
@@ -60,13 +60,13 @@ is untouched.
 
 ## What each assertion proves
 
-1. **Happy path** - tenant-a Basic auth -> tenant-a shim -> tenant-a tool-service
+1. **Happy path.** tenant-a Basic auth to tenant-a shim to tenant-a tool-service
    returns a labeled answer (lane 0 OK).
-2. **Cross-tenant token** - tenant-a turn JWT on tenant-b service -> HTTP
+2. **Cross-tenant token.** tenant-a turn JWT on tenant-b service gives HTTP
    401/403 and `cross_tenant_token_rejected` in tenant-b audit logs.
-3. **Cross-namespace network** - a curl pod in tenant-a cannot reach
-   `tool-service.tenant-b.svc` (timeout/refused - the wall, not the guard).
-4. **Golden set** - `run_evals.py` against tenant-a NodePorts passes 9/9
+3. **Cross-namespace network.** a curl pod in tenant-a cannot reach
+   `tool-service.tenant-b.svc` (timeout/refused: the wall, not the guard).
+4. **Golden set.** `run_evals.py` against tenant-a NodePorts passes 9/9
    (k8s move changed no behavior).
 
 ## Makefile targets
@@ -89,9 +89,9 @@ is untouched.
 
 ## Troubleshooting
 
-- **Pods ImagePullBackOff** - run `make kind-up` again to reload local images.
-- **401 on exchange** - re-run `make securityconfig` so `analyst1` exists on
+- **Pods ImagePullBackOff.** run `make kind-up` again to reload local images.
+- **401 on exchange.** re-run `make securityconfig` so `analyst1` exists on
   the indexer; confirm auth-shim can reach `https://<host-gw>:9200`.
-- **Golden fails on tenant-a** - tenant-a must use `keys/` trusted by indexer;
+- **Golden fails on tenant-a.** tenant-a must use `keys/` trusted by indexer;
   re-run `make securityconfig` if keys were rotated.
-- **NetworkPolicy decorative** - confirm kindnet is up (`kubectl get pods -n kube-system -l app=kindnet`);
+- **NetworkPolicy decorative.** confirm kindnet is up (`kubectl get pods -n kube-system -l app=kindnet`);

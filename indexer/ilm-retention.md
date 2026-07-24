@@ -26,7 +26,7 @@ Terminology matters here:
 ## ISM on the Wazuh Indexer
 
 ISM policies are managed via `_plugins/_ism/policies/` or from the dashboard
-under **Indexer management > Index Management > State management policies**.
+under Indexer management > Index Management > State management policies.
 
 A policy defines *states* and *transitions*: an index enters the default
 state when the policy attaches, and moves between states when conditions
@@ -101,7 +101,7 @@ Key points:
 
 - The `ism_template` block auto-attaches the policy to newly created
   indices matching the patterns. Existing indices must be attached manually:
-  dashboard **Index Management > Indices > select indices > Apply policy**,
+  dashboard Index Management > Indices > select indices > Apply policy,
   or via `POST _plugins/_ism/add/<index-pattern>` with the policy ID.
 - The `retry` block prevents a transient failure (e.g. a red cluster during
   the delete) from permanently stalling the managed index.

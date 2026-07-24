@@ -29,7 +29,7 @@ use providers such as `MSSQLSERVER` and `MSSQL$<INSTANCE>`.
 
 | Requirement | SQL Server configuration | Typical events |
 |---|---|---|
-| Login success/failure only | **Server Properties > Security > Login auditing** | `18453`/`18454` success, `18456` failure |
+| Login success/failure only | Server Properties > Security > Login auditing | `18453`/`18454` success, `18456` failure |
 | Auditable server/database action groups | SQL Server Audit plus an audit specification | Audit records commonly emitted as `33205` when Application Log is the target |
 | Full high-volume audit trail | SQL Server Audit to a protected file target | Collect and parse the local file separately; do not force all records through Windows Event Log without sizing it |
 
@@ -76,13 +76,13 @@ WHERE name = N'Wazuh_Login_Audit_Spec';
 ```
 
 Alternatively, configure login auditing in SSMS under
-**Server Properties > Security**. SQL Server must restart before that setting
+Server Properties > Security. SQL Server must restart before that setting
 takes effect.
 
 ### 2. Confirm Windows receives the events
 
 Generate one approved successful login and one controlled failed login. In
-Event Viewer, verify the events under **Windows Logs > Application** and note:
+Event Viewer, verify the events under Windows Logs > Application and note:
 
 - `EventID`
 - `Provider Name`

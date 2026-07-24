@@ -17,13 +17,13 @@ Runbook for remote agent upgrades (WPK packages) that fail with certificate erro
 
 Remote upgrades deliver a signed WPK package to the agent, which verifies the signature against a root CA stored locally (`wpk_root.pem`, referenced by `<ca_store>` in the agent's `ossec.conf`). Older agents (<= 4.3.7) shipped a root CA that has since been rotated; those agents reject current WPK packages with certificate verification errors until the new CA is installed.
 
-The CA cannot be pushed centrally from the dashboard - it must be placed on each agent, so use your systems-management tooling (GPO, Ansible, Intune, etc.) to run the commands below at scale.
+The CA cannot be pushed centrally from the dashboard: it must be placed on each agent, so use your systems-management tooling (GPO, Ansible, Intune, etc.) to run the commands below at scale.
 
 The current `wpk_root.pem` is published in the Wazuh repository: <https://github.com/wazuh/wazuh/blob/master/etc/wpk_root.pem>. See the [custom WPK documentation](https://documentation.wazuh.com/current/user-manual/agent/agent-management/remote-upgrading/custom-wpk-packages.html) when building WPKs signed by your own CA.
 
 ## Install the renewed WPK root CA on agents
 
-The pattern is the same on every OS: download the new CA under a **new file name**, point `<ca_store>` at it, and restart the agent.
+The pattern is the same on every OS: download the new CA under a new file name, point `<ca_store>` at it, and restart the agent.
 
 ### Linux
 
@@ -74,7 +74,7 @@ If agents are already above 4.3.7 and still fail, collect the agent's `ossec.log
 
 ## Send lock restart / Send open file errors
 
-`Send lock restart error` and `Send open file error` mean the agent never acknowledged the *lock restart* or *open file* commands the manager sends as part of the upgrade sequence, so the upgrade is cancelled. This is characteristic of **network congestion** - packet loss or connection resets between agent and manager - not of a corrupt package.
+`Send lock restart error` and `Send open file error` mean the agent never acknowledged the *lock restart* or *open file* commands the manager sends as part of the upgrade sequence, so the upgrade is cancelled. This is characteristic of network congestion (packet loss or connection resets between agent and manager), not of a corrupt package.
 
 Recovery procedure:
 
@@ -88,10 +88,10 @@ Recovery procedure:
    </agent-upgrade>
    ```
 
-   > Re-enable verification after testing - leaving it off removes package-authenticity checks.
+   > Re-enable verification after testing: leaving it off removes package-authenticity checks.
 
-2. Confirm agent <-> manager connectivity is stable (see [disconnections.md](disconnections.md)).
-3. Retry the upgrade **one agent at a time**, pinning the target version. From the manager:
+2. Confirm agent to manager connectivity is stable (see [disconnections.md](disconnections.md)).
+3. Retry the upgrade one agent at a time, pinning the target version. From the manager:
 
    ```bash
    /var/ossec/bin/agent_upgrade -v v4.7.4 -a <AGENT_ID>

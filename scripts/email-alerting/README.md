@@ -4,7 +4,7 @@ Two independent layers can send alert emails, and they are useful in different
 situations:
 
 - **Manager-side** (`ossec.conf`): the manager mails alerts directly through a
-  local MTA. Indexer-independent - it keeps working even when the dashboard or
+  local MTA. Indexer-independent: it keeps working even when the dashboard or
   indexer is unavailable (shard limit hit, disk full, etc.), which is a common
   reason people miss dashboard alerts.
 - **Indexer-side** (OpenSearch Alerting module in the dashboard): monitors run
@@ -81,9 +81,9 @@ emailed a level at or above it.
 ## Per-OS / per-agent-group routing
 
 Goal: Windows admins get alerts only from Windows agents, Linux admins only
-from Linux agents - without listing hundreds of `<event_location>` hosts.
+from Linux agents, without listing hundreds of `<event_location>` hosts.
 
-The scalable foundation is **agent groups**, not per-host config. Put agents in
+The scalable foundation is agent groups, not per-host config. Put agents in
 groups and stamp a label on each group's configuration
 (`/var/ossec/etc/shared/<group>/agent.conf`):
 
@@ -99,7 +99,7 @@ The label surfaces on every alert as `agent.labels.group`, which both layers
 can filter on.
 
 - **Manager-side:** there is no native "route by label" option. The only
-  manager-side way is a **custom integration script** that reads the label
+  manager-side way is a custom integration script that reads the label
   field on each alert and sends to the matching address. Wire it to fire above
   a level, then branch inside the script (place the script and block on *all*
   managers):
@@ -115,8 +115,8 @@ can filter on.
 
 - **Indexer-side (recommended for this use case):** create one monitor per
   group, each filtering on `agent.labels.group` and mailing a group-specific
-  recipient. This scales cleanly and needs no per-host or per-manager changes -
-  see below.
+  recipient. This scales cleanly and needs no per-host or per-manager changes.
+  See below.
 
 ## Indexer-side: OpenSearch Alerting module
 
@@ -139,7 +139,7 @@ Dashboard > **Notifications**:
 
 Dashboard > **Alerting** > **Create monitor**:
 
-- Type **Per query monitor**, method **Extraction query editor**.
+- Type Per query monitor, method Extraction query editor.
 - Data source: index pattern `wazuh-alerts-*`, time field `timestamp`.
 - Set the run schedule (e.g. every 1 minute for near-real-time, or a longer
   digest interval).
@@ -208,7 +208,7 @@ correctly on schedule.
 
 ### 3. Trigger and action
 
-- **Trigger:** alert when the result count is above zero -
+- **Trigger:** alert when the result count is above zero:
   `ctx.results[0].hits.total.value > 0`.
 - **Action:** send to the Email channel created above. Use a Mustache body to
   enrich the mail:
@@ -239,7 +239,7 @@ Use **Preview** / **Send test message** to check the body renders, then save.
   *inside the indexer* from stored data. They do not appear in Discover and are
   managed only within the Alerting module.
 - **Migrating Elastic Watchers to OpenSearch monitors.** There is no
-  import/export tool - recreate monitors and translate the query/trigger to
+  import/export tool: recreate monitors and translate the query/trigger to
   OpenSearch syntax. The most common breakage after a copy is the payload path:
   Elastic's `ctx.payload.hits.hits` must become **`ctx.results.0.hits.hits`**.
 - **Blank test message.** "Send test message" sends exactly what the message

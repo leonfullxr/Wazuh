@@ -1,9 +1,9 @@
 # Password Reset and Recovery
 
-Resetting and recovering passwords across Wazuh components. There are **two separate credential stores** - do not mix them up:
+Resetting and recovering passwords across Wazuh components. There are two separate credential stores: do not mix them up:
 
 - **Wazuh API users** (`wazuh`, `wazuh-wui`) - managed by the Wazuh manager's security framework.
-- **Indexer internal users** (`admin`, `kibanaserver`, ...) - managed by the OpenSearch security plugin (`internal_users.yml`). Filebeat and the dashboard authenticate against these, so changing them means updating the **Filebeat keystore** too.
+- **Indexer internal users** (`admin`, `kibanaserver`, ...) - managed by the OpenSearch security plugin (`internal_users.yml`). Filebeat and the dashboard authenticate against these, so changing them means updating the Filebeat keystore too.
 
 ## Table of Contents
 
@@ -66,7 +66,7 @@ systemctl restart wazuh-manager
 systemctl restart wazuh-indexer
 ```
 
-> If `filebeat test output` returns **401 Unauthorized**, the keystore credentials do not match the indexer's - re-run the two `filebeat keystore add` commands with the correct password and restart Filebeat.
+> If `filebeat test output` returns 401 Unauthorized, the keystore credentials do not match the indexer's: re-run the two `filebeat keystore add` commands with the correct password and restart Filebeat.
 
 ## Verify a password against its bcrypt hash
 

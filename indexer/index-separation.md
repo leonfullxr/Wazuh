@@ -22,7 +22,7 @@ first.
 
 ## Procedure
 
-On **every Wazuh manager node**:
+On every Wazuh manager node:
 
 1. Back up and edit the pipeline:
 
@@ -32,7 +32,7 @@ On **every Wazuh manager node**:
    nano /usr/share/filebeat/module/wazuh/alerts/ingest/pipeline.json
    ```
 
-2. **Before** the existing `date_index_name` processor, insert a conditional
+2. Before the existing `date_index_name` processor, insert a conditional
    one. Example routing a rule group into `wazuh-custom-alerts-4.x-*` daily
    indices:
 
@@ -79,7 +79,7 @@ instead:
 },
 ```
 
-You can key the condition on other fields the same way - for example on an
+You can key the condition on other fields the same way: for example on an
 agent label: `"if": "ctx.agent?.labels?.group == 'db'"`. A processor accepts
 only one `if`; combine multiple criteria with `&&` / `||` inside it.
 
@@ -107,7 +107,7 @@ only one `if`; combine multiple criteria with `&&` / `||` inside it.
 [GeoIP country filtering](geoip.md#filtering-alerts-by-country) and
 [timestamp formatting](ingest-pipeline-customization.md) customizations.
 All customizations must coexist in the same file, be re-uploaded together
-with `filebeat setup --pipelines`, and be **re-applied after Wazuh upgrades**,
+with `filebeat setup --pipelines`, and be re-applied after Wazuh upgrades,
 which ship a fresh pipeline. Keep your processors in version control or a
 documented diff.
 
@@ -131,9 +131,9 @@ Rule of thumb: a single cluster with logical separation is fine for a small, sta
 
 A related design choice is how agents reach the manager cluster, because it decides whether events are even separable at the manager level:
 
-- **Load balancer -> any worker** (agents connect to one LB address on 1514/1515, distributed across workers). What most multi-node deployments use: any worker can replace another, giving the best availability and resource use. The trade-off is that **events from all sites are mixed** across workers, so separation can then happen only at the index level (the pipeline routing above).
-- **Dedicated worker per agent group** (agents statically assigned to a specific worker per site). Keeps each site's events **separated from ingestion** at the manager level - convenient when you must hand a client only their own logs, or recover one site's data in isolation. The trade-off is weaker resilience: no automatic failover to another worker.
+- **Load balancer to any worker** (agents connect to one LB address on 1514/1515, distributed across workers). What most multi-node deployments use: any worker can replace another, giving the best availability and resource use. The trade-off is that events from all sites are mixed across workers, so separation can then happen only at the index level (the pipeline routing above).
+- **Dedicated worker per agent group** (agents statically assigned to a specific worker per site). Keeps each site's events separated from ingestion at the manager level: convenient when you must hand a client only their own logs, or recover one site's data in isolation. The trade-off is weaker resilience: no automatic failover to another worker.
 
-The LB choice does not fully lock you in: even with mixed logs you can still separate at the index level **provided agents carry a group label or have identifiable names** to key the pipeline condition on (`ctx.agent?.labels?.group`, agent-name patterns). But separating cleanly from the start - by dedicated worker, or by a planned label scheme - is far less work than untangling mixed data later.
+The LB choice does not fully lock you in: even with mixed logs you can still separate at the index level provided agents carry a group label or have identifiable names to key the pipeline condition on (`ctx.agent?.labels?.group`, agent-name patterns). But separating cleanly from the start (by dedicated worker, or by a planned label scheme) is far less work than untangling mixed data later.
 
 See [AWS load balancer](../troubleshooting/agents/aws-load-balancer.md) and [Kubernetes load balancing & ingress](../containerization/kubernetes/load-balancing-and-ingress.md) for the load-balancer implementation and its pitfalls.

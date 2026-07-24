@@ -119,7 +119,7 @@ out through [ISM retention](ilm-retention.md), or
 ## Quick diagnostic commands
 
 Run these from the Wazuh Dashboard Dev Tools console
-(**Indexer management > Dev Tools**) or with `curl` against
+(Indexer management > Dev Tools) or with `curl` against
 `https://<INDEXER_IP>:9200`:
 
 ```http
@@ -138,6 +138,6 @@ curl -k -u <USERNAME>:<PASSWORD> "https://<INDEXER_IP>:9200/_cluster/health?pret
 ```
 
 If the cluster is not green, start with
-[Shard management - cluster health](shard-management.md#cluster-health-red-and-yellow-states).
+[Shard management: cluster health](shard-management.md#cluster-health-red-and-yellow-states).
 If indices go read-only or shards will not allocate, it is almost always disk:
 see [Disk management](disk-management.md).

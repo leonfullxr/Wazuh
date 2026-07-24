@@ -78,7 +78,7 @@ The base image for Solaris 11 contains expired root SSL certificates (a common i
 
 ## Part 4: Installation Instructions
 
-Transfer the generated packages to your target Solaris servers (e.g., via `scp` to `/tmp/`). **Do not use the same command for both operating systems.**
+Transfer the generated packages to your target Solaris servers (e.g., via `scp` to `/tmp/`). Do not use the same command for both operating systems.
 
 ### Installing on Solaris 10
 Solaris 10 uses the legacy SVR4 package manager. Run the following as root:

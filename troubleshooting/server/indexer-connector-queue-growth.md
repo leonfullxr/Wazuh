@@ -1,6 +1,6 @@
 # IndexerConnector Queue Growth: `queue/indexer/` Never Drains
 
-The indexer-connector queue on manager/worker nodes grows without bound - tens of GB per node - and RocksDB SST files accumulate and never purge, **even though the indexer cluster is healthy**. This guide separates the real drain failures (which need fixing) from growth that is simply the expected steady state for your fleet size.
+The indexer-connector queue on manager/worker nodes grows without bound (tens of GB per node) and RocksDB SST files accumulate and never purge, even though the indexer cluster is healthy. This guide separates the real drain failures (which need fixing) from growth that is simply the expected steady state for your fleet size.
 
 > Applies to Wazuh 4.8+ (RocksDB-based indexer connector), and to clustered deployments in particular. It assumes the VD internals and the on-disk layout described in [vulnerability-detection.md](vulnerability-detection.md) - read that first if `/var/ossec/queue/` is unfamiliar.
 >

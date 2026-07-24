@@ -26,13 +26,13 @@ when the cluster rebalances or recovers. Querying many small shards is faster
 per shard but adds per-query overhead; fewer larger shards can be faster
 overall. As a starting point for time-based data such as Wazuh alerts:
 
-- **Aim for an average shard size of 20-40 GB**, and keep shards **under
-  50 GB**. Oversized shards cause increased memory and CPU usage on data
+- Aim for an average shard size of 20-40 GB, and keep shards under
+  50 GB. Oversized shards cause increased memory and CPU usage on data
   nodes, longer query response times, slow recovery and rebalancing, and
   performance bottlenecks during ingestion.
 - **Avoid the "gazillion shards" problem.** As a conservative planning
-  ceiling, keep the total of primary and replica shards **below 20 per GB of
-  JVM heap** on each data node. This is a legacy operational rule of thumb,
+  ceiling, keep the total of primary and replica shards below 20 per GB of
+  JVM heap on each data node. This is a legacy operational rule of thumb,
   not an OpenSearch hard limit; benchmark the OpenSearch version bundled with
   Wazuh and monitor heap pressure, cluster-manager latency, and recovery time.
 - **Low-volume environments:** if a daily primary shard remains far below the
@@ -69,9 +69,9 @@ A common failure mode in large environments: `wazuh-alerts` daily indices
 ingest about 1.5 TB/day with 12 primary shards, producing shards of roughly
 125 GB each. Compare candidate counts before changing the template:
 
-- 1.5 TB / 36 shards is about **42 GB per shard** and distributes as three
+- 1.5 TB / 36 shards is about 42 GB per shard and distributes as three
   primaries per node on a 12-node cluster.
-- 1.5 TB / 48 shards is about **31 GB per shard** and distributes as four
+- 1.5 TB / 48 shards is about 31 GB per shard and distributes as four
   primaries per node.
 
 Both are below 50 GB, but 48 is inside the initial target range at the cost of
@@ -87,15 +87,15 @@ itself (index rotation scheme, node count, heap sizing) needs a redesign.
 
 ## Worked example: planning shard count for retention and many sources
 
-Shard *size* (above) is only half of capacity planning; the other half is the shard *count* you accumulate over the retention window - especially when you split events into many index prefixes (per site, per tenant, per source, as in [alert separation](index-separation.md)). Each extra prefix is another daily index, so shard count grows with **sources x retention**, not just data volume.
+Shard *size* (above) is only half of capacity planning; the other half is the shard *count* you accumulate over the retention window, especially when you split events into many index prefixes (per site, per tenant, per source, as in [alert separation](index-separation.md)). Each extra prefix is another daily index, so shard count grows with sources x retention, not just data volume.
 
 Index cadence sets the baseline:
 
-- **Alerts** and **archives** (if enabled) roll **daily**.
-- **Monitoring** and **statistics** roll **weekly**.
+- Alerts and archives (if enabled) roll daily.
+- Monitoring and statistics roll weekly.
 - Every index costs `primary shards x (1 + number_of_replicas)` shards.
 
-Worked example - **11 alert index prefixes**, one primary shard each, **90-day** retention (~13 weeks):
+Worked example: 11 alert index prefixes, one primary shard each, 90-day retention (~13 weeks):
 
 | Config | Shards/day (alerts) | Shards/week (+2 stats & monitoring) | ~90 days (+~20 base) | Indexer nodes (~1000 shards each) |
 |---|---|---|---|---|

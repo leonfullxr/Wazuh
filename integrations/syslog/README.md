@@ -126,7 +126,7 @@ HUP cleanly:
 
 ## Receiving syslog over TLS (6514)
 
-Some senders require encrypted syslog (Palo Alto/Prisma, many appliances). `6514` is the IANA port for syslog-over-TLS. Wazuh's own `<remote connection="syslog">` listener is **plaintext only**, so terminate TLS with an **rsyslog collector** (the `ossl`/OpenSSL stream driver) and forward the decrypted stream on to the manager or to per-source files a local agent reads.
+Some senders require encrypted syslog (Palo Alto/Prisma, many appliances). `6514` is the IANA port for syslog-over-TLS. Wazuh's own `<remote connection="syslog">` listener is plaintext only, so terminate TLS with an rsyslog collector (the `ossl`/OpenSSL stream driver) and forward the decrypted stream on to the manager or to per-source files a local agent reads.
 
 `/etc/rsyslog.d/40-tls-input.conf`:
 
@@ -152,9 +152,9 @@ input(type="imtcp" port="6514")
 
 Notes:
 
-- `AuthMode="anon"` = the **server** presents a certificate the sender validates; no client certificate is required. For mutual TLS, use `AuthMode="x509/name"` with a CA and permitted peers.
-- The cert/key/CA must be valid PEM and the key must match the certificate. A malformed file makes rsyslog fail to open `6514` with OpenSSL **ASN.1/PEM** errors (not a "file not found") - validate first: [cert/key/chain validation](../../certificates/troubleshooting.md#validating-a-server-cert-key-and-chain).
-- If the sender enforces certificate **revocation** (OCSP/CRL) - Palo Alto Strata does - a self-signed cert will be rejected. See [Palo Alto / Prisma Cloud](../prisma-cloud/README.md#certificate-requirements-the-main-blocker).
+- `AuthMode="anon"` = the server presents a certificate the sender validates; no client certificate is required. For mutual TLS, use `AuthMode="x509/name"` with a CA and permitted peers.
+- The cert/key/CA must be valid PEM and the key must match the certificate. A malformed file makes rsyslog fail to open `6514` with OpenSSL ASN.1/PEM errors (not a "file not found"). Validate first: [cert/key/chain validation](../../certificates/troubleshooting.md#validating-a-server-cert-key-and-chain).
+- If the sender enforces certificate revocation (OCSP/CRL), as Palo Alto Strata does, a self-signed cert will be rejected. See [Palo Alto / Prisma Cloud](../prisma-cloud/README.md#certificate-requirements-the-main-blocker).
 
 Validate and restart:
 
@@ -166,10 +166,10 @@ sudo ss -lntp | grep ':6514'
 
 ## Load balancing syslog across cluster workers
 
-In a multi-node cluster, syslog reception does **not** balance itself. Each node runs its own listener - the `<remote connection="syslog">` block is per-node configuration and does **not** propagate through cluster sync - and whatever sits in front of the nodes decides which one a sender lands on. Two failure modes are common at scale (self-hosted on VMs/EC2, Docker, or self-managed Kubernetes like EKS/AKS alike):
+In a multi-node cluster, syslog reception does not balance itself. Each node runs its own listener (the `<remote connection="syslog">` block is per-node configuration and does not propagate through cluster sync), and whatever sits in front of the nodes decides which one a sender lands on. Two failure modes are common at scale (self-hosted on VMs/EC2, Docker, or self-managed Kubernetes like EKS/AKS alike):
 
 - **A single endpoint pins all traffic to one node.** If every device, or a load balancer with sticky behaviour, targets one manager, that node processes the entire syslog stream while the other workers sit idle. It saturates CPU and starts dropping events even though the cluster as a whole has spare capacity.
-- **UDP "sticks" to one backend.** With UDP syslog behind an L4 load balancer or a Kubernetes `Service`, connection tracking (conntrack / kube-proxy) keeps a source pinned to the same backend for the life of the flow, so a single high-volume sender never spreads. The same happens over TCP when one centralized forwarder holds a **single long-lived connection** - every event rides that one connection to one worker.
+- **UDP "sticks" to one backend.** With UDP syslog behind an L4 load balancer or a Kubernetes `Service`, connection tracking (conntrack / kube-proxy) keeps a source pinned to the same backend for the life of the flow, so a single high-volume sender never spreads. The same happens over TCP when one centralized forwarder holds a single long-lived connection: every event rides that one connection to one worker.
 
 The fix is a real load balancer distributing connections across every worker's `514` listener, plus per-node listener config:
 
@@ -184,7 +184,7 @@ The fix is a real load balancer distributing connections across every worker's `
     </remote>
     ```
 
-2. **Front the workers with HAProxy** (or a cloud L4 load balancer) in round-robin, health-checking each worker. Prefer **TCP** syslog - it balances far more predictably than UDP:
+2. **Front the workers with HAProxy** (or a cloud L4 load balancer) in round-robin, health-checking each worker. Prefer TCP syslog: it balances far more predictably than UDP:
 
     ```haproxy
     frontend syslog_in
@@ -200,7 +200,7 @@ The fix is a real load balancer distributing connections across every worker's `
         server worker2 10.0.0.12:514 check
     ```
 
-3. **Break connection stickiness for single-forwarder or UDP setups.** If one relay sends everything over a persistent connection, force it to reconnect periodically so it re-balances - for example rsyslog's queue `RebindInterval` (reconnect every N messages). If you must use UDP, put the LB in a per-packet mode rather than per-flow, or - better - switch the forwarder to TCP.
+3. **Break connection stickiness for single-forwarder or UDP setups.** If one relay sends everything over a persistent connection, force it to reconnect periodically so it re-balances, for example rsyslog's queue `RebindInterval` (reconnect every N messages). If you must use UDP, put the LB in a per-packet mode rather than per-flow, or, better, switch the forwarder to TCP.
 
 Verify the spread from the master with per-node received-event counts:
 
@@ -208,7 +208,7 @@ Verify the spread from the master with per-node received-event counts:
 /var/ossec/bin/cluster_control -a -fs active | grep -Po ' wazuh-manager-\S+' | sort | uniq -c
 ```
 
-If one node still shows the bulk of the events, stickiness has not been broken - revisit the LB mode and the forwarder's connection behaviour.
+If one node still shows the bulk of the events, stickiness has not been broken: revisit the LB mode and the forwarder's connection behaviour.
 
 > **Per-node EPS limits apply after balancing.** Even with traffic spread evenly, each node enforces its own EPS ceiling (`<limits><eps>`), and short bursts above it are throttled and dropped regardless of the daily average. See [the EPS limit throttles bursts](../../troubleshooting/server/analysisd.md#the-eps-limit-limitseps-throttles-bursts) before concluding you simply need more nodes.
 

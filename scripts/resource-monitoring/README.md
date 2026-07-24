@@ -68,9 +68,9 @@ sudo systemctl restart wazuh-agent
 
 ### 2. Manager configuration
 
-- **Decoders**: dashboard > **Server Management > Decoders** > create a new
+- **Decoders**: dashboard > Server Management > Decoders > create a new
   decoder file with the contents of [`linux_metrics_decoders.xml`](linux_metrics_decoders.xml).
-- **Rules**: dashboard > **Server Management > Rules** > create a new rule
+- **Rules**: dashboard > Server Management > Rules > create a new rule
   file with the contents of [`linux_metrics_rules.xml`](linux_metrics_rules.xml):
 
   | Rule ID | Fires when |

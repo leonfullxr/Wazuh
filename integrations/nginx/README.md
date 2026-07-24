@@ -90,7 +90,7 @@ protocol encryption remains end to end between the agent and Wazuh manager.
 
 ## Forwarding proxy for agents without internet access
 
-A common variant: the agents have **no direct route** to the manager (or Wazuh Cloud) and must egress through one internal proxy. The same `stream` mechanism applies, but with a **single upstream** (the manager or the Wazuh Cloud FQDN) instead of a worker pool:
+A common variant: the agents have no direct route to the manager (or Wazuh Cloud) and must egress through one internal proxy. The same `stream` mechanism applies, but with a single upstream (the manager or the Wazuh Cloud FQDN) instead of a worker pool:
 
 ```nginx
 stream {
@@ -112,10 +112,10 @@ stream {
 }
 ```
 
-Agents point their `<server><address>` at the **proxy**, not the manager. Two things bite in this topology:
+Agents point their `<server><address>` at the proxy, not the manager. Two things bite in this topology:
 
-- **A short `proxy_timeout` on 1514 silently drops idle agents.** The event channel is a long-lived TCP session that can be quiet between events; a 60-120s timeout tears it down periodically, and on older agents (pre-4.11.1) that can leave the whole fleet wedged on a keyless retry - see [stuck enrollment](../../troubleshooting/agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment). Use `1h` or longer on 1514.
-- **Test through the proxy path, not around it.** Validate connectivity from an agent that egresses via the proxy (or against the proxy IP), so the test reflects what agents actually experience - a direct-to-manager test that passes proves nothing about the proxy path. Agent-to-manager traffic is already AES-encrypted end to end, so the proxy is only needed when the network requires it; connect agents directly to the manager/FQDN where you can.
+- **A short `proxy_timeout` on 1514 silently drops idle agents.** The event channel is a long-lived TCP session that can be quiet between events; a 60-120s timeout tears it down periodically, and on older agents (pre-4.11.1) that can leave the whole fleet wedged on a keyless retry: see [stuck enrollment](../../troubleshooting/agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment). Use `1h` or longer on 1514.
+- **Test through the proxy path, not around it.** Validate connectivity from an agent that egresses via the proxy (or against the proxy IP), so the test reflects what agents actually experience: a direct-to-manager test that passes proves nothing about the proxy path. Agent-to-manager traffic is already AES-encrypted end to end, so the proxy is only needed when the network requires it; connect agents directly to the manager/FQDN where you can.
 
 ## Verification
 

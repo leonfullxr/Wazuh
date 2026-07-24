@@ -16,13 +16,13 @@
 
 ## Introduction
 
-This integration enriches Wazuh alerts with **VirusTotal IP reputation** and returns a clear verdict: **malicious**, **suspicious**, or **unknown**. It's built on Wazuh's Integrator framework and the VirusTotal **v3** API.
+This integration enriches Wazuh alerts with VirusTotal IP reputation and returns a clear verdict: malicious, suspicious, or unknown. It's built on Wazuh's Integrator framework and the VirusTotal v3 API.
 
 This integration can be broken down into the following steps:
 
-* Extracts the **source IP** from matching Wazuh alerts.
-* Queries VirusTotal's **IP object** (`/api/v3/ip_addresses/{ip}`) and (optionally) pivots to **communicating files** for borderline cases.
-* Computes a verdict using **engine consensus, freshness, community reputation, risk tags**, and **light engine-weighting**.
+* Extracts the source IP from matching Wazuh alerts.
+* Queries VirusTotal's IP object (`/api/v3/ip_addresses/{ip}`) and (optionally) pivots to communicating files for borderline cases.
+* Computes a verdict using engine consensus, freshness, community reputation, risk tags, and light engine-weighting.
 * Emits an enriched JSON block under `virustotal_ip` and a flat `verdict_line` string for easy rule matching.
 
 ## Heuristic (How the Verdict is Decided)
@@ -39,23 +39,23 @@ Here is the decision flow:
 
 1. **Start with engine counts**
 
-      * If `malicious` >= 3 -> **malicious**.
-      * Else if `malicious` >= 1 and `reputation` < 0 -> **malicious**.
-      * Else if (`malicious` + `suspicious`) >= 1 -> **suspicious** (unless weak due to date).
-      * Else -> **unknown**.
+      * If `malicious` >= 3, then malicious.
+      * Else if `malicious` >= 1 and `reputation` < 0, then malicious.
+      * Else if (`malicious` + `suspicious`) >= 1, then suspicious (unless weak due to date).
+      * Else, unknown.
 
 2. **Apply date (only affects weak hits as IPs can get refreshed):**
 
-      * If `age_days` > 90, `malicious` <= 1, and `reputation` >= 0 -> downgrade to **unknown**.
+      * If `age_days` > 90, `malicious` <= 1, and `reputation` >= 0, downgrade to unknown.
 
 3. **Apply lightweight engine weighting**
 
-      * If score >= 3.0 -> **malicious** (consensus by score).
-      * Else if score >= 1.5 and verdict was **unknown** -> **suspicious**.
+      * If score >= 3.0, then malicious (consensus by score).
+      * Else if score >= 1.5 and verdict was unknown, then suspicious.
 
 4. **Apply risk tags guardrail**
 
-      * If there's any hit (`malicious` or `suspicious` > 0) and tag in `RISK_TAGS`, make sure it's at least **suspicious**.
+      * If there's any hit (`malicious` or `suspicious` > 0) and tag in `RISK_TAGS`, make sure it's at least suspicious.
 
 For a better visual, please refer to [Workflow Diagram](#workflow-diagram)
 

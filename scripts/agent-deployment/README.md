@@ -29,7 +29,7 @@ the official ones.
 Everything the agent needs can be passed at install time: manager address,
 enrollment password, group, agent name, protocol/port.
 
-Linux (one-liner per package manager -
+Linux (one-liner per package manager, see the
 [full variable list](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/deployment-variables/deployment-variables-linux.html)):
 
 ```bash
@@ -68,7 +68,7 @@ Orca ships in the Windows SDK ("Windows SDK Components for Windows Installer
 Developers"); the installer `Orca-x86_en-us.msi` lands under
 `C:\Program Files (x86)\Windows Kits\10\bin\<sdk-version>\x86`. With Orca:
 
-1. Open the Wazuh agent MSI, go to the **Property** table.
+1. Open the Wazuh agent MSI, go to the Property table.
 2. **Transform > New Transform**, then add rows for the
    [Windows deployment variables](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/deployment-variables/deployment-variables-windows.html):
    - `ADDRESS` = manager IP/FQDN
@@ -79,13 +79,13 @@ Developers"); the installer `Orca-x86_en-us.msi` lands under
 
 Managed-cloud environments: `ADDRESS`/`AUTHD_SERVER` is the tenant URL (e.g.
 `<tenant-id>.cloud.wazuh.com`), and password enrollment is typically already
-enforced - grab `WAZUH_REGISTRATION_PASSWORD` from the dashboard's
-**Deploy new agent** form (step 4 of the generated command).
+enforced: grab `WAZUH_REGISTRATION_PASSWORD` from the dashboard's
+Deploy new agent form (step 4 of the generated command).
 
 ### 3. Share the installer
 
 Put the MSI + `custom.mst` in a network share readable by the machines, not
-just the admins - grant **Domain Computers** (or Authenticated Users)
+just the admins: grant Domain Computers (or Authenticated Users)
 Read/Execute on both the share and NTFS ACLs. A common failure mode is a GPO
 error along the lines of "cannot read from the domain controller file": the
 computer account cannot read the UNC path. Re-check share/NTFS permissions
@@ -96,7 +96,7 @@ from a workstation (`Win+R` > path).
 
 **Install GPO:** Computer Configuration > Policies > Software Settings >
 Software installation > New > Package. Point at the UNC path of the MSI,
-choose **Advanced** deployment (not Assigned) - the **Modifications** tab,
+choose Advanced deployment (not Assigned): the Modifications tab,
 where you attach `custom.mst`, is only available at package-creation time.
 
 **Activate GPO** (starts the service fleet-wide): Computer Configuration >
@@ -105,8 +105,8 @@ Service name `WazuhSvc`, Startup `Automatic`, Service action `Start service`,
 and all three Recovery options set to `Restart the Service`.
 
 Apply on endpoints with `gpupdate /force` (or `echo N | gpupdate /force` for
-non-interactive use). **Software-installation policies only take effect after
-a reboot/logon** - the warning "changes must be processed before system
+non-interactive use). Software-installation policies only take effect after
+a reboot/logon: the warning "changes must be processed before system
 startup or user logon" is expected, not an error. If the install still fails
 after a reboot, re-verify share permissions before anything else.
 
@@ -116,8 +116,8 @@ You do not need a dedicated "Wazuh" OU, and computers cannot live in more
 than one OU anyway:
 
 - Link the *same* GPO to each existing OU that contains target machines
-  (right-click OU > **Link an Existing GPO**).
-- Use **security filtering** on the GPO to scope it to a computer group when
+  (right-click OU > Link an Existing GPO).
+- Use security filtering on the GPO to scope it to a computer group when
   you do not want every machine in the linked OUs.
 - **WMI filters** can target by OS version/hostname if group membership is
   not practical.

@@ -133,8 +133,8 @@ When the indexer node is at the flood-stage watermark and you need headroom
 ## Moving indexer data to a new disk
 
 The primary remedy when the data partition is genuinely full. Uses a bind
-mount so the indexer keeps seeing `/var/lib/wazuh-indexer`. **In a cluster,
-do one node at a time** and let the cluster return to green in between.
+mount so the indexer keeps seeing `/var/lib/wazuh-indexer`. In a cluster,
+do one node at a time and let the cluster return to green in between.
 
 ```bash
 # 1. Disable replica reallocation, flush, and stop services
@@ -190,14 +190,14 @@ curl -X PUT "https://<INDEXER_IP>:9200/_cluster/settings" -u <USERNAME> -k \
 }'
 ```
 
-Do not forget step 11 - a cluster left with `allocation.enable: primaries`
+Do not forget step 11: a cluster left with `allocation.enable: primaries`
 will accumulate [unassigned replica shards](shard-management.md#allocation-is-disabled).
 
 ## Expanding into a new partition on the same disk
 
 A common scenario on VMs: the hypervisor disk was grown, and the extra space
-must become the indexer's data volume. Generic procedure (adapt device names
-- here the new partition ends up as `/dev/sda7`):
+must become the indexer's data volume. Generic procedure (adapt device names:
+here the new partition ends up as `/dev/sda7`):
 
 ```bash
 # 0. Stop the stack and snapshot the VM first
@@ -240,7 +240,7 @@ environment uses LVM, simply growing the logical volume and filesystem
 
 Wazuh manager archives (`/var/ossec/logs/archives/`) grow fast when event
 archiving is enabled and often fill the manager's disk. Same bind-mount
-approach - one node at a time:
+approach, one node at a time:
 
 ```bash
 # 1. Stop services
@@ -270,10 +270,10 @@ sudo tail -f /var/ossec/logs/ossec.log   # confirm events are processing
 
 ## After recovery
 
-- Keep Filebeat **stopped** on the managers until the indexer's data
+- Keep Filebeat stopped on the managers until the indexer's data
   partition is back under the low watermark; consider disabling archives
   ingestion in Filebeat if you do not need it. When Filebeat restarts it will
-  ship its backlog, causing an ingestion surge - make sure there is headroom.
+  ship its backlog, causing an ingestion surge: make sure there is headroom.
 - If indices were forced read-only by the flood-stage watermark, the block is
   released automatically once disk drops below the high watermark (on
   current versions); on older versions clear it manually:

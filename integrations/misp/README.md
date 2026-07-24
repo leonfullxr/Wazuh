@@ -38,7 +38,7 @@ Before starting the integration, ensure you have the following:
 ### Installing MISP
 
 - MISP can be installed using three methods: automatic script, manual installation, or Docker. Choose the method that best suits your needs.
-- In this guide, we will configure and run MISP using **Docker** For a faster and isolated deployment on an **Ubuntu Server** (virtual machine on OracleVM using vagrant).
+- In this guide, we will configure and run MISP using Docker For a faster and isolated deployment on an Ubuntu Server (virtual machine on OracleVM using vagrant).
 
 #### Installing Docker
 

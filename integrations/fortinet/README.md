@@ -26,8 +26,8 @@ payload; use a private network, VPN, or TLS-capable collector when required.
 
 In the FortiGate web interface:
 
-1. Open **Log & Report > Log Settings**.
-2. Enable **Send logs to syslog** and add the Wazuh manager or collector
+1. Open Log & Report > Log Settings.
+2. Enable Send logs to syslog and add the Wazuh manager or collector
    address.
 3. Set port `514` and select the transport that matches the receiver.
 4. Enable the required categories, such as system events, traffic, and UTM.

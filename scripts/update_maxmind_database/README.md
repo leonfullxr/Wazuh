@@ -102,7 +102,7 @@ This document describes how to integrate and test the `update_maxmind.sh` script
 
 * Docker and Docker Compose installed
 * A multi-node Wazuh deployment managed via `docker-compose.yml`
-* MaxMind **Account ID** and **License Key**
+* MaxMind Account ID and License Key
 
 ## Configuration
 

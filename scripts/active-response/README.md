@@ -36,8 +36,8 @@ example, unblocks the IP) after the given number of seconds.
 ## Recipe 1: block with the built-in `firewall-drop`
 
 The out-of-the-box `firewall-drop` script blocks the attacker's source IP on
-the **local firewall** of the endpoint that raised the alert (iptables /
-firewalld on Linux, PF on macOS/BSD, netsh on Windows). No custom code needed -
+the local firewall of the endpoint that raised the alert (iptables /
+firewalld on Linux, PF on macOS/BSD, netsh on Windows). No custom code needed:
 just point it at the rules that identify the attack. Example wiring it to the
 built-in Shellshock rules for a 10-minute block:
 
@@ -67,7 +67,7 @@ carries a `srcip`. Test by triggering the rule and checking
 
 ## Recipe 2: maintain a CDB blocklist via an integration script
 
-When you want a **central, persistent list** of attacker IPs (for example, to
+When you want a central, persistent list of attacker IPs (for example, to
 feed a perimeter firewall, or to escalate on repeat offenders), use an
 integration script instead of an AR command. It appends each attacker's source
 IP to a [CDB list](https://documentation.wazuh.com/current/user-manual/ruleset/cdb-list.html),
@@ -80,12 +80,12 @@ versions, whereas the integration hook runs the script cleanly on every
 matching alert.
 
 [`cdb-blocklist-integration.py`](cdb-blocklist-integration.py) does exactly
-this - see its header for behaviour and the docstrings for each step.
+this: see its header for behaviour and the docstrings for each step.
 
 ### Install
 
 1. Copy the script into the manager's integrations directory and set
-   ownership/permissions (repeat on **every** manager in a cluster):
+   ownership/permissions (repeat on every manager in a cluster):
 
    ```bash
    cp cdb-blocklist-integration.py /var/ossec/integrations/
@@ -170,11 +170,11 @@ Send the same IP again and the log shows `Entry already present`, and rule
 
 - **Permissions are the usual failure.** If the log shows
   `Permission denied: '.../blacklist-custom'`, the `wazuh` user cannot write
-  the list - fix ownership (`chown wazuh:wazuh`) and mode (`660`). The
+  the list: fix ownership (`chown wazuh:wazuh`) and mode (`660`). The
   integration script must be `750`, `root:wazuh`.
 - **No `srcip` in the alert.** The script extracts `data.srcip`, then falls
   back to a `srcip=<ip>` token in `full_log`. Alerts with neither are logged
-  and skipped - confirm the decoder actually extracts a source IP.
+  and skipped: confirm the decoder actually extracts a source IP.
 - **Pushing to a perimeter firewall.** To block on an edge device
   (Fortinet, Palo Alto, OPNsense, etc.) rather than the local host, have a
   custom script call the device API/CLI, or ship the blocklist file to a box

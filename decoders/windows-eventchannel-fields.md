@@ -82,7 +82,7 @@ def extract_tags(message, tags={"UserId": "UserId", "IpAddress": "IpAddress"}):
     return result
 ```
 
-The full script - with logging, error handling, a configurable `TAGS` map, and a `--selftest` - is in [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/), alongside `custom-windows` for `key: value` messages.
+The full script (with logging, error handling, a configurable `TAGS` map, and a `--selftest`) is in [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/), alongside `custom-windows` for `key: value` messages.
 
 **3. Wire it up** in `/var/ossec/etc/ossec.conf` and add the second rule that fires on the re-injected JSON:
 
@@ -112,14 +112,14 @@ Restart the manager (every node) and debug with `integrator.debug=2` in `interna
 
 ## Scale caveat
 
-The extractor **runs on every matching alert and re-injects a second event**, so it roughly **doubles the queue load for those events**. On a busy ADFS feed (high EPS), especially alongside another heavy source such as a syslog forwarder, this can saturate the analysisd queue and produce **dropped, delayed, or empty alerts** (empty = the script ran but its output was discarded before indexing). That is a capacity symptom, not a script bug: measure EPS and `events_dropped`, and size the manager (add a worker, or reduce the input) before blaming the extraction. See [analysisd, EPS, and dropped events](../troubleshooting/server/analysisd.md).
+The extractor runs on every matching alert and re-injects a second event, so it roughly doubles the queue load for those events. On a busy ADFS feed (high EPS), especially alongside another heavy source such as a syslog forwarder, this can saturate the analysisd queue and produce dropped, delayed, or empty alerts (empty = the script ran but its output was discarded before indexing). That is a capacity symptom, not a script bug: measure EPS and `events_dropped`, and size the manager (add a worker, or reduce the input) before blaming the extraction. See [analysisd, EPS, and dropped events](../troubleshooting/server/analysisd.md).
 
-The same pattern works for any eventchannel message with an embedded structured payload (key:value AV logs, other XML) - only the parsing in `extract_*` changes.
+The same pattern works for any eventchannel message with an embedded structured payload (key:value AV logs, other XML): only the parsing in `extract_*` changes.
 
 ## Related
 
 - [scripts/eventchannel-extraction](../scripts/eventchannel-extraction/) - the ready-made `custom-windows-xml` (XML) and `custom-windows` (`key: value`) integratord scripts
-- [scripts/custom-json](../scripts/custom-json/README.md) - the equivalent enrichment for **JSON** logs (a different input format, not the same script)
+- [scripts/custom-json](../scripts/custom-json/README.md) - the equivalent enrichment for JSON logs (a different input format, not the same script)
 - [Decoder syntax and examples](syntax.md) - standard decoders, for non-eventchannel sources
 - [Custom rules](../rules/) - rule chaining with `if_sid` / `decoded_as`
 - [analysisd, EPS, and dropped events](../troubleshooting/server/analysisd.md) - the capacity side of the scale caveat

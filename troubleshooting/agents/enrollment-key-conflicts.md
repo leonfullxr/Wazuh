@@ -22,7 +22,7 @@ The manager logs this warning when more than one agent tries to connect using th
 
 ## Decoding authd enrollment rejections
 
-When enrollment fails, `wazuh-authd` logs a specific reason. The three "duplicate name" variants are **not** the same problem - each is governed by a different `<auth><force>` setting:
+When enrollment fails, `wazuh-authd` logs a specific reason. The three "duplicate name" variants are not the same problem: each is governed by a different `<auth><force>` setting:
 
 | Manager log (`wazuh-authd`) | What it means | Governed by | Fix |
 |---|---|---|---|

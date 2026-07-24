@@ -43,7 +43,7 @@ This integration enriches Wazuh alerts with threat intelligence from AlienVault 
 ### Obtaining an OTX API key
 
 * Sign up at <https://otx.alienvault.com/>
-* Navigate to **Settings --> User Settings --> API Integration**
+* Navigate to Settings then User Settings then API Integration
 * Copy the OTX Key. It is a 64-character hex string.
 
 #### Testing connection from Wazuh to AlienVault OTX
@@ -222,7 +222,7 @@ graph TD
 
 ## IOC Extraction
 
-Field paths are declared centrally in `SUPPORTED_FIELD_PATHS` at the top of the script. To support a new log source, add the relevant dotted path under the matching IOC type - no other code change is required:
+Field paths are declared centrally in `SUPPORTED_FIELD_PATHS` at the top of the script. To support a new log source, add the relevant dotted path under the matching IOC type: no other code change is required:
 
 ```python
 SUPPORTED_FIELD_PATHS = {
@@ -262,17 +262,17 @@ Additional safeguards before an indicator is sent to OTX:
 | Osquery | `data.osquery.columns.sha256` |
 | CrowdStrike Falcon | `data.event.IOCValue` (dispatched on `IOCType`), `data.event.SHA256String`, `data.event.QuarantineFiles[].SHA256HashData` |
 
-Sources whose data needs structural parsing - Sysmon's comma-separated `hashes` string, MS Graph `evidence` arrays, CrowdStrike's `QuarantineFiles[]` array, the `IOCType`/`IOCValue` discriminated union - are handled by dedicated extractor functions rather than the path map.
+Sources whose data needs structural parsing (Sysmon's comma-separated `hashes` string, MS Graph `evidence` arrays, CrowdStrike's `QuarantineFiles[]` array, the `IOCType`/`IOCValue` discriminated union) are handled by dedicated extractor functions rather than the path map.
 
 ### Multi-indicator handling
 
-A single Wazuh alert frequently contains multiple candidates for the same IOC type - for example, AWS CloudTrail records both `sourceIPAddress` and `ClientIP`, and a NAT-traversing flow contributes both `srcip` and `nat_source_ip`. The script:
+A single Wazuh alert frequently contains multiple candidates for the same IOC type: for example, AWS CloudTrail records both `sourceIPAddress` and `ClientIP`, and a NAT-traversing flow contributes both `srcip` and `nat_source_ip`. The script:
 
-1. Walks **every** registered path for the IOC type and collects all values.
+1. Walks every registered path for the IOC type and collects all values.
 2. Deduplicates while preserving the path order, so the most authoritative field wins on ties.
 3. Filters out RFC1918/loopback/etc. addresses, invalid domains, and non-SHA-256 hashes.
 4. Caps the surviving candidates at `MAX_QUERIES_PER_TYPE = 3` to stay within OTX rate limits. Dropped values are logged with a `WARNING` naming the specific indicators that were not queried.
-5. Queries OTX for every kept candidate and picks the **worst** verdict block as the value for that IOC type in the emitted event. Ranking is `(verdict_score, pulse_count)` where malicious > clean > unknown.
+5. Queries OTX for every kept candidate and picks the worst verdict block as the value for that IOC type in the emitted event. Ranking is `(verdict_score, pulse_count)` where malicious > clean > unknown.
 
 This means the alert shape stays identical to a single-value enrichment (one block per IOC type), so existing dashboard panels and rules continue to work, but the enrichment itself is robust to alerts that happen to mention several IPs or hashes.
 
@@ -280,8 +280,8 @@ This means the alert shape stays identical to a single-value enrichment (one blo
 
 For alerts carrying email evidence (MS Graph `p1Sender` / `p2Sender`, Office 365 `SenderAddress`), the sender domain is only used as a domain IOC when:
 
-* No structural domain (Sysmon `queryName`, URL evidence, etc.) was already found in the alert, **and**
-* The sender domain is not in `MAIL_INFRASTRUCTURE_DOMAINS` - the built-in skip list of major webmail providers (gmail.com, outlook.com, yahoo.com, protonmail.com, icloud.com, aol.com, and their regional variants).
+* No structural domain (Sysmon `queryName`, URL evidence, etc.) was already found in the alert, and
+* The sender domain is not in `MAIL_INFRASTRUCTURE_DOMAINS`: the built-in skip list of major webmail providers (gmail.com, outlook.com, yahoo.com, protonmail.com, icloud.com, aol.com, and their regional variants).
 
 The motivation is concrete: popular mail platforms accumulate OTX pulses because attackers abuse them as phishing lure hosts, but the domains themselves are not malicious infrastructure. Querying them produces false positives that flood the dashboard. Non-webmail sender domains (e.g. `attacker@suspicious-domain.ru`) are still extracted and queried normally.
 
@@ -346,7 +346,7 @@ The bundled rules use IDs in the user range 100010-100024 and chain off the base
 
 ## Reliability and Queueing
 
-The integration uses two independent on-disk queues so that transient failures - of either the Wazuh queue socket or the OTX API - never silently drop an enrichment. Both queues live under `/var/log/wazuh-alienvault/`:
+The integration uses two independent on-disk queues so that transient failures (of either the Wazuh queue socket or the OTX API) never silently drop an enrichment. Both queues live under `/var/log/wazuh-alienvault/`:
 
 ```
 /var/log/wazuh-alienvault/
@@ -359,9 +359,9 @@ The integration uses two independent on-disk queues so that transient failures -
 
 ### Socket-retry queue
 
-Catches the case where an enrichment was successfully built but the Wazuh manager's queue socket at `/var/ossec/queue/sockets/queue` couldn't be reached - for example during a manager restart. The pre-formatted socket line is appended to `wazuh-retry-queue/alienvault_queue.json` as a newline-delimited JSON record carrying both the enriched event and the original agent context.
+Catches the case where an enrichment was successfully built but the Wazuh manager's queue socket at `/var/ossec/queue/sockets/queue` couldn't be reached (for example during a manager restart). The pre-formatted socket line is appended to `wazuh-retry-queue/alienvault_queue.json` as a newline-delimited JSON record carrying both the enriched event and the original agent context.
 
-On the next invocation, `process_socket_queue` atomically renames the queue file to `.inprocess`, replays every entry, and re-queues only the ones whose replay still fails. This path is cheap because **no OTX round-trip is required** - the enrichment is already done, so the queue drains as fast as the socket can accept it.
+On the next invocation, `process_socket_queue` atomically renames the queue file to `.inprocess`, replays every entry, and re-queues only the ones whose replay still fails. This path is cheap because no OTX round-trip is required: the enrichment is already done, so the queue drains as fast as the socket can accept it.
 
 ### Failed-enrichment queue
 
@@ -370,15 +370,15 @@ Catches the case where OTX itself is unreachable: network outage, OTX downtime, 
 | OTX response | Treatment |
 |---|---|
 | 200 OK | Normal success - emit verdict |
-| 404 Not Found | Indicator absent from OTX - emit `verdict: unknown`, **not** queued |
+| 404 Not Found | Indicator absent from OTX - emit `verdict: unknown`, not queued |
 | 401 Unauthorized | Treated as transient (queueable) - usually means a key rotation problem |
 | 429 / 5xx / connection error / timeout | Transient (queueable) |
 
-When **every** OTX query for an alert returns a transient error, the script writes the raw alert to `otx-failed-enrichment/alert_<id>.json` rather than emitting an empty-enrichment event. The next invocation performs a lightweight health check (`GET /api/v1/user/me`) before reading the queue; if OTX is still down the files are left in place, and if OTX has recovered each saved alert is re-enriched and its file is deleted on success.
+When every OTX query for an alert returns a transient error, the script writes the raw alert to `otx-failed-enrichment/alert_<id>.json` rather than emitting an empty-enrichment event. The next invocation performs a lightweight health check (`GET /api/v1/user/me`) before reading the queue; if OTX is still down the files are left in place, and if OTX has recovered each saved alert is re-enriched and its file is deleted on success.
 
-The distinction between a 404 and a transient failure is deliberate. A 404 just means the indicator isn't in OTX's database - which is a legitimate "OTX has nothing on this" result, not a failure - so the alert is still emitted with `verdict: unknown` for that indicator and the alert is **not** retried. Without this rule, the failed-enrichment directory would fill up with alerts whose indicators OTX simply doesn't know about.
+The distinction between a 404 and a transient failure is deliberate. A 404 just means the indicator isn't in OTX's database, which is a legitimate "OTX has nothing on this" result, not a failure, so the alert is still emitted with `verdict: unknown` for that indicator and the alert is not retried. Without this rule, the failed-enrichment directory would fill up with alerts whose indicators OTX simply doesn't know about.
 
-A **partial** OTX failure (one IOC succeeds, another times out) also does not trigger queueing: the alert is emitted with whatever enrichment was obtained, and the failed indicator carries `verdict: unknown`. Queueing kicks in only when the script has effectively no OTX information at all.
+A partial OTX failure (one IOC succeeds, another times out) also does not trigger queueing: the alert is emitted with whatever enrichment was obtained, and the failed indicator carries `verdict: unknown`. Queueing kicks in only when the script has effectively no OTX information at all.
 
 ### Triggering retry
 
@@ -409,7 +409,7 @@ Log format:
 
 ## Dashboard
 
-The repository ships a saved-objects bundle, [`wazuh-otx-dashboard.ndjson`](wazuh-otx-dashboard.ndjson), with **14 visualisations and 1 dashboard** scoped to `data.integration: alienvault_otx`. Once imported, you get a single-pane view of all OTX enrichment activity:
+The repository ships a saved-objects bundle, [`wazuh-otx-dashboard.ndjson`](wazuh-otx-dashboard.ndjson), with 14 visualisations and 1 dashboard scoped to `data.integration: alienvault_otx`. Once imported, you get a single-pane view of all OTX enrichment activity:
 
 | Row | Panels |
 |---|---|
@@ -426,16 +426,16 @@ The repository ships a saved-objects bundle, [`wazuh-otx-dashboard.ndjson`](wazu
 <summary>Click to expand dashboard import steps</summary>
 
 1. Open the Wazuh dashboard in your browser.
-2. Navigate to **Stack Management --> Saved Objects**.
-3. Click **Import** in the upper-right.
+2. Navigate to Stack Management then Saved Objects.
+3. Click Import in the upper-right.
 4. Select `wazuh-otx-dashboard.ndjson`.
-5. Choose **Automatically overwrite all conflicts** (or **Request action on conflict** for a fresh import).
-6. Click **Import**.
-7. Open the **Dashboards** menu - the new dashboard appears as **AlienVault OTX | Threat Intelligence**.
+5. Choose Automatically overwrite all conflicts (or Request action on conflict for a fresh import).
+6. Click Import.
+7. Open the Dashboards menu. The new dashboard appears as AlienVault OTX | Threat Intelligence.
 
 If your index pattern saved-object ID is anything other than the literal string `wazuh-alerts-*`, the importer will surface a conflicts dialog and let you remap each visualisation.
 
-After the first import, refresh the field list once: **Stack Management --> Index Patterns --> wazuh-alerts-* --> refresh icon**. This ensures the new `data.indicators.*` fields are recognised by the visualisation aggregations.
+After the first import, refresh the field list once: Stack Management then Index Patterns then wazuh-alerts-* then refresh icon. This ensures the new `data.indicators.*` fields are recognised by the visualisation aggregations.
 
 </details>
 
@@ -452,7 +452,7 @@ The helper drives 21 distinct scenarios spanning SSH brute-force, web scanning, 
 
 ### Notes on aggregation field types
 
-The dashboard's IOC tables use **Top Hits** rather than **Max** for the `pulse_count` column. This is deliberate: Wazuh's default index template stores all `data.*` fields as `keyword`, including numeric-looking strings like `pulse_count`. Top Hits works on any field type and avoids the "invalid for use with the Max aggregation" error that would otherwise appear. If you've customised your index template to give `pulse_count` an explicit `long` mapping, switching the column back to Max in the visualisation editor will give you a true per-indicator maximum across the time window.
+The dashboard's IOC tables use Top Hits rather than Max for the `pulse_count` column. This is deliberate: Wazuh's default index template stores all `data.*` fields as `keyword`, including numeric-looking strings like `pulse_count`. Top Hits works on any field type and avoids the "invalid for use with the Max aggregation" error that would otherwise appear. If you've customised your index template to give `pulse_count` an explicit `long` mapping, switching the column back to Max in the visualisation editor will give you a true per-indicator maximum across the time window.
 
 
 

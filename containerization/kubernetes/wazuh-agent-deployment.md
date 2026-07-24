@@ -17,11 +17,11 @@ The Wazuh agent can be deployed natively within a Kubernetes cluster to monitor 
 
 Both deployment models use the same core init container pattern, with the DaemonSet manifest adding one extra permissions-fix step:
 
-1. **`cleanup-ossec-stale`** - removes stale PID and lock files from previous runs to ensure a clean start
-2. **`seed-ossec-tree`** - on first run, copies the full `/var/ossec` tree from the image into the persistent volume; skipped on subsequent starts if data already exists
-3. **`write-ossec-config`** - generates `ossec.conf` at runtime using environment variables for the manager address, port, and agent name
-4. **`fix-authd-pass-perms`** - copies the enrollment password from a Kubernetes Secret into the agent's expected path with correct ownership
-5. **`fix-permissions`** - adjusts ownership and permissions on the mounted agent data so the DaemonSet deployment can start with the expected filesystem access
+1. **`cleanup-ossec-stale`**: removes stale PID and lock files from previous runs to ensure a clean start
+2. **`seed-ossec-tree`**: on first run, copies the full `/var/ossec` tree from the image into the persistent volume; skipped on subsequent starts if data already exists
+3. **`write-ossec-config`**: generates `ossec.conf` at runtime using environment variables for the manager address, port, and agent name
+4. **`fix-authd-pass-perms`**: copies the enrollment password from a Kubernetes Secret into the agent's expected path with correct ownership
+5. **`fix-permissions`**: adjusts ownership and permissions on the mounted agent data so the DaemonSet deployment can start with the expected filesystem access
 
 The main container then starts the agent against the pre-configured data volume.
 
@@ -570,8 +570,8 @@ On the Wazuh Manager, confirm agent registration:
 
 The Tomcat example can be adapted to any application by modifying three things in the manifest:
 
-1. **Main application container** - replace the `tomcat` container image and its `volumeMounts` with your application
-2. **`localfile` block in `write-ossec-config`** - update the `<location>` path to point to your application's log file
-3. **`application-data` PVC size** - adjust `storage` under `volumeClaimTemplates` to match expected log volume
+1. **Main application container**: replace the `tomcat` container image and its `volumeMounts` with your application
+2. **`localfile` block in `write-ossec-config`**: update the `<location>` path to point to your application's log file
+3. **`application-data` PVC size**: adjust `storage` under `volumeClaimTemplates` to match expected log volume
 
 Everything else (the init container chain, the Secret mount, the enrollment flow) remains unchanged.

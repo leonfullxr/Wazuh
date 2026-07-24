@@ -1,6 +1,6 @@
 # Agent connections through an AWS load balancer (NLB / ALB)
 
-Fronting the Wazuh manager with an AWS load balancer for agent enrollment (1515) and events (1514) has two recurring failure modes: a **TLS/plaintext mismatch** (`wrong version number`), and **uneven or failed distribution across Availability Zones**. This applies to any manager backend - an EC2 all-in-one, an EC2 cluster, or an EKS deployment behind an NLB.
+Fronting the Wazuh manager with an AWS load balancer for agent enrollment (1515) and events (1514) has two recurring failure modes: a TLS/plaintext mismatch (`wrong version number`), and uneven or failed distribution across Availability Zones. This applies to any manager backend: an EC2 all-in-one, an EC2 cluster, or an EKS deployment behind an NLB.
 
 ## Table of Contents
 

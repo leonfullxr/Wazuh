@@ -5,7 +5,7 @@ stable regular expression such as a host allowlist or a set of error words.
 Variables reduce copy/paste drift; they are not a replacement for CDB lists
 when operators must update a large allowlist without editing rules.
 
-A variable is scoped to its **entire rule file**. It must be declared at the
+A variable is scoped to its entire rule file. It must be declared at the
 base level, before any `<group>` element, and referenced as `$VARIABLE_NAME`.
 Defining `<var>` inside `<rule>` is invalid.
 
@@ -54,7 +54,7 @@ Keep the variables outside the group:
 If the relevant event sometimes stores the account in
 `win.eventdata.parentUser` instead of `win.eventdata.user`, create a separate
 rule for that field. Two `<field>` elements in one rule are combined with
-logical **AND**, not OR.
+logical AND, not OR.
 
 ## Example: reusable error vocabulary
 

@@ -16,7 +16,7 @@ Runbook for agents that show as `Disconnected` or `Never connected` in the Wazuh
 
 ## How agent connectivity works
 
-Communication is **outbound from the agent to the manager**. Two ports must be reachable:
+Communication is outbound from the agent to the manager. Two ports must be reachable:
 
 | Port | Purpose |
 |---|---|

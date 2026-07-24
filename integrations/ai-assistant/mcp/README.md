@@ -1,7 +1,7 @@
 # MCP adapter (P1.8)
 
 Stdio MCP server over the existing HTTP surfaces. Same identity chain, same
-veracity pipeline - MCP is just another door (D21).
+veracity pipeline: MCP is just another door (D21).
 
 ## Setup
 
@@ -43,8 +43,8 @@ Tools exposed: `wazuh_chat`, `wazuh_call_tool`, `wazuh_list_tools`.
 
 ## Streamable HTTP (V3.3)
 
-The gateway also serves MCP at **`http://localhost:8080/mcp`** (streamable HTTP).
-Use a turn JWT or env key on every request - same credentials as the other
+The gateway also serves MCP at `http://localhost:8080/mcp` (streamable HTTP).
+Use a turn JWT or env key on every request: same credentials as the other
 surfaces:
 
 ```bash

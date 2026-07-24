@@ -1,22 +1,22 @@
 # Wazuh AI Assistant - a self-hosted assistant with verifiable answers
 
-An AI security assistant for Wazuh where **veracity is a property of the architecture, not a prompt**. The model never writes a datastore query and never computes a number: it picks typed tools or emits a typed query plan, the gateway compiles and validates it, executes it *as the asking analyst*, and verifies every citation and number against what was actually retrieved. Write operations (create a dashboard, restart an agent, run active response) are proposed by the model and executed only after a human confirms, under a credential the model never holds. It runs fully self-hosted - the chat lives inside the Wazuh Dashboard and inference can be a local model, so neither questions nor evidence need ever leave the box.
+An AI security assistant for Wazuh where veracity is a property of the architecture, not a prompt. The model never writes a datastore query and never computes a number: it picks typed tools or emits a typed query plan, the gateway compiles and validates it, executes it *as the asking analyst*, and verifies every citation and number against what was actually retrieved. Write operations (create a dashboard, restart an agent, run active response) are proposed by the model and executed only after a human confirms, under a credential the model never holds. It runs fully self-hosted: the chat lives inside the Wazuh Dashboard and inference can be a local model, so neither questions nor evidence need ever leave the box.
 
-Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) - [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/). Full design in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/wazuh-ai-assistant-poc/) and [Spanish](https://resume.leonfuller.com/es/blog/asistente-ia-wazuh-poc/). Full design in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ![v3.8 architecture at a glance](diagrams/png/wazuh-ai-v3-icons--v38-topology-icons.png)
 
 ## How it works, in one screen
 
-- **Two edges, one gateway.** The chat is the OpenSearch **Dashboards Assistant** inside the Wazuh Dashboard, wired through ML Commons' HTTP connector to our gateway (`tool-service`); n8n, a direct API, and an MCP adapter are additional edges. We adopt the dashboard edge from the [official Wazuh AI_assistant integration](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant) and replace its query-writing gateway with this veracity core.
-- **Read lanes, ranked by verifiability.** Lane 0 answers recurring questions from curated templates with no model in the loop; lane 1 lets the model pick typed tools (alerts, MITRE lookup, environment, vulnerability states); lane 2 lets it emit a typed Query IR compiled to OpenSearch DSL server-side - no scripts, regexp, or wildcards.
+- **Two edges, one gateway.** The chat is the OpenSearch Dashboards Assistant inside the Wazuh Dashboard, wired through ML Commons' HTTP connector to our gateway (`tool-service`); n8n, a direct API, and an MCP adapter are additional edges. We adopt the dashboard edge from the [official Wazuh AI_assistant integration](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant) and replace its query-writing gateway with this veracity core.
+- **Read lanes, ranked by verifiability.** Lane 0 answers recurring questions from curated templates with no model in the loop; lane 1 lets the model pick typed tools (alerts, MITRE lookup, environment, vulnerability states); lane 2 lets it emit a typed Query IR compiled to OpenSearch DSL server-side: no scripts, regexp, or wildcards.
 - **Every read passes four veracity checks** (mapping validation, dry-run, datastore-computed counts, zero-hit diagnosis), and every answer carries a verifiability label plus verified citations.
 - **Identity is real.** Analyst credentials are verified against the environment's *own* indexer (`authinfo`) and exchanged for a short-lived turn JWT; telemetry executes as that analyst through the indexer JWT auth domain, so the assistant can never show more than the user may read. No external IdP.
 - **Inference is a port:** a local model via Ollama (default, air-gapped capable), Amazon Bedrock, or any OpenAI-compatible endpoint.
 
 ![One turn end to end](diagrams/png/wazuh-ai-v3-icons--v38-turn-flow-icons.png)
 
-More detail lives in dedicated docs: [`ARCHITECTURE.md`](ARCHITECTURE.md) (the current design + the D-tag decision log) and [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md) (how it got here - the phases, decisions, review findings, and the enhancement arc). Diagram sources are in [`diagrams/`](diagrams/), exports in [`diagrams/png/`](diagrams/png/).
+More detail lives in dedicated docs: [`ARCHITECTURE.md`](ARCHITECTURE.md) (the current design + the D-tag decision log) and [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md) (how it got here: the phases, decisions, review findings, and the enhancement arc). Diagram sources are in [`diagrams/`](diagrams/), exports in [`diagrams/png/`](diagrams/png/).
 
 ## Try it locally (the demo harness)
 
@@ -41,7 +41,7 @@ Open `https://localhost`, click the **Assistant** icon, and ask "How many alerts
 
 ## Automated self-hosted deployment
 
-For a **pre-existing** Wazuh (you already have indexer / manager / dashboard),
+For a pre-existing Wazuh (you already have indexer / manager / dashboard),
 two idempotent installers orchestrate the pieces that used to be eight manual
 steps. They never run `make wazuh`, pin TLS when you provide a CA, and print a
 preflight summary before mutating anything.
@@ -90,20 +90,20 @@ what each underlying script does live in the manual section below.
 
 ## Apply it to your own self-hosted Wazuh
 
-The demo harness *creates* a Wazuh to talk to; a real deployment already has one. The assistant is the same - point it at your environment and register the edge. The only structural difference between one environment and many is the registry: each environment is one entry, resolved by its own credential (see the posture comparison in [`diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png`](diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png)).
+The demo harness *creates* a Wazuh to talk to; a real deployment already has one. The assistant is the same: point it at your environment and register the edge. The only structural difference between one environment and many is the registry: each environment is one entry, resolved by its own credential (see the posture comparison in [`diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png`](diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png)).
 
 **Prefer the automated installers above.** The eight steps below are what those scripts do under the hood / for advanced customization (all commands read `.env` / `environments.yaml` / `deploy.env`):
 
 1. **Skip `make wazuh`.** Set `WAI_INDEXER_URL`, the manager and dashboard URLs, and `INDEXER_ADMIN_*` in `.env` to your existing Wazuh (4.8-4.16.x / OpenSearch 2.19.x). Provide the indexer CA and set `indexer_ca_path` rather than disabling TLS verification.
-2. **Add the security objects to your indexer** (`make securityconfig`, or apply `securityconfig/` by hand): the `wazuh-ai` JWT auth domain trusting `keys/jwt-public.pem`, the read-only `wazuh_ai_analyst_role` / `wazuh_ai_env_reader_role`, the `wazuh_ai_dashboard_writer` (backend role `kibanauser`) if you enable dashboard actions, and the `wazuh_ai_operator` / `wazuh_ai_responder` mappings for confirmers. Identity itself comes from **your** existing users, LDAP, or SSO - `authinfo` verifies whatever the security plugin already trusts; the lab's internal users are only for the demo.
+2. **Add the security objects to your indexer** (`make securityconfig`, or apply `securityconfig/` by hand): the `wazuh-ai` JWT auth domain trusting `keys/jwt-public.pem`, the read-only `wazuh_ai_analyst_role` / `wazuh_ai_env_reader_role`, the `wazuh_ai_dashboard_writer` (backend role `kibanauser`) if you enable dashboard actions, and the `wazuh_ai_operator` / `wazuh_ai_responder` mappings for confirmers. Identity itself comes from your existing users, LDAP, or SSO: `authinfo` verifies whatever the security plugin already trusts; the lab's internal users are only for the demo.
 3. **Register the environment.** Copy `environments.yaml.example` to `environments.yaml` and fill one entry: `env_id`, a strong random `gateway_key`, `indexer_url` + CA, the read-only `reader_basic`, `dashboard_api_url` / `manager_api_url`, the per-tier executor credentials, and the `actions:` tiers you want enabled (deny-by-default; list `manager` / `active_response` only if you want them).
-4. **Install the Dashboards Assistant plugins** on your Wazuh dashboard - `assistantDashboards` + `mlCommonsDashboards`, matched to your dashboard's OpenSearch Dashboards version, with `assistant.chat.enabled: true`. `dashboard-assistant/Dockerfile` does exactly this for a containerized dashboard; for a package install, follow the plugin-extraction steps in the upstream [`install_ai_assistant.sh`](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant).
+4. **Install the Dashboards Assistant plugins** on your Wazuh dashboard: `assistantDashboards` + `mlCommonsDashboards`, matched to your dashboard's OpenSearch Dashboards version, with `assistant.chat.enabled: true`. `dashboard-assistant/Dockerfile` does exactly this for a containerized dashboard; for a package install, follow the plugin-extraction steps in the upstream [`install_ai_assistant.sh`](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant).
 5. **Wire ML Commons** (`make assistant-setup`, or `scripts/dashboard_assistant_setup.sh`): the cluster settings (trusted connector endpoint = your reachable gateway URL), the remote model + HTTP connector carrying the environment's `X-Env-Key`, the conversational agent, and the `os_chat` root agent. Register the embedding model with `make embed-mlcommons` (or point `WAI_EMBED_*` at any embeddings endpoint).
 6. **Choose inference.** Local and air-gapped: `make ollama` (`gpt-oss:20b`). Cloud fidelity: set `WAI_LLM_PROVIDER=bedrock` and the model ids. Either way it is one setting; nothing else changes.
 7. **Deploy the gateway + auth-shim** where your indexer can reach the gateway (the ML Commons connector calls *into* it) and the gateway can reach your indexer and manager API. On the demo box that is one Docker network; in production it is normal service networking.
 8. **Enable actions (optional):** `make manager-executors` creates least-privilege Wazuh API users (`agent:restart` and `active-response:command`, mutually exclusive), then point the executor credentials in `environments.yaml` at them.
 
-Verify with `make evals-connector` (the dashboard path) and by asking a question in the Assistant chat; the answer's verifiability label confirms the veracity pipeline ran. Everything is driven by `.env` and `environments.yaml` - no code changes to onboard an environment.
+Verify with `make evals-connector` (the dashboard path) and by asking a question in the Assistant chat; the answer's verifiability label confirms the veracity pipeline ran. Everything is driven by `.env` and `environments.yaml`: no code changes to onboard an environment.
 
 ## Configuration and layout
 
@@ -113,7 +113,7 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 |---|---|
 | `WAI_LLM_PROVIDER` + `WAI_MODEL_*` | Inference backend and the two model tiers (`bedrock` or any `openai`-compatible endpoint) |
 | `WAI_LANE0_ENABLED` / `WAI_EMBED_*` | The no-model semantic fast path and its embeddings endpoint |
-| `WAI_ACTIONS_ENABLED` / `WAI_ACTIONS_DIRECT` | Enable write actions (propose->confirm; `direct=false` is the default) |
+| `WAI_ACTIONS_ENABLED` / `WAI_ACTIONS_DIRECT` | Enable write actions (propose then confirm; `direct=false` is the default) |
 | `WAI_ENV_*` / `environments.yaml` | Per-environment credential, indexer, executors, and action tiers |
 | `WAI_INDEXER_URL` / `WAI_INDEXER_CA_PATH` | Your indexer and its CA |
 
@@ -123,10 +123,10 @@ Every knob is documented inline in [`.env.example`](.env.example) (inference bac
 | `auth-shim/` | The minting sidecar: verifies indexer credentials via `authinfo`, mints turn JWTs |
 | `securityconfig/` | Indexer JWT auth domain, roles, and users applied to the live indexer |
 | `scripts/` | ML Commons wiring, embeddings, executor-RBAC, and E16 `install_*` entry points |
-| `deploy.env.example` | Operator inputs for the self-hosted installers (copy -> `deploy.env`) |
+| `deploy.env.example` | Operator inputs for the self-hosted installers (copy to `deploy.env`) |
 | `dashboard-assistant/` | Dockerfile that bakes the Assistant plugins into the Wazuh dashboard image |
 | `golden/`, `seed/` | Deterministic seed data and the bilingual eval gate (`make evals*`) |
-| `environments.yaml.example` | The per-environment registry - copy, fill, and you are multi-environment |
+| `environments.yaml.example` | The per-environment registry: copy, fill, and you are multi-environment |
 | `ARCHITECTURE.md`, `DESIGN-JOURNAL.md` | Current design, and the journey that produced it (incl. the enhancement arc) |
 | `ENHANCEMENTS.md` | Forward enhancements not yet built (Cursor-ready) |
 | `diagrams/` | draw.io sources; `diagrams/png/` holds the exported images used above |
