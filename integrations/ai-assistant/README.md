@@ -10,7 +10,7 @@ Narrative writeup on the blog: [English](https://resume.leonfuller.com/en/blog/w
 
 - **Two edges, one gateway.** The chat is the OpenSearch Dashboards Assistant inside the Wazuh Dashboard, wired through ML Commons' HTTP connector to our gateway (`tool-service`); n8n, a direct API, and an MCP adapter are additional edges. We adopt the dashboard edge from the [official Wazuh AI_assistant integration](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant) and replace its query-writing gateway with this veracity core.
 - **Read lanes, ranked by verifiability.** Lane 0 answers recurring questions from curated templates with no model in the loop; lane 1 lets the model pick typed tools (alerts, MITRE lookup, environment, vulnerability states); lane 2 lets it emit a typed Query IR compiled to OpenSearch DSL server-side: no scripts, regexp, or wildcards.
-- **Every read passes four veracity checks** (mapping validation, dry-run, datastore-computed counts, zero-hit diagnosis), and every answer carries a verifiability label plus verified citations.
+- Every read passes four veracity checks (mapping validation, dry-run, datastore-computed counts, zero-hit diagnosis), and every answer carries a verifiability label plus verified citations.
 - **Identity is real.** Analyst credentials are verified against the environment's *own* indexer (`authinfo`) and exchanged for a short-lived turn JWT; telemetry executes as that analyst through the indexer JWT auth domain, so the assistant can never show more than the user may read. No external IdP.
 - **Inference is a port:** a local model via Ollama (default, air-gapped capable), Amazon Bedrock, or any OpenAI-compatible endpoint.
 
@@ -50,14 +50,14 @@ Target shape:
 
 ![Self-hosted PoC on one machine](diagrams/png/wazuh-ai-selfhosted--self-hosted-poc-icons.png)
 
-1. **Copy the config template** and fill your endpoints + credentials (placeholders only in git):
+1. Copy the config template and fill your endpoints + credentials (placeholders only in git):
 
    ```bash
    cp deploy.env.example deploy.env
    # edit deploy.env - INDEXER_URL, admin creds, INDEXER_CA_PATH, WAI_CONNECTOR_*, ...
    ```
 
-2. **Gateway node** (where `tool-service` + `auth-shim` run, reachable from the indexer):
+2. Gateway node (where `tool-service` + `auth-shim` run, reachable from the indexer):
 
    ```bash
    bash scripts/install_gateway.sh
@@ -68,7 +68,7 @@ Target shape:
    the gateway compose services. Use `DEPLOY_MODE=systemd` to also install a
    systemd unit that wraps compose.
 
-3. **Dashboard node** (where wazuh-dashboard is installed):
+3. Dashboard node (where wazuh-dashboard is installed):
 
    ```bash
    sudo bash scripts/install_dashboard_assistant.sh
@@ -95,12 +95,12 @@ The demo harness *creates* a Wazuh to talk to; a real deployment already has one
 Prefer the automated installers above. The eight steps below are what those scripts do under the hood / for advanced customization (all commands read `.env` / `environments.yaml` / `deploy.env`):
 
 1. **Skip `make wazuh`.** Set `WAI_INDEXER_URL`, the manager and dashboard URLs, and `INDEXER_ADMIN_*` in `.env` to your existing Wazuh (4.8-4.16.x / OpenSearch 2.19.x). Provide the indexer CA and set `indexer_ca_path` rather than disabling TLS verification.
-2. **Add the security objects to your indexer** (`make securityconfig`, or apply `securityconfig/` by hand): the `wazuh-ai` JWT auth domain trusting `keys/jwt-public.pem`, the read-only `wazuh_ai_analyst_role` / `wazuh_ai_env_reader_role`, the `wazuh_ai_dashboard_writer` (backend role `kibanauser`) if you enable dashboard actions, and the `wazuh_ai_operator` / `wazuh_ai_responder` mappings for confirmers. Identity itself comes from your existing users, LDAP, or SSO: `authinfo` verifies whatever the security plugin already trusts; the lab's internal users are only for the demo.
+2. Add the security objects to your indexer (`make securityconfig`, or apply `securityconfig/` by hand): the `wazuh-ai` JWT auth domain trusting `keys/jwt-public.pem`, the read-only `wazuh_ai_analyst_role` / `wazuh_ai_env_reader_role`, the `wazuh_ai_dashboard_writer` (backend role `kibanauser`) if you enable dashboard actions, and the `wazuh_ai_operator` / `wazuh_ai_responder` mappings for confirmers. Identity itself comes from your existing users, LDAP, or SSO: `authinfo` verifies whatever the security plugin already trusts; the lab's internal users are only for the demo.
 3. **Register the environment.** Copy `environments.yaml.example` to `environments.yaml` and fill one entry: `env_id`, a strong random `gateway_key`, `indexer_url` + CA, the read-only `reader_basic`, `dashboard_api_url` / `manager_api_url`, the per-tier executor credentials, and the `actions:` tiers you want enabled (deny-by-default; list `manager` / `active_response` only if you want them).
-4. **Install the Dashboards Assistant plugins** on your Wazuh dashboard: `assistantDashboards` + `mlCommonsDashboards`, matched to your dashboard's OpenSearch Dashboards version, with `assistant.chat.enabled: true`. `dashboard-assistant/Dockerfile` does exactly this for a containerized dashboard; for a package install, follow the plugin-extraction steps in the upstream [`install_ai_assistant.sh`](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant).
-5. **Wire ML Commons** (`make assistant-setup`, or `scripts/dashboard_assistant_setup.sh`): the cluster settings (trusted connector endpoint = your reachable gateway URL), the remote model + HTTP connector carrying the environment's `X-Env-Key`, the conversational agent, and the `os_chat` root agent. Register the embedding model with `make embed-mlcommons` (or point `WAI_EMBED_*` at any embeddings endpoint).
+4. Install the Dashboards Assistant plugins on your Wazuh dashboard: `assistantDashboards` + `mlCommonsDashboards`, matched to your dashboard's OpenSearch Dashboards version, with `assistant.chat.enabled: true`. `dashboard-assistant/Dockerfile` does exactly this for a containerized dashboard; for a package install, follow the plugin-extraction steps in the upstream [`install_ai_assistant.sh`](https://github.com/wazuh/integrations/tree/main/integrations/AI_assistant).
+5. Wire ML Commons (`make assistant-setup`, or `scripts/dashboard_assistant_setup.sh`): the cluster settings (trusted connector endpoint = your reachable gateway URL), the remote model + HTTP connector carrying the environment's `X-Env-Key`, the conversational agent, and the `os_chat` root agent. Register the embedding model with `make embed-mlcommons` (or point `WAI_EMBED_*` at any embeddings endpoint).
 6. **Choose inference.** Local and air-gapped: `make ollama` (`gpt-oss:20b`). Cloud fidelity: set `WAI_LLM_PROVIDER=bedrock` and the model ids. Either way it is one setting; nothing else changes.
-7. **Deploy the gateway + auth-shim** where your indexer can reach the gateway (the ML Commons connector calls *into* it) and the gateway can reach your indexer and manager API. On the demo box that is one Docker network; in production it is normal service networking.
+7. Deploy the gateway + auth-shim where your indexer can reach the gateway (the ML Commons connector calls *into* it) and the gateway can reach your indexer and manager API. On the demo box that is one Docker network; in production it is normal service networking.
 8. **Enable actions (optional):** `make manager-executors` creates least-privilege Wazuh API users (`agent:restart` and `active-response:command`, mutually exclusive), then point the executor credentials in `environments.yaml` at them.
 
 Verify with `make evals-connector` (the dashboard path) and by asking a question in the Assistant chat; the answer's verifiability label confirms the veracity pipeline ran. Everything is driven by `.env` and `environments.yaml`: no code changes to onboard an environment.

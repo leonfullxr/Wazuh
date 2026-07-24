@@ -125,7 +125,7 @@ and an action.
 
 ### 1. Notifications (sender, recipients, channel)
 
-Dashboard > **Notifications**:
+Dashboard > Notifications:
 
 1. **Email senders** > create a sender: give it a name, set the SMTP host and
    port (for a local relay, port `25`).
@@ -137,7 +137,7 @@ Dashboard > **Notifications**:
 
 ### 2. Monitor
 
-Dashboard > **Alerting** > **Create monitor**:
+Dashboard > Alerting > Create monitor:
 
 - Type Per query monitor, method Extraction query editor.
 - Data source: index pattern `wazuh-alerts-*`, time field `timestamp`.
@@ -201,7 +201,7 @@ the second monitor:
 ```
 
 A quick way to build the base query: create the equivalent filter in
-**Discover**, then **Inspect > Request** and copy it. Trim the copied query to
+Discover, then Inspect > Request and copy it. Trim the copied query to
 the fields above (remove the huge `docvalue_fields`/`highlight` blocks the UI
 adds) and make the time range relative with `{{period_end}}` so it re-runs
 correctly on schedule.

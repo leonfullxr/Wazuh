@@ -2,8 +2,8 @@
 
 Resetting and recovering passwords across Wazuh components. There are two separate credential stores: do not mix them up:
 
-- **Wazuh API users** (`wazuh`, `wazuh-wui`) - managed by the Wazuh manager's security framework.
-- **Indexer internal users** (`admin`, `kibanaserver`, ...) - managed by the OpenSearch security plugin (`internal_users.yml`). Filebeat and the dashboard authenticate against these, so changing them means updating the Filebeat keystore too.
+- **Wazuh API users** (`wazuh`, `wazuh-wui`): managed by the Wazuh manager's security framework.
+- **Indexer internal users** (`admin`, `kibanaserver`, ...): managed by the OpenSearch security plugin (`internal_users.yml`). Filebeat and the dashboard authenticate against these, so changing them means updating the Filebeat keystore too.
 
 ## Table of Contents
 
@@ -112,4 +112,4 @@ systemctl restart wazuh-dashboard
 ## Related guides
 
 - [ldap-ad.md](ldap-ad.md) - external authentication as an alternative to internal users
-- The admin certificate/key pair used by `securityadmin.sh` and the passwords tool comes from the deployment certificates - see the certificates section of this knowledge base
+- The admin certificate/key pair used by `securityadmin.sh` and the passwords tool comes from the deployment certificates: see the certificates section of this knowledge base

@@ -161,7 +161,7 @@ stored: never raw telemetry.
 
 ## 7. Consolidated decision log
 
-Status: **active** unless noted. Superseded decisions are kept for lineage.
+Status: active unless noted. Superseded decisions are kept for lineage.
 
 | Tag | Decision | Status |
 |---|---|---|

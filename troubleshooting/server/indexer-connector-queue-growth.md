@@ -26,9 +26,9 @@ The indexer-connector queue on manager/worker nodes grows without bound (tens of
 ## Symptoms
 
 - `/var/ossec/queue/indexer/` grows continuously and never shrinks; a partial cleanup frees space that returns within hours or days.
-- The growth is concentrated in either `queue/indexer/db/` **or** `queue/indexer/wazuh-states-vulnerabilities-*/` (see [the two stores](#the-two-stores-under-queueindexer)).
-- Either recurring connector errors in `ossec.log`, **or no errors at all** while the queue still balloons.
-- The indexer (OpenSearch) side is healthy: cluster status green, `0` write thread-pool rejections, `0` pending tasks, disk well under the watermarks. **This rules out the indexer as the bottleneck** - the problem is manager-side.
+- The growth is concentrated in either `queue/indexer/db/` or `queue/indexer/wazuh-states-vulnerabilities-*/` (see [the two stores](#the-two-stores-under-queueindexer)).
+- Either recurring connector errors in `ossec.log`, or no errors at all while the queue still balloons.
+- The indexer (OpenSearch) side is healthy: cluster status green, `0` write thread-pool rejections, `0` pending tasks, disk well under the watermarks. This rules out the indexer as the bottleneck: the problem is manager-side.
 
 Typical log signatures on the affected nodes:
 
@@ -41,7 +41,7 @@ logger-helper: WARNING: Database 'queue/indexer/db/wazuh-states-vulnerabilities-
 
 ## First question: is RocksDB actually draining?
 
-This is the single most useful diagnostic and it decides everything that follows. Data can reach the index (the connector authenticates over mTLS) while RocksDB is completely **inert** - accumulating SST files that it never writes through its own API and therefore never compacts.
+This is the single most useful diagnostic and it decides everything that follows. Data can reach the index (the connector authenticates over mTLS) while RocksDB is completely inert, accumulating SST files that it never writes through its own API and therefore never compacts.
 
 Read the RocksDB `LOG` for the vulnerabilities store and look at the cumulative counters:
 
@@ -54,8 +54,8 @@ Two very different pictures:
 
 | What the LOG shows | Meaning | Action |
 |---|---|---|
-| `Cumulative writes: 0 writes, 0 keys` and `Cumulative compaction: 0.00 GB write` | RocksDB is **inert** - SST files pile up but nothing is written through RocksDB or compacted. A drain/init failure. | Fix the root cause (usually [the keystore](#root-cause-1-indexer-credentials-missing-from-the-keystore)); cleaning up alone will not help. |
-| `Cumulative writes: 36M writes ...` and `Cumulative compaction: 41.31 GB write ...` | RocksDB **is** writing and compacting. Growth may be legitimate. | Check whether the total [plateaus](#is-it-even-a-bug-what-growth-is-expected) or climbs without bound. |
+| `Cumulative writes: 0 writes, 0 keys` and `Cumulative compaction: 0.00 GB write` | RocksDB is inert: SST files pile up but nothing is written through RocksDB or compacted. A drain/init failure. | Fix the root cause (usually [the keystore](#root-cause-1-indexer-credentials-missing-from-the-keystore)); cleaning up alone will not help. |
+| `Cumulative writes: 36M writes ...` and `Cumulative compaction: 41.31 GB write ...` | RocksDB is writing and compacting. Growth may be legitimate. | Check whether the total [plateaus](#is-it-even-a-bug-what-growth-is-expected) or climbs without bound. |
 
 Also confirm the store is not being reopened dirty:
 

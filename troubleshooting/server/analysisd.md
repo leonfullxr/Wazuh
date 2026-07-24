@@ -2,7 +2,7 @@
 
 Guide for a Wazuh manager that is dropping events: reading the statistics files, measuring events per second (EPS), tuning analysisd queues and threads, and deciding when tuning stops and scaling starts.
 
-This guide also covers general manager resource monitoring - the statistics files below are the single most useful signal for "does my server need more resources?".
+This guide also covers general manager resource monitoring: the statistics files below are the single most useful signal for "does my server need more resources?".
 
 ## Table of Contents
 
@@ -30,7 +30,7 @@ cat /var/ossec/var/run/wazuh-analysisd.state | grep -Ei "processed|dropped|decod
 cat /var/ossec/var/run/wazuh-remoted.state | egrep 'discarded|queue_size|evt_count'
 ```
 
-Both counters at zero means the manager is keeping up - look at the agent side instead ([../agents/flooding.md](../agents/flooding.md)). Non-zero and growing means the manager is the bottleneck: continue below.
+Both counters at zero means the manager is keeping up: look at the agent side instead ([../agents/flooding.md](../agents/flooding.md)). Non-zero and growing means the manager is the bottleneck: continue below.
 
 You can also query queue usage, processed counts, and discards per daemon live through the API: `GET /manager/daemons/stats` ([queuing mechanisms reference](https://documentation.wazuh.com/current/user-manual/manager/wazuh-server-queue.html)).
 
@@ -55,7 +55,7 @@ For a full snapshot (manager, indexer, cluster, agents) in one command, run the 
 
 ## Measuring EPS
 
-To quantify the load, measure real EPS at the manager. The procedure (temporarily enable `<logall>`, run a counting script against `archives.log`, disable `<logall>` again) is packaged in [`../../scripts/EPS/`](../../scripts/EPS/) - use that rather than re-implementing it.
+To quantify the load, measure real EPS at the manager. The procedure (temporarily enable `<logall>`, run a counting script against `archives.log`, disable `<logall>` again) is packaged in [`../../scripts/EPS/`](../../scripts/EPS/), use that rather than re-implementing it.
 
 The core of it, for reference:
 
@@ -75,13 +75,13 @@ while true; do
 done
 ```
 
-> Remember to set `<logall>` back to `no` and restart the manager when done - archives will otherwise fill the disk.
+> Remember to set `<logall>` back to `no` and restart the manager when done: archives will otherwise fill the disk.
 
-By default Wazuh does not cap EPS - sustainable EPS is a function of your hardware. Compare the measured EPS against the [architecture sizing recommendations](https://documentation.wazuh.com/current/quickstart.html#requirements) to know whether you are simply over capacity. Note the optional `<limits><eps>` ceiling below, which *deliberately* drops events above a configured rate.
+By default Wazuh does not cap EPS: sustainable EPS is a function of your hardware. Compare the measured EPS against the [architecture sizing recommendations](https://documentation.wazuh.com/current/quickstart.html#requirements) to know whether you are simply over capacity. Note the optional `<limits><eps>` ceiling below, which *deliberately* drops events above a configured rate.
 
 ## The EPS limit (`<limits><eps>`) throttles bursts
 
-Dropped events are not always queue saturation. Wazuh can enforce a **deliberate** events-per-second ceiling per node via `<global><limits><eps>`. It is optional and often unset on a self-hosted install, but is set to the sized capacity on managed or capacity-planned deployments:
+Dropped events are not always queue saturation. Wazuh can enforce a deliberate events-per-second ceiling per node via `<global><limits><eps>`. It is optional and often unset on a self-hosted install, but is set to the sized capacity on managed or capacity-planned deployments:
 
 ```xml
 <limits>
@@ -92,10 +92,10 @@ Dropped events are not always queue saturation. Wazuh can enforce a **deliberate
 </limits>
 ```
 
-Events arriving above `maximum` (averaged over `timeframe` seconds, via a credit bucket) are throttled - held back, and dropped if the burst is sustained. Two consequences catch people out:
+Events arriving above `maximum` (averaged over `timeframe` seconds, via a credit bucket) are throttled: held back, and dropped if the burst is sustained. Two consequences catch people out:
 
-- **The limit is per node.** In a cluster the effective ceiling is `maximum x number of nodes` *only if traffic is spread evenly*. If syslog or agents pin to one node (see [load balancing syslog](../../integrations/syslog/README.md#load-balancing-syslog-across-cluster-workers)), that node hits its own limit and drops while the others sit idle - the drops look like a capacity problem when the real issue is distribution.
-- **Bursts matter more than the average.** A source comfortably under its average EPS across a day can still blow past `maximum` for a few minutes - scheduled batch forwarding, a login storm, a rebooted device flushing its backlog. Those short spikes throttle even though the 24-hour average looks fine. Size for the **peak burst**, not the mean.
+- **The limit is per node.** In a cluster the effective ceiling is `maximum x number of nodes` *only if traffic is spread evenly*. If syslog or agents pin to one node (see [load balancing syslog](../../integrations/syslog/README.md#load-balancing-syslog-across-cluster-workers)), that node hits its own limit and drops while the others sit idle: the drops look like a capacity problem when the real issue is distribution.
+- **Bursts matter more than the average.** A source comfortably under its average EPS across a day can still blow past `maximum` for a few minutes: scheduled batch forwarding, a login storm, a rebooted device flushing its backlog. Those short spikes throttle even though the 24-hour average looks fine. Size for the peak burst, not the mean.
 
 Check the configured limit and whether events are being dropped:
 
@@ -104,7 +104,7 @@ grep -A4 "<limits>" /var/ossec/etc/ossec.conf
 cat /var/ossec/var/run/wazuh-analysisd.state | grep -Ei "events_dropped|events_received"
 ```
 
-If real peaks legitimately exceed the ceiling and you cannot reduce the source at collection time, raise `maximum` (only if the hardware can sustain it) and add worker nodes - but extra nodes help only once traffic actually distributes across them.
+If real peaks legitimately exceed the ceiling and you cannot reduce the source at collection time, raise `maximum` (only if the hardware can sustain it) and add worker nodes, but extra nodes help only once traffic actually distributes across them.
 
 ## Event size limit (`Message too long`)
 
@@ -139,8 +139,8 @@ Then restart the manager and watch `wazuh-analysisd.state` again.
 
 Notes:
 
-- Thread options (`analysisd.event_threads`, `analysisd.rule_matching_threads`, `analysisd.winevt_threads`) max out at **32**. Keep them at or below your CPU thread count.
-- Queue sizes are counted in **events, not bytes** - default 16,384, maximum 2,000,000.
+- Thread options (`analysisd.event_threads`, `analysisd.rule_matching_threads`, `analysisd.winevt_threads`) max out at 32. Keep them at or below your CPU thread count.
+- Queue sizes are counted in events, not bytes: default 16,384, maximum 2,000,000.
 - Full limits and defaults: [internal configuration reference](https://documentation.wazuh.com/current/user-manual/reference/internal-options.html) and [queuing mechanisms](https://documentation.wazuh.com/current/user-manual/manager/wazuh-server-queue.html#wazuh-analysis-engine-queue-queue-and).
 
 ### How much RAM does a bigger queue cost?
@@ -160,11 +160,11 @@ Real usage runs somewhat higher than the raw log size because the manager builds
 
 If events are still dropped after queue tuning:
 
-1. **Reduce the input.** Review the top-alerting rules and filter noise **at the agent side** - excluding events at collection saves agent CPU, bandwidth, and manager throughput simultaneously. Silencing rules on the manager still pays the full ingestion cost. Techniques (event channel `<query>`, `localfile` `<exclude>`, rule overwrites) are in [../agents/flooding.md](../agents/flooding.md#step-2-reduce-noise-at-the-source).
-2. **Distribute the workload.** A single manager is a natural bottleneck; deploy a [Wazuh server cluster](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/index.html) with two or more nodes (separate VMs) and split the agent load - typically behind a TCP load balancer on ports 1514/1515.
-3. **Scale the indexer tier** if the bottleneck is downstream - see [adding indexer nodes](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/add-wazuh-indexer-nodes.html) and the guides in [`../../indexer/`](../../indexer/).
+1. **Reduce the input.** Review the top-alerting rules and filter noise at the agent side: excluding events at collection saves agent CPU, bandwidth, and manager throughput simultaneously. Silencing rules on the manager still pays the full ingestion cost. Techniques (event channel `<query>`, `localfile` `<exclude>`, rule overwrites) are in [../agents/flooding.md](../agents/flooding.md#step-2-reduce-noise-at-the-source).
+2. **Distribute the workload.** A single manager is a natural bottleneck; deploy a [Wazuh server cluster](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/index.html) with two or more nodes (separate VMs) and split the agent load, typically behind a TCP load balancer on ports 1514/1515.
+3. **Scale the indexer tier** if the bottleneck is downstream, see [adding indexer nodes](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/add-wazuh-indexer-nodes.html) and the guides in [`../../indexer/`](../../indexer/).
 
-When investigating further, capture the full `wazuh-analysisd.state`, `wazuh-remoted.state`, and `/var/ossec/logs/ossec.log` files together - the ratios between `received`, `processed`, and `dropped` identify the saturated stage.
+When investigating further, capture the full `wazuh-analysisd.state`, `wazuh-remoted.state`, and `/var/ossec/logs/ossec.log` files together: the ratios between `received`, `processed`, and `dropped` identify the saturated stage.
 
 ## Related guides
 

@@ -17,7 +17,7 @@ Checklist for planning a new Wazuh deployment (or validating an existing one bef
 
 Answer these before provisioning anything:
 
-- Has an architecture **sizing** been done? If not, start with the [Sizing](sizing.md) questionnaire.
+- Has an architecture sizing been done? If not, start with the [Sizing](sizing.md) questionnaire.
 - Distributed deployment (recommended) or All-in-One?
 - Physical servers or virtual machines?
 - If virtual machines: on-premises hypervisor or a cloud provider (AWS, Azure, ...)?
@@ -70,7 +70,7 @@ Plus:
 
 - **During installation**, internet access is required to download packages. Once installation is complete, the servers can operate without internet access.
 - **Vulnerability detection** needs connectivity to the Wazuh CTI service ([https://cti.wazuh.com](https://cti.wazuh.com/)) to fetch vulnerability feeds. It can alternatively be configured with the [offline update method](https://documentation.wazuh.com/current/user-manual/capabilities/vulnerability-detection/configuring-scans.html).
-- **Agent upgrades** require the manager to reach [https://packages.wazuh.com](https://packages.wazuh.com/) - only needed when upgrading agents (see [Upgrading Agents](upgrading-agents.md)).
+- **Agent upgrades** require the manager to reach [https://packages.wazuh.com](https://packages.wazuh.com/), only needed when upgrading agents (see [Upgrading Agents](upgrading-agents.md)).
 
 ## Disaster recovery
 
@@ -78,7 +78,7 @@ Plus:
 
 Full runbook: [Disaster Recovery Architecture](disaster-recovery.md).
 
-When the primary Wazuh site may become unreachable, plan an **active/passive** standby site with automated failover (load balancer health checks or DNS switch). Before go-live:
+When the primary Wazuh site may become unreachable, plan an active/passive standby site with automated failover (load balancer health checks or DNS switch). Before go-live:
 
 - [ ] Choose failover mechanism (ALB/NGINX/AWS ELB or DNS)
 - [ ] Standby DR environment mirrors primary capacity (on-prem or Wazuh Cloud)

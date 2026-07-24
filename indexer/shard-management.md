@@ -105,13 +105,13 @@ Worked example: 11 alert index prefixes, one primary shard each, 90-day retentio
 Takeaways:
 
 - **Dropping replicas roughly halves both shard count and disk usage** - reasonable when HA is not required, at the cost of no redundancy (a lost node loses its primaries until it is restored).
-- **Never run exactly two indexer nodes.** Use **1** (lab / no HA) or **3+** (production); two nodes cannot form a reliable quorum.
-- More prefixes = faster shard accumulation, which **caps how long retention/ILM can extend before you must add indexer nodes**. If the number of sources will grow, plan the node count with it - or weigh [separate clusters](index-separation.md#single-cluster-with-logical-separation-vs-separate-clusters).
-- Watch the *other* limit too: many small per-source daily indices can leave each shard far below the [20-40 GB target](#sizing-guidelines) (oversharding). For low-volume sources prefer a longer index period or a size/age rollover over daily indices - and do **not** just raise `cluster.max_shards_per_node` to paper over it.
+- **Never run exactly two indexer nodes.** Use 1 (lab / no HA) or 3+ (production); two nodes cannot form a reliable quorum.
+- More prefixes = faster shard accumulation, which caps how long retention/ILM can extend before you must add indexer nodes. If the number of sources will grow, plan the node count with it, or weigh [separate clusters](index-separation.md#single-cluster-with-logical-separation-vs-separate-clusters).
+- Watch the *other* limit too: many small per-source daily indices can leave each shard far below the [20-40 GB target](#sizing-guidelines) (oversharding). For low-volume sources prefer a longer index period or a size/age rollover over daily indices, and do not just raise `cluster.max_shards_per_node` to paper over it.
 
 ## Increasing the number of primary shards
 
-The shard count for **new** indices comes from an index template. Use a
+The shard count for new indices comes from an index template. Use a
 higher-order custom template so a Filebeat setup or upgrade does not silently
 replace the setting:
 
@@ -160,7 +160,7 @@ replace the setting:
      "https://<INDEXER_IP>:9200/_template/wazuh-custom?pretty&filter_path=wazuh-custom.order,wazuh-custom.index_patterns,wazuh-custom.settings"
    ```
 
-The new setting takes effect **from the next daily index onward** - the
+The new setting takes effect from the next daily index onward: the
 current day's index was already created with the old settings, which live in
 the indexer itself. To apply the new shard count to existing indices you must
 [reindex them](reindexing.md); the number of primary shards cannot be changed
@@ -170,7 +170,7 @@ on a live index.
 
 Each node can hold a limited number of shards
 (`cluster.max_shards_per_node`, default 1000). Approaching the limit blocks
-new index creation - which for Wazuh means alerts stop being indexed at
+new index creation, which for Wazuh means alerts stop being indexed at
 midnight when the next daily index is due.
 
 You can create an OpenSearch Alerting monitor that fires when the active
@@ -217,7 +217,7 @@ curl -k -u <USERNAME>:<PASSWORD> \
   | grep UNASSIGNED
 ```
 
-Ask the cluster *why* it will not allocate a shard - this is the single most
+Ask the cluster *why* it will not allocate a shard: this is the single most
 useful API for shard problems:
 
 ```bash
@@ -243,7 +243,7 @@ GET _cluster/settings?flat_settings=true&include_defaults=true
 ### Allocation is disabled
 
 If `allocation/explain` reports that no allocations are allowed, shard
-allocation was disabled (typically for maintenance - e.g. the
+allocation was disabled (typically for maintenance, e.g. the
 [move-data-to-a-new-disk procedure](disk-management.md#moving-indexer-data-to-a-new-disk)
 sets it to `primaries`) and never re-enabled:
 
@@ -266,7 +266,7 @@ PUT <index>/_settings
 ## Disk watermarks
 
 The most frequent cause of unassigned shards. Once a node's disk usage
-crosses the **low watermark** (default **85%** used), the cluster stops
+crosses the low watermark (default 85% used), the cluster stops
 assigning new shards to it. At the high watermark (default 90%) it actively
 relocates shards away, and at the flood stage (default 95%) indices with a
 shard on that node are forced read-only.
@@ -277,9 +277,9 @@ Check disk usage and shard distribution per node:
 curl -k -u <USERNAME>:<PASSWORD> "https://<INDEXER_IP>:9200/_cat/allocation?v"
 ```
 
-**Fix the disk first** - see [Disk management](disk-management.md). If your
+Fix the disk first: see [Disk management](disk-management.md). If your
 nodes have large disks (multiple TB), the default 85% may be unnecessarily
-conservative - 15% of a 5 TB disk is a lot of headroom. You can raise it:
+conservative: 15% of a 5 TB disk is a lot of headroom. You can raise it:
 
 ```http
 PUT _cluster/settings
@@ -293,8 +293,8 @@ PUT _cluster/settings
 Use `persistent` instead of `transient` (or the configuration file) to
 survive restarts. Important subtlety from the
 [official documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/disk-allocator.html):
-**percentage values refer to *used* disk space, while byte values refer to
-*free* disk space.**
+percentage values refer to *used* disk space, while byte values refer to
+*free* disk space.
 
 ## Manually rerouting shards
 
@@ -317,9 +317,9 @@ POST _cluster/reroute
 }
 ```
 
-As a **last resort** for a red index whose primary shard data is genuinely
+As a last resort for a red index whose primary shard data is genuinely
 lost (e.g. the node's disk is gone), you can allocate an empty primary. This
-**permanently discards whatever data was in that shard**:
+permanently discards whatever data was in that shard:
 
 ```http
 POST _cluster/reroute

@@ -6,7 +6,7 @@ Configuration recipe for receiving email alerts on file integrity monitoring
 ## 1. Custom FIM rules
 
 Raise the level of syscheck events you care about with custom rules
-(dashboard > **Server Management > Rules**, or `local_rules.xml`):
+(dashboard > Server Management > Rules, or `local_rules.xml`):
 
 ```xml
 <group name="syscheck,">

@@ -182,7 +182,7 @@ laws: query-don't-embed, veracity by construction, propose-then-confirm, no
 semantic answer cache, no LLM-judge in the live path, lane 3 off. Delivered as
 tiers, each eval-gated:
 
-- **Investigation playbooks (D55)** - the biggest jump: curated, ordered typed
+- **Investigation playbooks (D55)**, the biggest jump: curated, ordered typed
   tool sequences run as code, so the *shape* of an investigation is
   deterministic and every step passes the veracity pipeline; the model only
   synthesizes from collected evidence and is offered no tools during synthesis.
@@ -240,7 +240,7 @@ beyond RAG and prompt caching?" The framing that shaped it: give the model more
 context on the *environment* and on *how to navigate it*: all knowledge and
 routing, none of it touching the veracity guarantees. Delivered as E9-E15:
 
-- **Wazuh documentation knowledge base (D60)** - the headline. Wazuh publishes a
+- **Wazuh documentation knowledge base (D60)**, the headline. Wazuh publishes a
   curated AI index (`documentation.wazuh.com/llms.txt`, llmstxt.org format); an
   ingest script builds a version-pinned corpus (35 pages / 230 chunks for 4.14)
   into the `knowledge_search` store, so "how do I configure X", "what does this

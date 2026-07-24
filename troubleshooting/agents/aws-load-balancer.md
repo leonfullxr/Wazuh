@@ -29,37 +29,37 @@ It happens because the LB terminates TLS on its listener and then hands traffic 
 
 So the manager is already the TLS endpoint on 1515 and does its own encryption on 1514. An LB that terminates and re-originates TLS just gets in the way.
 
-**Fix: use `TCP` listeners and `TCP` target groups (passthrough) for both 1514 and 1515.** Let the manager terminate its own TLS on 1515 and handle its own encryption on 1514; the NLB only forwards bytes.
+Fix: use `TCP` listeners and `TCP` target groups (passthrough) for both 1514 and 1515. Let the manager terminate its own TLS on 1515 and handle its own encryption on 1514; the NLB only forwards bytes.
 
-- Do **not** set the listener or target group to `TLS`. A `TLS` target group makes the NLB open a *second* handshake to `authd`, which it is not set up to answer that way -> `wrong version number`.
-- **ACM certificates cannot be exported**, so you cannot copy the LB's ACM cert onto the manager to satisfy a second handshake even if you wanted to - another reason to pass through and let the manager use its own certificate.
+- Do not set the listener or target group to `TLS`. A `TLS` target group makes the NLB open a *second* handshake to `authd`, which it is not set up to answer that way, which gives `wrong version number`.
+- **ACM certificates cannot be exported**, so you cannot copy the LB's ACM cert onto the manager to satisfy a second handshake even if you wanted to (another reason to pass through and let the manager use its own certificate).
 - **Health checks:** a TLS or HTTP(S) health check against 1515 spams `authd` with handshake errors (hundreds of failed lines/minute). Use a plain **TCP** health check on 1514/1515, or a separate health-check port.
 
-> If a policy genuinely requires TLS terminated at the LB, an NLB alone cannot do it for these ports - you would need a TLS-terminating proxy that then speaks Wazuh's protocol to the manager. For almost everyone, TCP passthrough is the correct and simplest answer.
+> If a policy genuinely requires TLS terminated at the LB, an NLB alone cannot do it for these ports: you would need a TLS-terminating proxy that then speaks Wazuh's protocol to the manager. For almost everyone, TCP passthrough is the correct and simplest answer.
 
-If you *do* need to customise the manager's own enrollment TLS (not the LB), the `<auth>` block options are `<ssl_manager_cert>`, `<ssl_manager_key>`, `<ssl_verify_host>`, and `<ciphers>` - but the default self-signed setup works fine behind a passthrough NLB.
+If you *do* need to customise the manager's own enrollment TLS (not the LB), the `<auth>` block options are `<ssl_manager_cert>`, `<ssl_manager_key>`, `<ssl_verify_host>`, and `<ciphers>`, but the default self-signed setup works fine behind a passthrough NLB.
 
 ## Balance evenly across Availability Zones
 
-Symptom: with a multi-node manager cluster behind an NLB, agents pile onto the nodes in one Availability Zone while nodes in other AZs get few or zero connections - and some agents fail to connect at all.
+Symptom: with a multi-node manager cluster behind an NLB, agents pile onto the nodes in one Availability Zone while nodes in other AZs get few or zero connections, and some agents fail to connect at all.
 
-An **AWS NLB is zonal**: it has one IP per attached subnet/AZ, and with **cross-zone load balancing disabled** (the NLB default), each NLB IP only forwards to targets **in its own AZ**. The agent resolves the NLB hostname to the list of per-AZ IPs and pins to one - NLB uses a flow hash (protocol + source/dest IP/port + TCP sequence), not round-robin, and DNS often returns the IPs in a stable order, so an agent keeps landing in the same zone. Consequences:
+An AWS NLB is zonal: it has one IP per attached subnet/AZ, and with cross-zone load balancing disabled (the NLB default), each NLB IP only forwards to targets in its own AZ. The agent resolves the NLB hostname to the list of per-AZ IPs and pins to one, since NLB uses a flow hash (protocol + source/dest IP/port + TCP sequence), not round-robin, and DNS often returns the IPs in a stable order, so an agent keeps landing in the same zone. Consequences:
 
 - An AZ with two manager nodes gets ~2x the load of an AZ with one.
-- An AZ with **no** manager (an empty subnet still attached to the NLB) -> agents that resolve to that IP get **failed connections**.
-- Enrollment (1515) is **master-only**; if DNS hands out an AZ IP whose zone has no master, registration fails there.
+- An AZ with no manager (an empty subnet still attached to the NLB) so agents that resolve to that IP get failed connections.
+- Enrollment (1515) is master-only; if DNS hands out an AZ IP whose zone has no master, registration fails there.
 
 Fixes, in order of preference:
 
 1. **Enable cross-zone load balancing** on the NLB. Every NLB IP can then reach targets in any AZ, so distribution evens out and empty-zone dead ends disappear. Cleanest fix. (Note: cross-zone traffic incurs inter-AZ data-transfer charges on NLB.)
-2. **Do not attach empty AZs/subnets** to the NLB - every attached subnet must contain a healthy target, or its IP produces failed connections.
-3. **Separate registration from reporting** - a dedicated NLB/DNS for 1515 -> master and another for 1514 -> all nodes, so registration IPs never point at a zone without a master.
+2. **Do not attach empty AZs/subnets** to the NLB: every attached subnet must contain a healthy target, or its IP produces failed connections.
+3. **Separate registration from reporting**: a dedicated NLB/DNS for 1515 to master and another for 1514 to all nodes, so registration IPs never point at a zone without a master.
 
-Also make sure agents can **fail over** between manager addresses (list multiple `<server>` entries, or a resolvable LB name) so one unreachable IP does not strand them, and keep agents current - very old agents (pre-4.x) had a bug where an initially-unreachable hostname stranded the agent instead of retrying the next IP.
+Also make sure agents can fail over between manager addresses (list multiple `<server>` entries, or a resolvable LB name) so one unreachable IP does not strand them, and keep agents current: very old agents (pre-4.x) had a bug where an initially-unreachable hostname stranded the agent instead of retrying the next IP.
 
 ## Is the agent even using the load balancer?
 
-An agent showing up on an unexpected node is often reporting **directly** to that node's IP, bypassing the LB entirely. Confirm before blaming the balancer:
+An agent showing up on an unexpected node is often reporting directly to that node's IP, bypassing the LB entirely. Confirm before blaming the balancer:
 
 ```bash
 # On the master: which agents report to a given node

@@ -11,7 +11,7 @@
 
 Per-component health verification commands. Run them before and after an upgrade (see the [Pre-Upgrade Checklist](pre-upgrade-checklist.md)) or whenever something feels off.
 
-The `GET` queries below run from the dashboard under **Indexer management > Dev Tools**, or equivalently with curl:
+The `GET` queries below run from the dashboard under Indexer management > Dev Tools, or equivalently with curl:
 
 ```bash
 curl -k -u <USER>:<PASSWORD> https://<WAZUH_INDEXER_IP>:9200/<QUERY>
@@ -43,7 +43,7 @@ GET /manager/version/check
 filebeat test output
 ```
 
-Expected: all checks report `ok` against the indexer on port 9200. A `401` here means the Filebeat keystore credentials are stale - update the keystore with the current indexer username/password.
+Expected: all checks report `ok` against the indexer on port 9200. A `401` here means the Filebeat keystore credentials are stale: update the keystore with the current indexer username/password.
 
 ## Indexer
 
@@ -59,7 +59,7 @@ GET _cluster/allocation/explain
 ```
 
 - Cluster status should be `green`. On `yellow`/`red`, `_cluster/allocation/explain` tells you why a shard is not allocated.
-- Watch the store sizes against the disk watermarks - once a node crosses the high watermark, the indexer stops allocating shards to it and indexing can grind to a halt.
+- Watch the store sizes against the disk watermarks: once a node crosses the high watermark, the indexer stops allocating shards to it and indexing can grind to a halt.
 
 ## Dashboard
 
