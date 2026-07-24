@@ -55,8 +55,8 @@ n8n - direct API - MCP - confirm UI - auth-shim (turn JWT) -------+
 
 | Edge | Runs as | Verified by |
 |---|---|---|
-| Dashboard Assistant (connector) | `wazuh_ai_env_reader` - per-env, read-only (D42) | per-env `X-Env-Key` in the ML Commons connector -> env registry |
-| n8n - direct API - MCP - confirm UI | the analyst, per-user (D11) | indexer Basic creds -> auth-shim `authinfo` verify -> turn JWT <=10 min (D52) |
+| Dashboard Assistant (connector) | `wazuh_ai_env_reader`, per-env, read-only (D42) | per-env `X-Env-Key` in the ML Commons connector to env registry |
+| n8n - direct API - MCP - confirm UI | the analyst, per-user (D11) | indexer Basic creds to auth-shim `authinfo` verify to turn JWT <=10 min (D52) |
 
 - The auth-shim is the only holder of the mint key; the core verifies with
   the public key and never mints (D30). Identity is verified against each
@@ -150,14 +150,14 @@ directly.
 Structured JSON audit per token rejection, tool call, turn, proposal, and
 confirm (D8); Prometheus counters/histograms by lane, tool, outcome, tokens,
 latency. Admission is one stream per user, a per-tenant semaphore, and honest
-429s - no silent downgrades (D14). Honest failure modes: 503 when the
+429s, no silent downgrades (D14). Honest failure modes: 503 when the
 inference backend is unreachable, 401 when the indexer rejects a turn
 credential, per-tenant kill switch.
 
 Multi-turn context (D7/D58) is a documented seam: in-memory by default, or
 persisted to the environment's own indexer, with a rolling summary that keeps
 replayed context within a token budget. Only text the analyst already saw is
-stored - never raw telemetry.
+stored: never raw telemetry.
 
 ## 7. Consolidated decision log
 
@@ -174,7 +174,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D12 | Bilingual (EN/ES) by construction | active |
 | D14 | Admission control with honest rejection; no silent downgrade | active |
 | D18 | Access gated by an opt-in analyst role | active |
-| D20 | Two-phase actions: propose (model) -> confirm (human + executor) | active |
+| D20 | Two-phase actions: propose (model) then confirm (human + executor) | active |
 | D21 | Headless core, multiple surfaces (SSE chat, sync JSON, per-tool HTTP, MCP, connector) | active |
 | D22 / D29 | Typed Query IR, per-datastore compilers, OpenSearch DSL first | active |
 | D23 | Every answer carries a verifiability label | active |
@@ -194,7 +194,7 @@ Status: **active** unless noted. Superseded decisions are kept for lineage.
 | D44 | Gateway and MCP surface are one deployable over one registry | active |
 | D45 | Connector-edge conversation memory belongs to ML Commons | active |
 | D46 | Local-first inference under a 16 GB budget; in-cluster embeddings | active |
-| D47 | ~~Write operations deferred, not in v3~~ | **superseded** - actions shipped (D20) |
+| D47 | ~~Write operations deferred, not in v3~~ | **superseded**: actions shipped (D20) |
 | D48 | ~~Propose on every edge; confirm on direct edges only~~ | **superseded by D53** |
 | D49 | Idempotency on every confirm | active |
 | D50 | Action catalog is code, not prompt | active |

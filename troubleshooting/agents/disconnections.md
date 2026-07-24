@@ -20,7 +20,7 @@ Communication is outbound from the agent to the manager. Two ports must be reach
 
 | Port | Purpose |
 |---|---|
-| `1514/TCP` | Agent <-> manager event communication |
+| `1514/TCP` | Agent to manager event communication |
 | `1515/TCP` | Enrollment (registration) via agent configuration |
 | `55000/TCP` | Wazuh server API (only needed if enrolling through the API) |
 

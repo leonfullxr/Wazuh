@@ -81,7 +81,7 @@ print("matches" if bcrypt.checkpw(password, hashed) else "no match")
 
 ## Restore a previous indexer password from backup
 
-If the passwords tool has been run (possibly several times) and you need the **original** credentials back, restore the oldest backup of the internal users file with `securityadmin.sh`:
+If the passwords tool has been run (possibly several times) and you need the original credentials back, restore the oldest backup of the internal users file with `securityadmin.sh`:
 
 ```bash
 ls -la /etc/wazuh-indexer/internalusers-backup

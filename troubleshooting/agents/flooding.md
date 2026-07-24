@@ -1,6 +1,6 @@
 # Agent Flooding and Noisy Alerts
 
-Runbook for `Agent buffer is full` warnings, dropped events at the agent, and - since it is almost always the real root cause - reducing noisy alert sources.
+Runbook for `Agent buffer is full` warnings, dropped events at the agent, and (since it is almost always the real root cause) reducing noisy alert sources.
 
 ## Table of Contents
 

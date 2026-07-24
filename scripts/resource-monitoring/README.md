@@ -87,7 +87,7 @@ sudo systemctl restart wazuh-agent
 
 **Note:** if the dashboard shows the new fields (`data.cpu_usage_%`,
 `data.memory_usage_%`, `data.disk_usage_%`, `data.1min_loadAverage`, etc.) as
-unknown, go to **Dashboard management > Index Patterns > wazuh-alerts-\*** and
+unknown, go to Dashboard management > Index Patterns > wazuh-alerts-\* and
 refresh the index pattern. The alerts then appear on the Discover page.
 
 ## Windows endpoints

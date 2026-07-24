@@ -18,9 +18,9 @@ The signature, in the manager log, when an agent connects through the LB:
 wazuh-authd: ERROR: SSL handshake failed for socket=9: error:0A00010B:SSL routines::wrong version number
 ```
 
-`wrong version number` is OpenSSL for *"I expected a TLS ClientHello but the bytes I got are not one."* It is almost always a **TLS-versus-plaintext mismatch**, not a cipher or TLS-version problem - so aligning cipher suites, forcing FIPS policies, or matching TLS 1.2/1.3 on both sides will **not** fix it (all of those were tried, fruitlessly, in the field case this is distilled from).
+`wrong version number` is OpenSSL for *"I expected a TLS ClientHello but the bytes I got are not one."* It is almost always a TLS-versus-plaintext mismatch, not a cipher or TLS-version problem, so aligning cipher suites, forcing FIPS policies, or matching TLS 1.2/1.3 on both sides will not fix it (all of those were tried, fruitlessly, in the field case this is distilled from).
 
-It happens because the LB **terminates TLS** on its listener and then hands traffic to the manager in a way `authd`/`remoted` do not expect. The fix comes from how Wazuh's two agent ports actually work:
+It happens because the LB terminates TLS on its listener and then hands traffic to the manager in a way `authd`/`remoted` do not expect. The fix comes from how Wazuh's two agent ports actually work:
 
 | Port | What it speaks | Who terminates it |
 |---|---|---|

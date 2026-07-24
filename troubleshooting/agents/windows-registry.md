@@ -58,7 +58,7 @@ Get-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Run"
 Get-Content "C:\Program Files (x86)\ossec-agent\ossec.log" -Tail 100 | Select-String -Pattern "syscheck|registry"
 ```
 
-On the manager, confirm alerts for the agent ID in **Threat Hunting** or via API.
+On the manager, confirm alerts for the agent ID in Threat Hunting or via API.
 
 ## Verification procedure
 

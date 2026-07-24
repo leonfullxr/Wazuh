@@ -1,7 +1,7 @@
 # Email notifications for Syscheck (FIM) events
 
 Configuration recipe for receiving email alerts on file integrity monitoring
-(syscheck) events. This is configuration-only - no script needed.
+(syscheck) events. This is configuration-only: no script needed.
 
 ## 1. Custom FIM rules
 

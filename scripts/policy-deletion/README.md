@@ -5,8 +5,8 @@ Wazuh stores alert and archive logs on the manager filesystem under
 the Wazuh indexer (`wazuh-alerts-*`). Neither is deleted automatically, so you
 need a retention policy for both layers:
 
-1. **Filesystem** - a cron job that removes old log files on the manager.
-2. **Indexer** - an Index State Management (ISM) policy, or targeted
+1. **Filesystem**: a cron job that removes old log files on the manager.
+2. **Indexer**: an Index State Management (ISM) policy, or targeted
    `_delete_by_query` calls for surgical cleanup.
 
 ## 1. Filesystem cleanup (30-day example)
@@ -85,7 +85,7 @@ run the same query with `_search` instead of `_delete_by_query`).
 For automatic index lifecycle handling, create an Index Management Policy as
 described in the [Wazuh index management blog post](https://wazuh.com/blog/wazuh-index-management/):
 
-- Go to **Index Management > Index Policies**
+- Go to Index Management > Index Policies
 - Create the policy below (change ages as needed). It keeps indices hot,
   moves them to a read-only cold state after 30 days, and deletes them after
   a year:

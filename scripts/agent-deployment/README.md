@@ -141,9 +141,9 @@ Start-Service WazuhSvc
 
 Notes from the field:
 
-- The agent name defaults to the endpoint hostname when not set - usually
+- The agent name defaults to the endpoint hostname when not set, usually
   what you want for GPO fleets.
-- Any `WAZUH_AGENT_GROUP` must exist on the manager **before** enrollment or
+- Any `WAZUH_AGENT_GROUP` must exist on the manager before enrollment or
   registration errors out / falls back to `default`.
 - The enrollment password ends up readable in SYSVOL with this method;
   restrict the share, rotate the password after rollout, and/or limit
@@ -176,7 +176,7 @@ Notes from the field:
 Put agents into groups (e.g. `servers`, `workstations`, `linux`, `windows`)
 and manage policy centrally with per-group `agent.conf` instead of per-host
 edits. Groups can be created and agents assigned programmatically via the
-Wazuh API (`POST /groups`, `PUT /agents/group`) - see
+Wazuh API (`POST /groups`, `PUT /agents/group`): see
 [`../agent-management`](../agent-management) for a ready-made script.
 **Tip:** groups must exist before assignment.
 

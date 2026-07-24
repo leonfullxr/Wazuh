@@ -132,7 +132,7 @@ Dashboard > **Notifications**:
 2. **Email recipient groups** > create a group with one or more addresses
    (e.g. `windows-admins@example.com`).
 3. **Channels** > create an Email channel: pick the SMTP sender as sender type
-   and the recipient group as default recipients. Use **Send test message** to
+   and the recipient group as default recipients. Use Send test message to
    confirm delivery before wiring up monitors.
 
 ### 2. Monitor
@@ -231,7 +231,7 @@ correctly on schedule.
   {{/ctx.results.0.hits.hits}}
   ```
 
-Use **Preview** / **Send test message** to check the body renders, then save.
+Use Preview / Send test message to check the body renders, then save.
 
 ## Gotchas and operations
 
@@ -241,14 +241,14 @@ Use **Preview** / **Send test message** to check the body renders, then save.
 - **Migrating Elastic Watchers to OpenSearch monitors.** There is no
   import/export tool: recreate monitors and translate the query/trigger to
   OpenSearch syntax. The most common breakage after a copy is the payload path:
-  Elastic's `ctx.payload.hits.hits` must become **`ctx.results.0.hits.hits`**.
+  Elastic's `ctx.payload.hits.hits` must become `ctx.results.0.hits.hits`.
 - **Blank test message.** "Send test message" sends exactly what the message
-  **preview** shows. A blank body means a Mustache syntax error (often the
-  `ctx.payload` -> `ctx.results.0` issue above), not a test-harness quirk.
+  preview shows. A blank body means a Mustache syntax error (often the
+  `ctx.payload` to `ctx.results.0` issue above), not a test-harness quirk.
 - **"Too many dynamic script compilations within, max: [75/5m]".** Inline
   Mustache/Painless scripts are compiled and cached; too many distinct inline
   scripts overflow the cache and hit the compilation-rate limit. You can raise
-  it via the indexer API, but a high value can degrade or crash the cluster -
+  it via the indexer API, but a high value can degrade or crash the cluster:
   treat it as a stopgap, and reduce the number of distinct inline scripts
   (reuse a common template) as the real fix:
 
@@ -261,13 +261,13 @@ Use **Preview** / **Send test message** to check the body renders, then save.
 
 - **Alert states.** *Active* = ongoing, unacknowledged; *Acknowledged* =
   ongoing, a user acknowledged it; *Completed* = the condition is no longer
-  met; *Ignored* = completed but never acknowledged (informational - a high
+  met; *Ignored* = completed but never acknowledged (informational, a high
   "Ignored" count is normal, not an error).
 - **No UI import of a full monitor.** The dashboard has no "import monitor from
   JSON". Create monitors programmatically with the Alerting API and channels
   with the Notifications API.
-- **Correlating multiple conditions.** Chain monitors with **composite
-  monitors** for correlated alerts (analogous to composite rules), instead of
+- **Correlating multiple conditions.** Chain monitors with composite
+  monitors for correlated alerts (analogous to composite rules), instead of
   one giant query.
 
 ## Mail transport
@@ -281,7 +281,7 @@ apt-get install postfix mailutils libsasl2-2 ca-certificates libsasl2-modules
 
 For an external relay that requires authentication, configure SASL in Postfix
 (SMTP-auth) and set `<smtp_server>` to the relay host. On Wazuh Cloud, the
-platform relays mail for you - provide sender, host, port, and recipients.
+platform relays mail for you: provide sender, host, port, and recipients.
 
 ## Related
 

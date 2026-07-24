@@ -2,9 +2,9 @@
 
 The indexer-connector queue on manager/worker nodes grows without bound (tens of GB per node) and RocksDB SST files accumulate and never purge, even though the indexer cluster is healthy. This guide separates the real drain failures (which need fixing) from growth that is simply the expected steady state for your fleet size.
 
-> Applies to Wazuh 4.8+ (RocksDB-based indexer connector), and to clustered deployments in particular. It assumes the VD internals and the on-disk layout described in [vulnerability-detection.md](vulnerability-detection.md) - read that first if `/var/ossec/queue/` is unfamiliar.
+> Applies to Wazuh 4.8+ (RocksDB-based indexer connector), and to clustered deployments in particular. It assumes the VD internals and the on-disk layout described in [vulnerability-detection.md](vulnerability-detection.md): read that first if `/var/ossec/queue/` is unfamiliar.
 >
-> Distilled from two production cases at very different scales: a 5-node cluster (1 master + 4 workers, ~2,000 agents, ~16M vulnerabilities) where `queue/indexer/` reached 274 GB and had a **fixable drain failure**; and a ~70-node, 3-site deployment (~100k agents per cluster) where it reached ~3 TB per node-set and turned out to be **expected by design** - the manager keeps a full RocksDB replica of the vulnerability data, and roaming agents multiply it across nodes. This guide is about telling those two apart.
+> Distilled from two production cases at very different scales: a 5-node cluster (1 master + 4 workers, ~2,000 agents, ~16M vulnerabilities) where `queue/indexer/` reached 274 GB and had a fixable drain failure; and a ~70-node, 3-site deployment (~100k agents per cluster) where it reached ~3 TB per node-set and turned out to be expected by design: the manager keeps a full RocksDB replica of the vulnerability data, and roaming agents multiply it across nodes. This guide is about telling those two apart.
 
 ## Table of Contents
 

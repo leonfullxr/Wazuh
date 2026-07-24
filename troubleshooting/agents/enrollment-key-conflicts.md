@@ -26,7 +26,7 @@ When enrollment fails, `wazuh-authd` logs a specific reason. The three "duplicat
 
 | Manager log (`wazuh-authd`) | What it means | Governed by | Fix |
 |---|---|---|---|
-| `Duplicate name '<name>', rejecting enrollment. Agent '<id>' doesn't comply with the registration time to be removed.` | An agent with that name exists and was registered **too recently** to be auto-replaced. | `<force><after_registration_time>` | Lower `after_registration_time`, or stop the agent re-enrolling ([enrollment loops](#enrollment-loops-and-the-duplicate-name-storm)). |
+| `Duplicate name '<name>', rejecting enrollment. Agent '<id>' doesn't comply with the registration time to be removed.` | An agent with that name exists and was registered too recently to be auto-replaced. | `<force><after_registration_time>` | Lower `after_registration_time`, or stop the agent re-enrolling ([enrollment loops](#enrollment-loops-and-the-duplicate-name-storm)). |
 | `Duplicate name '<name>' ... can't be replaced since it is not disconnected` | An agent with that name is **still connected**, so authd will not displace it. | `<force><disconnected_time>` (+ `<enabled>`) | Confirm it is genuinely the same host; if the record is stale, wait `disconnected_time` or delete the agent. |
 | `Duplicate name '<name>', rejecting enrollment` (no further clause) | The name is taken and **force-replace is disabled**. | `<force><enabled>` | Enable `<force>` ([below](#enable-force-re-enrollment-on-the-manager)), or give the host a unique name. |
 | `Invalid password provided by <ip>. Closing connection.` | The enrollment password/token is wrong or missing. | `<use_password>` + `authd.pass` | Fix `/var/ossec/etc/authd.pass` (or your deployment's enrollment secret) on the agent. |

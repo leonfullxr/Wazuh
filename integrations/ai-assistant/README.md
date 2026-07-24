@@ -35,7 +35,7 @@ make seed                    # ~2000 synthetic alerts with exact ground truths
 make evals                   # the bilingual golden set against the live stack
 ```
 
-Open `https://localhost`, click the **Assistant** icon, and ask "How many alerts in the last 24 hours?". `make evals-actions` and `make evals-connector` exercise the write-actions and dashboard-edge paths; `make test` runs the unit suite. Enabling write actions on an agent also needs `make manager-executors` (least-privilege Wazuh API users). The self-hosted shape this produces:
+Open `https://localhost`, click the Assistant icon, and ask "How many alerts in the last 24 hours?". `make evals-actions` and `make evals-connector` exercise the write-actions and dashboard-edge paths; `make test` runs the unit suite. Enabling write actions on an agent also needs `make manager-executors` (least-privilege Wazuh API users). The self-hosted shape this produces:
 
 ![Self-hosted PoC on one machine](diagrams/png/wazuh-ai-selfhosted--self-hosted-poc-icons.png)
 
@@ -92,7 +92,7 @@ what each underlying script does live in the manual section below.
 
 The demo harness *creates* a Wazuh to talk to; a real deployment already has one. The assistant is the same: point it at your environment and register the edge. The only structural difference between one environment and many is the registry: each environment is one entry, resolved by its own credential (see the posture comparison in [`diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png`](diagrams/png/wazuh-ai-selfhosted--self-hosted-vs-cloud-icons.png)).
 
-**Prefer the automated installers above.** The eight steps below are what those scripts do under the hood / for advanced customization (all commands read `.env` / `environments.yaml` / `deploy.env`):
+Prefer the automated installers above. The eight steps below are what those scripts do under the hood / for advanced customization (all commands read `.env` / `environments.yaml` / `deploy.env`):
 
 1. **Skip `make wazuh`.** Set `WAI_INDEXER_URL`, the manager and dashboard URLs, and `INDEXER_ADMIN_*` in `.env` to your existing Wazuh (4.8-4.16.x / OpenSearch 2.19.x). Provide the indexer CA and set `indexer_ca_path` rather than disabling TLS verification.
 2. **Add the security objects to your indexer** (`make securityconfig`, or apply `securityconfig/` by hand): the `wazuh-ai` JWT auth domain trusting `keys/jwt-public.pem`, the read-only `wazuh_ai_analyst_role` / `wazuh_ai_env_reader_role`, the `wazuh_ai_dashboard_writer` (backend role `kibanauser`) if you enable dashboard actions, and the `wazuh_ai_operator` / `wazuh_ai_responder` mappings for confirmers. Identity itself comes from your existing users, LDAP, or SSO: `authinfo` verifies whatever the security plugin already trusts; the lab's internal users are only for the demo.
