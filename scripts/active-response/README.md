@@ -1,4 +1,4 @@
-# Active Response: blocking attacker IPs
+# Active Response: automated reactions to alerts
 
 Active Response (AR) runs a script on an endpoint or on the manager when an
 alert matches a chosen rule/level, so detections can trigger an automatic
@@ -166,6 +166,35 @@ tail /var/log/cdb-blocklist/cdb-blocklist.log
 Send the same IP again and the log shows `Entry already present`, and rule
 100073 fires at level 12.
 
+## Recipe 3: scan and delete malware with YARA on Windows
+
+The official YARA proof of concept wires FIM to an active-response script that
+scans the changed file and logs the verdict, but leaves the file on disk.
+[`yara-windows/`](yara-windows/) holds a replacement script that also removes
+it, plus the manager wiring, the optional deletion alert rules, and the safety
+considerations that come with irreversible remediation.
+
+Two failure modes are worth knowing even if you write your own version:
+`[Console]::In.ReadToEnd()` hangs because `execd` never closes the STDIN pipe,
+and a delete issued straight off a FIM realtime event hits a file that is
+still being written or held by antivirus. The script waits for the file to
+stabilize and retries the delete.
+
+```xml
+<command>
+  <name>yara_windows</name>
+  <executable>yara.bat</executable>
+  <timeout_allowed>no</timeout_allowed>  <!-- a deletion cannot be undone -->
+</command>
+
+<active-response>
+  <disabled>no</disabled>
+  <command>yara_windows</command>
+  <location>local</location>
+  <rules_id>100010,100011</rules_id>      <!-- your FIM trigger rules -->
+</active-response>
+```
+
 ## Gotchas
 
 - **Permissions are the usual failure.** If the log shows
@@ -187,6 +216,10 @@ Send the same IP again and the log shows `Entry already present`, and rule
 
 ## Related
 
+- [`yara-windows/`](yara-windows/) - the YARA scan-and-delete response in
+  full: prerequisites, decoder and rules, verification, and troubleshooting.
+- [`../syscheck-email-notifications`](../syscheck-email-notifications) - FIM
+  rule patterns that make good active-response triggers.
 - [`../eventchannel-extraction`](../eventchannel-extraction) - another
   integratord script pattern (parse and re-inject structured data).
 - [`../email-alerting`](../email-alerting) - route the resulting high-severity

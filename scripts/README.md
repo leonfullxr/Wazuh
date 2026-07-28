@@ -34,7 +34,8 @@ README with usage instructions plus the script/config files.
 ## Detection & response
 
 - [active-response](active-response/) - block attacker IPs via the built-in
-  `firewall-drop` or a custom CDB-blocklist integration script.
+  `firewall-drop` or a custom CDB-blocklist integration script, and
+  [scan and delete malware with YARA on Windows](active-response/yara-windows/).
 
 ## Data retention & housekeeping
 

@@ -34,7 +34,7 @@ changes outside production first.
 
 ### Automation & tooling
 
-- [scripts/](scripts/) - Operational scripts, each with its own README: agent management and deployment, service and resource monitoring, alert retention and deletion policies, syscheck email notifications, granular email alerting, active-response CDB blocklist, eventchannel extraction, EPS measurement, diagnosis, MaxMind updates, all-in-one installs.
+- [scripts/](scripts/) - Operational scripts, each with its own README: agent management and deployment, service and resource monitoring, alert retention and deletion policies, syscheck email notifications, granular email alerting, active response (CDB blocklist, YARA scan-and-delete on Windows), eventchannel extraction, EPS measurement, diagnosis, MaxMind updates, all-in-one installs.
 - [ansible/](ansible/) - Ansible playbooks (agent renaming).
 - [packages/](packages/) - Platform-specific packaging notes (Solaris).
 - [images/](images/) - Vagrant lab images (Windows, FreeBSD).
