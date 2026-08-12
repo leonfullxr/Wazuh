@@ -25,6 +25,7 @@ Kubernetes deployment patterns, ConfigMap-based configuration management, and tr
 |-------|-------------|
 | [AWS credentials via Secrets/ConfigMaps](./aws-credentials.md) | Persist multi-profile AWS module credentials across manager pod restarts |
 | [Cluster debugging](./cluster-debugging.md) | kubectl/minikube diagnostic commands: pod inspection, DNS issues, indexer file transfer, dashboard logs, namespace-change DNS breakage, and OOMKilled restart loops |
+| [Agent-info sync failures](./agent-info-sync-failures.md) | Agents active on a worker but `disconnected` on the master: `Error 2013` and `2017`, a `wdb-http.sock` that accepts a request and sends no answer, analysisd thread pools that use the node CPU count instead of the cgroup quota, wazuh-db storage latency, and safe health probes |
 | [Load balancing, ingress & proxies](./load-balancing-and-ingress.md) | Exposing agent TCP (1514/1515) vs HTTP (dashboard/API): ingress-nginx TCP services, PROXY protocol, service types, the ALB health-check `401` gotcha, and dynamic HAProxy load balancing with the Wazuh helper |
 | [Archives disabled after pod update](./archives-disabled-after-update.md) | `wazuh-archives-*` indices stop receiving data after image upgrades due to `filebeat.yml` being regenerated at pod startup; ConfigMap + `subPath` mitigation |
 | [Persisting configuration and custom content](./persistent-storage.md) | What survives a pod restart vs. what is regenerated from the image; persisting dashboard config (RBAC `run_as`) and custom rules/decoders via ConfigMap + `subPath` |

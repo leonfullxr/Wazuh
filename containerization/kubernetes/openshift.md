@@ -139,6 +139,10 @@ oc logs <pod-name>
 
 `Permission denied` on entrypoint scripts almost always means the pod ran under a restricted UID it did not expect - revisit the SCC binding for that component's ServiceAccount.
 
+### Health probes
+
+Use probes with a low cost on the manager pods. Select TCP socket probes on port `55000` or `1515` for the master, and port `1514` for the workers. An exec probe that starts a Python interpreter to query `/var/ossec/queue/db/wdb` on a short period adds CPU load and socket churn, which makes contention worse. The restricted SCC also blocks some of these probes. For the probe strategy, and for the wazuh-db stall that these probes usually try to detect, refer to [agent-info sync failures](./agent-info-sync-failures.md#health-probes-for-manager-pods).
+
 ## Community references
 
 These public discussions capture the exact permission errors and workarounds other users hit on OpenShift:
@@ -148,6 +152,8 @@ These public discussions capture the exact permission errors and workarounds oth
 
 ## Related
 
+- [Agent-info sync failures](./agent-info-sync-failures.md) - agents `active` on a worker but `disconnected` on the master: too many analysisd threads, wazuh-db storage latency, and probe strategy
+- [Syscollector network inventory](../../troubleshooting/agents/syscollector-network-inventory.md) - an empty interface inventory on the nodes that hold a keepalived-managed API or Ingress VIP
 - [Wazuh on Amazon EKS](./eks.md) - storage, affinity, and configuration details that carry over to any Kubernetes distribution
 - [Kubernetes persistent storage and config persistence](./persistent-storage.md)
 - [Official Wazuh Kubernetes documentation](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html)

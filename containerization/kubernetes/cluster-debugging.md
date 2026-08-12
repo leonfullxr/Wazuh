@@ -169,5 +169,6 @@ cat ~/.kube/config
 ## Related
 
 - [Wazuh on Amazon EKS](./eks.md) - storage classes, affinity, ingress, SSO
+- [Agent-info sync failures](./agent-info-sync-failures.md) - cluster transport is correct, but the agent state never reaches the master
 - [Wazuh on GKE](./gke.md) · [Wazuh on AKS](./aks.md)
 - [Docker network and proxy debugging](../docker/network-proxy-debugging.md) - the container-level equivalent

@@ -191,5 +191,6 @@ If the loop is caused by duplicate agent names or key mismatches rather than con
 - [Enrollment and key conflicts](enrollment-key-conflicts.md) - duplicate IDs and key mismatches often masquerade as disconnections
 - [Certificate troubleshooting](../../certificates/troubleshooting.md#agent-connectivity-on-15141515) - expired enrollment certificate (`sslmanager.cert`) on 1515 and the `unexpected eof while reading` handshake signature
 - [AWS load balancer (NLB/ALB)](aws-load-balancer.md) - `wrong version number` from a TLS listener, and cross-zone balancing across Availability Zones
+- [Agent-info sync failures](../../containerization/kubernetes/agent-info-sync-failures.md) - on a clustered manager, an agent that is `active` on its worker but `disconnected` on the master shows a sync failure, not an agent fault
 - [Flooding](flooding.md) - a flooded agent buffer can precede disconnection events
 - [Diagnosis script](../../scripts/diagnosis/) - collects agent status and manager logs in one pass

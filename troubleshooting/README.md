@@ -25,6 +25,8 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | Agents unevenly balanced or failing across AWS Availability Zones | [agents/aws-load-balancer.md](agents/aws-load-balancer.md#balance-evenly-across-availability-zones) |
 | Agent keeps re-registering instead of reconnecting | [agents/disconnections.md](agents/disconnections.md#agents-stuck-in-a-re-registration-loop) |
 | Agents mass-disconnect but the service is running and `ossec.log` shows only log rotation | [agents/disconnections.md](agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment) |
+| Agents `active` on a cluster worker but `disconnected` on the master (`Error 2013`/`2017`, `Agent-info sync`) | [../containerization/kubernetes/agent-info-sync-failures.md](../containerization/kubernetes/agent-info-sync-failures.md) |
+| `syscollector: ERROR: [json.exception.out_of_range.403] key 'name' not found`, empty network inventory | [agents/syscollector-network-inventory.md](agents/syscollector-network-inventory.md) |
 | `authd` handshake fails with `unexpected eof while reading` on 1515 | [certificates/troubleshooting.md](../certificates/troubleshooting.md#agent-connectivity-on-15141515) |
 | `Duplicate agent name` / agent key already in use warnings | [agents/enrollment-key-conflicts.md](agents/enrollment-key-conflicts.md) |
 | `authd` rejects enrollment: `duplicate name ... registration time` or `... not disconnected` | [agents/enrollment-key-conflicts.md](agents/enrollment-key-conflicts.md#decoding-authd-enrollment-rejections) |
@@ -59,6 +61,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 - [Flooding and noisy alerts](agents/flooding.md) - how the agent buffer works, finding the noisy source, tuning `client_buffer`, and silencing noisy rules or Windows event IDs.
 - [macOS agents](agents/macos.md) - unified log collection queries and CPU/memory/disk/network health metrics via `full_command`.
 - [Windows registry monitoring](agents/windows-registry.md) - registry FIM scope, value checks, exclusions, and verification.
+- [Syscollector network inventory](agents/syscollector-network-inventory.md) - `key 'name' not found` on a subset of hosts: a keepalived VIP with an address label that breaks interface enumeration, why this is not the 4.4 tunnel-adapter bug, and how to change the label.
 - [Custom WPK and remote upgrades](agents/custom-wpk.md) - renewing the WPK root CA on agents and recovering failed remote upgrades.
 
 ## Server / manager

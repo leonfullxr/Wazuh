@@ -122,6 +122,7 @@ Then restart the manager and watch `wazuh-analysisd.state` again.
 Notes:
 
 - Thread options (`analysisd.event_threads`, `analysisd.rule_matching_threads`, `analysisd.winevt_threads`) max out at **32**. Keep them at or below your CPU thread count.
+- **Inside a container, "CPU thread count" means the cgroup limit, not `nproc`.** At the default value `0` (automatic), analysisd sizes its pools from the CPU set that the container can see. On a large node this is the full CPU count of the node. It can create thousands of threads against an 8-core quota and starve `wazuh-db`. Always set the pools explicitly in a containerized deployment. Refer to [agent-info sync failures](../../containerization/kubernetes/agent-info-sync-failures.md#root-cause-1-analysisd-thread-pools-use-the-node-cpu-count).
 - Queue sizes are counted in **events, not bytes** - default 16,384, maximum 2,000,000.
 - Full limits and defaults: [internal configuration reference](https://documentation.wazuh.com/current/user-manual/reference/internal-options.html) and [queuing mechanisms](https://documentation.wazuh.com/current/user-manual/manager/wazuh-server-queue.html#wazuh-analysis-engine-queue-queue-and).
 
@@ -151,5 +152,6 @@ When investigating further, capture the full `wazuh-analysisd.state`, `wazuh-rem
 ## Related guides
 
 - [../agents/flooding.md](../agents/flooding.md) - the agent-side half of the same problem, plus noise-reduction techniques
+- [Agent-info sync failures](../../containerization/kubernetes/agent-info-sync-failures.md) - for a container where too many analysisd threads, not throughput, are the constraint
 - [../../scripts/EPS/](../../scripts/EPS/) - packaged EPS measurement script
 - [../../scripts/diagnosis/](../../scripts/diagnosis/) - full environment diagnostic collection
