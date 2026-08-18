@@ -7,7 +7,7 @@
   - [Installing MISP](#installing-misp)
   - [Initial MISP Configuration](#initial-misp-configuration)
   - [Installing Wazuh](#installing-wazuh)
-  - [Initial Wazuh Configuration](#initial-wazuh-configuration)
+    - [Testing connection from Wazuh to MISP](#testing-connection-from-wazuh-to-misp)
   - [Wazuh-Sysmon Integration](#wazuh-sysmon-integration)
 - [MISP-Wazuh Integration](#misp-wazuh-integration)
   - [Integration Steps](#integration-steps)

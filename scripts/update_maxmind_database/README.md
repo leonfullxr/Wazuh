@@ -8,7 +8,6 @@
   - [Prerequisites](#prerequisites)
   - [Configuration](#configuration)
   - [Installation & Bootstrapping](#installation--bootstrapping)
-    - [Example of Placing the Script and Creating the Directories](#example-of-placing-the-script-and-creating-the-directories)
   - [docker-compose.yml Snippet](#docker-composeyml-snippet)
     - [Example docker-compose.yml Snippet](#example-docker-composeyml-snippet)
   - [Running the Update Script](#running-the-update-script)

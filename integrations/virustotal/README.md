@@ -4,7 +4,7 @@
 
 - [Introduction](#introduction)
 - [Heuristic (How the Verdict is Decided)](#heuristic-how-the-verdict-is-decided)
-   - [Default Thresholds](#default-thresholds-from-custom-virustotal_ip_checkspy)
+   - [Default Thresholds](#default-thresholds-from-custom-virustotal_ippy)
 - [Installation and Configuration](#installation-and-configuration)
 - [Wazuh Configuration](#wazuh-configuration)
    - [Integrator Config (manager `ossec.conf`)](#integrator-config-manager-ossecconf)

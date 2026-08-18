@@ -18,6 +18,7 @@ component.
 | [Deployment Architecture](deployment-architecture.md) | Planning questions, hardware prerequisites, firewall ports, and connectivity requirements |
 | [Disaster Recovery](disaster-recovery.md) | Active/passive multi-site DR: load-balancer failover, configuration and data sync between sites, and failback |
 | [Health Check](healthcheck.md) | Per-component verification commands for the manager, Filebeat, indexer, and dashboard |
+| [Upgrading Agents](upgrading-agents.md) | Version rules, remote WPK upgrade from the manager (CLI and API), package-manager upgrades, air-gapped networks, verification, and rollback |
 
 
 ## Upgrade order
@@ -27,7 +28,7 @@ Always upgrade the central components before the agents, in this order (see the 
 1. **Wazuh indexer**
 2. **Wazuh server** (manager + Filebeat)
 3. **Wazuh dashboard**
-4. **Wazuh agents** last
+4. **Wazuh agents** last (see [Upgrading Agents](upgrading-agents.md))
 
 Agents must never run a newer version than the manager.
 
@@ -40,4 +41,7 @@ Agents must never run a newer version than the manager.
 | Designing ports, nodes, or component placement | [Deployment architecture](deployment-architecture.md) |
 | Sizing a new deployment, or checking an existing one | [Sizing](sizing.md) |
 | Deciding how many indexer nodes to buy | [Sizing - node counts](sizing.md#node-counts-per-component) |
+| Upgrading the agent fleet | [Upgrading agents](upgrading-agents.md) |
+| A remote agent upgrade failed | [Upgrading agents - when an upgrade fails](upgrading-agents.md#when-an-upgrade-fails) |
+| Upgrading agents without internet access | [Upgrading agents - air-gapped networks](upgrading-agents.md#air-gapped-networks) |
 | Planning site failover and failback | [Disaster recovery](disaster-recovery.md) |
