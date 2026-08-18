@@ -18,6 +18,8 @@ Terminology matters here:
   - [Choose retention, rollover, or both](#choose-retention-rollover-or-both)
   - [Example: delete alerts after 90 days](#example-delete-alerts-after-90-days)
   - [Policy mechanics worth knowing](#policy-mechanics-worth-knowing)
+- [Manager-side retention is separate and not automatic](#manager-side-retention-is-separate-and-not-automatic)
+- [Index codecs and compression](#index-codecs-and-compression)
 - [ILM on legacy Elasticsearch deployments](#ilm-on-legacy-elasticsearch-deployments)
   - [Check and control the ILM service](#check-and-control-the-ilm-service)
   - [Switching lifecycle policies safely](#switching-lifecycle-policies-safely)
@@ -55,7 +57,7 @@ For current supported examples, see
 [Wazuh index lifecycle management](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/index-lifecycle-management.html)
 and [OpenSearch rollover](https://docs.opensearch.org/latest/im-plugin/ism/policies/#rollover).
 Use `min_primary_shard_size`, age, or document-count conditions based on the
-measured workload; avoid total-index-size conditions when shards are uneven.
+measured workload. Avoid total-index-size conditions when shards are uneven.
 
 ### Example: delete alerts after 90 days
 
@@ -128,8 +130,84 @@ GET _plugins/_ism/explain/wazuh-alerts-*
 - After [increasing shard counts](shard-management.md#increasing-the-number-of-primary-shards)
   or other template changes, the cluster only fully converges once ISM has
   deleted the old-format indices - plan the observation window accordingly.
-- Snapshot before delete if you have compliance requirements; deletion via
-  ISM is not recoverable.
+- If you have compliance requirements, take a snapshot before the delete
+  phase. An ISM delete is not recoverable.
+
+## Manager-side retention is separate and not automatic
+
+An ISM policy controls only the data inside the indexer. The Wazuh manager keeps
+its own copy of the same data, under a retention period that ISM does not touch.
+
+| | Indexer retention | Manager retention |
+|---|---|---|
+| Location | The indexer | `/var/ossec/logs/alerts/<year>/<month>` and `/var/ossec/logs/archives/<year>/<month>` |
+| Format | Indexed documents | Gzip-compressed JSON, rotated daily |
+| Phases | Hot, warm, cold, delete | None |
+| Searchable in the dashboard | Yes | No |
+| Deleted automatically | Yes, by ISM | **No** |
+
+The overlapping vocabulary causes real sizing mistakes. The "cold" phase of an
+ISM policy is a state of an index inside the indexer. Sizing documents and
+support threads also use "cold retention" for the compressed files on the
+manager, which have no phases at all. They are different stores with different
+lifecycles.
+
+The dashboard never reads the compressed files. Filebeat tails the live
+`alerts.json` and, if archiving is enabled, `archives.json`, and ships those
+documents to the indexer. The daily rotation into a gzip file is a backup, not a
+second query path. Re-ingest the file to search that data again:
+[recovering data from alert backups](https://wazuh.com/blog/recover-your-data-using-wazuh-alerts-backups/).
+
+Because nothing deletes the manager copies, add a cronjob per path on every
+manager node. For a one-year manager retention:
+
+```bash
+0 0 * * * find /var/ossec/logs/alerts/   -type f -mtime +365 -exec rm -f {} \;
+0 0 * * * find /var/ossec/logs/archives/ -type f -mtime +365 -exec rm -f {} \;
+```
+
+Two constraints are worth knowing before the retention period is agreed:
+
+- **The location is fixed.** These files are written locally and the path is not
+  configurable. To hold them on a NAS or SAN, copy or sync them out on a
+  schedule and let the cronjob expire the local copies.
+- **Archives dwarf alerts.** `archives.json` records every received event, not
+  only those that matched a rule. Size it separately, and enable it only when
+  raw-event retention is an actual requirement.
+
+## Index codecs and compression
+
+Compression is **not** a per-phase setting. It is an index-level setting, so it
+cannot be varied across hot, warm, and cold by the policy alone:
+
+| `index.codec` | Algorithm | Trade-off |
+|---|---|---|
+| `default` | LZ4 | Fast compression and decompression, larger on disk |
+| `best_compression` | DEFLATE | Smaller on disk, slower |
+| `zstd`, `zstd_no_dict` | Zstandard | Available from OpenSearch 2.9. Test before adopting |
+
+Because the codec is fixed when a segment is written, changing it only affects
+new data. Applying it to existing data requires a new index or a segment
+rewrite, which a policy can force during a phase transition:
+
+```json
+{
+  "warm": {
+    "actions": [
+      { "index_settings": { "index.codec": "best_compression" } },
+      { "force_merge": { "max_num_segments": 1 } }
+    ]
+  }
+}
+```
+
+> **Keep the default unless you have measured a reason not to.** The force merge
+> rewrites every segment in the index, which is expensive in CPU and I/O on a
+> node that is also indexing. Wazuh indexes in near real time and its dashboards
+> query a wide slice of that data, so a slower codec costs both write and search
+> performance. Treat a codec change as a lab experiment first, and reach for
+> [retention](#choose-retention-rollover-or-both) or fewer replicas before
+> compression when the goal is disk savings.
 
 ## ILM on legacy Elasticsearch deployments
 
@@ -194,6 +272,9 @@ Assigning a new policy on top of an old one can make phase execution
 ## References
 
 - [OpenSearch - Index State Management](https://docs.opensearch.org/docs/latest/im-plugin/ism/index/)
+- [OpenSearch - Index codecs](https://docs.opensearch.org/docs/latest/im-plugin/index-codecs/)
+- [Wazuh - Event logging (alerts and archives)](https://documentation.wazuh.com/current/user-manual/manager/event-logging.html)
+- [Sizing a Wazuh deployment](../upgrading/sizing.md) - choosing the two retention periods in the first place
 - [OpenSearch - ISM policies](https://docs.opensearch.org/docs/latest/im-plugin/ism/policies/)
 - [Elastic - Configure a lifecycle policy / switch policies](https://www.elastic.co/docs/manage-data/lifecycle/index-lifecycle-management/configure-lifecycle-policy#switch-lifecycle-policies)
 - [Elastic - Start and stop ILM](https://www.elastic.co/docs/manage-data/lifecycle/index-lifecycle-management/start-stop-index-lifecycle-management)

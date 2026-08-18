@@ -141,34 +141,20 @@ Select the value from the **cgroup CPU limit**, not from `nproc`. One half of th
 
 `wazuh-db` uses SQLite. Cluster synchronization depends on `wazuh-db`. Latency on the volumes behind `/var/ossec/queue/db` and `/var/ossec/var/db` therefore causes `Agent-info sync` timeouts. Network block storage, such as Ceph RBD, is the usual cause.
 
-| Requirement | Value |
-|---|---|
-| Write latency | Less than 10 ms p99. Less than 5 ms p99 if you cannot change the storage |
-| Sustained IOPS | 1000 or more for each worker node |
-| Preferred media | Local NVMe or SSD, or a StorageClass with guaranteed IOPS |
-
-Measure the true performance of the database path with an `fio` test that uses `fdatasync`. This test creates the write pattern of SQLite commits:
+The requirements, the measurement procedure, the `wazuh_db` tunables, and the Ceph RBD guidance are in [wazuh-db storage latency](../../troubleshooting/server/wazuh-db-storage-latency.md). Two checks are enough to include or exclude storage here:
 
 ```bash
-fio --name=wdb --filename=/var/ossec/queue/db/.fio-probe \
-    --rw=write --bs=4k --size=64m --ioengine=sync --iodepth=1 --numjobs=1 \
-    --fdatasync=1 --time_based --runtime=25 \
-    --percentile_list=50:95:99 --group_reporting
-rm -f /var/ossec/queue/db/.fio-probe
+# A thread in the D state is blocked in an uninterruptible kernel I/O wait
+kubectl exec -n <namespace> wazuh-manager-worker-0 -- sh -lc \
+  "ps -eLo pid,stat,comm | grep wazuh-db | grep ' D '"
+
+# Device-side latency behind the database paths
+kubectl exec -n <namespace> wazuh-manager-worker-0 -- iostat -x 5 3
 ```
 
-Read the `sync` latency percentiles. One investigated pair of clusters gives a useful scale. The correct cluster measured p50 0.020 ms and p99 0.088 ms. The failed cluster measured p50 1.48 ms, p99 3.79 ms, and a maximum of 52.6 ms. Application-side SQLite commit measurements in the same environment gave p99 values of 18 ms to 19 ms, with occasional values near 300 ms.
+For a quick scale, one investigated pair of clusters measured p50 0.020 ms and p99 0.088 ms on the correct cluster, against p50 1.48 ms, p99 3.79 ms, and a maximum of 52.6 ms on the failed cluster.
 
-If you cannot replace the storage, these options decrease the load. They do not remove the problem:
-
-```ini
-wazuh_db.commit_time_min=10
-wazuh_db.commit_time_max=50
-wazuh_db.open_db_limit=256
-wazuh_db.worker_pool_size=4
-```
-
-> **Do not stop the analysis at storage latency.** In the investigated case, these options and NVMe-backed storage on both database paths made no difference to the disconnections. The measured latency was real but secondary. The disconnections stopped only after the [analysisd thread-pool change](#root-cause-1-analysisd-thread-pools-use-the-node-cpu-count). Count the threads before you plan a storage migration.
+> **Do not stop the analysis at storage latency.** In the investigated case, the `wazuh_db` tuning and NVMe-backed storage on both database paths made no difference to the disconnections. The measured latency was real but secondary. The disconnections stopped only after the [analysisd thread-pool change](#root-cause-1-analysisd-thread-pools-use-the-node-cpu-count). Count the threads before you plan a storage migration.
 
 ## wazuh-db does not recover after an I/O stall
 
@@ -176,9 +162,11 @@ This behavior is the expected architecture, not a defect. `wazuh-db` runs a work
 
 The main process stays alive. A liveness probe that examines only the process state finds a correct state. A worker that enters this condition stays in this condition after the initial storage problem ends. To recover, restart `wazuh-db` or restart the pod. Wazuh 5.x keeps the same architectural sensitivity, so an upgrade does not correct a latency-bound environment.
 
+For the full mechanism, the detection commands, and the storage requirements, see [wazuh-db storage latency](../../troubleshooting/server/wazuh-db-storage-latency.md#how-wazuh-db-behaves-under-io-stress).
+
 ## Health probes for manager pods
 
-Kubernetes cannot detect the stalled socket. A probe is therefore useful, but select a probe with a low cost.
+The `wazuh-kubernetes` manifests ship no liveness or readiness probe, and Wazuh publishes no official definition of a correct manager health test. Kubernetes also cannot detect the stalled socket on its own. A probe is therefore useful, but select a probe with a low cost.
 
 - **Recommended: TCP socket probes.** Use port `55000` (API) or `1515` on the master. Use port `1514` on the workers. These probes start no process and add no socket load.
 - **Do not use an exec probe that starts an interpreter.** A `python3` command that opens `/var/ossec/queue/db/wdb` every 30 s adds CPU load and socket churn. This makes the contention worse.
@@ -196,6 +184,15 @@ Kubernetes cannot detect the stalled socket. A probe is therefore useful, but se
     timeoutSeconds: 10
     failureThreshold: 3
   ```
+
+  A shorter variant checks that the socket exists and answers one query:
+
+  ```bash
+  test -S /var/ossec/queue/db/wdb && \
+    timeout 2 echo 'global get-agent-info 000' | socat - UNIX-CONNECT:/var/ossec/queue/db/wdb | grep -q 'ok'
+  ```
+
+  A `test -S` check on its own is not sufficient. The socket file exists during the stall. Only a query detects that it sends no answer.
 
 ## Do not delete the SQLite WAL and SHM files
 
@@ -221,6 +218,7 @@ Delete these files only when `wazuh-db` is fully stopped and the operating syste
 - [Cluster debugging](./cluster-debugging.md) - pod, DNS, namespace, and OOMKilled diagnostics for the same deployment
 - [Wazuh on Red Hat OpenShift / OKD](./openshift.md) - SCCs, the s6-overlay UID blocker, and the indexer `vm.max_map_count` init container
 - [Persistent storage](./persistent-storage.md) - what a pod restart keeps, and what the image creates again
+- [wazuh-db storage latency](../../troubleshooting/server/wazuh-db-storage-latency.md) - storage requirements, D-state detection, `wazuh_db` tunables, and Ceph RBD guidance
 - [Analysisd, EPS, and dropped events](../../troubleshooting/server/analysisd.md) - queue and thread tuning when throughput, not scheduling, is the constraint
 - [Agent disconnections](../../troubleshooting/agents/disconnections.md) - agent-side causes, for an agent that truly sends no data
 - [wazuh/wazuh#31841](https://github.com/wazuh/wazuh/issues/31841) - public issue for the same Error 2013, 2017, and 2012 family

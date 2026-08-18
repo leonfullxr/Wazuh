@@ -21,7 +21,7 @@ changes outside production first.
 - [containerization/](containerization/) - Wazuh in Docker and Kubernetes: EKS, AKS, GKE, OpenShift, persistent storage, agent DaemonSets, FIM inside containers, cluster debugging, Docker Swarm, backup/migration, Docker networking and proxy diagnostics.
 - [cloud/](cloud/) - Cloud log ingestion and infrastructure: AWS (`aws-s3` wodle, IAM), Azure (Log Analytics, MS Graph), GCP Pub/Sub, plus Wazuh Cloud usage and dashboard RBAC.
 - [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
-- [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and sizing, disaster recovery, Wazuh 5.0 migration FAQ.
+- [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and [sizing](upgrading/sizing.md), disaster recovery, Wazuh 5.0 migration FAQ.
 - [certificates/](certificates/) - TLS certificate lifecycle for every component, HTTPS for dashboards on private IPs, SAML SSO, and a certificate troubleshooting playbook.
 - [troubleshooting/](troubleshooting/) - Symptom-driven guides: agent disconnections, flooding and buffer tuning, enrollment conflicts, analysisd queue/EPS tuning, vulnerability detection internals and reset, password recovery, LDAP/AD, Windows registry monitoring.
 

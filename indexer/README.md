@@ -99,6 +99,12 @@ out through [ISM retention](ilm-retention.md), or
 | New indices fail at rollover or midnight | [Shard-count monitoring](shard-management.md#monitoring-shard-count) and [disk management](disk-management.md) |
 | Disk watermark or read-only indices | [Disk management](disk-management.md) |
 | Define or verify retention | [ISM / ILM retention](ilm-retention.md) |
+| Old alerts still on disk after the ISM delete phase | [Manager-side retention](ilm-retention.md#manager-side-retention-is-separate-and-not-automatic) |
+| Choosing a compression codec to save disk | [Index codecs](ilm-retention.md#index-codecs-and-compression) |
+| Deciding how many indexer nodes a cluster needs | [Cluster topology](cluster-topology.md) |
+| Cluster unavailable although every shard is on disk | [Voting and quorum](cluster-topology.md#voting-and-quorum) |
+| Cluster never reaches green after a node loss | [The permanent yellow rule](cluster-topology.md#the-permanent-yellow-rule) |
+| Adding or removing an indexer node safely | [Change the topology safely](cluster-topology.md#change-the-topology-safely) |
 | Apply a new mapping or shard count to old data | [Reindexing](reindexing.md) |
 | Route selected alerts to another index | [Index separation](index-separation.md) |
 | Change the timestamp embedded in `full_log` | [Ingest pipeline customization](ingest-pipeline-customization.md) |
@@ -109,6 +115,7 @@ out through [ISM retention](ilm-retention.md), or
 
 | Guide | When to use it |
 |---|---|
+| [Cluster topology](cluster-topology.md) | Decide node count, understand voting and quorum, and change the topology without losing availability |
 | [Cross-cluster search](cross-cluster-search.md) | Query remote Wazuh indexer clusters from a central SOC |
 | [GeoIP enrichment](geoip.md) | Refresh GeoLite2 data or perform index-time geographic enrichment |
 | [Internal users auditing](auditing.md) | Review built-in indexer accounts and harden role mappings |

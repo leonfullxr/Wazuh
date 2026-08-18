@@ -13,6 +13,7 @@ component.
 
 | Guide | Description |
 |---|---|
+| [Sizing](sizing.md) | The sizing questionnaire, node counts per component, indexer vs manager retention, and how to allocate storage that is already bought |
 | [Pre-Upgrade Checklist](pre-upgrade-checklist.md) | Backups, health checks, and compatibility verification before touching anything |
 | [Deployment Architecture](deployment-architecture.md) | Planning questions, hardware prerequisites, firewall ports, and connectivity requirements |
 | [Disaster Recovery](disaster-recovery.md) | Active/passive multi-site DR: load-balancer failover, configuration and data sync between sites, and failback |
@@ -37,4 +38,6 @@ Agents must never run a newer version than the manager.
 | Preparing any central-component upgrade | [Pre-upgrade checklist](pre-upgrade-checklist.md) |
 | Confirming health before or after a change | [Health check](healthcheck.md) |
 | Designing ports, nodes, or component placement | [Deployment architecture](deployment-architecture.md) |
+| Sizing a new deployment, or checking an existing one | [Sizing](sizing.md) |
+| Deciding how many indexer nodes to buy | [Sizing - node counts](sizing.md#node-counts-per-component) |
 | Planning site failover and failback | [Disaster recovery](disaster-recovery.md) |

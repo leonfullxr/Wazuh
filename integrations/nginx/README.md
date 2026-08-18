@@ -59,7 +59,7 @@ protocol encryption remains end to end between the agent and Wazuh manager.
 
    `hash $remote_addr consistent` keeps an agent on the same worker while the
    backend set is stable and minimizes reassignment when workers change.
-   NGINX Open Source uses passive failure detection here; it does not know
+   NGINX Open Source uses passive failure detection here. It does not know
    cluster health beyond connection failures.
 
 3. Validate and reload:
@@ -112,10 +112,92 @@ stream {
 }
 ```
 
-Agents point their `<server><address>` at the **proxy**, not the manager. Two things bite in this topology:
+Agents point their `<server><address>` at the **proxy**, not the manager. Three points matter in this topology:
 
-- **A short `proxy_timeout` on 1514 silently drops idle agents.** The event channel is a long-lived TCP session that can be quiet between events; a 60-120s timeout tears it down periodically, and on older agents (pre-4.11.1) that can leave the whole fleet wedged on a keyless retry - see [stuck enrollment](../../troubleshooting/agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment). Use `1h` or longer on 1514.
-- **Test through the proxy path, not around it.** Validate connectivity from an agent that egresses via the proxy (or against the proxy IP), so the test reflects what agents actually experience - a direct-to-manager test that passes proves nothing about the proxy path. Agent-to-manager traffic is already AES-encrypted end to end, so the proxy is only needed when the network requires it; connect agents directly to the manager/FQDN where you can.
+- **A short `proxy_timeout` on 1514 silently drops idle agents.** The event channel is a long-lived TCP session, and it can stay quiet between events. A 60-120s timeout closes it periodically. On agents before 4.11.1 that can leave the whole fleet wedged on a keyless retry. See [stuck enrollment](../../troubleshooting/agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment). Use `1h` or longer on 1514.
+- **Test through the proxy path, not around it.** Test connectivity from an agent that egresses via the proxy, or test against the proxy IP. The test then reflects what the agents experience. A direct-to-manager test that passes proves nothing about the proxy path.
+- **Use the proxy only when the network requires it.** Agent-to-manager traffic is already AES-encrypted end to end. Connect agents directly to the manager FQDN where you can.
+
+## What to balance, and what not to
+
+The stream block should carry agent traffic only. Adding every Wazuh port to it
+is the most common mistake in a hand-written config, and two of those additions
+actively cause outages.
+
+| Port | Balance it? | Reason |
+|---|---|---|
+| 1514/TCP | Yes, across all manager nodes | Agent event traffic. This is the reason the load balancer exists |
+| 1515/TCP | To the master only | Only the master registers agents. Sending enrollment to a worker fails |
+| 1516/TCP | Never | Manager cluster daemon. Node to node traffic, never through a proxy |
+| 55000/TCP | No | Only the master serves the API |
+| 514, 6514 | Separately, and prefer TCP | Syslog. See [ingesting device syslog](../syslog/README.md#load-balancing-syslog-across-cluster-workers) |
+
+Two of these deserve the detail:
+
+- **Do not put the API on 55000 behind the load balancer.** The API is served by
+  the master alone. Balancing it creates a config that looks highly available
+  and is not: when the master fails, agents keep working through a worker on
+  1514 while every API and dashboard call fails anyway. Point API clients
+  straight at the master and keep the failure mode obvious.
+- **UDP syslog does not balance the way it appears to.** Connection tracking
+  pins a source address to one backend for the life of the flow, so a single
+  high-volume sender never spreads across workers. Prefer TCP, and for network
+  devices prefer an rsyslog collector with an agent, which also adds the disk
+  buffer that syslog itself has none of.
+
+Balancing is purely TCP and IP level. The load balancer has no view of Wazuh
+state, so it cannot know which node owns an agent.
+
+## The load balancer is a single point of failure
+
+One load balancer in front of a manager cluster leaves the whole deployment
+depending on one machine. The fix does not need a second cluster, only a second
+address and a fallback in the agents.
+
+Run **two load balancers** and list both in every agent, followed by a manager
+address as the last resort:
+
+```xml
+<client>
+  <server>
+    <address><LOAD_BALANCER_1_FQDN></address>
+    <port>1514</port>
+    <protocol>tcp</protocol>
+  </server>
+  <server>
+    <address><LOAD_BALANCER_2_FQDN></address>
+    <port>1514</port>
+    <protocol>tcp</protocol>
+  </server>
+  <server>
+    <address><MASTER_FQDN></address>
+    <port>1514</port>
+    <protocol>tcp</protocol>
+  </server>
+</client>
+```
+
+The agent walks the list in order. It connects to the first address that
+answers, and moves to the next one when a connection fails.
+
+Three properties of that behavior decide the design:
+
+- **The load balancer must run on its own machine.** Co-locating it with a
+  manager node defeats the purpose, because the node that fails takes both the
+  manager and the fallback path with it. Co-locating it with a **dashboard**
+  node is fine and is the usual way to get a second load balancer without extra
+  hardware. The dashboard is independent of the manager cluster and consumes
+  little CPU or RAM.
+- **There is no automatic failback.** Once agents move to the second address
+  they stay there after the first recovers. Restart the agents to rebalance.
+  Restarting the manager is not usually enough, because the agents do not stay
+  disconnected long enough to re-evaluate the list.
+- **Enrollment still needs the master.** Whichever path an agent takes for 1514,
+  registration on 1515 must reach the master.
+
+An alternative to a second load balancer is to give half the fleet the worker
+address as its second entry and the other half the master. That yields a fixed
+split rather than true balancing, and it survives the loss of the load balancer.
 
 ## Verification
 
@@ -158,3 +240,5 @@ Then verify behavior, not only open ports:
 - [Wazuh load balancer documentation](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/load-balancers.html)
 - [Agent disconnection troubleshooting](../../troubleshooting/agents/disconnections.md)
 - [Certificate and enrollment troubleshooting](../../certificates/troubleshooting.md#agent-connectivity-on-15141515)
+- [Ingesting device syslog](../syslog/README.md) - collector architectures, and why syslog senders need one
+- [Sizing a Wazuh deployment](../../upgrading/sizing.md) - node counts, including how many load balancers to plan for

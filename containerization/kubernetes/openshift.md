@@ -27,6 +27,16 @@ The Manager (and Dashboard) never start. The fix is to let these components run 
 - Grant the `anyuid` SCC to the Manager and Dashboard ServiceAccounts, **or**
 - Build custom images with the user/group ownership adjusted so the entrypoint works under an arbitrary UID.
 
+A forced UID does not work as a middle path. Forcing UID `101` lets the pod reach `Running`, but the internal binaries stay owned by `root:wazuh`, so commands such as `agent_control` fail with `Permission denied`. Forcing UID `999` to match the internal group breaks s6-overlay pre-initialization without an error, and the container never generates `ossec.conf`.
+
+> **This is confirmed behavior, not a gap in the manifests.** The image requires root
+> privileges for its startup sequence and for internal operation, not only for the
+> entrypoint. Wazuh 5.0.0 replaces s6-overlay with the lighter
+> [tini](https://github.com/krallin/tini) init process. That change does not remove
+> the root requirement. Granting `anyuid`, or an equivalent policy that allows the
+> container to initialize as root before it drops privileges internally, is
+> effectively a prerequisite for the Manager on OpenShift.
+
 ### 2. Indexer `vm.max_map_count` init container
 
 The Wazuh Indexer requires the host kernel setting `vm.max_map_count=262144`. The stock manifests apply this with a **privileged** `initContainer` (typically named `increase-the-vm-max-map-count`). `restricted-v2` rejects the privileged init container, so the indexer pod stays stuck in initialization and never becomes `Ready`.

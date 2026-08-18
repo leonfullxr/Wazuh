@@ -26,6 +26,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | Agent keeps re-registering instead of reconnecting | [agents/disconnections.md](agents/disconnections.md#agents-stuck-in-a-re-registration-loop) |
 | Agents mass-disconnect but the service is running and `ossec.log` shows only log rotation | [agents/disconnections.md](agents/disconnections.md#agents-disconnected-but-the-service-is-running-stuck-enrollment) |
 | Agents `active` on a cluster worker but `disconnected` on the master (`Error 2013`/`2017`, `Agent-info sync`) | [../containerization/kubernetes/agent-info-sync-failures.md](../containerization/kubernetes/agent-info-sync-failures.md) |
+| `wazuh-db` hangs on slow storage: `database is locked on endpoint`, threads in `D` state, sync stops and never recovers | [server/wazuh-db-storage-latency.md](server/wazuh-db-storage-latency.md) |
 | `syscollector: ERROR: [json.exception.out_of_range.403] key 'name' not found`, empty network inventory | [agents/syscollector-network-inventory.md](agents/syscollector-network-inventory.md) |
 | `authd` handshake fails with `unexpected eof while reading` on 1515 | [certificates/troubleshooting.md](../certificates/troubleshooting.md#agent-connectivity-on-15141515) |
 | `Duplicate agent name` / agent key already in use warnings | [agents/enrollment-key-conflicts.md](agents/enrollment-key-conflicts.md) |
@@ -69,6 +70,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 - [Analysisd, EPS, and dropped events](server/analysisd.md) - statistics files, queue/thread tuning, memory sizing of queues, measuring EPS, and when to scale out.
 - [Vulnerability Detection](server/vulnerability-detection.md) - how the VD queues work internally, diagnostics to collect, full state reset, and fixing stale per-agent data.
 - [IndexerConnector queue growth](server/indexer-connector-queue-growth.md) - `queue/indexer/` never drains: telling a real drain failure (missing keystore, unclean-shutdown corruption, oversized bulks) from expected steady-state growth, resetting a cluster cleanly, and repopulating inventory-packages coverage.
+- [wazuh-db storage latency](server/wazuh-db-storage-latency.md) - the manager stalls on network-backed storage: latency and IOPS requirements, `D`-state thread detection, `fio` measurement, the `wazuh_db` tunables and their limits, Ceph RBD guidance, and why no I/O timeout option exists.
 - [Postfix email delivery](server/postfix-email.md) - diagnosing SMTP relay failures with tcpdump; firewall resets vs. Postfix misconfiguration.
 - [Mount permissions](server/mount-permissions.md) - running Wazuh under a `noexec` `/var` partition with a dedicated `exec` mount.
 
