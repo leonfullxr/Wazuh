@@ -1,5 +1,3 @@
-<!-- Support: WS-37876 -->
-
 # Windows Registry Monitoring
 
 This runbook is for administrators configuring or troubleshooting registry
@@ -103,6 +101,5 @@ bursts, narrow the monitored paths before increasing the agent buffer.
 ## See also
 
 - [FIM on a large Windows file server](../../fim/windows-file-servers.md) - the filesystem half of Windows FIM, and when to replace `syscheck` with native object access auditing
-
 - [Agent flooding](flooding.md) - registry scan bursts can fill the agent queue
 - [Analysisd queue tuning](../server/analysisd.md)

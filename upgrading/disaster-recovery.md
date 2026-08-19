@@ -1,5 +1,3 @@
-<!-- Support: WS-26647 -->
-
 # Disaster Recovery Architecture
 
 Runbook for an **active/passive** Wazuh deployment: a primary site handles production traffic; a standby DR site at another location takes over when the primary is lost. Agents and log sources should target a **stable front-end** (load balancer hostname or DNS name), not a manager IP directly, so failover is transparent.

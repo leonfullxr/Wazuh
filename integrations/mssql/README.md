@@ -1,5 +1,3 @@
-<!-- Support: WS-27363, WS-34520, WS-34960, WS-37981 -->
-
 # Monitoring Microsoft SQL Server Audit Events
 
 Use Windows Event Channel collection to monitor SQL Server authentication and

@@ -74,8 +74,6 @@ Plus:
 
 ## Disaster recovery
 
-<!-- Support: WS-26647 -->
-
 Full runbook: [Disaster Recovery Architecture](disaster-recovery.md).
 
 When the primary Wazuh site may become unreachable, plan an **active/passive** standby site with automated failover (load balancer health checks or DNS switch). Before go-live:

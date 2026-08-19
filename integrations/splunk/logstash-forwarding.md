@@ -1,5 +1,3 @@
-<!-- Support: WS-19244 -->
-
 # Forwarding Wazuh Indexer Alerts to Splunk with Logstash
 
 This guide queries selected Wazuh Indexer indices with the Logstash OpenSearch

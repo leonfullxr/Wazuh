@@ -1,7 +1,5 @@
 # Cross-Cluster Search (CCS)
 
-<!-- Support: WS-31921, WS-35178, WS-32949, WS-27627, WS-33856 -->
-
 Cross-cluster search lets a central ("main") Wazuh Indexer cluster query the
 indices of one or more remote Wazuh environments - typical for multi-site or
 multi-tenant setups where each site keeps its own full Wazuh stack but a

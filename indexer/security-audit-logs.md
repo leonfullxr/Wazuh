@@ -1,5 +1,3 @@
-<!-- Support: WS-38338, WS-36711, WS-37030 -->
-
 # Wazuh Indexer Security Audit Logs
 
 OpenSearch Security audit logs record authentication, authorization, TLS, and
