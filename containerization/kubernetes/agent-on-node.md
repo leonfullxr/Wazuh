@@ -132,4 +132,4 @@ When nodes are commissioned and decommissioned automatically, agent enrollment h
 
 - [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) - running the agent *inside* the cluster instead
 - [Containerized agent (custom image)](./agent-daemonset.md) - when host access is not possible
-- [FIM in containerized environments](../FIM.md) - extending this setup with file integrity monitoring over the mounted volumes
+- [FIM in containerized environments](../../fim/containers.md) - extending this setup with file integrity monitoring over the mounted volumes

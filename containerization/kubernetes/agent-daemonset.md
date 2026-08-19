@@ -264,5 +264,5 @@ On EKS Fargate there are no nodes you control, so a DaemonSet (and FIM) is not p
 
 - [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) - modern approach using the official `wazuh/wazuh-agent` image
 - [Deploying an agent on a Kubernetes node](./agent-on-node.md) - supported host-level alternative
-- [FIM in containerized environments](../FIM.md) - why FIM is limited inside containers
+- [FIM in containerized environments](../../fim/containers.md) - why FIM is limited inside containers
 - [Wazuh on Amazon EKS](./eks.md)

@@ -2,7 +2,7 @@
 
 **Applies to:** Wazuh 4.x · Docker hosts and Kubernetes nodes
 
-[Back to containerization README](./README.md)
+[Back to FIM README](./README.md)
 
 ## Table of Contents
 
@@ -22,7 +22,7 @@ Container security monitoring with Wazuh works at two layers, and where you can 
 |----------------------|----------------|-----------------|
 | On the Docker host / K8s node (recommended) | Yes - full | Host filesystem, plus any container data exposed via volumes/bind mounts; Docker & K8s APIs |
 | Inside a container (DaemonSet) | Limited | Only volumes mounted into the agent container - not officially supported |
-| EKS Fargate / fully managed pods | No | No node access; use cloud log ingestion instead ([details](./kubernetes/agent-daemonset.md#eks-fargate-ship-logs-to-cloudwatch)) |
+| EKS Fargate / fully managed pods | No | No node access; use cloud log ingestion instead ([details](../containerization/kubernetes/agent-daemonset.md#eks-fargate-ship-logs-to-cloudwatch)) |
 
 ## Layer 1: the infrastructure
 
@@ -38,8 +38,8 @@ Typical alerts at this layer: a Docker image is modified, a container runs in pr
 
 Two options for monitoring the containers themselves:
 
-1. **Agent as a DaemonSet pod:** the agent accesses the filesystems other containers expose through volumes - reading logs, detecting config changes. **Not officially supported, and FIM is not available** against arbitrary container filesystems; the agent only sees what is mounted into its own pod. See [containerized agent (custom image)](./kubernetes/agent-daemonset.md).
-2. **Agent directly on the host (recommended):** full agent capabilities - FIM, log collection, SCA, Docker listener. See [deploying an agent on a K8s node](./kubernetes/agent-on-node.md).
+1. **Agent as a DaemonSet pod:** the agent accesses the filesystems other containers expose through volumes - reading logs, detecting config changes. **Not officially supported, and FIM is not available** against arbitrary container filesystems; the agent only sees what is mounted into its own pod. See [containerized agent (custom image)](../containerization/kubernetes/agent-daemonset.md).
+2. **Agent directly on the host (recommended):** full agent capabilities - FIM, log collection, SCA, Docker listener. See [deploying an agent on a K8s node](../containerization/kubernetes/agent-on-node.md).
 
 ## Recommended setup: agent on the host
 
@@ -116,6 +116,6 @@ Tune the `<directories>` and `<ignore>` entries to your workloads - excluding hi
 
 ## Related
 
-- [Deploying an agent on a Kubernetes node](./kubernetes/agent-on-node.md)
-- [Containerized agent as a DaemonSet](./kubernetes/agent-daemonset.md)
-- [Wazuh agent deployment - DaemonSet & Sidecar](./kubernetes/wazuh-agent-deployment.md)
+- [Deploying an agent on a Kubernetes node](../containerization/kubernetes/agent-on-node.md)
+- [Containerized agent as a DaemonSet](../containerization/kubernetes/agent-daemonset.md)
+- [Wazuh agent deployment - DaemonSet & Sidecar](../containerization/kubernetes/wazuh-agent-deployment.md)

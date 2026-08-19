@@ -21,7 +21,7 @@ after every rollout.
 
 | File | Description |
 |------|-------------|
-| [`FIM.md`](./FIM.md) | File Integrity Monitoring in containerized environments - what FIM can and cannot do per agent deployment model, volumes vs bind mounts, and centralized syscheck configuration |
+| [FIM in containers](../fim/containers.md) | File Integrity Monitoring in containerized environments - what FIM can and cannot do per agent deployment model, volumes vs bind mounts, and centralized syscheck configuration |
 | `puppet.txt` | Puppet-based provisioning notes for Wazuh agent deployment |
 
 ## Quick reference
@@ -33,7 +33,7 @@ after every rollout.
 | Persist custom rules, decoders, or dashboard settings | [Kubernetes persistence](./kubernetes/persistent-storage.md) |
 | Diagnose pod, DNS, or service failures | [Kubernetes debugging](./kubernetes/cluster-debugging.md) |
 | Agents show `disconnected` on the master but are active on their worker | [Agent-info sync failures](./kubernetes/agent-info-sync-failures.md) |
-| Understand FIM coverage in containers | [Container FIM](./FIM.md) |
+| Understand FIM coverage in containers | [FIM in containers](../fim/containers.md) |
 
 ## General notes
 

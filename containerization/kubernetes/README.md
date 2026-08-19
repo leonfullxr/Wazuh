@@ -30,4 +30,4 @@ Kubernetes deployment patterns, ConfigMap-based configuration management, and tr
 | [Archives disabled after pod update](./archives-disabled-after-update.md) | `wazuh-archives-*` indices stop receiving data after image upgrades due to `filebeat.yml` being regenerated at pod startup; ConfigMap + `subPath` mitigation |
 | [Persisting configuration and custom content](./persistent-storage.md) | What survives a pod restart vs. what is regenerated from the image; persisting dashboard config (RBAC `run_as`) and custom rules/decoders via ConfigMap + `subPath` |
 
-See also [FIM in containerized environments](../FIM.md) for what file integrity monitoring can and cannot do in each agent deployment model.
+See also [FIM in containerized environments](../../fim/containers.md) for what file integrity monitoring can and cannot do in each agent deployment model.

@@ -37,6 +37,8 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | A handful of rules generate most of your alert volume | [agents/flooding.md](agents/flooding.md#step-2-reduce-noise-at-the-source) |
 | macOS agent collects nothing useful / needs health metrics | [agents/macos.md](agents/macos.md) |
 | Windows registry monitoring misses changes or creates noise | [agents/windows-registry.md](agents/windows-registry.md) |
+| FIM inventory stops growing on a large share, with no error in `ossec.log` | [../fim/windows-file-servers.md](../fim/windows-file-servers.md#the-symptom-the-inventory-stops-growing) |
+| File deletions on a Windows share never appear (event 4660 missing) | [../fim/windows-file-servers.md](../fim/windows-file-servers.md#event-4660-may-never-appear) |
 | Remote agent upgrade fails with WPK certificate or `Send lock restart error` | [agents/custom-wpk.md](agents/custom-wpk.md) |
 | `events_dropped` / `discarded_count` non-zero on the manager | [server/analysisd.md](server/analysisd.md) |
 | Events dropped only in short bursts, or one cluster node saturates while others idle | [server/analysisd.md](server/analysisd.md#the-eps-limit-limitseps-throttles-bursts) |
