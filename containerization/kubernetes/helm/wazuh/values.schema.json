@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Wazuh chart values",
+  "description": "Constrains the values whose mistakes would otherwise only show up as a CrashLoopBackOff.",
+  "type": "object",
+  "properties": {
+    "certs": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["helm", "existing", "cert-manager"]
+        },
+        "caDuration": { "type": "integer", "minimum": 1 },
+        "duration": { "type": "integer", "minimum": 1 },
+        "extraDnsNames": { "type": "array", "items": { "type": "string" } },
+        "extraIpAddresses": { "type": "array", "items": { "type": "string" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "existing" } }, "required": ["mode"] },
+          "then": {
+            "properties": {
+              "existingIndexerSecret": { "type": "string", "minLength": 1 }
+            },
+            "required": ["existingIndexerSecret"]
+          }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "cert-manager" } }, "required": ["mode"] },
+          "then": {
+            "properties": {
+              "certManager": {
+                "type": "object",
+                "properties": {
+                  "issuerRef": {
+                    "type": "object",
+                    "properties": { "name": { "type": "string", "minLength": 1 } },
+                    "required": ["name"]
+                  }
+                },
+                "required": ["issuerRef"]
+              }
+            },
+            "required": ["certManager"]
+          }
+        }
+      ]
+    },
+    "manager": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "analysisdThreads": {
+          "description": "Never 0: that makes analysisd size its pools from the node CPU count instead of the cgroup quota.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "probes": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["tcp", "exec", "none"] }
+          }
+        },
+        "master": {
+          "type": "object",
+          "properties": { "replicas": { "type": "integer", "minimum": 1, "maximum": 1 } }
+        },
+        "worker": {
+          "type": "object",
+          "properties": { "replicas": { "type": "integer", "minimum": 0 } }
+        }
+      }
+    },
+    "indexer": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicas": { "type": "integer", "minimum": 1 },
+        "heapSize": {
+          "description": "JVM heap, e.g. 2g or 512m. Keep it near half of resources.limits.memory.",
+          "type": "string",
+          "pattern": "^[0-9]+[kmgKMG]$"
+        }
+      }
+    },
+    "dashboard": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicas": { "type": "integer", "minimum": 1 },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] }
+          }
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "proxyProtocol": { "type": "boolean" },
+        "master": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] }
+          }
+        },
+        "events": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] }
+          }
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "dataVolume": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["hostPath", "emptyDir"] }
+          }
+        }
+      }
+    },
+    "openshift": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "createSCCBindings": { "type": "boolean" }
+      }
+    }
+  }
+}

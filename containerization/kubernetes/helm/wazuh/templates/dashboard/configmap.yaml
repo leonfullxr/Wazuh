@@ -1,0 +1,33 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wazuh.fullname" . }}-dashboard-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "dashboard") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+data:
+  opensearch_dashboards.yml: |
+    server.host: 0.0.0.0
+    server.port: 5601
+    opensearch.hosts: {{ include "wazuh.indexerUrl" . | quote }}
+    # Chart-generated indexer cert includes service DNS names in the SAN, so
+    # the dashboard can verify the chain. Upstream uses none because its certs
+    # have no SAN.
+    opensearch.ssl.verificationMode: {{ ternary "none" "certificate" (eq .Values.certs.mode "existing") }}
+    opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
+    opensearch.requestHeadersWhitelist: [ authorization,securitytenant ]
+    opensearch_security.multitenancy.enabled: false
+    opensearch_security.readonly_mode.roles: ["kibana_read_only"]
+    server.ssl.enabled: true
+    server.ssl.key: "/usr/share/wazuh-dashboard/certs/key.pem"
+    server.ssl.certificate: "/usr/share/wazuh-dashboard/certs/cert.pem"
+    uiSettings.overrides.defaultRoute: /app/wz-home
+    opensearch_security.cookie.ttl: 900000
+    opensearch_security.session.ttl: 900000
+    opensearch_security.session.keepalive: true
+    {{- with .Values.dashboard.extraConfig }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

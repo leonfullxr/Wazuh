@@ -1,0 +1,524 @@
+# Default values for the Wazuh chart.
+#
+# Layout mirrors the knobs documented in ../../openshift.md so the knowledge
+# base and this chart stay aligned. Each setting exists because a guide in this
+# repository needs it.
+#
+# Quick starts:
+#   examples/values-minimal.yaml     single node, lab, ~2 vCPU / 3 GiB
+#   examples/values-eks.yaml         gp3, NLB, zone spread
+#   examples/values-openshift.yaml   SCC-compatible
+#   examples/values-agent-only.yaml  agent DaemonSet against an external manager
+
+global:
+  # Prepended to every image, including init containers. Use for a private
+  # registry or ECR mirror; nodes still need pull rights.
+  imageRegistry: ""
+  imagePullSecrets: []
+  # Overrides .Chart.AppVersion for all Wazuh images. Prefer bumping the chart
+  # appVersion; reserve this for pinning a hotfix build.
+  imageTag: ""
+  # Fallback StorageClass for components that omit their own.
+  storageClass: ""
+
+nameOverride: ""
+fullnameOverride: ""
+imagePullSecrets: []
+
+# OpenShift / OKD. Does not force a UID: manager and dashboard images need an
+# s6 init that writes as root, so runAsUser stays unset and anyuid must be
+# bound to the per-component ServiceAccounts. See ../../openshift.md.
+openshift:
+  enabled: false
+  # Emit SCC→ServiceAccount RoleBindings. Needs cluster-admin at install time.
+  # Leave false and bind with `oc adm policy` when the installer is not a
+  # cluster admin.
+  createSCCBindings: false
+  scc:
+    manager: anyuid
+    indexer: anyuid
+    dashboard: anyuid
+    agent: privileged
+
+serviceAccount:
+  # One SA per component (<fullname>-manager / -indexer / -dashboard / -agent).
+  # SCC and IRSA bindings attach to these, so creation is on by default.
+  create: true
+  annotations: {}
+
+# Object names stay fixed; content changes roll pods via a checksum annotation
+# because subPath mounts never hot-reload.
+credentials:
+  # When set, the chart creates no credential Secret and expects this one to
+  # already hold every key below:
+  #   indexer-username indexer-password
+  #   dashboard-username dashboard-password
+  #   api-username api-password
+  #   authd.pass cluster-key
+  existingSecret: ""
+
+  indexer:
+    username: admin
+    # Empty → random password on install, reused on upgrade via Secret lookup
+    # (upgrades do not rotate). The indexer reads internal_users.yml only on
+    # FIRST start of an empty cluster; later changes need
+    # indexer.security.runSecurityadmin=true. See README.
+    password: ""
+  dashboard:
+    username: kibanaserver
+    password: ""
+  # Wazuh API user for the dashboard and agent auto-enrollment.
+  api:
+    username: wazuh-wui
+    password: ""
+  # authd enrollment password. Mounted as authd.pass; never passed on a CLI.
+  authdPassword: ""
+  # Manager cluster key. Regenerating it splits the cluster; lookup-reused on
+  # upgrade like the passwords.
+  clusterKey: ""
+
+certs:
+  # helm         chart CA + leafs; Secret lookup on upgrade avoids mid-flight rotation
+  # existing     bring-your-own from wazuh-certs-tool.sh
+  # cert-manager emit Certificate resources
+  mode: helm
+
+  caDuration: 3650
+  duration: 3650
+
+  # certs.mode=existing. Secret key names must match upstream exactly:
+  #   indexer secret:   root-ca.pem node.pem node-key.pem admin.pem
+  #                     admin-key.pem filebeat.pem filebeat-key.pem
+  #   dashboard secret: root-ca.pem cert.pem key.pem
+  existingIndexerSecret: ""
+  existingDashboardSecret: ""
+
+  # certs.mode=cert-manager
+  certManager:
+    issuerRef:
+      name: ""
+      kind: Issuer
+      group: cert-manager.io
+
+  # Extra SANs on every leaf. Add external hostnames / LB FQDNs agents and
+  # browsers actually use; verification checks SAN, not CN.
+  # See ../../../certificates/component-certificates.md
+  extraDnsNames: []
+  extraIpAddresses: []
+
+  # certs.mode=helm only. Helm emits PKCS#1 keys; the indexer rejects them, so
+  # an init container rewrites with openssl. Wazuh images have no openssl; this
+  # image is pulled for that binary alone. Mirror it for airgapped clusters.
+  pkcs8InitImage:
+    registry: ""
+    repository: wazuh/wazuh-certs-generator
+    tag: "0.0.4"
+    pullPolicy: IfNotPresent
+
+  # Subjects for chart-generated certs and—more critically—for admin_dn /
+  # nodes_dn allowlists in opensearch.yml. With certs.mode=existing you MUST
+  # match the subjects your certificates carry or the indexer rejects its own
+  # nodes. wazuh-certs-tool.sh produces:
+  #   adminDn: "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+  #   nodesDn: "CN=<node name>,OU=Wazuh,O=Wazuh,L=California,C=US"
+  # Older wazuh-kubernetes generate_certs.sh produces:
+  #   adminDn: "CN=admin,O=Company,L=California,C=US"
+  #   nodesDn: "CN=indexer,O=Company,L=California,C=US"
+  # admin_dn: exact LDAP-name match, no wildcard. nodes_dn: string match, "*"
+  # allowed (e.g. "CN=*,OU=Wazuh,O=Wazuh,L=California,C=US").
+  # certs.mode=existing also needs PKCS#8 keys ("BEGIN PRIVATE KEY");
+  # wazuh-certs-tool.sh already writes those.
+  subject:
+    adminDn: ""
+    nodesDn: ""
+
+manager:
+  # false → agent DaemonSet alone against an external manager (agent.externalManager).
+  enabled: true
+
+  # <cluster><name> in ossec.conf. Unrelated to indexer.clusterName.
+  clusterName: wazuh
+
+  image:
+    registry: ""
+    repository: wazuh/wazuh-manager
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  # analysisd thread pools. 0 sizes from node CPU count, not cgroup quota; on a
+  # large node with a small limit that spawns thousands of threads, starves
+  # wazuh-db, and surfaces as Error 2013 / 2017 with agents "disconnected" on
+  # the master. Never set 0. See ../../agent-info-sync-failures.md
+  analysisdThreads: 4
+
+  # Manager image s6 init must write under /var/run and chown the ossec tree;
+  # no runAsUser. A non-root UID dies before init with
+  # "unable to mkdir /var/run/s6". On OpenShift bind anyuid instead of setting
+  # a UID here. See ../../openshift.md
+  podSecurityContext:
+    fsGroup: 101
+  containerSecurityContext:
+    capabilities:
+      add:
+        - SYS_CHROOT
+
+  # Fragments merged into generated master/worker ossec.conf.
+  extraOssecConfig: ""
+  # Full replacement when you manage ossec.conf yourself.
+  existingConfigMap: ""
+
+  filebeat:
+    # Entrypoint regenerates /etc/filebeat/filebeat.yml at every start from an
+    # in-image template AFTER volumes mount, so a ConfigMap at the destination
+    # is silently overwritten and archives revert to disabled after an image
+    # upgrade. Enabling this renders the template and mounts over the SOURCE
+    # path instead. See ../../archives-disabled-after-update.md
+    archivesEnabled: false
+    # Raw filebeat.yml (implies source-path mount). Extract the current default
+    # before overriding; re-diff on every version bump:
+    #   kubectl run --rm -it --image=wazuh/wazuh-manager:<tag> extract \
+    #     --restart=Never -- cat \
+    #     /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
+    config: ""
+    existingConfigMap: ""
+
+  # Health probes. Default TCP: no official health endpoint, and an exec probe
+  # that spawns an interpreter every 30s loads the same wazuh-db that is already
+  # the bottleneck when things fail. tcp | exec | none.
+  # See ../../agent-info-sync-failures.md
+  probes:
+    type: tcp
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 10
+    failureThreshold: 3
+    # probes.type=exec. Stock image has no socat; needs a custom image that adds it.
+    execCommand: []
+
+  master:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+    persistence:
+      enabled: true
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 50Gi
+      # Prefer a different class than the indexer when that class is
+      # network-attached: /var/ossec/queue/db is latency-sensitive.
+      annotations: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    podLabels: {}
+    priorityClassName: ""
+    extraEnv: []
+    extraVolumes: []
+    extraVolumeMounts: []
+
+  worker:
+    # 0 → single-node: master keeps 1514 and the events Service targets it.
+    # Production wants ≥2 plus a load balancer for agent balancing.
+    replicas: 2
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+    persistence:
+      enabled: true
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 50Gi
+      annotations: {}
+    nodeSelector: {}
+    tolerations: []
+    # Soft anti-affinity by default: spread when possible, do not leave Pending
+    # on a small cluster.
+    affinity: {}
+    podAntiAffinity: soft   # soft | hard | ""
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    podLabels: {}
+    priorityClassName: ""
+    extraEnv: []
+    extraVolumes: []
+    extraVolumeMounts: []
+
+  # Optional log retention. Manager never deletes alerts/archives itself and
+  # the path is fixed, so a full PV is a matter of when. Archives grow much
+  # faster than alerts.
+  logRetention:
+    enabled: false
+    schedule: "0 3 * * *"
+    alertsRetentionDays: 90
+    archivesRetentionDays: 30
+
+indexer:
+  enabled: true
+
+  image:
+    registry: ""
+    repository: wazuh/wazuh-indexer
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  # Lab: 1. Otherwise odd and ≥3; even counts buy nothing over the odd below.
+  replicas: 3
+
+  clusterName: wazuh
+
+  # Image creates GID/UID 1000 and stores data under /var/lib/wazuh-indexer.
+  # Match upstream; do not swap to 101 (that is the manager UID).
+  podSecurityContext:
+    fsGroup: 1000
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    capabilities:
+      add:
+        - SYS_CHROOT
+
+  # ~half the memory limit, min == max, never above ~32g. Both -Xms and -Xmx
+  # come from this one value.
+  heapSize: 2g
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 100Gi
+    annotations: {}
+
+  # busybox init raises vm.max_map_count to 262144. Needs privileged;
+  # restricted-v2 on OpenShift forbids it. Set false and configure the node
+  # instead (Node Tuning Operator, kubelet allowed-unsafe-sysctls, or node image).
+  sysctlInitContainer:
+    enabled: true
+    value: 262144
+
+  # Chowns the data dir to 1000:1000 before start. Skip when the StorageClass
+  # honours fsGroup.
+  chownInitContainer:
+    enabled: true
+
+  initImage:
+    registry: ""
+    repository: busybox
+    tag: "1.36"
+    pullPolicy: IfNotPresent
+
+  security:
+    # Re-apply internal_users.yml to a RUNNING cluster via securityadmin.sh.
+    # File is loaded only when bootstrapping an empty cluster, so without this
+    # a values.yaml password change has no effect. Post-upgrade Helm hook Job.
+    runSecurityadmin: false
+
+  # Raw opensearch.yml additions, merged over the generated config.
+  extraConfig: {}
+
+  service:
+    # Internal REST for manager, filebeat and dashboard. ClusterIP on purpose:
+    # upstream uses a LoadBalancer and hairpins intra-cluster traffic through
+    # a cloud LB.
+    type: ClusterIP
+    port: 9200
+    annotations: {}
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAntiAffinity: soft
+  # Spread across zones rather than pinning to one. Zonal RWO volumes follow
+  # the pod; a single-zone pin makes that zone the failure domain.
+  topologySpreadConstraints: []
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  extraEnv: []
+
+dashboard:
+  enabled: true
+  image:
+    registry: ""
+    repository: wazuh/wazuh-dashboard
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicas: 1
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+  service:
+    type: ClusterIP
+    port: 443
+    annotations: {}
+
+  # Same s6-init constraint as the manager; left unconstrained by default.
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
+  # RBAC run_as. Dashboard rewrites wazuh.yml at every start unless the file is
+  # mounted, so this is a ConfigMap + subPath mount.
+  runAs: true
+
+  extraConfig: {}
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: wazuh.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  # OpenShift Route. Agent traffic never goes through a Route; keep it on a Service.
+  route:
+    enabled: false
+    host: ""
+    annotations: {}
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  extraEnv: []
+
+# Manager-facing services.
+# 1514 (events) and 1515 (enrollment) are raw TCP. Never put them behind an
+# HTTP Ingress or AWS ALB—the L7 proxy parses the stream as HTTP and resets it.
+# The chart will not render an Ingress for them. For ingress-nginx use its
+# tcp-services ConfigMap. See ../../load-balancing-and-ingress.md
+service:
+  # Master: Wazuh API (55000) and enrollment (1515).
+  master:
+    type: ClusterIP
+    apiPort: 55000
+    registrationPort: 1515
+    annotations: {}
+    loadBalancerSourceRanges: []
+  # Events: agent log traffic (1514). Selects workers, or master when
+  # manager.worker.replicas is 0.
+  events:
+    type: ClusterIP
+    port: 1514
+    annotations: {}
+    loadBalancerSourceRanges: []
+  # PROXY protocol is all-or-nothing per hop; remoted does not parse it. This
+  # switch drives every annotation that would enable it. Hop mismatch is the
+  # usual cause of agents that enroll but never send events.
+  proxyProtocol: false
+
+# Write ingress-nginx tcp-services ConfigMap entries for 1514/1515. Controller
+# must already run with --tcp-services-configmap and expose those ports; this
+# only writes the mapping.
+tcpServices:
+  enabled: false
+  configMapName: tcp-services
+  configMapNamespace: ingress-nginx
+
+# Optional agent DaemonSet.
+# A containerized agent only sees mounts into its pod and inventories the
+# CONTAINER's packages, not the node's. For full node coverage install the
+# agent on the host OS. See ../../wazuh-agent-deployment.md and
+# ../../../fim/containers.md
+agent:
+  enabled: false
+
+  image:
+    registry: ""
+    repository: wazuh/wazuh-agent
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  # Point at an external manager instead of this release. Set both when running
+  # the agent alone (manager/indexer/dashboard disabled) as a satellite.
+  externalManager:
+    address: ""
+    registrationAddress: ""
+
+  group: ""
+  # hostPath keeps the agent key across restarts (stable ID). Node-local: a
+  # replaced node loses the key and re-enrolls. emptyDir drops persistence;
+  # expect re-enrollment every restart (manager force/key_mismatch absorbs it).
+  # DaemonSets cannot use volumeClaimTemplates, so no PVC option.
+  dataVolume:
+    type: hostPath   # hostPath | emptyDir
+    hostPath: /var/lib/wazuh
+
+  # Mount node /var/log read-only so the agent can read pod logs written there.
+  hostLogs:
+    enabled: true
+    path: /var/log
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      memory: 512Mi
+
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector: {}
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  extraEnv: []
+  terminationGracePeriodSeconds: 20
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# NetworkPolicy is not templated. Useful policy depends on CNI, agent sources,
+# and which namespaces reach the dashboard; a subtly wrong policy is worse than
+# none. Write policies beside the release. Pods carry
+# app.kubernetes.io/component (manager, indexer, dashboard, agent); manager pods
+# also carry wazuh.com/node-type.
+
+# Custom rules/decoders as ConfigMap content so `helm upgrade` is the deploy
+# path. See ../../../rules/ and ../../../decoders/
+customRules: {}
+customDecoders: {}
+
+customLists: {}
+
+commonLabels: {}
+commonAnnotations: {}

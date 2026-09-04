@@ -1,0 +1,31 @@
+# Single-node lab. About 2 vCPU and 3 GiB for the whole release.
+#
+# Not production: one indexer means no replica shards, one manager means no
+# agent load balancing. Fine for kind, k3d, minikube or a small dev cluster.
+
+manager:
+  worker:
+    # No workers — master keeps 1514 so agents still have an events endpoint;
+    # the events Service points at it automatically.
+    replicas: 0
+  master:
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+    persistence:
+      size: 5Gi
+  analysisdThreads: 2
+
+indexer:
+  replicas: 1
+  heapSize: 512m
+  resources:
+    requests: { cpu: 250m, memory: 1Gi }
+    limits: { cpu: "1", memory: 1536Mi }
+  persistence:
+    size: 10Gi
+
+dashboard:
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 1Gi }

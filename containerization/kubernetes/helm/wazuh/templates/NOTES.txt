@@ -1,0 +1,104 @@
+{{ .Chart.Name }} {{ .Chart.AppVersion }} installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+Components
+{{- if .Values.manager.enabled }}
+  manager master   {{ include "wazuh.manager.master.fullname" . }} (1 replica)
+{{- if include "wazuh.hasWorkers" . }}
+  manager workers  {{ include "wazuh.manager.worker.fullname" . }} ({{ .Values.manager.worker.replicas }} replicas)
+{{- else }}
+  manager workers  none: single-node mode, the master handles agent events on 1514
+{{- end }}
+{{- end }}
+{{- if .Values.indexer.enabled }}
+  indexer          {{ include "wazuh.indexer.fullname" . }} ({{ .Values.indexer.replicas }} replicas)
+{{- end }}
+{{- if .Values.dashboard.enabled }}
+  dashboard        {{ include "wazuh.dashboard.fullname" . }} ({{ .Values.dashboard.replicas }} replicas)
+{{- end }}
+{{- if .Values.agent.enabled }}
+  agent            {{ include "wazuh.agent.fullname" . }} (DaemonSet)
+{{- end }}
+
+Watch it come up:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+{{- if .Values.indexer.enabled }}
+
+The indexer must form its cluster first; manager and dashboard pods restart
+until it answers on 9200. Normal on a fresh install.
+{{- end }}
+
+Credentials
+{{- if .Values.credentials.existingSecret }}
+  Read from the pre-existing secret {{ .Values.credentials.existingSecret }}.
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "wazuh.credentialsSecretName" . }} \
+    -o go-template='{{ "{{" }} range $k, $v := .data {{ "}}" }}{{ "{{" }} $k {{ "}}" }}={{ "{{" }} $v | base64decode {{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}{{ "{{" }} end {{ "}}" }}'
+{{- if not .Values.credentials.indexer.password }}
+
+  Passwords were generated at install and reused on upgrade. They only appear
+  in this Secret — save them now.
+{{- end }}
+{{- end }}
+
+{{ if .Values.dashboard.enabled -}}
+Dashboard
+{{- if .Values.dashboard.ingress.enabled }}
+{{- range .Values.dashboard.ingress.hosts }}
+  https://{{ .host }}
+{{- end }}
+{{- else if .Values.dashboard.route.enabled }}
+  oc -n {{ .Release.Namespace }} get route {{ include "wazuh.dashboard.fullname" . }}
+{{- else if eq .Values.dashboard.service.type "LoadBalancer" }}
+  kubectl -n {{ .Release.Namespace }} get svc {{ include "wazuh.dashboard.fullname" . }} -w
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "wazuh.dashboard.fullname" . }} 8443:{{ .Values.dashboard.service.port }}
+  then https://localhost:8443
+{{- end }}
+  Log in with the indexer username and password.
+{{ end -}}
+
+{{ if .Values.manager.enabled -}}
+Agent enrollment
+  events        {{ include "wazuh.managerEventsServiceName" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.events.port }}
+  registration  {{ include "wazuh.managerServiceName" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.master.registrationPort }}
+{{- if and (eq .Values.service.events.type "ClusterIP") (not .Values.tcpServices.enabled) }}
+
+  Both services are ClusterIP, so external agents cannot reach them yet. Set
+  service.events.type and service.master.type to LoadBalancer, or enable
+  tcpServices and expose 1514/1515 on your ingress controller. Never put these
+  ports behind an HTTP Ingress or an ALB — the proxy treats the agent stream as
+  HTTP and resets it.
+{{- end }}
+{{ end -}}
+
+{{- if eq .Values.certs.mode "helm" }}
+
+Certificates
+  The chart created its own CA and certificates. Upgrades reuse them (no
+  rotation). `helm template` / `--dry-run` show newly generated material instead
+  of cluster state — that is expected. Agents do not use these; they cover
+  manager-to-indexer and dashboard traffic.
+{{- end }}
+
+{{- if not .Values.credentials.existingSecret }}
+{{- if or (not .Values.credentials.indexer.password) (not .Values.credentials.dashboard.password) }}
+
+Rotating indexer credentials later
+  The indexer reads internal_users.yml only while bootstrapping an empty
+  cluster. Editing a password in values.yaml alone does nothing afterwards;
+  set indexer.security.runSecurityadmin=true so the post-upgrade Job applies
+  the change to the running cluster.
+{{- end }}
+{{- end }}
+
+{{ if .Values.manager.enabled -}}
+If agents are active on a worker but disconnected on the master, and logs show
+"Error 2013", "Error 2017" or "database is locked on endpoint:
+/v1/agents/sync", count analysisd threads in the manager pod:
+
+  kubectl -n {{ .Release.Namespace }} exec {{ include "wazuh.manager.master.fullname" . }}-0 -- sh -c 'ls /proc/$(pgrep -f wazuh-analysisd)/task | wc -l'
+
+manager.analysisdThreads is currently {{ .Values.manager.analysisdThreads }}.
+Thousands of threads usually means the setting is not applied.
+See containerization/kubernetes/agent-info-sync-failures.md
+{{ end -}}

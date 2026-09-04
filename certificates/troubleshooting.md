@@ -107,7 +107,7 @@ journalctl -u wazuh-indexer -f
 
 The `bad_certificate` errors should stop and cluster nodes should join cleanly.
 
-**TL;DR:** clock → `openssl x509 -dates -ext subjectAltName` → modulus match → `openssl s_client` → CA in truststore → regenerate → restart.
+**TL;DR:** clock -> `openssl x509 -dates -ext subjectAltName` -> modulus match -> `openssl s_client` -> CA in truststore -> regenerate -> restart.
 
 ## Case study: inverted validity window
 
@@ -402,7 +402,7 @@ If the key is passphrase-protected, `openssl pkey` prompts for it; a `bad decryp
 
 ```bash
 openssl verify -show_chain -CAfile ca-chain.pem server.crt
-# server.crt: OK   → then depth=0 leaf, depth=1 intermediate, depth=2 root ...
+# server.crt: OK   -> then depth=0 leaf, depth=1 intermediate, depth=2 root ...
 ```
 
 **3. Malformed PEM (the sneaky one).** If the service fails with OpenSSL **ASN.1 / PEM** errors rather than a mismatch or missing-file error, the file *content* is corrupted - the trust relationship is fine:
@@ -423,6 +423,8 @@ openssl pkey -in server.key -out server-clean.key   # normalize the key
 ```
 
 > A `sha256sum` match in step 1 proves the key/cert pair even when the raw files are misformatted for a given consumer - so a passing match **plus** a failing service startup points squarely at step 3 (formatting), not at the wrong key.
+
+For the Wazuh dashboard specifically (including the do-not-overwrite-`root-ca.pem` rule and rollback steps), see [Troubleshoot the dashboard after a certificate change](enterprise-ca.md#troubleshoot-the-dashboard-after-a-certificate-change).
 
 ## Useful openssl one-liners
 

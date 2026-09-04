@@ -6,65 +6,95 @@
 
 ## Support status
 
-OpenShift is **not officially supported**. The `wazuh-kubernetes` manifests are written for upstream Kubernetes and assume permissions that OpenShift denies by default. OpenShift enforces **Security Context Constraints (SCCs)**, which are stricter than plain Kubernetes Pod Security - the default `restricted-v2` SCC will block the deployment at the most basic level.
+OpenShift is **not officially supported**. The `wazuh-kubernetes` manifests
+target upstream Kubernetes and assume permissions OpenShift blocks by default.
+OpenShift enforces **Security Context Constraints (SCCs)**, which are stricter
+than plain Kubernetes Pod Security — the default `restricted-v2` SCC stops the
+deployment at the first gate.
 
-Getting Wazuh running therefore requires an OpenShift administrator to grant the right SCCs (or craft a custom one) to the ServiceAccounts of each component. The guidance below is a tested starting point, not a plug-and-play overlay.
+An OpenShift administrator has to grant the right SCCs (or write a custom one)
+to each component's ServiceAccount before Wazuh will start. What follows is a
+tested starting point, not a drop-in overlay.
 
 ## Why the default `restricted-v2` SCC fails
 
-Two blockers stop the stock manifests from ever reaching a `Ready` state under `restricted-v2`.
+Two blockers keep the stock manifests from ever reaching `Ready` under
+`restricted-v2`.
 
 ### 1. Random UIDs and the s6-overlay entrypoint (primary blocker)
 
-OpenShift assigns each pod a **random, high UID** (for example `1009430000`) and forbids running as `root`. The Wazuh Manager uses `s6-overlay` to supervise its internal processes, and s6 needs root-level permissions to build its runtime directory at startup. Under a restricted UID the container fails during pre-init:
+OpenShift gives each pod a **random, high UID** (for example `1009430000`) and
+refuses `root`. The Wazuh Manager relies on `s6-overlay` to supervise its
+internal processes, and s6 needs root-level permissions to create its runtime
+directory at startup. Under a restricted UID the container dies in pre-init:
 
 ```text
 s6-overlay-preinit: fatal: unable to mkdir /var/run/s6: Permission denied
 ```
 
-The Manager (and Dashboard) never start. The fix is to let these components run as their expected user:
+Neither the Manager nor the Dashboard starts. Allow these components to run as
+their expected user:
 
 - Grant the `anyuid` SCC to the Manager and Dashboard ServiceAccounts, **or**
-- Build custom images with the user/group ownership adjusted so the entrypoint works under an arbitrary UID.
+- Build custom images whose user/group ownership lets the entrypoint work
+  under an arbitrary UID.
 
-A forced UID does not work as a middle path. Forcing UID `101` lets the pod reach `Running`, but the internal binaries stay owned by `root:wazuh`, so commands such as `agent_control` fail with `Permission denied`. Forcing UID `999` to match the internal group breaks s6-overlay pre-initialization without an error, and the container never generates `ossec.conf`.
+Forcing a fixed UID is not a workable middle ground. UID `101` gets the pod to
+`Running`, but internal binaries stay owned by `root:wazuh`, so tools like
+`agent_control` fail with `Permission denied`. UID `999` (to match the
+internal group) breaks s6-overlay pre-initialization with no clear error, and
+the container never writes `ossec.conf`.
 
-> **This is confirmed behavior, not a gap in the manifests.** The image requires root
-> privileges for its startup sequence and for internal operation, not only for the
-> entrypoint. Wazuh 5.0.0 replaces s6-overlay with the lighter
-> [tini](https://github.com/krallin/tini) init process. That change does not remove
-> the root requirement. Granting `anyuid`, or an equivalent policy that allows the
-> container to initialize as root before it drops privileges internally, is
-> effectively a prerequisite for the Manager on OpenShift.
+> **Confirmed behavior, not a gap in the manifests.** The image needs root for
+> its startup sequence and for internal operation, not only for the
+> entrypoint. Wazuh 5.0.0 swaps s6-overlay for the lighter
+> [tini](https://github.com/krallin/tini) init process. That change does not
+> drop the root requirement. Granting `anyuid`, or an equivalent policy that
+> lets the container initialize as root before dropping privileges internally,
+> is effectively required for the Manager on OpenShift.
 
 ### 2. Indexer `vm.max_map_count` init container
 
-The Wazuh Indexer requires the host kernel setting `vm.max_map_count=262144`. The stock manifests apply this with a **privileged** `initContainer` (typically named `increase-the-vm-max-map-count`). `restricted-v2` rejects the privileged init container, so the indexer pod stays stuck in initialization and never becomes `Ready`.
+The Wazuh Indexer needs the host kernel setting `vm.max_map_count=262144`. The
+stock manifests set this with a **privileged** `initContainer` (usually named
+`increase-the-vm-max-map-count`). `restricted-v2` rejects that privileged init
+container, so the indexer pod stays stuck in initialization and never becomes
+`Ready`.
 
-Two resolution paths:
+Two ways out:
 
-- **Preferred - set the sysctl at the node level** with the OpenShift **Node Tuning Operator**. This removes the need for a privileged init container entirely.
-- **Alternative - grant the `privileged` SCC** to the indexer ServiceAccount so the existing init container is allowed to run.
+- **Preferred — set the sysctl at the node level** with the OpenShift **Node
+  Tuning Operator**. That removes the need for a privileged init container.
+- **Alternative — grant the `privileged` SCC** to the indexer ServiceAccount
+  so the existing init container can run.
 
 ## Recommended SCC per component
 
 | Component | SCC | Why |
 |-----------|-----|-----|
 | Manager | `anyuid` | Fixed UID (`101`) outside OpenShift's random range; s6-overlay needs root-level init. |
-| Indexer | `anyuid` (+ node-level sysctl, or `privileged` for the init container) | Fixed UID; requires `vm.max_map_count` and volume ownership fixes. |
+| Indexer | `anyuid` (+ node-level sysctl, or `privileged` for the init container) | Fixed UID; needs `vm.max_map_count` and volume ownership fixes. |
 | Dashboard | `anyuid` (or `restricted-v2` if the image is built to run as a non-privileged user) | Expects its own user during startup. |
 | Agent (DaemonSet) | `privileged` | Needs host filesystem (`/var/log`, `/etc`, ...), host network and host PID namespaces for log collection and FIM. |
 
 ### Typical UIDs, capabilities, and settings
 
-- **UID/GID:** Wazuh components generally run as UID `101`. OpenShift ignores `runAsUser` in the manifest unless the assigned SCC permits it (e.g. `anyuid`).
-- **Capabilities:** the Indexer commonly needs `CHOWN`, `DAC_OVERRIDE`, `FOWNER`; a host-monitoring Agent commonly needs `SYS_PTRACE`, `DAC_READ_SEARCH`, `NET_ADMIN`.
-- **`fsGroup`:** set it to the group that owns the persistent volumes (usually `101`, sometimes `0`) so the container can write to its data directories.
-- **SELinux:** agents that must read host files may need the `spc_t` SELinux type to bypass confinement.
+- **UID/GID:** Wazuh components typically run as UID `101`. OpenShift ignores
+  `runAsUser` in the manifest unless the assigned SCC allows it (for example
+  `anyuid`).
+- **Capabilities:** the Indexer often needs `CHOWN`, `DAC_OVERRIDE`,
+  `FOWNER`; a host-monitoring Agent often needs `SYS_PTRACE`,
+  `DAC_READ_SEARCH`, `NET_ADMIN`.
+- **`fsGroup`:** set it to the group that owns the persistent volumes
+  (usually `101`, sometimes `0`) so the container can write its data
+  directories.
+- **SELinux:** agents that must read host files may need the `spc_t` SELinux
+  type to escape confinement.
 
 ## Binding ServiceAccounts to SCCs
 
-Bind each component's ServiceAccount to its SCC before deploying (replace `<namespace>` with your deployment namespace):
+Bind each component's ServiceAccount to its SCC before you deploy (replace
+`<namespace>` with your deployment namespace):
 
 ```bash
 # Manager and Indexer
@@ -80,7 +110,12 @@ oc adm policy add-scc-to-user privileged -z wazuh-agent -n <namespace>
 
 ## Custom SCC (community reference)
 
-There is no official custom SCC. The following manifest - used by community deployments on OKD/OpenShift 4.x - forces UID `101` for the Wazuh ServiceAccounts and is a reasonable starting point. It does **not** by itself solve the s6-overlay root requirement or the indexer sysctl; pair it with `anyuid` for the Manager/Dashboard and a node-level sysctl (Node Tuning Operator) for the Indexer.
+No official custom SCC exists. The manifest below — used by community
+deployments on OKD/OpenShift 4.x — forces UID `101` for the Wazuh
+ServiceAccounts and is a reasonable starting point. Alone it does **not** fix
+the s6-overlay root requirement or the indexer sysctl; combine it with
+`anyuid` for Manager/Dashboard and a node-level sysctl (Node Tuning Operator)
+for the Indexer.
 
 ```yaml
 apiVersion: security.openshift.io/v1
@@ -114,15 +149,26 @@ users:
 
 ## Kustomize and persistent storage notes
 
-- Keep the `securityContext` blocks in your Kustomize overlays / values consistent with the SCCs you assign - a `securityContext` that contradicts the SCC produces confusing admission failures.
-- The StorageClass must honour `fsGroup`, or you must `chown` the volume with an init container, so the pod's UID can write to its PersistentVolume.
+- Keep `securityContext` blocks in your Kustomize overlays / values aligned
+  with the SCCs you assign — a `securityContext` that fights the SCC produces
+  confusing admission failures.
+- The StorageClass must honour `fsGroup`, or you must `chown` the volume with
+  an init container, so the pod's UID can write its PersistentVolume.
 
 ## Deploying via Helm or GitOps (Argo CD)
 
-There is **no official Wazuh Helm chart** - the supported Kubernetes deployment is the Kustomize-based [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) repo. Two paths for GitOps shops:
+There is **no official Wazuh Helm chart** — the supported Kubernetes path is
+the Kustomize-based
+[wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) repo. Two
+options for GitOps shops:
 
-- **Argo CD supports Kustomize natively.** A "Helm-only" blocker is usually a *tenant-policy* constraint, not an Argo CD limitation - point an Argo CD `Application` straight at the Kustomize overlay path and no chart is needed. Try this first.
-- **If a Helm chart is mandatory**, wrap the manifests in a thin, **unofficial** chart - one template per workload (indexer/manager/dashboard StatefulSets + Services) - exposing only the overrides a tenant needs:
+- **Argo CD supports Kustomize natively.** A "Helm-only" blocker is usually a
+  *tenant-policy* rule, not an Argo CD limitation — point an Argo CD
+  `Application` straight at the Kustomize overlay path and skip the chart.
+  Try this first.
+- **If a Helm chart is mandatory**, wrap the manifests in a thin,
+  **unofficial** chart — one template per workload (indexer/manager/dashboard
+  StatefulSets + Services) — exposing only the overrides a tenant needs:
 
     ```yaml
     # values.yaml (the override surface, not the whole chart)
@@ -133,9 +179,16 @@ There is **no official Wazuh Helm chart** - the supported Kubernetes deployment 
     dashboard: { replicas: 1, image: { repository: wazuh/wazuh-dashboard, tag: "4.14.4" }, existingSecret: "", resources: {}, service: { type: ClusterIP, port: 443 } }
     ```
 
-    This is a maintenance liability - it drifts from upstream on every Wazuh release and falls outside Wazuh support. Treat it as your artifact, not a supported one. Whichever path you choose, still apply the [SCC bindings](#binding-serviceaccounts-to-sccs) above.
+    That chart is a maintenance liability — it drifts from upstream on every
+    Wazuh release and sits outside Wazuh support. Treat it as your own
+    artifact. Either way, still apply the
+    [SCC bindings](#binding-serviceaccounts-to-sccs) above.
 
-**OpenShift ingress = Route.** Expose the dashboard with an OpenShift `Route` (or the patterns in [load balancing and ingress](./load-balancing-and-ingress.md)); keep agent traffic on **1514/1515 over a plain TCP path** (a `LoadBalancer` Service or L4 passthrough), never an HTTP Route.
+**OpenShift ingress = Route.** Expose the dashboard with an OpenShift `Route`
+(or the patterns in
+[load balancing and ingress](./load-balancing-and-ingress.md)); keep agent
+traffic on **1514/1515 over a plain TCP path** (a `LoadBalancer` Service or L4
+passthrough), never an HTTP Route.
 
 ## Troubleshooting
 
@@ -147,15 +200,25 @@ oc get pod <pod-name> -o yaml | grep scc
 oc logs <pod-name>
 ```
 
-`Permission denied` on entrypoint scripts almost always means the pod ran under a restricted UID it did not expect - revisit the SCC binding for that component's ServiceAccount.
+`Permission denied` on entrypoint scripts almost always means the pod ran
+under a restricted UID it did not expect — recheck the SCC binding for that
+component's ServiceAccount.
 
 ### Health probes
 
-Use probes with a low cost on the manager pods. Select TCP socket probes on port `55000` or `1515` for the master, and port `1514` for the workers. An exec probe that starts a Python interpreter to query `/var/ossec/queue/db/wdb` on a short period adds CPU load and socket churn, which makes contention worse. The restricted SCC also blocks some of these probes. For the probe strategy, and for the wazuh-db stall that these probes usually try to detect, refer to [agent-info sync failures](./agent-info-sync-failures.md#health-probes-for-manager-pods).
+Prefer low-cost probes on the manager pods. Use TCP socket probes on port
+`55000` or `1515` for the master, and port `1514` for the workers. An exec
+probe that starts a Python interpreter to query
+`/var/ossec/queue/db/wdb` on a short period adds CPU load and socket churn,
+which worsens contention. The restricted SCC also blocks some of these probes.
+For the probe strategy, and for the wazuh-db stall those probes usually try to
+catch, see
+[agent-info sync failures](./agent-info-sync-failures.md#health-probes-for-manager-pods).
 
 ## Community references
 
-These public discussions capture the exact permission errors and workarounds other users hit on OpenShift:
+These public threads document the exact permission errors and workarounds
+other users hit on OpenShift:
 
 - [wazuh-kubernetes issue #241 - Wazuh on OpenShift](https://github.com/wazuh/wazuh-kubernetes/issues/241)
 - [wazuh-docker issue #790 - Can't deploy Wazuh on OpenShift](https://github.com/wazuh/wazuh-docker/issues/790)
@@ -163,7 +226,7 @@ These public discussions capture the exact permission errors and workarounds oth
 ## Related
 
 - [Agent-info sync failures](./agent-info-sync-failures.md) - agents `active` on a worker but `disconnected` on the master: too many analysisd threads, wazuh-db storage latency, and probe strategy
-- [Syscollector network inventory](../../troubleshooting/agents/syscollector-network-inventory.md) - an empty interface inventory on the nodes that hold a keepalived-managed API or Ingress VIP
-- [Wazuh on Amazon EKS](./eks.md) - storage, affinity, and configuration details that carry over to any Kubernetes distribution
+- [Syscollector network inventory](../../troubleshooting/agents/syscollector-network-inventory.md) - empty interface inventory on nodes that hold a keepalived-managed API or Ingress VIP
+- [Wazuh on Amazon EKS](./eks.md) - storage, affinity, and configuration details that apply on any Kubernetes distribution
 - [Kubernetes persistent storage and config persistence](./persistent-storage.md)
 - [Official Wazuh Kubernetes documentation](https://documentation.wazuh.com/current/deployment-options/deploying-with-kubernetes/index.html)

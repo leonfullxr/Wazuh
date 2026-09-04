@@ -1,0 +1,39 @@
+# cert-manager issues and rotates the internal certificates.
+#
+# Create an Issuer first. A self-signed CA chain is typical — these certs are
+# only trusted by Wazuh's own components:
+#
+#   apiVersion: cert-manager.io/v1
+#   kind: Issuer
+#   metadata: { name: wazuh-selfsigned, namespace: wazuh }
+#   spec: { selfSigned: {} }
+#   ---
+#   apiVersion: cert-manager.io/v1
+#   kind: Certificate
+#   metadata: { name: wazuh-ca, namespace: wazuh }
+#   spec:
+#     isCA: true
+#     commonName: wazuh-ca
+#     secretName: wazuh-ca
+#     privateKey: { algorithm: RSA, size: 4096, encoding: PKCS8 }
+#     issuerRef: { name: wazuh-selfsigned, kind: Issuer, group: cert-manager.io }
+#   ---
+#   apiVersion: cert-manager.io/v1
+#   kind: Issuer
+#   metadata: { name: wazuh-ca-issuer, namespace: wazuh }
+#   spec: { ca: { secretName: wazuh-ca } }
+#
+# The chart sets privateKey.encoding: PKCS8 on Certificates it creates.
+# cert-manager defaults to PKCS#1, which the indexer cannot load — keep that
+# encoding on any Certificate you write yourself.
+
+certs:
+  mode: cert-manager
+  certManager:
+    issuerRef:
+      name: wazuh-ca-issuer
+      kind: Issuer
+      group: cert-manager.io
+  subject:
+    adminDn: "CN=admin"
+    nodesDn: "CN=indexer"

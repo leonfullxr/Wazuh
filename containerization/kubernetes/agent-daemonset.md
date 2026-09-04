@@ -4,9 +4,9 @@
 
 [Back to Kubernetes README](./README.md)
 
-> **Not officially supported.** Running the Wazuh agent inside a container is a custom setup - Wazuh does not natively support containerized agents, and some capabilities (notably FIM against other containers' filesystems) are limited. You must build the image yourself and host it in a private registry so all worker nodes can pull it.
+> **Not officially supported.** Putting the Wazuh agent in a container is a custom arrangement. Wazuh does not support containerized agents out of the box, and several features are constrained (FIM against other containers' filesystems in particular). You build the image yourself and publish it to a private registry that every worker node can pull from.
 >
-> For the officially recommended alternatives see [Deploying an agent on a Kubernetes node](./agent-on-node.md) (agent on the host OS) and [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) (modern manifests based on the official `wazuh/wazuh-agent` image).
+> Officially recommended options: [Deploying an agent on a Kubernetes node](./agent-on-node.md) (agent on the host OS) and [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) (current manifests that use the official `wazuh/wazuh-agent` image).
 
 ## Table of Contents
 
@@ -19,14 +19,14 @@
 
 ## Concept and limitations
 
-- A container **cannot connect to the Docker host's services** - that is by design. A containerized agent does not "see" the host the way a natively installed agent does.
-- What a containerized agent (DaemonSet) *can* do is mount the volumes where other containers write, and monitor the files/logs found there.
-- Optionally, a script on the Docker host can copy host/Docker logs into a volume the agent mounts, so the agent ships them to the manager.
-- Mounting `/var/run/docker.sock` into the agent container lets the `docker-listener` wodle monitor Docker events (container start/stop, exec, etc.).
+- By design, a container **cannot connect to the Docker host's services**. A containerized agent does not observe the host the way a natively installed agent does.
+- A DaemonSet agent *can* mount the volumes other containers write to, then watch the files and logs that land there.
+- You can also run a host-side script that copies host or Docker logs into a volume the agent mounts, so those logs reach the manager.
+- Mount `/var/run/docker.sock` into the agent container if you want the `docker-listener` wodle to pick up Docker events (start/stop, exec, and similar).
 
 ## Build the agent image
 
-`Dockerfile` - replace the `.deb` URL with the version matching your manager (keep the `-1` package revision suffix):
+`Dockerfile` — swap the `.deb` URL for the package version that matches your manager (keep the `-1` revision suffix):
 
 ```dockerfile
 FROM python:3.9-slim-buster
@@ -49,7 +49,7 @@ RUN chmod 755 /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-`entrypoint.sh` - enrolls against the manager and enables the `docker-listener` wodle:
+`entrypoint.sh` — registers with the manager and turns on the `docker-listener` wodle:
 
 ```bash
 #!/bin/bash
@@ -62,7 +62,7 @@ tail -f /var/ossec/logs/ossec.log
 exit 1
 ```
 
-Build and push to your private registry:
+Build, then push to your private registry:
 
 ```bash
 docker build -t wazuh-agent:<VERSION> .
@@ -71,7 +71,7 @@ docker push <REGISTRY>/wazuh-agent:<VERSION>
 
 ## Single host: docker-compose
 
-For a single Docker host (no Kubernetes), the same image runs under compose:
+On a lone Docker host (no Kubernetes), run the same image under compose:
 
 ```yaml
 version: '3.7'
@@ -88,11 +88,11 @@ volumes:
   agent1-wazuh-etc:
 ```
 
-Persisting `/var/ossec/etc` keeps the agent key across container recreations, avoiding duplicate agent registrations.
+Keeping `/var/ossec/etc` on a volume preserves the agent key when the container is recreated, so you avoid duplicate registrations.
 
 ## Kubernetes: DaemonSet
 
-`wazuh-daemonset.yaml` - one agent pod per node. The example mounts an NGINX log volume plus the Docker socket and container log directory:
+`wazuh-daemonset.yaml` — one agent pod on each node. This sample mounts an NGINX log volume along with the Docker socket and the container log directory:
 
 ```yaml
 apiVersion: v1
@@ -161,7 +161,7 @@ spec:
           path: /var/lib/docker/containers
 ```
 
-Customize the image tag, manager IP, agent group (see [agent groups and centralized configuration](https://wazuh.com/blog/agent-groups-and-centralized-configuration/)), and the mounted volumes. Then apply and verify one pod lands on every node:
+Adjust the image tag, manager IP, agent group (see [agent groups and centralized configuration](https://wazuh.com/blog/agent-groups-and-centralized-configuration/)), and the volumes you mount. Apply the manifest, then confirm a pod appears on every node:
 
 ```bash
 kubectl apply -f wazuh-daemonset.yaml
@@ -185,7 +185,7 @@ wazuh-agent-xlkh2   1/1     Running   0          145m    10.42.2.77    worker-1
 
 ## Centralized configuration for the agent group
 
-On the manager, define a `localfile` in the shared configuration of the group the DaemonSet enrolls into (`/var/ossec/etc/shared/kubernetes/agent.conf`):
+On the manager, put a `localfile` in the shared config for the group the DaemonSet joins (`/var/ossec/etc/shared/kubernetes/agent.conf`):
 
 ```xml
 <agent_config>
@@ -196,13 +196,13 @@ On the manager, define a `localfile` in the shared configuration of the group th
 </agent_config>
 ```
 
-The monitored application (NGINX in this example) must write its logs to the **same hostPath volume** the Wazuh agent mounts - see [Deploying an agent on a Kubernetes node](./agent-on-node.md) for the matching application-side manifest.
+The app you monitor (NGINX here) must write logs onto the **same hostPath volume** the Wazuh agent mounts. For the matching application-side manifest, see [Deploying an agent on a Kubernetes node](./agent-on-node.md).
 
 ## EKS Fargate: ship logs to CloudWatch
 
-On EKS Fargate there are no nodes you control, so a DaemonSet (and FIM) is not possible. The alternative is routing container logs to CloudWatch and ingesting them with the Wazuh [CloudWatch Logs module](https://documentation.wazuh.com/current/cloud-security/amazon/services/supported-services/cloudwatchlogs.html).
+EKS Fargate gives you no nodes to manage, so a DaemonSet (and FIM) cannot run. Instead, send container logs to CloudWatch and pull them in with the Wazuh [CloudWatch Logs module](https://documentation.wazuh.com/current/cloud-security/amazon/services/supported-services/cloudwatchlogs.html).
 
-1. Configure Fargate logging per the [official EKS documentation](https://docs.aws.amazon.com/eks/latest/userguide/fargate-logging.html). You need an existing namespace and a [Fargate pod execution role](https://docs.aws.amazon.com/eks/latest/userguide/fargate-getting-started.html#fargate-sg-pod-execution-role).
+1. Set up Fargate logging as described in the [official EKS documentation](https://docs.aws.amazon.com/eks/latest/userguide/fargate-logging.html). You need an existing namespace and a [Fargate pod execution role](https://docs.aws.amazon.com/eks/latest/userguide/fargate-getting-started.html#fargate-sg-pod-execution-role).
 2. Create the dedicated `aws-observability` namespace (`aws-observability-namespace.yaml`):
 
    ```yaml
@@ -218,7 +218,7 @@ On EKS Fargate there are no nodes you control, so a DaemonSet (and FIM) is not p
    kubectl apply -f aws-observability-namespace.yaml
    ```
 
-3. Create the log-router ConfigMap (`aws-logging-cloudwatch-configmap.yaml`) using the [CloudWatch Fluent Bit plugin](https://github.com/aws/amazon-cloudwatch-logs-for-fluent-bit) - set the parameters in the `OUTPUT` section for your region and log group:
+3. Create the log-router ConfigMap (`aws-logging-cloudwatch-configmap.yaml`) with the [CloudWatch Fluent Bit plugin](https://github.com/aws/amazon-cloudwatch-logs-for-fluent-bit). Fill in the `OUTPUT` section for your region and log group:
 
    ```yaml
    kind: ConfigMap
@@ -256,13 +256,13 @@ On EKS Fargate there are no nodes you control, so a DaemonSet (and FIM) is not p
    kubectl apply -f aws-logging-cloudwatch-configmap.yaml
    ```
 
-4. Create an IAM policy allowing `logs:CreateLogStream`, `logs:CreateLogGroup`, `logs:DescribeLogStreams`, and `logs:PutLogEvents` ([example permissions.json](https://raw.githubusercontent.com/aws-samples/amazon-eks-fluent-logging-examples/mainline/examples/fargate/cloudwatchlogs/permissions.json)) and attach it to the Fargate pod execution role.
+4. Create an IAM policy that allows `logs:CreateLogStream`, `logs:CreateLogGroup`, `logs:DescribeLogStreams`, and `logs:PutLogEvents` ([example permissions.json](https://raw.githubusercontent.com/aws-samples/amazon-eks-fluent-logging-examples/mainline/examples/fargate/cloudwatchlogs/permissions.json)), then attach it to the Fargate pod execution role.
 
-> **Note:** all pods under profiles using this execution role/policy will send logs to CloudWatch. If the pod configuration changes, the pod must be recreated for logging changes to take effect.
+> **Note:** every pod under profiles that use this execution role and policy sends logs to CloudWatch. After you change pod configuration, recreate the pod so logging picks up the change.
 
 ## Related
 
-- [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) - modern approach using the official `wazuh/wazuh-agent` image
+- [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) - current approach with the official `wazuh/wazuh-agent` image
 - [Deploying an agent on a Kubernetes node](./agent-on-node.md) - supported host-level alternative
 - [FIM in containerized environments](../../fim/containers.md) - why FIM is limited inside containers
 - [Wazuh on Amazon EKS](./eks.md)

@@ -3,6 +3,7 @@ meetings/
 .personal/
 .claude/skills/
 images/vagrant/**/.vagrant/
+osquery
 
 # Python
 __pycache__/

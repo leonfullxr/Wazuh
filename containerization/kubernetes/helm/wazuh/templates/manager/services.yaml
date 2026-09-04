@@ -1,0 +1,90 @@
+{{- if .Values.manager.enabled }}
+{{/*
+Manager services. 1514/1515 are raw TCP — HTTP Ingress or ALB makes the L7
+proxy treat the agent stream as HTTP and reset it (enroll-but-no-events or the
+reverse). Keep both ports on the same L4 path.
+See ../../load-balancing-and-ingress.md
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wazuh.managerClusterServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+spec:
+  # Headless — stable DNS per pod for cluster traffic; backs both StatefulSets.
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "manager") | nindent 4 }}
+  ports:
+    - name: cluster
+      port: 1516
+      targetPort: cluster
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wazuh.managerServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  annotations:
+    {{- with .Values.commonAnnotations }}{{- toYaml . | nindent 4 }}{{- end }}
+    {{- with .Values.service.master.annotations }}{{- toYaml . | nindent 4 }}{{- end }}
+    {{- if and .Values.service.proxyProtocol (eq .Values.service.master.type "LoadBalancer") }}
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+    {{- end }}
+spec:
+  type: {{ .Values.service.master.type }}
+  {{- with .Values.service.master.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "manager") | nindent 4 }}
+    wazuh.com/node-type: master
+  ports:
+    - name: registration
+      port: {{ .Values.service.master.registrationPort }}
+      targetPort: registration
+      protocol: TCP
+    - name: api
+      port: {{ .Values.service.master.apiPort }}
+      targetPort: api
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wazuh.managerEventsServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  annotations:
+    {{- with .Values.commonAnnotations }}{{- toYaml . | nindent 4 }}{{- end }}
+    {{- with .Values.service.events.annotations }}{{- toYaml . | nindent 4 }}{{- end }}
+    {{- if and .Values.service.proxyProtocol (eq .Values.service.events.type "LoadBalancer") }}
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+    {{- end }}
+spec:
+  type: {{ .Values.service.events.type }}
+  {{- with .Values.service.events.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "manager") | nindent 4 }}
+    # Zero workers → only master listens on 1514; events Service must select it.
+    wazuh.com/node-type: {{ ternary "worker" "master" (ne (include "wazuh.hasWorkers" .) "") }}
+  ports:
+    - name: agents-events
+      port: {{ .Values.service.events.port }}
+      targetPort: agents-events
+      protocol: TCP
+{{- end }}

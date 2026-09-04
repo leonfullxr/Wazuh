@@ -6,13 +6,13 @@
 
 ## Problem
 
-After upgrading the Wazuh Manager image and rolling the StatefulSet, `wazuh-archives-*` indices stop receiving documents in OpenSearch. The Wazuh Dashboard shows no data in the Archives view despite logs being written to disk. No data is lost - the issue is with ingestion, not storage.
+After you upgrade the Wazuh Manager image and roll the StatefulSet, `wazuh-archives-*` indices stop getting documents in OpenSearch. The Wazuh Dashboard Archives view stays empty even though logs are written to disk. Nothing is lost; ingestion is broken, not storage.
 
-A ConfigMap mounted to `/etc/filebeat/filebeat.yml` directly has no lasting effect - the setting reverts to `false` on every pod startup, identical to the Docker Compose bind mount behaviour.
+Mounting a ConfigMap straight onto `/etc/filebeat/filebeat.yml` does not stick. The setting flips back to `false` on every pod startup, same pattern as the Docker Compose bind mount case.
 
 ## Root cause
 
-Same underlying mechanism as the [Docker variant](../docker/archives-disabled-after-update.md). The container entrypoint regenerates `/etc/filebeat/filebeat.yml` at every startup from a bundled internal template:
+Same mechanism as the [Docker variant](../docker/archives-disabled-after-update.md). At every startup the container entrypoint regenerates `/etc/filebeat/filebeat.yml` from a bundled internal template:
 
 ```text
 Source template (inside image):
@@ -22,19 +22,19 @@ Written to at startup:
   /etc/filebeat/filebeat.yml   ← standard ConfigMap mounts target this path
 ```
 
-The write happens after the volume mount is applied, so the ConfigMap is silently overwritten. The default template ships with `archives: enabled: false`.
+That write runs after the volume mount is applied, so the ConfigMap is overwritten with no warning. The default template ships with `archives: enabled: false`.
 
 Tracked upstream at [wazuh-docker #2240](https://github.com/wazuh/wazuh-docker/issues/2240).
 
 ## Solution - ConfigMap with subPath mount
 
-Mount the ConfigMap over the source template instead of the destination, using `subPath` to avoid replacing the entire directory.
+Mount the ConfigMap over the source template, not the destination, and use `subPath` so you do not replace the whole directory.
 
-> **Why `subPath` is required:** without it, Kubernetes replaces the entire target directory with the ConfigMap contents, which destroys other files the container expects at that path. `subPath` targets only the single file, leaving the rest of the directory intact.
+> **Why `subPath` is required:** without it, Kubernetes replaces the entire target directory with the ConfigMap contents and wipes other files the container expects there. `subPath` mounts only that one file and leaves the rest of the directory alone.
 
 ### Step 1 - Extract the default template
 
-Always start from the full default for your version rather than a minimal file:
+Always start from the full default for your version, not a minimal stub:
 
 ```bash
 kubectl run --rm -it --image=wazuh/wazuh-manager:<version> extract \
@@ -43,7 +43,7 @@ kubectl run --rm -it --image=wazuh/wazuh-manager:<version> extract \
 
 ### Step 2 - Create the ConfigMap
 
-Create `wazuh-filebeat-configmap.yaml` using the extracted content, with `archives: enabled: true`:
+Create `wazuh-filebeat-configmap.yaml` from the extracted content, with `archives: enabled: true`:
 
 ```yaml
 apiVersion: v1
@@ -100,11 +100,11 @@ kubectl rollout restart statefulset/wazuh-worker -n wazuh
 
 ## Behaviour across upgrades
 
-The ConfigMap is a standalone Kubernetes resource - it is not tied to the pod, StatefulSet, or image version. When you upgrade the Wazuh image by updating the `image:` tag and rolling the StatefulSet, the ConfigMap remains in place and the mount is reapplied to new pods automatically. No manual re-application is required after an upgrade.
+The ConfigMap is its own Kubernetes resource. It is not tied to the pod, StatefulSet, or image version. When you bump the Wazuh `image:` tag and roll the StatefulSet, the ConfigMap stays put and the mount is reapplied to new pods automatically. You do not need to re-apply it after an upgrade.
 
 ## Upgrade procedure
 
-When moving to a new Wazuh version, the internal template may have changed. Before rolling the StatefulSet:
+A new Wazuh version may change the internal template. Before you roll the StatefulSet:
 
 ```bash
 # Extract the new version's default template
@@ -126,11 +126,11 @@ kubectl rollout restart statefulset/wazuh-master -n wazuh
 kubectl rollout restart statefulset/wazuh-worker -n wazuh
 ```
 
-> **ConfigMap hot-reload note:** Kubernetes does not automatically restart pods when a ConfigMap changes if the mount uses `subPath`. A manual rollout is always required after updating the ConfigMap.
+> **ConfigMap hot-reload note:** Kubernetes does not restart pods automatically when a ConfigMap changes if the mount uses `subPath`. Always roll manually after you update the ConfigMap.
 
 ## Helm deployments
 
-If you manage the cluster via Helm, define the ConfigMap as a Helm template under `templates/filebeat-configmap.yaml` and reference it in the StatefulSet template. This ensures `helm upgrade` carries the ConfigMap forward automatically, giving you a single source of truth in `values.yaml` across environments.
+If Helm manages the cluster, define the ConfigMap as a Helm template under `templates/filebeat-configmap.yaml` and reference it from the StatefulSet template. Then `helm upgrade` carries the ConfigMap forward, and `values.yaml` stays the single source of truth across environments.
 
 ## Verification
 

@@ -1,0 +1,132 @@
+{{- if and (eq .Values.certs.mode "cert-manager") (or .Values.indexer.enabled .Values.manager.enabled .Values.dashboard.enabled) }}
+{{- $ns := .Release.Namespace }}
+{{- $full := include "wazuh.fullname" . }}
+{{- $indexerSvc := include "wazuh.indexerServiceName" . }}
+{{- $indexerHeadless := include "wazuh.indexerHeadlessServiceName" . }}
+{{- $issuer := required "certs.certManager.issuerRef.name is required when certs.mode=cert-manager" .Values.certs.certManager.issuerRef.name }}
+
+{{- $nodeNames := list "indexer" $indexerSvc $indexerHeadless
+    (printf "%s.%s" $indexerSvc $ns) (printf "%s.%s.svc" $indexerSvc $ns)
+    (printf "%s.%s.svc.cluster.local" $indexerSvc $ns)
+    (printf "*.%s.%s.svc.cluster.local" $indexerHeadless $ns)
+    "localhost" }}
+{{- range $i := until (int .Values.indexer.replicas) }}
+{{- $pod := printf "%s-%d" (include "wazuh.indexer.fullname" $) $i }}
+{{- $nodeNames = append $nodeNames (printf "%s.%s.%s.svc.cluster.local" $pod $indexerHeadless $ns) }}
+{{- end }}
+{{- $nodeNames = concat $nodeNames .Values.certs.extraDnsNames }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $full }}-indexer-node
+  namespace: {{ $ns }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+spec:
+  secretName: {{ $full }}-indexer-node-tls
+  duration: {{ printf "%dh" (mul (int .Values.certs.duration) 24) }}
+  renewBefore: 720h
+  commonName: indexer
+  dnsNames:
+    {{- toYaml $nodeNames | nindent 4 }}
+  {{- with .Values.certs.extraIpAddresses }}
+  ipAddresses:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
+  # defaults to PKCS#1 — this encoding is required, not optional.
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+  usages:
+    - server auth
+    - client auth
+  issuerRef:
+    {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
+---
+# Admin client cert. Subject must appear in plugins.security.authcz.admin_dn —
+# set certs.subject.adminDn to whatever DN the issuer produces.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $full }}-indexer-admin
+  namespace: {{ $ns }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+spec:
+  secretName: {{ $full }}-indexer-admin-tls
+  duration: {{ printf "%dh" (mul (int .Values.certs.duration) 24) }}
+  renewBefore: 720h
+  commonName: admin
+  # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
+  # defaults to PKCS#1 — this encoding is required, not optional.
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+  usages:
+    - client auth
+  issuerRef:
+    {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $full }}-filebeat
+  namespace: {{ $ns }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+spec:
+  secretName: {{ $full }}-filebeat-tls
+  duration: {{ printf "%dh" (mul (int .Values.certs.duration) 24) }}
+  renewBefore: 720h
+  commonName: filebeat
+  dnsNames:
+    - {{ include "wazuh.managerServiceName" . }}
+    - {{ include "wazuh.managerMasterFqdn" . }}
+    {{- with .Values.certs.extraDnsNames }}{{- toYaml . | nindent 4 }}{{- end }}
+  # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
+  # defaults to PKCS#1 — this encoding is required, not optional.
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+  usages:
+    - client auth
+    - server auth
+  issuerRef:
+    {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
+{{- if .Values.dashboard.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $full }}-dashboard
+  namespace: {{ $ns }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "dashboard") | nindent 4 }}
+spec:
+  secretName: {{ $full }}-dashboard-tls
+  duration: {{ printf "%dh" (mul (int .Values.certs.duration) 24) }}
+  renewBefore: 720h
+  commonName: dashboard
+  dnsNames:
+    - {{ include "wazuh.dashboard.fullname" . }}
+    - {{ printf "%s.%s.svc.cluster.local" (include "wazuh.dashboard.fullname" .) $ns }}
+    {{- range .Values.dashboard.ingress.hosts }}
+    - {{ .host | quote }}
+    {{- end }}
+    {{- with .Values.certs.extraDnsNames }}{{- toYaml . | nindent 4 }}{{- end }}
+  # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
+  # defaults to PKCS#1 — this encoding is required, not optional.
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8
+  usages:
+    - server auth
+  issuerRef:
+    {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
+{{- end }}
+{{- end }}

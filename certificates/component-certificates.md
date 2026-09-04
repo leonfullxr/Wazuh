@@ -245,6 +245,8 @@ When the certificate must be issued by your organization's PKI or a commercial C
 
 > For public FQDNs you can also use **Let's Encrypt** (free, automated, 90-day validity) instead of a paid CA - see [https-for-private-ip.md](https-for-private-ip.md#public-fqdns-lets-encrypt-and-commercial-cas) for the certbot workflow.
 
+For the admin certificate pair, per-node indexer requests with IP SANs, Microsoft AD CS signing, and the dashboard-specific deployment and troubleshooting steps, see [Enterprise CA certificates](enterprise-ca.md).
+
 ## Nodes reachable on multiple addresses (multi-SAN certificates)
 
 A very common cause of "certificate is valid but the connection is rejected" is a certificate whose Subject Alternative Name (SAN) does not list the address the client actually used. Hostname/IP verification checks the **SAN**, not the CN, so a certificate can be perfectly valid and still fail because the name the client dialed is missing from it. This bites hardest when a node is reachable through more than one address, for example:

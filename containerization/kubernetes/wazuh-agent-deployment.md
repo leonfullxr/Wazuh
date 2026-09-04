@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Wazuh agent can be deployed natively within a Kubernetes cluster to monitor workloads, pods, and container activity at runtime. Two deployment models are supported depending on the monitoring scope required.
+You can run the Wazuh agent natively inside a Kubernetes cluster to watch workloads, pods, and container activity at runtime. Which model you pick depends on how wide the monitoring scope needs to be.
 
 | Model | Scope | Best for |
 |-------|-------|----------|
@@ -15,15 +15,15 @@ The Wazuh agent can be deployed natively within a Kubernetes cluster to monitor 
 
 ### How agent configuration works in both models
 
-Both deployment models use the same core init container pattern, with the DaemonSet manifest adding one extra permissions-fix step:
+Both models share the same core init-container chain. The DaemonSet manifest adds one extra permissions-fix step:
 
-1. **`cleanup-ossec-stale`** - removes stale PID and lock files from previous runs to ensure a clean start
-2. **`seed-ossec-tree`** - on first run, copies the full `/var/ossec` tree from the image into the persistent volume; skipped on subsequent starts if data already exists
-3. **`write-ossec-config`** - generates `ossec.conf` at runtime using environment variables for the manager address, port, and agent name
-4. **`fix-authd-pass-perms`** - copies the enrollment password from a Kubernetes Secret into the agent's expected path with correct ownership
-5. **`fix-permissions`** - adjusts ownership and permissions on the mounted agent data so the DaemonSet deployment can start with the expected filesystem access
+1. **`cleanup-ossec-stale`** - clears stale PID and lock files left by earlier runs so startup is clean
+2. **`seed-ossec-tree`** - on first run, copies the full `/var/ossec` tree from the image onto the persistent volume; skipped later if data is already present
+3. **`write-ossec-config`** - builds `ossec.conf` at runtime from environment variables for manager address, port, and agent name
+4. **`fix-authd-pass-perms`** - copies the enrollment password from a Kubernetes Secret into the path the agent expects, with correct ownership
+5. **`fix-permissions`** - sets ownership and permissions on the mounted agent data so the DaemonSet can start with the filesystem access it needs
 
-The main container then starts the agent against the pre-configured data volume.
+The main container then starts the agent against that pre-configured data volume.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ The main container then starts the agent against the pre-configured data volume.
 - The enrollment password configured on the Wazuh Manager at `/var/ossec/etc/authd.pass`
 - `kubectl` access to the target cluster with permissions to create Namespaces, DaemonSets/StatefulSets, Secrets, and (for sidecar) PersistentVolumeClaims
 
-Before deploying, identify the two external IPs you will need:
+Before you deploy, collect the two external IPs you need:
 
 ```bash
 # Wazuh worker load balancer - used for agent traffic (port 1514)
@@ -43,11 +43,11 @@ kubectl get svc -n wazuh wazuh
 
 ## DaemonSet deployment
 
-The DaemonSet model deploys one agent per node automatically. New nodes added to the cluster receive an agent without any manual intervention.
+The DaemonSet places one agent on each node automatically. Nodes that join later get an agent without manual work.
 
 ### Manifest
 
-Save as `wazuh-agent-daemonset.yaml`. Replace `<EXTERNAL_IP_WAZUH_WORKER>` and `<EXTERNAL_IP_WAZUH>` with the values retrieved above.
+Save as `wazuh-agent-daemonset.yaml`. Replace `<EXTERNAL_IP_WAZUH_WORKER>` and `<EXTERNAL_IP_WAZUH>` with the values from above.
 
 ```yaml
 apiVersion: v1
@@ -234,7 +234,7 @@ spec:
             secretName: wazuh-authd-pass
 ```
 
-> **hostPath note:** The DaemonSet uses a `hostPath` volume at `/var/lib/wazuh` on each node for agent data. This means agent state is local to the node and is lost if the node is terminated (e.g., in auto-scaling groups). This is generally acceptable for DaemonSet agents since re-enrollment is automatic, but be aware of duplicate agent entries in the Wazuh Manager if nodes are frequently replaced.
+> **hostPath note:** The DaemonSet stores agent data on a `hostPath` at `/var/lib/wazuh` on each node. Agent state is local to that node and disappears if the node is terminated (for example in auto-scaling groups). That is usually fine for DaemonSet agents because re-enrollment is automatic, but frequent node replacement can leave duplicate agent entries on the Wazuh Manager.
 
 ### Deployment steps
 
@@ -275,19 +275,19 @@ On the Wazuh Manager, confirm agent registration:
 
 ## Sidecar deployment
 
-The sidecar model runs the Wazuh agent as a companion container inside a specific application pod, sharing the pod's network namespace and, optionally, its log volumes. This is shown below using Apache Tomcat as the example application.
+In the sidecar model the Wazuh agent runs as a companion container inside a specific application pod. It shares the pod's network namespace and, optionally, its log volumes. The example below uses Apache Tomcat.
 
 Key differences from the DaemonSet model:
 
-- Uses a **PersistentVolumeClaim** for agent data rather than a hostPath, making it suitable for managed node pools where hostPath access may be restricted
-- Agent name is derived from `metadata.name` (the pod name) rather than the node name
-- A shared `application-data` volume allows the agent container to read application logs directly
+- Agent data lives on a **PersistentVolumeClaim** instead of a hostPath, which suits managed node pools where hostPath access may be restricted
+- Agent name comes from `metadata.name` (the pod name), not the node name
+- A shared `application-data` volume lets the agent container read application logs directly
 
 ### Manifest
 
 Save as `wazuh-agent-sidecar.yaml`. Replace `<EXTERNAL_IP_WAZUH_WORKER>` and `<EXTERNAL_IP_WAZUH>` before applying.
 
-> **StorageClass note:** the manifest uses `storageClassName: gp2`, which is the default for AWS EKS. Check available StorageClasses in your cluster and update accordingly before applying:
+> **StorageClass note:** the manifest sets `storageClassName: gp2`, the AWS EKS default. Check StorageClasses in your cluster and update before you apply:
 > ```bash
 > kubectl get sc
 > ```
@@ -568,10 +568,10 @@ On the Wazuh Manager, confirm agent registration:
 
 ## Adapting the sidecar to a different application
 
-The Tomcat example can be adapted to any application by modifying three things in the manifest:
+Reuse the Tomcat example for another app by changing three places in the manifest:
 
-1. **Main application container** - replace the `tomcat` container image and its `volumeMounts` with your application
-2. **`localfile` block in `write-ossec-config`** - update the `<location>` path to point to your application's log file
-3. **`application-data` PVC size** - adjust `storage` under `volumeClaimTemplates` to match expected log volume
+1. **Main application container** - swap the `tomcat` container image and its `volumeMounts` for your application
+2. **`localfile` block in `write-ossec-config`** - point `<location>` at your application's log file
+3. **`application-data` PVC size** - set `storage` under `volumeClaimTemplates` to match expected log volume
 
-Everything else - the init container chain, the Secret mount, the enrollment flow - remains unchanged.
+Everything else (init container chain, Secret mount, enrollment flow) stays the same.

@@ -1,0 +1,20 @@
+{{- if and .Values.manager.enabled .Values.tcpServices.enabled }}
+{{/*
+ingress-nginx raw TCP via ConfigMap (not Ingress). Controller must already run
+with --tcp-services-configmap=<ns>/<name> and expose 1514/1515; this only
+writes the mapping. PROXY suffix shares service.proxyProtocol with Service
+annotations — hop mismatch is the usual enroll-but-silent failure (remoted
+does not parse PROXY). See ../../load-balancing-and-ingress.md
+*/}}
+{{- $suffix := ternary "::PROXY" "" .Values.service.proxyProtocol }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.tcpServices.configMapName }}
+  namespace: {{ .Values.tcpServices.configMapNamespace }}
+  labels:
+    {{- include "wazuh.labels" . | nindent 4 }}
+data:
+  {{ .Values.service.master.registrationPort | quote }}: "{{ .Release.Namespace }}/{{ include "wazuh.managerServiceName" . }}:{{ .Values.service.master.registrationPort }}{{ $suffix }}"
+  {{ .Values.service.events.port | quote }}: "{{ .Release.Namespace }}/{{ include "wazuh.managerEventsServiceName" . }}:{{ .Values.service.events.port }}{{ $suffix }}"
+{{- end }}

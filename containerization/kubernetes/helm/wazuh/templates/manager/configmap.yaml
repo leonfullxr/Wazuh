@@ -1,0 +1,101 @@
+{{- if and .Values.manager.enabled (not .Values.manager.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wazuh.fullname" . }}-manager-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+data:
+  master.conf: |
+    {{- include "wazuh.ossecConf" (dict "context" . "nodeType" "master") | nindent 4 }}
+  worker.conf: |
+    {{- include "wazuh.ossecConf" (dict "context" . "nodeType" "worker") | nindent 4 }}
+  # analysisd sizes pools from visible CPU count (node, not cgroup). Large
+  # node + small limit → thousands of threads, wazuh-db starvation, Error
+  # 2013/2017, agents stuck disconnected on the master. Pin the pools.
+  # See ../../agent-info-sync-failures.md
+  local_internal_options.conf: |
+    {{- $n := int .Values.manager.analysisdThreads }}
+    {{- range $opt := list "event" "syscheck" "syscollector" "rootcheck" "sca" "hostinfo" "winevt" "rule_matching" "dbsync" }}
+    analysisd.{{ $opt }}_threads={{ $n }}
+    {{- end }}
+{{- end }}
+{{- if and .Values.manager.enabled (or .Values.customRules .Values.customDecoders .Values.customLists) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wazuh.fullname" . }}-manager-custom
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+data:
+  {{- range $name, $content := .Values.customRules }}
+  rule-{{ $name }}: |
+    {{- tpl $content $ | nindent 4 }}
+  {{- end }}
+  {{- range $name, $content := .Values.customDecoders }}
+  decoder-{{ $name }}: |
+    {{- tpl $content $ | nindent 4 }}
+  {{- end }}
+  {{- range $name, $content := .Values.customLists }}
+  list-{{ $name }}: |
+    {{- tpl $content $ | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.manager.enabled (or .Values.manager.filebeat.archivesEnabled .Values.manager.filebeat.config) }}
+---
+# Entrypoint regenerates /etc/filebeat/filebeat.yml from an in-image template
+# after volumes mount. A ConfigMap at the destination is overwritten — why
+# wazuh-archives-* stops after an image upgrade. This ConfigMap mounts over
+# the SOURCE template instead. Credential/TLS lines stay commented so the
+# entrypoint fills them from env (keeps indexer password out of a ConfigMap).
+# See ../../archives-disabled-after-update.md
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wazuh.fullname" . }}-filebeat-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "manager") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+data:
+  filebeat.yml: |
+    {{- if .Values.manager.filebeat.config }}
+    {{- tpl .Values.manager.filebeat.config . | nindent 4 }}
+    {{- else }}
+    # Wazuh - Filebeat configuration file
+    filebeat.modules:
+      - module: wazuh
+        alerts:
+          enabled: true
+        archives:
+          enabled: {{ .Values.manager.filebeat.archivesEnabled }}
+
+    setup.template.json.enabled: true
+    setup.template.overwrite: true
+    setup.template.json.path: '/etc/filebeat/wazuh-template.json'
+    setup.template.json.name: 'wazuh'
+    setup.ilm.enabled: false
+    output.elasticsearch:
+      hosts: ['{{ include "wazuh.indexerUrl" . }}']
+      #username:
+      #password:
+      #ssl.verification_mode:
+      #ssl.certificate_authorities:
+      #ssl.certificate:
+      #ssl.key:
+
+    logging.metrics.enabled: false
+
+    seccomp:
+      default_action: allow
+      syscalls:
+      - action: allow
+        names:
+        - rseq
+    {{- end }}
+{{- end }}

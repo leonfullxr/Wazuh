@@ -6,9 +6,14 @@
 
 ## Overview
 
-The Wazuh AWS module needs credential/profile files inside the manager container. If you write them into the pod's filesystem by hand, they disappear on every pod recreation. Mount them from a **Secret** (credentials) and a **ConfigMap** (profile config) instead - the files then survive any pod restart or image upgrade.
+The Wazuh AWS module expects credential and profile files inside the manager
+container. Writing them by hand into the pod filesystem means they vanish on
+every pod recreation. Mount them from a **Secret** (credentials) and a
+**ConfigMap** (profile config) instead — the files then survive pod restarts
+and image upgrades.
 
-This pattern supports multiple AWS profiles, which is useful when one manager pulls logs from several accounts.
+The same pattern covers multiple AWS profiles, which helps when one manager
+pulls logs from several accounts.
 
 ## 1. Create the credentials Secret
 
@@ -51,7 +56,9 @@ kubectl create configmap configawsprofile -n wazuh --from-file=./awsprofileconfi
 
 ## 3. Mount both into the manager StatefulSet
 
-Add the volumes and mounts to the Wazuh manager (worker) StatefulSet. The `subPath` must match the key inside the Secret/ConfigMap (i.e., the original file name):
+Add the volumes and mounts to the Wazuh manager (worker) StatefulSet. The
+`subPath` must match the key inside the Secret/ConfigMap (the original file
+name):
 
 ```yaml
 apiVersion: apps/v1
@@ -89,11 +96,13 @@ spec:
           name: configawsprofile
 ```
 
-Because the files come from a Secret and a ConfigMap, recreating the Wazuh pods causes no credential loss.
+With credentials and profile config coming from a Secret and a ConfigMap,
+recreating the Wazuh pods does not drop the credentials.
 
 ## Troubleshooting the AWS module inside the pod
 
-Exec into the manager pod and raise the wodle debug level, then run the module manually:
+Exec into the manager pod, raise the wodle debug level, then run the module by
+hand:
 
 ```bash
 # Raise AWS module verbosity
@@ -115,5 +124,5 @@ aws s3 ls --profile <PROFILE_NAME>
 
 ## Related
 
-- [Wazuh on Amazon EKS](./eks.md) - the deployment where this is typically needed
+- [Wazuh on Amazon EKS](./eks.md) - the deployment where this pattern is usually needed
 - [Wazuh AWS integration documentation](https://documentation.wazuh.com/current/cloud-security/amazon/index.html)

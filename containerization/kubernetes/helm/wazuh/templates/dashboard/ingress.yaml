@@ -1,0 +1,45 @@
+{{- if and .Values.dashboard.enabled .Values.dashboard.ingress.enabled }}
+{{/*
+Dashboard Ingress only — never route agent 1514/1515 through Ingress (raw TCP;
+see templates/common/tcp-services.yaml). Dashboard speaks HTTPS on 5601; tell
+the controller (backend-protocol for ingress-nginx). On AWS ALB also set
+success-codes 401: Wazuh API returns 401 on unauthenticated health checks and
+the readiness gate otherwise never opens.
+See ../../load-balancing-and-ingress.md
+*/}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "wazuh.dashboard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "dashboard") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- with .Values.commonAnnotations }}{{- toYaml . | nindent 4 }}{{- end }}
+    {{- with .Values.dashboard.ingress.annotations }}{{- toYaml . | nindent 4 }}{{- end }}
+spec:
+  {{- with .Values.dashboard.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.dashboard.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.dashboard.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "wazuh.dashboard.fullname" $ }}
+                port:
+                  number: {{ $.Values.dashboard.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,212 @@
+{{- if .Values.indexer.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "wazuh.indexer.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.indexer.replicas }}
+  serviceName: {{ include "wazuh.indexerHeadlessServiceName" . }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "indexer") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "indexer") | nindent 8 }}
+        {{- with .Values.commonLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with .Values.indexer.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/indexer/configmap.yaml") . | sha256sum }}
+        checksum/securityconfig: {{ include (print $.Template.BasePath "/indexer/secret-securityconfig.yaml") . | sha256sum }}
+        {{- with .Values.commonAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with .Values.indexer.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+    spec:
+      serviceAccountName: {{ include "wazuh.component.serviceAccountName" (dict "context" . "component" "indexer") }}
+      {{- include "wazuh.imagePullSecrets" . | nindent 6 }}
+      {{- with .Values.indexer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.indexer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.indexer.affinity }}
+      affinity:
+        {{- toYaml .Values.indexer.affinity | nindent 8 }}
+      {{- else if .Values.indexer.podAntiAffinity }}
+      affinity:
+        {{- include "wazuh.antiAffinity" (dict "context" . "component" "indexer" "mode" .Values.indexer.podAntiAffinity) | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or (eq .Values.certs.mode "helm") .Values.indexer.chownInitContainer.enabled .Values.indexer.sysctlInitContainer.enabled }}
+      initContainers:
+        {{- if eq .Values.certs.mode "helm" }}
+        {{- include "wazuh.pkcs8InitContainer" . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.indexer.chownInitContainer.enabled }}
+        - name: fix-data-permissions
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.initImage) }}
+          imagePullPolicy: {{ .Values.indexer.initImage.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /var/lib/wazuh-indexer
+          securityContext:
+            runAsUser: 0
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/wazuh-indexer
+        {{- end }}
+        {{- if .Values.indexer.sysctlInitContainer.enabled }}
+        # Needs privileged — restricted PodSecurity/SCC will reject. On
+        # OpenShift set indexer.sysctlInitContainer.enabled=false and use Node
+        # Tuning Operator for vm.max_map_count. See ../../openshift.md
+        - name: increase-vm-max-map-count
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.initImage) }}
+          imagePullPolicy: {{ .Values.indexer.initImage.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              current=$(sysctl -n vm.max_map_count)
+              if [ "$current" -lt {{ .Values.indexer.sysctlInitContainer.value }} ]; then
+                sysctl -w vm.max_map_count={{ .Values.indexer.sysctlInitContainer.value }}
+              fi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: wazuh-indexer
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.image) }}
+          imagePullPolicy: {{ .Values.indexer.image.pullPolicy }}
+          {{- with .Values.indexer.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 9200
+              protocol: TCP
+            - name: transport
+              containerPort: 9300
+              protocol: TCP
+          env:
+            - name: CLUSTER_NAME
+              value: {{ .Values.indexer.clusterName | quote }}
+            - name: NETWORK_HOST
+              value: "0.0.0.0"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPENSEARCH_JAVA_OPTS
+              # -Xms == -Xmx: a growing heap in a container only delays OOMKill.
+              # Keep near half of resources.limits.memory.
+              value: "-Xms{{ .Values.indexer.heapSize }} -Xmx{{ .Values.indexer.heapSize }} -Dlog4j2.formatMsgNoLookups=true"
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+            - name: INDEXER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: indexer-password
+            {{- with .Values.indexer.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # REST is TLS + auth — unauthenticated httpGet sees 401. TCP is what remains.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: transport
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            {{- toYaml .Values.indexer.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/wazuh-indexer
+            - name: config
+              mountPath: /usr/share/wazuh-indexer/config/opensearch.yml
+              subPath: opensearch.yml
+              readOnly: true
+            - name: securityconfig
+              mountPath: /usr/share/wazuh-indexer/config/opensearch-security/internal_users.yml
+              subPath: internal_users.yml
+              readOnly: true
+            {{- include "wazuh.indexerCertMounts" . | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "wazuh.fullname" . }}-indexer-config
+        - name: securityconfig
+          secret:
+            secretName: {{ include "wazuh.fullname" . }}-indexer-securityconfig
+            defaultMode: 0600
+        {{- include "wazuh.indexerCertVolumes" . | nindent 8 }}
+        {{- if not .Values.indexer.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.indexer.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 10 }}
+        {{- with .Values.indexer.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.indexer.persistence.accessModes | nindent 10 }}
+        {{- include "wazuh.storageClass" (dict "context" . "class" .Values.indexer.persistence.storageClass) | nindent 8 }}
+        resources:
+          requests:
+            storage: {{ .Values.indexer.persistence.size }}
+  {{- end }}
+{{- end }}

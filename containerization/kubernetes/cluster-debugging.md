@@ -4,7 +4,7 @@
 
 [Back to Kubernetes README](./README.md)
 
-A field-tested command reference for diagnosing Wazuh clusters deployed with the official [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) manifests.
+Field-tested command reference for diagnosing Wazuh clusters built from the official [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) manifests.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ A field-tested command reference for diagnosing Wazuh clusters deployed with the
 
 ## Local lab with minikube
 
-Spin up a local cluster and deploy the local environment overlay:
+Start a local cluster and apply the local environment overlay:
 
 ```bash
 minikube start --cpus=4 --memory=8192
@@ -46,11 +46,11 @@ kubectl get pods -n wazuh -o wide          # includes pod IP and node
 kubectl describe pod <POD_NAME> -n wazuh   # events: scheduling, image pulls, mounts
 ```
 
-`kubectl describe` is the first stop for pods stuck in `Pending` (storage/affinity issues), `ImagePullBackOff` (registry/DNS issues), or `CrashLoopBackOff` (check the events, then the logs).
+Reach for `kubectl describe` first when pods stick in `Pending` (storage or affinity), `ImagePullBackOff` (registry or DNS), or `CrashLoopBackOff` (check events, then logs).
 
 ## Master pod OOMKilled and cluster restart loops
 
-A cluster that "crashes every 2-5 minutes" - the master restarts, workers then restart, cluster comms drop and re-form on a loop - is very often the master being **OOMKilled**, not a Wazuh bug. Confirm it:
+When a cluster "crashes every 2-5 minutes" (master restarts, workers follow, cluster comms drop and re-form in a loop), the usual culprit is the master being **OOMKilled**, not a Wazuh bug. Confirm it:
 
 ```bash
 kubectl get pods -n <namespace> -o wide                    # RESTARTS climbing on the master
@@ -58,9 +58,9 @@ kubectl describe pod wazuh-manager-master-0 -n <namespace> | grep -A3 "Last Stat
 # Last State: Terminated   Reason: OOMKilled
 ```
 
-The stock manifests ship deliberately small limits (the master defaults to roughly `400m` CPU / `512Mi` RAM). That is below what a manager with enrolled agents needs, so it is killed the moment memory spikes - taking cluster communication down with it. Raise the requests/limits in your overlay and redeploy.
+Stock manifests ship deliberately small limits (master defaults to roughly `400m` CPU / `512Mi` RAM). That is below what a manager with enrolled agents needs, so a memory spike kills the pod and takes cluster communication down with it. Raise requests and limits in your overlay, then redeploy.
 
-The documented "minimum requirements" are for the **whole cluster with no agents**; they are not per-pod values. As a starting point per component (mirrors the non-container [sizing guide](https://documentation.wazuh.com/current/quickstart.html#requirements)):
+Documented "minimum requirements" apply to the **whole cluster with no agents**; they are not per-pod values. Starting point per component (mirrors the non-container [sizing guide](https://documentation.wazuh.com/current/quickstart.html#requirements)):
 
 | Component | ~50 agents | ~100 agents |
 |---|---|---|
@@ -69,11 +69,11 @@ The documented "minimum requirements" are for the **whole cluster with no agents
 | Indexer | 2 vCPU, 4 GiB | 4 vCPU, 8-16 GiB |
 | Dashboard | 1 vCPU, 1 GiB | 1 vCPU, 2 GiB |
 
-Set the indexer JVM heap to ~50% of its memory limit (cap 32 GB), then watch real usage with `kubectl top pods -n <namespace>` and iterate.
+Set the indexer JVM heap to about 50% of its memory limit (cap 32 GB), watch real usage with `kubectl top pods -n <namespace>`, and iterate.
 
 ## DNS resolution problems (minikube)
 
-A common failure mode in local labs is image pulls failing because the minikube VM cannot resolve the registry:
+In local labs, image pulls often fail because the minikube VM cannot resolve the registry:
 
 ```bash
 minikube ssh
@@ -88,9 +88,9 @@ minikube start --extra-config=kubelet.resolvConf=/etc/resolv.conf
 
 ## Changing the namespace breaks cluster DNS
 
-The `wazuh-kubernetes` manifests rely on Kubernetes DNS service discovery, and several config values embed the namespace. Deploy into any namespace other than the default `wazuh` **without updating those references** and the cluster silently fails to form. A common signature is the agent successfully getting a key from the master but then failing to send logs - the master cannot hand the agent off to a worker because cluster communication is broken.
+The `wazuh-kubernetes` manifests depend on Kubernetes DNS service discovery, and several config values embed the namespace. Deploy into any namespace other than the default `wazuh` **without updating those references** and the cluster fails to form without an obvious error. A common signature: the agent gets a key from the master but cannot send logs, because the master cannot hand the agent off to a worker when cluster communication is broken.
 
-Short service names (`wazuh-indexer`, `wazuh`) resolve fine **as long as every component is in the same namespace** - Kubernetes expands `wazuh-indexer` to `wazuh-indexer.<namespace>.svc.cluster.local`. The breakage comes from **fully-qualified names that hard-code the namespace**, most importantly the master node entry in the cluster config (`master.conf` / `worker.conf`), which uses the headless-service form `<pod>.<service>.<namespace>`:
+Short service names (`wazuh-indexer`, `wazuh`) resolve fine **when every component shares the same namespace**. Kubernetes expands `wazuh-indexer` to `wazuh-indexer.<namespace>.svc.cluster.local`. Breakage comes from **fully-qualified names that hard-code the namespace**, especially the master node entry in the cluster config (`master.conf` / `worker.conf`), which uses the headless-service form `<pod>.<service>.<namespace>`:
 
 ```xml
 <nodes>
@@ -98,13 +98,13 @@ Short service names (`wazuh-indexer`, `wazuh`) resolve fine **as long as every c
 </nodes>
 ```
 
-When you change the namespace, update it there (and audit the overlay for any other FQDN that includes the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time - do **not** hand-edit those. Verify the cluster formed from **Server management → Cluster**, or:
+When you change the namespace, update that entry (and audit the overlay for any other FQDN that still has the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time; do **not** hand-edit those. Confirm the cluster formed under **Server management → Cluster**, or:
 
 ```bash
 kubectl exec -n <namespace> wazuh-manager-master-0 -- /var/ossec/bin/cluster_control -l
 ```
 
-Setting the namespace once via the Kustomize overlay (`kustomization.yml`) is the intended workflow, but the FQDN above still has to match the namespace you choose - that one is not rewritten for you.
+Setting the namespace once in the Kustomize overlay (`kustomization.yml`) is the intended workflow, but the FQDN above still has to match the namespace you choose. That one is not rewritten for you.
 
 ## Working with the indexer pods
 
@@ -136,7 +136,7 @@ kubectl logs wazuh-indexer-0 -n wazuh --previous
 kubectl debug -it wazuh-indexer-0 -n wazuh --image=busybox --target=wazuh-indexer -- /bin/sh
 ```
 
-When running `securityadmin.sh` inside the indexer, locate the security `config.yml` first:
+When you run `securityadmin.sh` inside the indexer, locate the security `config.yml` first:
 
 ```bash
 find / -type f -name config.yml 2>/dev/null

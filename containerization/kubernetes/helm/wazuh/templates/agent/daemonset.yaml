@@ -1,0 +1,140 @@
+{{- if .Values.agent.enabled }}
+{{/*
+Agent DaemonSet. See ../../../fim/containers.md: a containerized agent only
+sees its own mounts and inventories the CONTAINER's packages/OS/SCA, not the
+node. Fine for hostPath log collection; wrong for host FIM — install the agent
+on the host OS for full node coverage.
+*/}}
+{{- if not .Values.manager.enabled }}
+{{- if not .Values.agent.externalManager.address }}
+{{- fail "agent.externalManager.address is required when manager.enabled is false: the agent has no manager to report to" }}
+{{- end }}
+{{- end }}
+{{- $events := .Values.agent.externalManager.address | default (printf "%s.%s.svc" (include "wazuh.managerEventsServiceName" .) .Release.Namespace) }}
+{{- $registration := .Values.agent.externalManager.registrationAddress | default .Values.agent.externalManager.address | default (printf "%s.%s.svc" (include "wazuh.managerServiceName" .) .Release.Namespace) }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "wazuh.agent.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "agent") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "agent") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "agent") | nindent 8 }}
+        {{- with .Values.commonLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with .Values.agent.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+      {{- with .Values.agent.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "wazuh.component.serviceAccountName" (dict "context" . "component" "agent") }}
+      {{- include "wazuh.imagePullSecrets" . | nindent 6 }}
+      terminationGracePeriodSeconds: {{ .Values.agent.terminationGracePeriodSeconds }}
+      {{- with .Values.agent.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # First run: seed ossec tree from the image. Guard keeps the agent key
+        # on restart (avoids overwrite/re-enroll). Stale pid/lock files from an
+        # unclean stop block startup.
+        - name: seed-ossec-tree
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.agent.image) }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              if [ ! -d /agent/bin ]; then
+                tar -C /var/ossec -cf - . | tar -C /agent -xpf -
+              fi
+              rm -f /agent/var/run/*.pid /agent/var/run/*.lock 2>/dev/null || true
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: agent-data
+              mountPath: /agent
+      containers:
+        - name: wazuh-agent
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.agent.image) }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              add:
+                - SETGID
+                - SETUID
+          env:
+            # Events (workers :1514) and enrollment (master :1515) are separate endpoints.
+            - name: WAZUH_MANAGER
+              value: {{ $events | quote }}
+            - name: WAZUH_MANAGER_PORT
+              value: {{ .Values.service.events.port | quote }}
+            - name: WAZUH_PROTOCOL
+              value: "tcp"
+            - name: WAZUH_REGISTRATION_SERVER
+              value: {{ $registration | quote }}
+            - name: WAZUH_REGISTRATION_PORT
+              value: {{ .Values.service.master.registrationPort | quote }}
+            - name: WAZUH_REGISTRATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: authd.pass
+            - name: WAZUH_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            {{- with .Values.agent.group }}
+            - name: WAZUH_AGENT_GROUP
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.agent.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/var/ossec/bin/wazuh-control", "stop"]
+          volumeMounts:
+            - name: agent-data
+              mountPath: /var/ossec
+            {{- if .Values.agent.hostLogs.enabled }}
+            - name: host-logs
+              mountPath: /host/var/log
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: agent-data
+          {{- if eq .Values.agent.dataVolume.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.agent.dataVolume.hostPath }}
+            type: DirectoryOrCreate
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.agent.hostLogs.enabled }}
+        - name: host-logs
+          hostPath:
+            path: {{ .Values.agent.hostLogs.path }}
+            type: Directory
+        {{- end }}
+{{- end }}

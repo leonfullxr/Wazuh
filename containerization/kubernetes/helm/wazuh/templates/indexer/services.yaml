@@ -1,0 +1,47 @@
+{{- if .Values.indexer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wazuh.indexerHeadlessServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+spec:
+  # Headless + publishNotReadyAddresses so discovery can form before Ready.
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "indexer") | nindent 4 }}
+  ports:
+    - name: transport
+      port: 9300
+      targetPort: transport
+      protocol: TCP
+    - name: http
+      port: 9200
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wazuh.indexerServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  {{- with (merge (dict) .Values.indexer.service.annotations .Values.commonAnnotations) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.indexer.service.type }}
+  selector:
+    {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "indexer") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.indexer.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}

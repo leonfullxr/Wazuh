@@ -18,7 +18,7 @@ changes outside production first.
 
 ### Infrastructure & operations
 
-- [containerization/](containerization/) - Wazuh in Docker and Kubernetes: EKS, AKS, GKE, OpenShift, persistent storage, agent DaemonSets, cluster debugging, Docker Swarm, backup/migration, Docker networking and proxy diagnostics.
+- [containerization/](containerization/) - Wazuh in Docker and Kubernetes: a [Helm chart](containerization/kubernetes/helm/wazuh/) for the full stack, EKS, AKS, GKE, OpenShift, persistent storage, agent DaemonSets, cluster debugging, Docker Swarm, backup/migration, Docker networking and proxy diagnostics.
 - [cloud/](cloud/) - Cloud log ingestion and infrastructure: AWS (`aws-s3` wodle, IAM), Azure (Log Analytics, MS Graph), GCP Pub/Sub, plus Wazuh Cloud usage and dashboard RBAC.
 - [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
 - [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and [sizing](upgrading/sizing.md), disaster recovery, Wazuh 5.0 migration FAQ.

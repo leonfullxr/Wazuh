@@ -3,24 +3,24 @@
 **Applies to:** Wazuh 4.x, AKS, and the
 [`wazuh-kubernetes`](https://github.com/wazuh/wazuh-kubernetes) deployment.
 
-This guide covers AKS-specific storage, scheduling, capacity, snapshots, and
-verification. Follow the official Wazuh Kubernetes procedure for certificate
-generation and base manifests; keep Azure changes in a Kustomize overlay so
-upstream upgrades remain reviewable.
+AKS-specific storage, scheduling, capacity, snapshots, and checks live here.
+Use the official Wazuh Kubernetes procedure for certificates and base
+manifests. Put Azure-only edits in a Kustomize overlay so upstream upgrades
+stay easy to review.
 
 ## Prerequisites
 
-- An AKS cluster with the Azure Disk CSI driver.
-- At least three schedulable indexer nodes for a three-indexer deployment.
-- Azure Disk quota and zone availability for the selected SKU.
+- An AKS cluster that has the Azure Disk CSI driver.
+- Enough schedulable indexer nodes for a three-indexer layout (at least three).
+- Azure Disk quota and zone capacity for the SKU you pick.
 - Measured daily primary-data volume, retention, replica count, and recovery
   objectives.
 
 ## Storage class
 
-Wazuh Indexer is the I/O-sensitive component. Start with a premium Azure Disk
-class and benchmark indexing, search, and recovery before selecting a cheaper
-or faster tier. Premium SSD v2 requires regional/zone support and
+The indexer is the I/O-heavy piece. Begin with a premium Azure Disk class;
+benchmark indexing, search, and recovery before you move to a cheaper or
+faster tier. Premium SSD v2 needs regional/zone support and
 `cachingMode: None`.
 
 Example retained Premium SSD v2 class:
@@ -39,22 +39,22 @@ volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ```
 
-Use `managed-csi-premium` or a custom `Premium_LRS`/`Premium_ZRS` class when
-Premium SSD v2 is unavailable. `WaitForFirstConsumer` lets Kubernetes create
-the disk in the zone selected for the pod. `Retain` protects the underlying
-disk if a PVC is deleted, but also requires an explicit cleanup process.
+When Premium SSD v2 is not available, use `managed-csi-premium` or a custom
+`Premium_LRS`/`Premium_ZRS` class. `WaitForFirstConsumer` creates the disk in
+the zone Kubernetes picks for the pod. `Retain` keeps the underlying disk if
+someone deletes a PVC, which also means you need an explicit cleanup process.
 
-Reference this class only from the indexer volume claim template. Managers
-and the dashboard have different capacity and I/O requirements.
+Point only the indexer volume claim template at this class. Managers and the
+dashboard need different capacity and I/O profiles.
 
 ## Zones and scheduling
 
-Azure Disks are normally `ReadWriteOnce`; a StatefulSet pod must return to a
+Azure Disks are usually `ReadWriteOnce`, so a StatefulSet pod has to land on a
 node that can attach its existing disk. Spread indexer replicas across zones
-with pod anti-affinity or topology spread constraints, while allowing each
-PVC to bind in its pod's zone.
+with pod anti-affinity or topology spread constraints, and let each PVC bind
+in its pod's zone.
 
-Verify before deployment:
+Check before you deploy:
 
 ```bash
 kubectl get nodes \
@@ -70,53 +70,52 @@ kubectl get pvc,pv -n wazuh
 kubectl describe pod -n wazuh <INDEXER_POD>
 ```
 
-Do not force all indexers into one zone merely to solve a volume-attachment
-error. Fix storage binding and scheduling constraints, then confirm primary
-and replica shards are distributed across failure domains.
+Do not pack every indexer into one zone just to dodge a volume-attachment
+error. Correct the storage binding and scheduling constraints, then confirm
+primary and replica shards sit across failure domains.
 
 ## Capacity planning
 
-Calculate storage from measured primary data, not a fixed environment size:
+Size storage from measured primary data, not from a fixed environment label:
 
 ```text
 raw indexed storage =
   daily primary data * retention days * (1 + replica count)
 ```
 
-Add headroom for segment merges, shard relocation, translogs, snapshots in
-progress, and disk watermarks. The result is cluster-wide; distribute it
-across indexer PVCs while ensuring the cluster can recover from the loss of
-one node.
+Leave headroom for segment merges, shard relocation, translogs, in-flight
+snapshots, and disk watermarks. That figure is cluster-wide; split it across
+indexer PVCs and still leave enough room to recover after losing one node.
 
 Use the [Indexer optimization hub](../../indexer/README.md) for shard size,
-replica, heap, and retention decisions. Set JVM minimum and maximum heap to
-equal values, normally near half the container memory limit, then validate
-garbage collection and heap pressure. Treat 32 GB as a benchmark boundary,
-not a universal hard cap.
+replica, heap, and retention choices. Set JVM min and max heap to the same
+value, typically near half the container memory limit, then watch garbage
+collection and heap pressure. Treat 32 GB as a benchmark boundary, not a
+universal hard limit.
 
 ## Azure Blob snapshots
 
-Azure Blob is a snapshot repository, not a transparent warm data tier. The
-Wazuh Indexer image does not automatically gain Azure repository support:
+Azure Blob is a snapshot repository, not a transparent warm tier. The Wazuh
+Indexer image does not pick up Azure repository support on its own:
 
-1. Build and test a custom image with the `repository-azure` plugin matching
+1. Build and test a custom image that ships the `repository-azure` plugin for
    the exact bundled OpenSearch version.
 2. Install the plugin on every indexer node before startup.
-3. Provide Azure credentials through the OpenSearch keystore or use supported
-   managed-identity settings for the bundled OpenSearch version.
-4. Register and verify the repository, then test a restore into a separate
-   cluster.
+3. Supply Azure credentials through the OpenSearch keystore, or use supported
+   managed-identity settings for that OpenSearch version.
+4. Register and verify the repository, then restore into a separate cluster
+   as a test.
 
-Do not use the Azure Archive access tier for snapshots that OpenSearch must
-restore directly; archived blobs require rehydration first.
+Skip the Azure Archive access tier for snapshots OpenSearch must restore
+directly; archived blobs need rehydration first.
 
-Plugin changes alter the indexer image and upgrade path. If that operational
-cost is not acceptable, use an externally supported backup design instead of
-installing plugins manually in running pods.
+Plugin installs change the indexer image and the upgrade path. If that cost
+is too high, pick an externally supported backup design instead of installing
+plugins by hand inside running pods.
 
 ## Verification
 
-After applying the AKS overlay:
+After the AKS overlay is applied:
 
 ```bash
 kubectl rollout status statefulset/wazuh-indexer -n wazuh
@@ -133,8 +132,8 @@ GET _cat/allocation?v
 GET _cat/shards?v&h=index,shard,prirep,state,node
 ```
 
-The cluster must be green, every PVC bound, indexers spread as designed, and
-disk/heap pressure stable during representative ingestion.
+Expect a green cluster, every PVC bound, indexers spread as designed, and
+stable disk/heap pressure under representative ingestion.
 
 ## See also
 

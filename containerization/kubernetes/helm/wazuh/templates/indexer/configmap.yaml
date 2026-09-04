@@ -1,0 +1,57 @@
+{{- if .Values.indexer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wazuh.fullname" . }}-indexer-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+data:
+  opensearch.yml: |
+    cluster.name: ${CLUSTER_NAME}
+    node.name: ${NODE_NAME}
+    network.host: ${NETWORK_HOST}
+    # Headless service resolves to every indexer pod so discovery survives
+    # replica changes. Upstream seeds only node 0.
+    discovery.seed_hosts: {{ include "wazuh.indexerHeadlessServiceName" . }}
+    cluster.initial_master_nodes:
+    {{- range $i := until (int .Values.indexer.replicas) }}
+      - {{ include "wazuh.indexer.fullname" $ }}-{{ $i }}
+    {{- end }}
+    path.data: /var/lib/wazuh-indexer
+    path.logs: /var/log/wazuh-indexer
+
+    plugins.security.ssl.http.pemcert_filepath: /usr/share/wazuh-indexer/config/certs/node.pem
+    plugins.security.ssl.http.pemkey_filepath: /usr/share/wazuh-indexer/config/certs/node-key.pem
+    plugins.security.ssl.http.pemtrustedcas_filepath: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+    plugins.security.ssl.transport.pemcert_filepath: /usr/share/wazuh-indexer/config/certs/node.pem
+    plugins.security.ssl.transport.pemkey_filepath: /usr/share/wazuh-indexer/config/certs/node-key.pem
+    plugins.security.ssl.transport.pemtrustedcas_filepath: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+    plugins.security.ssl.http.enabled: true
+    plugins.security.ssl.transport.enforce_hostname_verification: false
+    plugins.security.ssl.transport.resolve_hostname: false
+
+    # Compared to the certificate SUBJECT — must match what certs actually
+    # carry. Chart-generated = bare CN; wazuh-certs-tool.sh = full subject
+    # (certs.subject.*). Mismatch is the most common reason the indexer
+    # refuses its own nodes.
+    plugins.security.authcz.admin_dn:
+      - {{ include "wazuh.adminDn" . | quote }}
+    plugins.security.nodes_dn:
+      - {{ include "wazuh.nodesDn" . | quote }}
+
+    plugins.security.check_snapshot_restore_write_privileges: true
+    plugins.security.enable_snapshot_restore_privilege: true
+    plugins.security.restapi.roles_enabled:
+      - "all_access"
+      - "security_rest_api_access"
+    # Loads on-disk security config into .opendistro_security only when
+    # bootstrapping an EMPTY cluster — later password changes need
+    # indexer.security.runSecurityadmin.
+    plugins.security.allow_default_init_securityindex: true
+    compatibility.override_main_response_version: true
+    {{- with .Values.indexer.extraConfig }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

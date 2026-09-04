@@ -1,0 +1,85 @@
+{{- if and .Values.indexer.enabled .Values.indexer.security.runSecurityadmin }}
+{{/*
+internal_users.yml applies only when bootstrapping an EMPTY cluster
+(plugins.security.allow_default_init_securityindex). Afterwards users live in
+.opendistro_security, so editing the file / values.yaml passwords alone does
+nothing. This opt-in Job pushes the file into the live cluster (needs admin
+client cert; rewrites security state).
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "wazuh.fullname" . }}-securityadmin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        # Not indexer component labels — those would make this pod an indexer Service endpoint.
+        {{- include "wazuh.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: securityadmin
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "wazuh.component.serviceAccountName" (dict "context" . "component" "indexer") }}
+      {{- include "wazuh.imagePullSecrets" . | nindent 6 }}
+      {{- with .Values.indexer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if eq .Values.certs.mode "helm" }}
+      initContainers:
+        {{- include "wazuh.pkcs8InitContainer" . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: securityadmin
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.image) }}
+          imagePullPolicy: {{ .Values.indexer.image.pullPolicy }}
+          {{- with .Values.indexer.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -uo pipefail
+              export JAVA_HOME=/usr/share/wazuh-indexer/jdk
+              CERTS=/usr/share/wazuh-indexer/config/certs
+              # Wait until the cluster answers — on a fresh install this Job can race ahead.
+              for i in $(seq 1 60); do
+                if bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
+                     -icl -nhnv \
+                     -cacert "$CERTS/root-ca.pem" \
+                     -cert "$CERTS/admin.pem" \
+                     -key "$CERTS/admin-key.pem" \
+                     -h {{ include "wazuh.indexerServiceName" . }}.{{ .Release.Namespace }}.svc \
+                     -p {{ .Values.indexer.service.port }} \
+                     -f /securityconfig/internal_users.yml \
+                     -t internalusers; then
+                  echo "internal_users.yml applied"
+                  exit 0
+                fi
+                echo "indexer not reachable yet, attempt $i"
+                sleep 10
+              done
+              echo "securityadmin did not succeed" >&2
+              exit 1
+          volumeMounts:
+            - name: securityconfig
+              mountPath: /securityconfig
+              readOnly: true
+            {{- include "wazuh.indexerCertMounts" . | nindent 12 }}
+      volumes:
+        - name: securityconfig
+          secret:
+            secretName: {{ include "wazuh.fullname" . }}-indexer-securityconfig
+            defaultMode: 0600
+        {{- include "wazuh.indexerCertVolumes" . | nindent 8 }}
+{{- end }}

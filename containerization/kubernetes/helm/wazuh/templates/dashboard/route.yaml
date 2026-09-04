@@ -1,0 +1,29 @@
+{{- if and .Values.dashboard.enabled .Values.dashboard.route.enabled }}
+{{/*
+OpenShift dashboard Route. Passthrough — dashboard already terminates TLS on
+5601; re-terminating would need a second cert. Agent traffic stays off Routes.
+*/}}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "wazuh.dashboard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "dashboard") | nindent 4 }}
+  {{- with (merge (dict) .Values.dashboard.route.annotations .Values.commonAnnotations) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.dashboard.route.host }}
+  host: {{ . | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "wazuh.dashboard.fullname" . }}
+  port:
+    targetPort: https
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}

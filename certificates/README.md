@@ -45,6 +45,9 @@ Key facts to keep in mind:
 |---|---|
 | Generate, deploy, or rotate the central-component bundle | [Component certificates](component-certificates.md) |
 | Add a node, SAN, corporate CA, or PKCS#12 certificate | [Component certificates](component-certificates.md#using-a-corporate-or-commercial-ca-custom-csr) |
+| Sign certificates with your Enterprise or commercial CA (AD CS, OpenSSL, or an existing CA key) | [Enterprise CA](enterprise-ca.md) |
+| Dashboard broken or blank after replacing its TLS certificate | [Enterprise CA](enterprise-ca.md#troubleshoot-the-dashboard-after-a-certificate-change) |
+| Changed a node IP and components cannot connect | [Enterprise CA](enterprise-ca.md#change-the-ip-address-of-wazuh-components) |
 | Browser must reach a dashboard on a private IP | [HTTPS for a private IP](https-for-private-ip.md) |
 | Configure Keycloak, Entra ID, or another SAML IdP | [SAML SSO](sso-saml.md) |
 | Indexer logs `bad_certificate` | [TLS diagnostic flow](troubleshooting.md#step-by-step-diagnostic-flow) |
@@ -60,6 +63,7 @@ Key facts to keep in mind:
 | Guide | What it covers |
 |---|---|
 | [component-certificates.md](component-certificates.md) | Generating and deploying certificates with `wazuh-certs-tool.sh`, regenerating/replacing certificates (including across cross-cluster search environments), custom CSRs for corporate CAs, extracting certs from PKCS#12/PFX bundles, and renewing the WPK upgrade CA on agents |
+| [enterprise-ca.md](enterprise-ca.md) | Requesting and deploying certificates signed by your Enterprise or commercial CA: admin and node CSRs, AD CS/OpenSSL signing, dashboard certificate replacement and troubleshooting, using an existing CA with `wazuh-certs-tool.sh -A`, and moving components to new IP addresses |
 | [https-for-private-ip.md](https-for-private-ip.md) | Serving the Wazuh dashboard (and a self-hosted OpenSearch maps server) over HTTPS on a private IP with self-signed IP-SAN certificates and NGINX, plus Let's Encrypt / commercial CA options for public FQDNs |
 | [sso-saml.md](sso-saml.md) | SAML single sign-on for the Wazuh dashboard with Keycloak (or any SAML 2.0 IdP): indexer security config, `securityadmin.sh`, role mapping, dashboard settings, and SP-initiated login URLs |
 | [troubleshooting.md](troubleshooting.md) | Diagnosing TLS failures: `bad_certificate` errors, expired or inverted validity windows, key/cert mismatches, CA mismatches, hostname/SAN issues, `openssl s_client` recipes, and agent TLS checks on port 1515 |

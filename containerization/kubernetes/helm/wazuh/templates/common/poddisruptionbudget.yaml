@@ -1,0 +1,34 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{/*
+PDBs only for multi-replica components. A PDB on a single replica blocks drains
+with no availability gain; the manager master is always single-replica.
+*/}}
+{{- $targets := list }}
+{{- if and .Values.indexer.enabled (gt (int .Values.indexer.replicas) 1) }}
+{{- $targets = append $targets (dict "name" "indexer" "component" "indexer" "extra" dict) }}
+{{- end }}
+{{- if and .Values.manager.enabled (gt (int .Values.manager.worker.replicas) 1) }}
+{{- $targets = append $targets (dict "name" "manager-worker" "component" "manager" "extra" (dict "wazuh.com/node-type" "worker")) }}
+{{- end }}
+{{- if and .Values.dashboard.enabled (gt (int .Values.dashboard.replicas) 1) }}
+{{- $targets = append $targets (dict "name" "dashboard" "component" "dashboard" "extra" dict) }}
+{{- end }}
+{{- range $t := $targets }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "wazuh.fullname" $ }}-{{ $t.name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" $ "component" $t.component) | nindent 4 }}
+spec:
+  minAvailable: {{ $.Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "wazuh.component.selectorLabels" (dict "context" $ "component" $t.component) | nindent 6 }}
+      {{- range $k, $v := $t.extra }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+{{- end }}
+{{- end }}

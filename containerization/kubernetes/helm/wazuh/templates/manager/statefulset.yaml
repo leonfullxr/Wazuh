@@ -1,0 +1,240 @@
+{{- if .Values.manager.enabled }}
+{{- $roles := list (dict "role" "master" "cfg" .Values.manager.master "nodeType" "master") }}
+{{- if include "wazuh.hasWorkers" . }}
+{{- $roles = append $roles (dict "role" "worker" "cfg" .Values.manager.worker "nodeType" "worker") }}
+{{- end }}
+{{- range $r := $roles }}
+{{- $cfg := $r.cfg }}
+{{- $isMaster := eq $r.role "master" }}
+{{- $name := ternary (include "wazuh.manager.master.fullname" $) (include "wazuh.manager.worker.fullname" $) $isMaster }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" $ "component" "manager") | nindent 4 }}
+    wazuh.com/node-type: {{ $r.role }}
+    {{- with $.Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  {{- with $.Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  # Exactly one master per Wazuh cluster — scale manager.worker.replicas instead.
+  replicas: {{ ternary 1 (int $cfg.replicas) $isMaster }}
+  # Shared headless service → stable DNS on the cluster port for every manager pod.
+  serviceName: {{ include "wazuh.managerClusterServiceName" $ }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      {{- include "wazuh.component.selectorLabels" (dict "context" $ "component" "manager") | nindent 6 }}
+      wazuh.com/node-type: {{ $r.role }}
+  template:
+    metadata:
+      labels:
+        {{- include "wazuh.component.selectorLabels" (dict "context" $ "component" "manager") | nindent 8 }}
+        wazuh.com/node-type: {{ $r.role }}
+        {{- with $.Values.commonLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with $cfg.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+      annotations:
+        # subPath mounts do not hot-reload ConfigMap updates — roll the StatefulSet on config change.
+        checksum/config: {{ include (print $.Template.BasePath "/manager/configmap.yaml") $ | sha256sum }}
+        {{- with $.Values.commonAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with $cfg.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+    spec:
+      serviceAccountName: {{ include "wazuh.component.serviceAccountName" (dict "context" $ "component" "manager") }}
+      {{- include "wazuh.imagePullSecrets" $ | nindent 6 }}
+      {{- with $.Values.manager.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $cfg.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with $cfg.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $cfg.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $cfg.affinity }}
+      affinity:
+        {{- toYaml $cfg.affinity | nindent 8 }}
+      {{- else if and (not $isMaster) $cfg.podAntiAffinity }}
+      affinity:
+        {{- include "wazuh.antiAffinity" (dict "context" $ "component" "manager" "mode" $cfg.podAntiAffinity) | nindent 8 }}
+      {{- end }}
+      {{- with $cfg.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: wazuh-manager
+          image: {{ include "wazuh.image" (dict "context" $ "image" $.Values.manager.image) }}
+          imagePullPolicy: {{ $.Values.manager.image.pullPolicy }}
+          {{- with $.Values.manager.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            # Same <remote> block in master.conf and worker.conf — master accepts
+            # agent events too (enables zero-worker single-node).
+            - name: agents-events
+              containerPort: 1514
+              protocol: TCP
+            {{- if $isMaster }}
+            - name: registration
+              containerPort: 1515
+              protocol: TCP
+            - name: api
+              containerPort: 55000
+              protocol: TCP
+            {{- end }}
+            - name: cluster
+              containerPort: 1516
+              protocol: TCP
+          env:
+            {{- include "wazuh.managerEnv" $ | nindent 12 }}
+            {{- if $isMaster }}
+            - name: API_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" $ }}
+                  key: api-username
+            - name: API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" $ }}
+                  key: api-password
+            {{- end }}
+            {{- with $cfg.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if ne $.Values.manager.probes.type "none" }}
+          {{- $probePort := ternary "api" "agents-events" $isMaster }}
+          livenessProbe:
+            {{- if eq $.Values.manager.probes.type "exec" }}
+            exec:
+              command:
+                {{- toYaml (required "manager.probes.execCommand is required when manager.probes.type=exec" $.Values.manager.probes.execCommand) | nindent 16 }}
+            {{- else }}
+            tcpSocket:
+              port: {{ $probePort }}
+            {{- end }}
+            initialDelaySeconds: {{ $.Values.manager.probes.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.manager.probes.periodSeconds }}
+            timeoutSeconds: {{ $.Values.manager.probes.timeoutSeconds }}
+            failureThreshold: {{ $.Values.manager.probes.failureThreshold }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ $probePort }}
+            initialDelaySeconds: {{ $.Values.manager.probes.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.manager.probes.periodSeconds }}
+            timeoutSeconds: {{ $.Values.manager.probes.timeoutSeconds }}
+            failureThreshold: {{ $.Values.manager.probes.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml $cfg.resources | nindent 12 }}
+          volumeMounts:
+            # Entrypoint copies /wazuh-config-mount onto /var/ossec before daemons
+            # start. Avoids mounting over /var/ossec/etc where the PVC would
+            # shadow ConfigMap file mounts.
+            - name: config
+              mountPath: /wazuh-config-mount/etc/ossec.conf
+              subPath: {{ ternary "master.conf" "worker.conf" $isMaster }}
+              readOnly: true
+            - name: config
+              mountPath: /wazuh-config-mount/etc/local_internal_options.conf
+              subPath: local_internal_options.conf
+              readOnly: true
+            {{- if $isMaster }}
+            - name: authd-pass
+              mountPath: /wazuh-config-mount/etc/authd.pass
+              subPath: authd.pass
+              readOnly: true
+            {{- range $n, $c := $.Values.customRules }}
+            - name: custom-content
+              mountPath: /wazuh-config-mount/etc/rules/{{ $n }}
+              subPath: rule-{{ $n }}
+              readOnly: true
+            {{- end }}
+            {{- range $n, $c := $.Values.customDecoders }}
+            - name: custom-content
+              mountPath: /wazuh-config-mount/etc/decoders/{{ $n }}
+              subPath: decoder-{{ $n }}
+              readOnly: true
+            {{- end }}
+            {{- range $n, $c := $.Values.customLists }}
+            - name: custom-content
+              mountPath: /wazuh-config-mount/etc/lists/{{ $n }}
+              subPath: list-{{ $n }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- if or $.Values.manager.filebeat.archivesEnabled $.Values.manager.filebeat.config $.Values.manager.filebeat.existingConfigMap }}
+            - name: filebeat-config
+              mountPath: /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
+              subPath: filebeat.yml
+              readOnly: true
+            {{- end }}
+            {{- include "wazuh.managerCertMounts" $ | nindent 12 }}
+            {{- if $cfg.persistence.enabled }}
+            {{- include "wazuh.managerDataMounts" (dict "claim" "data") | nindent 12 }}
+            {{- end }}
+            {{- with $cfg.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $.Values.manager.existingConfigMap | default (printf "%s-manager-config" (include "wazuh.fullname" $)) }}
+        {{- if $isMaster }}
+        - name: authd-pass
+          secret:
+            secretName: {{ include "wazuh.credentialsSecretName" $ }}
+            items:
+              - key: authd.pass
+                path: authd.pass
+        {{- if or $.Values.customRules $.Values.customDecoders $.Values.customLists }}
+        - name: custom-content
+          configMap:
+            name: {{ include "wazuh.fullname" $ }}-manager-custom
+        {{- end }}
+        {{- end }}
+        {{- if or $.Values.manager.filebeat.archivesEnabled $.Values.manager.filebeat.config $.Values.manager.filebeat.existingConfigMap }}
+        - name: filebeat-config
+          configMap:
+            name: {{ $.Values.manager.filebeat.existingConfigMap | default (printf "%s-filebeat-config" (include "wazuh.fullname" $)) }}
+        {{- end }}
+        {{- include "wazuh.managerCertVolumes" $ | nindent 8 }}
+        {{- if not $cfg.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        {{- with $cfg.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+  {{- if $cfg.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "wazuh.component.labels" (dict "context" $ "component" "manager") | nindent 10 }}
+        {{- with $cfg.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml $cfg.persistence.accessModes | nindent 10 }}
+        {{- include "wazuh.storageClass" (dict "context" $ "class" $cfg.persistence.storageClass) | nindent 8 }}
+        resources:
+          requests:
+            storage: {{ $cfg.persistence.size }}
+  {{- end }}
+{{- end }}
+{{- end }}

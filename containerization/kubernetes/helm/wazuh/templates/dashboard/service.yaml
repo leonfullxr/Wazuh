@@ -1,0 +1,23 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wazuh.dashboard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "dashboard") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  {{- with (merge (dict) .Values.dashboard.service.annotations .Values.commonAnnotations) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.dashboard.service.type }}
+  selector:
+    {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "dashboard") | nindent 4 }}
+  ports:
+    - name: https
+      port: {{ .Values.dashboard.service.port }}
+      targetPort: https
+      protocol: TCP
+{{- end }}

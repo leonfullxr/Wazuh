@@ -1,0 +1,139 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wazuh.dashboard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" . "component" "dashboard") | nindent 4 }}
+    {{- with .Values.commonLabels }}{{- toYaml . | nindent 4 }}{{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.dashboard.replicas }}
+  selector:
+    matchLabels:
+      {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "dashboard") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "dashboard") | nindent 8 }}
+        {{- with .Values.commonLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with .Values.dashboard.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/dashboard/configmap.yaml") . | sha256sum }}
+        {{- with .Values.commonAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- with .Values.dashboard.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+    spec:
+      serviceAccountName: {{ include "wazuh.component.serviceAccountName" (dict "context" . "component" "dashboard") }}
+      {{- include "wazuh.imagePullSecrets" . | nindent 6 }}
+      {{- with .Values.dashboard.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dashboard.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.dashboard.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dashboard.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dashboard.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: wazuh-dashboard
+          image: {{ include "wazuh.image" (dict "context" . "image" .Values.dashboard.image) }}
+          imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
+          {{- with .Values.dashboard.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: https
+              containerPort: 5601
+              protocol: TCP
+          env:
+            - name: INDEXER_URL
+              value: {{ include "wazuh.indexerUrl" . | quote }}
+            - name: INDEXER_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: indexer-username
+            - name: INDEXER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: indexer-password
+            - name: DASHBOARD_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: dashboard-username
+            - name: DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: dashboard-password
+            - name: SERVER_SSL_ENABLED
+              value: "true"
+            - name: SERVER_SSL_CERTIFICATE
+              value: /usr/share/wazuh-dashboard/certs/cert.pem
+            - name: SERVER_SSL_KEY
+              value: /usr/share/wazuh-dashboard/certs/key.pem
+            - name: WAZUH_API_URL
+              value: "https://{{ include "wazuh.managerMasterFqdn" . }}"
+            - name: API_PORT
+              value: {{ .Values.service.master.apiPort | quote }}
+            - name: API_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: api-username
+            - name: API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wazuh.credentialsSecretName" . }}
+                  key: api-password
+            # Dashboard rewrites wazuh.yml from these env vars every start; that
+            # file is not on a volume. RUN_AS here is what keeps RBAC across restarts.
+            - name: RUN_AS
+              value: {{ .Values.dashboard.runAs | quote }}
+            {{- with .Values.dashboard.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: https
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: https
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            {{- toYaml .Values.dashboard.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
+              subPath: opensearch_dashboards.yml
+            {{- include "wazuh.dashboardCertMounts" . | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "wazuh.fullname" . }}-dashboard-config
+        {{- include "wazuh.dashboardCertVolumes" . | nindent 8 }}
+{{- end }}

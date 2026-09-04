@@ -1,0 +1,37 @@
+# Bring-your-own certificates from the official tool:
+#
+#   curl -sO https://packages.wazuh.com/4.14/wazuh-certs-tool.sh
+#   curl -sO https://packages.wazuh.com/4.14/config.yml
+#   # edit config.yml: one indexer node named "indexer", one server node named
+#   # "filebeat", one dashboard node named "dashboard", and list every DNS name
+#   # and IP that anything will use to reach them
+#   bash wazuh-certs-tool.sh -A
+#
+# Rename output to the filenames the images expect and load it:
+#
+#   kubectl -n wazuh create secret generic wazuh-indexer-certs \
+#     --from-file=root-ca.pem \
+#     --from-file=node.pem=indexer.pem \
+#     --from-file=node-key.pem=indexer-key.pem \
+#     --from-file=admin.pem --from-file=admin-key.pem \
+#     --from-file=filebeat.pem --from-file=filebeat-key.pem
+#
+#   kubectl -n wazuh create secret generic wazuh-dashboard-certs \
+#     --from-file=root-ca.pem \
+#     --from-file=cert.pem=dashboard.pem \
+#     --from-file=key.pem=dashboard-key.pem
+#
+# Private keys must be PKCS#8 ("BEGIN PRIVATE KEY"). wazuh-certs-tool.sh
+# already writes them that way; PKCS#1 makes the indexer fail with
+# "Neither RSA, DSA nor EC worked".
+
+certs:
+  mode: existing
+  existingIndexerSecret: wazuh-indexer-certs
+  existingDashboardSecret: wazuh-dashboard-certs
+  # Must match the subjects your certificates actually carry — the indexer
+  # compares them to the certificate subject. wazuh-certs-tool.sh produces the
+  # values below. admin_dn takes no wildcard; nodes_dn does.
+  subject:
+    adminDn: "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+    nodesDn: "CN=indexer,OU=Wazuh,O=Wazuh,L=California,C=US"

@@ -1,0 +1,27 @@
+# Agent DaemonSet alone, reporting to a Wazuh manager outside this cluster.
+#
+# Scope: a containerized agent only sees mounts into its pod and inventories
+# the CONTAINER's OS, packages and SCA results — not the node's. Useful for
+# collecting node logs via hostPath; wrong tool for host file integrity
+# monitoring. For full node coverage install the agent on the host OS.
+# See ../../../fim/containers.md
+#
+# Enrollment password still comes from the chart credentials Secret — set
+# credentials.authdPassword to the manager's authd password.
+
+manager:
+  enabled: false
+indexer:
+  enabled: false
+dashboard:
+  enabled: false
+
+credentials:
+  authdPassword: "the-managers-enrollment-password"
+
+agent:
+  enabled: true
+  externalManager:
+    address: wazuh-events.example.com
+    registrationAddress: wazuh-manager.example.com
+  group: kubernetes

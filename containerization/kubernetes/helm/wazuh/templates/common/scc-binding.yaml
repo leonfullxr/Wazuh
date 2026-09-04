@@ -1,0 +1,39 @@
+{{- if and .Values.openshift.enabled .Values.openshift.createSCCBindings .Values.serviceAccount.create }}
+{{/*
+OpenShift SCC grant = RoleBinding to system:openshift:scc:<name> (what
+`oc adm policy add-scc-to-user` does). Manager/dashboard s6 init must write
+under /var/run before dropping privileges; restricted-v2's random high UID
+dies with "unable to mkdir /var/run/s6". anyuid is the supported fix; forcing
+UID 101 reaches Running but leaves binaries unusable. See ../../openshift.md
+
+These RoleBindings need cluster-admin. Leave createSCCBindings false and run
+`oc adm policy` by hand when the installer lacks it.
+*/}}
+{{- $components := list }}
+{{- if .Values.manager.enabled }}{{- $components = append $components (dict "component" "manager" "scc" .Values.openshift.scc.manager) }}{{- end }}
+{{- if .Values.indexer.enabled }}{{- $components = append $components (dict "component" "indexer" "scc" .Values.openshift.scc.indexer) }}{{- end }}
+{{- if .Values.dashboard.enabled }}
+{{- $components = append $components (dict "component" "dashboard" "scc" .Values.openshift.scc.dashboard) }}
+{{- end }}
+{{- if .Values.agent.enabled }}
+{{- $components = append $components (dict "component" "agent" "scc" .Values.openshift.scc.agent) }}
+{{- end }}
+{{- range $c := $components }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "wazuh.fullname" $ }}-{{ $c.component }}-scc
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wazuh.component.labels" (dict "context" $ "component" $c.component) | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:{{ $c.scc }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "wazuh.component.serviceAccountName" (dict "context" $ "component" $c.component) }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+{{- end }}

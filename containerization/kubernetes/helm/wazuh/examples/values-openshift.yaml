@@ -1,0 +1,61 @@
+# Red Hat OpenShift / OKD.
+#
+# Manager and dashboard images run an s6 init that writes under /var/run and
+# chowns the ossec tree before dropping privileges. A random high UID from
+# restricted-v2 dies before init with
+#   s6-overlay-preinit: fatal: unable to mkdir /var/run/s6: Permission denied
+# so they need anyuid. Forcing UID 101 reaches Running but leaves binaries
+# owned root:wazuh and agent_control fails. Wazuh 5.0 swaps s6 for tini but
+# still needs root-level setup.
+#
+# Bind SCCs before install, or set openshift.createSCCBindings=true and install
+# as cluster-admin:
+#
+#   oc adm policy add-scc-to-user anyuid -z <release>-wazuh-manager   -n wazuh
+#   oc adm policy add-scc-to-user anyuid -z <release>-wazuh-indexer   -n wazuh
+#   oc adm policy add-scc-to-user anyuid -z <release>-wazuh-dashboard -n wazuh
+
+openshift:
+  enabled: true
+  createSCCBindings: false
+
+indexer:
+  # restricted-v2 blocks the privileged init that raises vm.max_map_count. Set
+  # it on the node instead via a Node Tuning Operator Tuned profile:
+  #
+  #   apiVersion: tuned.openshift.io/v1
+  #   kind: Tuned
+  #   metadata: { name: wazuh-indexer, namespace: openshift-cluster-node-tuning-operator }
+  #   spec:
+  #     profile:
+  #       - name: wazuh-indexer
+  #         data: |
+  #           [main]
+  #           summary=Raise vm.max_map_count for the Wazuh indexer
+  #           [sysctl]
+  #           vm.max_map_count=262144
+  #     recommend:
+  #       - match: [{ label: node-role.kubernetes.io/worker }]
+  #         priority: 10
+  #         profile: wazuh-indexer
+  sysctlInitContainer:
+    enabled: false
+
+# Chart defaults (indexer UID 1000, manager fsGroup 101) match what the images
+# expect, and anyuid allows them, so they are left alone. Under restricted-v2
+# with your own unprivileged images, clear with explicit null — an empty map
+# does NOT clear a Helm default (it merges and changes nothing):
+#
+#   indexer:
+#     podSecurityContext: null
+#     containerSecurityContext: null
+
+dashboard:
+  # Route, not Ingress. Agent traffic on 1514/1515 stays on a Service.
+  route:
+    enabled: true
+    host: wazuh.apps.example.com
+
+certs:
+  extraDnsNames:
+    - wazuh.apps.example.com
