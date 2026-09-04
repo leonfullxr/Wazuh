@@ -48,16 +48,16 @@ guide. Expose the dashboard through a reviewed GKE Gateway/Ingress or
 LoadBalancer design, and keep internal component certificates separate from
 edge TLS.
 
-## Deployment gotchas
+## Common deployment issues
 
 **Indexer pods stuck `Pending` / `Init` with `ImagePullBackOff`.** Before the
 main container starts, the indexer StatefulSet runs two `busybox`-based init
-containers: one that `chown`s the data directory (`volume-mount-hack`) and one
-that sets `vm.max_map_count` (`increase-the-vm-max-map-count`). If the node
-cannot pull `busybox` from Docker Hub (anonymous pull-rate limits, or blocked
-egress to the registry), those init containers loop on `ImagePullBackOff` and
-the pod never leaves initialization. `kubectl describe pod` shows the failing
-pull.
+containers: one that `chown`s the data directory (named `volume-mount-hack` in
+the upstream manifests) and one that sets `vm.max_map_count`
+(`increase-the-vm-max-map-count`). If the node cannot pull `busybox` from Docker
+Hub (anonymous pull-rate limits, or blocked egress to the registry), those init
+containers loop on `ImagePullBackOff` and the pod never leaves initialization.
+`kubectl describe pod` shows the failing pull.
 
 Fix registry access, not the manifest: open egress to the image registry,
 authenticate to Docker Hub to raise the rate limit, or mirror `busybox` into

@@ -9,7 +9,7 @@
 OpenShift is **not officially supported**. The `wazuh-kubernetes` manifests
 target upstream Kubernetes and assume permissions OpenShift blocks by default.
 OpenShift enforces **Security Context Constraints (SCCs)**, which are stricter
-than plain Kubernetes Pod Security — the default `restricted-v2` SCC stops the
+than plain Kubernetes Pod Security - the default `restricted-v2` SCC stops the
 deployment at the first gate.
 
 An OpenShift administrator has to grant the right SCCs (or write a custom one)
@@ -63,9 +63,9 @@ container, so the indexer pod stays stuck in initialization and never becomes
 
 Two ways out:
 
-- **Preferred — set the sysctl at the node level** with the OpenShift **Node
+- **Preferred - set the sysctl at the node level** with the OpenShift **Node
   Tuning Operator**. That removes the need for a privileged init container.
-- **Alternative — grant the `privileged` SCC** to the indexer ServiceAccount
+- **Alternative - grant the `privileged` SCC** to the indexer ServiceAccount
   so the existing init container can run.
 
 ## Recommended SCC per component
@@ -110,8 +110,8 @@ oc adm policy add-scc-to-user privileged -z wazuh-agent -n <namespace>
 
 ## Custom SCC (community reference)
 
-No official custom SCC exists. The manifest below — used by community
-deployments on OKD/OpenShift 4.x — forces UID `101` for the Wazuh
+No official custom SCC exists. The manifest below - used by community
+deployments on OKD/OpenShift 4.x - forces UID `101` for the Wazuh
 ServiceAccounts and is a reasonable starting point. Alone it does **not** fix
 the s6-overlay root requirement or the indexer sysctl; combine it with
 `anyuid` for Manager/Dashboard and a node-level sysctl (Node Tuning Operator)
@@ -133,12 +133,12 @@ seLinuxContext:
 fsGroup:
   type: MustRunAs
   ranges:
-  - min: 101
+ - min: 101
     max: 101
 supplementalGroups:
   type: MustRunAs
   ranges:
-  - min: 101
+ - min: 101
     max: 101
 users:
 - system:serviceaccount:wazuh:wazuh-manager-worker
@@ -150,25 +150,25 @@ users:
 ## Kustomize and persistent storage notes
 
 - Keep `securityContext` blocks in your Kustomize overlays / values aligned
-  with the SCCs you assign — a `securityContext` that fights the SCC produces
+  with the SCCs you assign - a `securityContext` that fights the SCC produces
   confusing admission failures.
 - The StorageClass must honour `fsGroup`, or you must `chown` the volume with
   an init container, so the pod's UID can write its PersistentVolume.
 
 ## Deploying via Helm or GitOps (Argo CD)
 
-There is **no official Wazuh Helm chart** — the supported Kubernetes path is
+There is **no official Wazuh Helm chart** - the supported Kubernetes path is
 the Kustomize-based
 [wazuh-kubernetes](https://github.com/wazuh/wazuh-kubernetes) repo. Two
 options for GitOps shops:
 
 - **Argo CD supports Kustomize natively.** A "Helm-only" blocker is usually a
-  *tenant-policy* rule, not an Argo CD limitation — point an Argo CD
+  *tenant-policy* rule, not an Argo CD limitation - point an Argo CD
   `Application` straight at the Kustomize overlay path and skip the chart.
   Try this first.
 - **If a Helm chart is mandatory**, wrap the manifests in a thin,
-  **unofficial** chart — one template per workload (indexer/manager/dashboard
-  StatefulSets + Services) — exposing only the overrides a tenant needs:
+  **unofficial** chart - one template per workload (indexer/manager/dashboard
+  StatefulSets + Services) - exposing only the overrides a tenant needs:
 
     ```yaml
     # values.yaml (the override surface, not the whole chart)
@@ -179,7 +179,7 @@ options for GitOps shops:
     dashboard: { replicas: 1, image: { repository: wazuh/wazuh-dashboard, tag: "4.14.4" }, existingSecret: "", resources: {}, service: { type: ClusterIP, port: 443 } }
     ```
 
-    That chart is a maintenance liability — it drifts from upstream on every
+    That chart is a maintenance liability - it drifts from upstream on every
     Wazuh release and sits outside Wazuh support. Treat it as your own
     artifact. Either way, still apply the
     [SCC bindings](#binding-serviceaccounts-to-sccs) above.
@@ -201,7 +201,7 @@ oc logs <pod-name>
 ```
 
 `Permission denied` on entrypoint scripts almost always means the pod ran
-under a restricted UID it did not expect — recheck the SCC binding for that
+under a restricted UID it did not expect - recheck the SCC binding for that
 component's ServiceAccount.
 
 ### Health probes

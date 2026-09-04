@@ -42,16 +42,16 @@ spec:
         name: nginx-app
     spec:
       containers:
-      - name: nginx
+ - name: nginx
         image: nginx
         ports:
-        - containerPort: 80
+ - containerPort: 80
         volumeMounts:
         # NGINX stores its logs here inside the container
-        - name: nginx-logs
+ - name: nginx-logs
           mountPath: /var/log/nginx/
       volumes:
-      - name: nginx-logs
+ - name: nginx-logs
         hostPath:
           # Path on the node that the Wazuh agent will monitor
           path: /var/log/kubernetes/nginx/
@@ -63,12 +63,12 @@ Replicas land across the nodes. Each node's agent only sees the logs of pods run
 <summary>Pod distribution across nodes</summary>
 
 ```text
-NAME                              READY   STATUS    RESTARTS   AGE   IP           NODE
-nginx-test-app-54d4c9b59d-59kc2   1/1     Running   0          44m   10.42.1.7    worker-2
-nginx-test-app-54d4c9b59d-9qpj8   1/1     Running   0          44m   10.42.0.19   control-plane
-nginx-test-app-54d4c9b59d-bcxcc   1/1     Running   0          45m   10.42.2.6    worker-1
-nginx-test-app-54d4c9b59d-fbjhm   1/1     Running   0          45m   10.42.1.6    worker-2
-nginx-test-app-54d4c9b59d-fx22v   1/1     Running   0          45m   10.42.0.18   control-plane
+NAME                         READY   STATUS    RESTARTS   AGE   IP           NODE
+nginx-test-app-aaaaa-11111   1/1     Running   0          5m    192.0.2.11   worker-2
+nginx-test-app-aaaaa-22222   1/1     Running   0          5m    192.0.2.12   control-plane
+nginx-test-app-aaaaa-33333   1/1     Running   0          5m    192.0.2.13   worker-1
+nginx-test-app-aaaaa-44444   1/1     Running   0          5m    192.0.2.14   worker-2
+nginx-test-app-aaaaa-55555   1/1     Running   0          5m    192.0.2.15   control-plane
 ```
 
 </details>

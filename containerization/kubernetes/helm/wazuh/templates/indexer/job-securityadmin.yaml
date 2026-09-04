@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       labels:
-        # Not indexer component labels — those would make this pod an indexer Service endpoint.
+        # Not indexer component labels - those would make this pod an indexer Service endpoint.
         {{- include "wazuh.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: securityadmin
     spec:
@@ -38,7 +38,7 @@ spec:
         {{- include "wazuh.pkcs8InitContainer" . | nindent 8 }}
       {{- end }}
       containers:
-        - name: securityadmin
+ - name: securityadmin
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.image) }}
           imagePullPolicy: {{ .Values.indexer.image.pullPolicy }}
           {{- with .Values.indexer.containerSecurityContext }}
@@ -46,13 +46,13 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           command:
-            - /bin/bash
-            - -c
-            - |
+ - /bin/bash
+ - -c
+ - |
               set -uo pipefail
               export JAVA_HOME=/usr/share/wazuh-indexer/jdk
               CERTS=/usr/share/wazuh-indexer/config/certs
-              # Wait until the cluster answers — on a fresh install this Job can race ahead.
+              # Wait until the cluster answers - on a fresh install this Job can race ahead.
               for i in $(seq 1 60); do
                 if bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
                      -icl -nhnv \
@@ -72,12 +72,12 @@ spec:
               echo "securityadmin did not succeed" >&2
               exit 1
           volumeMounts:
-            - name: securityconfig
+ - name: securityconfig
               mountPath: /securityconfig
               readOnly: true
             {{- include "wazuh.indexerCertMounts" . | nindent 12 }}
       volumes:
-        - name: securityconfig
+ - name: securityconfig
           secret:
             secretName: {{ include "wazuh.fullname" . }}-indexer-securityconfig
             defaultMode: 0600

@@ -9,7 +9,7 @@
 The Wazuh AWS module expects credential and profile files inside the manager
 container. Writing them by hand into the pod filesystem means they vanish on
 every pod recreation. Mount them from a **Secret** (credentials) and a
-**ConfigMap** (profile config) instead — the files then survive pod restarts
+**ConfigMap** (profile config) instead - the files then survive pod restarts
 and image upgrades.
 
 The same pattern covers multiple AWS profiles, which helps when one manager
@@ -78,20 +78,20 @@ spec:
         app: wazuh-manager-worker
     spec:
       containers:
-      - name: wazuh
+ - name: wazuh
         image: wazuh/wazuh-manager:4.12.0
         volumeMounts:
-        - name: aws-credentials
+ - name: aws-credentials
           mountPath: /var/ossec/etc/.aws-credentials  # Path referenced by the AWS wodle
           subPath: credentials                        # Must match the key in the Secret
-        - name: config
+ - name: config
           mountPath: /root/.aws/config                # Standard AWS CLI config path
           subPath: awsprofileconfig                   # Must match the key in the ConfigMap
       volumes:
-      - name: aws-credentials
+ - name: aws-credentials
         secret:
           secretName: awscredentials
-      - name: config
+ - name: config
         configMap:
           name: configawsprofile
 ```

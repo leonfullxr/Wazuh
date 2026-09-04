@@ -138,7 +138,7 @@ string match and allows one, so
 `CN=*,OU=Wazuh,O=Wazuh,L=California,C=US` covers every indexer node.
 
 Hostname checks use the SAN, never the CN. Put every name clients will actually
-use—including external hostnames and load balancer FQDNs—into
+use - including external hostnames and load balancer FQDNs - into
 `certs.extraDnsNames`.
 
 ## Credentials
@@ -235,7 +235,7 @@ two managers behind a load balancer. See
 ### analysisd threads
 
 `manager.analysisdThreads` defaults to 4 and the schema rejects 0. At 0,
-analysisd sizes its pools from the visible CPU count—the node's count, not the
+analysisd sizes its pools from the visible CPU count - the node's count, not the
 cgroup quota. On a large node with a small limit that creates thousands of
 threads, starves `wazuh-db`, and surfaces as `Error 2013`, `Error 2017`,
 `database is locked on endpoint: /v1/agents/sync`, plus agents active on a
@@ -245,7 +245,7 @@ will not help; count threads instead. Full write-up in
 
 ## Platform notes
 
-Per-platform storage classes, scheduling and gotchas live in the guides next to
+Per-platform storage classes, scheduling, and common issues live in the guides next to
 this chart. The chart exposes the knobs those guides tell you to change.
 
 - [Amazon EKS](../../eks.md): gp3, zone-aware scheduling, ECR, the ALB 401 gate.

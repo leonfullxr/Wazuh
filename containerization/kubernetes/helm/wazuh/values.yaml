@@ -30,7 +30,7 @@ imagePullSecrets: []
 # bound to the per-component ServiceAccounts. See ../../openshift.md.
 openshift:
   enabled: false
-  # Emit SCC→ServiceAccount RoleBindings. Needs cluster-admin at install time.
+  # Emit SCC->ServiceAccount RoleBindings. Needs cluster-admin at install time.
   # Leave false and bind with `oc adm policy` when the installer is not a
   # cluster admin.
   createSCCBindings: false
@@ -59,7 +59,7 @@ credentials:
 
   indexer:
     username: admin
-    # Empty → random password on install, reused on upgrade via Secret lookup
+    # Empty -> random password on install, reused on upgrade via Secret lookup
     # (upgrades do not rotate). The indexer reads internal_users.yml only on
     # FIRST start of an empty cluster; later changes need
     # indexer.security.runSecurityadmin=true. See README.
@@ -115,7 +115,7 @@ certs:
     tag: "0.0.4"
     pullPolicy: IfNotPresent
 
-  # Subjects for chart-generated certs and—more critically—for admin_dn /
+  # Subjects for chart-generated certs and - more critically - for admin_dn /
   # nodes_dn allowlists in opensearch.yml. With certs.mode=existing you MUST
   # match the subjects your certificates carry or the indexer rejects its own
   # nodes. wazuh-certs-tool.sh produces:
@@ -133,7 +133,7 @@ certs:
     nodesDn: ""
 
 manager:
-  # false → agent DaemonSet alone against an external manager (agent.externalManager).
+  # false -> agent DaemonSet alone against an external manager (agent.externalManager).
   enabled: true
 
   # <cluster><name> in ossec.conf. Unrelated to indexer.clusterName.
@@ -160,7 +160,7 @@ manager:
   containerSecurityContext:
     capabilities:
       add:
-        - SYS_CHROOT
+ - SYS_CHROOT
 
   # Fragments merged into generated master/worker ossec.conf.
   extraOssecConfig: ""
@@ -208,7 +208,7 @@ manager:
       enabled: true
       storageClass: ""
       accessModes:
-        - ReadWriteOnce
+ - ReadWriteOnce
       size: 50Gi
       # Prefer a different class than the indexer when that class is
       # network-attached: /var/ossec/queue/db is latency-sensitive.
@@ -225,7 +225,7 @@ manager:
     extraVolumeMounts: []
 
   worker:
-    # 0 → single-node: master keeps 1514 and the events Service targets it.
+    # 0 -> single-node: master keeps 1514 and the events Service targets it.
     # Production wants ≥2 plus a load balancer for agent balancing.
     replicas: 2
     resources:
@@ -239,7 +239,7 @@ manager:
       enabled: true
       storageClass: ""
       accessModes:
-        - ReadWriteOnce
+ - ReadWriteOnce
       size: 50Gi
       annotations: {}
     nodeSelector: {}
@@ -288,7 +288,7 @@ indexer:
     runAsGroup: 1000
     capabilities:
       add:
-        - SYS_CHROOT
+ - SYS_CHROOT
 
   # ~half the memory limit, min == max, never above ~32g. Both -Xms and -Xmx
   # come from this one value.
@@ -306,7 +306,7 @@ indexer:
     enabled: true
     storageClass: ""
     accessModes:
-      - ReadWriteOnce
+ - ReadWriteOnce
     size: 100Gi
     annotations: {}
 
@@ -395,9 +395,9 @@ dashboard:
     className: ""
     annotations: {}
     hosts:
-      - host: wazuh.example.com
+ - host: wazuh.example.com
         paths:
-          - path: /
+ - path: /
             pathType: Prefix
     tls: []
 
@@ -417,7 +417,7 @@ dashboard:
 
 # Manager-facing services.
 # 1514 (events) and 1515 (enrollment) are raw TCP. Never put them behind an
-# HTTP Ingress or AWS ALB—the L7 proxy parses the stream as HTTP and resets it.
+# HTTP Ingress or AWS ALB - the L7 proxy parses the stream as HTTP and resets it.
 # The chart will not render an Ingress for them. For ingress-nginx use its
 # tcp-services ConfigMap. See ../../load-balancing-and-ingress.md
 service:
@@ -490,10 +490,10 @@ agent:
       memory: 512Mi
 
   tolerations:
-    - key: node-role.kubernetes.io/control-plane
+ - key: node-role.kubernetes.io/control-plane
       operator: Exists
       effect: NoSchedule
-    - key: node-role.kubernetes.io/master
+ - key: node-role.kubernetes.io/master
       operator: Exists
       effect: NoSchedule
   nodeSelector: {}

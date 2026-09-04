@@ -54,7 +54,7 @@ metadata:
 data:
   filebeat.yml: |
     filebeat.modules:
-      - module: wazuh
+ - module: wazuh
         alerts:
           enabled: true
         archives:
@@ -77,14 +77,14 @@ spec:
   template:
     spec:
       containers:
-        - name: wazuh-manager
+ - name: wazuh-manager
           volumeMounts:
-            - name: filebeat-config
+ - name: filebeat-config
               mountPath: /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
               subPath: filebeat.yml
               readOnly: true
       volumes:
-        - name: filebeat-config
+ - name: filebeat-config
           configMap:
             name: wazuh-filebeat-config
 ```

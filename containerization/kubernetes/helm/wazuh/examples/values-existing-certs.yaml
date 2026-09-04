@@ -29,7 +29,7 @@ certs:
   mode: existing
   existingIndexerSecret: wazuh-indexer-certs
   existingDashboardSecret: wazuh-dashboard-certs
-  # Must match the subjects your certificates actually carry — the indexer
+  # Must match the subjects your certificates actually carry - the indexer
   # compares them to the certificate subject. wazuh-certs-tool.sh produces the
   # values below. admin_dn takes no wildcard; nodes_dn does.
   subject:

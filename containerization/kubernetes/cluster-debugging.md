@@ -58,7 +58,7 @@ kubectl describe pod wazuh-manager-master-0 -n <namespace> | grep -A3 "Last Stat
 # Last State: Terminated   Reason: OOMKilled
 ```
 
-Stock manifests ship deliberately small limits (master defaults to roughly `400m` CPU / `512Mi` RAM). That is below what a manager with enrolled agents needs, so a memory spike kills the pod and takes cluster communication down with it. Raise requests and limits in your overlay, then redeploy.
+Stock manifests ship small default limits (master is roughly `400m` CPU / `512Mi` RAM). That is below what a manager with enrolled agents needs, so a memory spike kills the pod and takes cluster communication down with it. Raise requests and limits in your overlay, then redeploy.
 
 Documented "minimum requirements" apply to the **whole cluster with no agents**; they are not per-pod values. Starting point per component (mirrors the non-container [sizing guide](https://documentation.wazuh.com/current/quickstart.html#requirements)):
 
@@ -98,7 +98,7 @@ Short service names (`wazuh-indexer`, `wazuh`) resolve fine **when every compone
 </nodes>
 ```
 
-When you change the namespace, update that entry (and audit the overlay for any other FQDN that still has the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time; do **not** hand-edit those. Confirm the cluster formed under **Server management → Cluster**, or:
+When you change the namespace, update that entry (and audit the overlay for any other FQDN that still has the old namespace). The cluster key and node name (`to_be_replaced_by_*` placeholders) are substituted automatically at deploy time; do **not** hand-edit those. Confirm the cluster formed under **Server management -> Cluster**, or:
 
 ```bash
 kubectl exec -n <namespace> wazuh-manager-master-0 -- /var/ossec/bin/cluster_control -l

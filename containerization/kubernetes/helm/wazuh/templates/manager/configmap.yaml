@@ -13,7 +13,7 @@ data:
   worker.conf: |
     {{- include "wazuh.ossecConf" (dict "context" . "nodeType" "worker") | nindent 4 }}
   # analysisd sizes pools from visible CPU count (node, not cgroup). Large
-  # node + small limit → thousands of threads, wazuh-db starvation, Error
+  # node + small limit -> thousands of threads, wazuh-db starvation, Error
   # 2013/2017, agents stuck disconnected on the master. Pin the pools.
   # See ../../agent-info-sync-failures.md
   local_internal_options.conf: |
@@ -49,7 +49,7 @@ data:
 {{- if and .Values.manager.enabled (or .Values.manager.filebeat.archivesEnabled .Values.manager.filebeat.config) }}
 ---
 # Entrypoint regenerates /etc/filebeat/filebeat.yml from an in-image template
-# after volumes mount. A ConfigMap at the destination is overwritten — why
+# after volumes mount. A ConfigMap at the destination is overwritten - why
 # wazuh-archives-* stops after an image upgrade. This ConfigMap mounts over
 # the SOURCE template instead. Credential/TLS lines stay commented so the
 # entrypoint fills them from env (keeps indexer password out of a ConfigMap).
@@ -69,7 +69,7 @@ data:
     {{- else }}
     # Wazuh - Filebeat configuration file
     filebeat.modules:
-      - module: wazuh
+ - module: wazuh
         alerts:
           enabled: true
         archives:
@@ -94,8 +94,8 @@ data:
     seccomp:
       default_action: allow
       syscalls:
-      - action: allow
+ - action: allow
         names:
-        - rseq
+ - rseq
     {{- end }}
 {{- end }}

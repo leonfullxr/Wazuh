@@ -51,7 +51,7 @@ Availability Zone as the pod.
 **`reclaimPolicy: Delete` vs `Retain`?**
 
 The Wazuh manifests default to `Retain`, which leaves the volume around for
-manual cleanup when its claim goes away — safer against accidental data loss.
+manual cleanup when its claim goes away - safer against accidental data loss.
 `Delete` removes the volume automatically. Pick based on your retention
 policy; see the Kubernetes
 [persistent volumes documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
@@ -85,14 +85,14 @@ affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
-        - matchExpressions:
-            - key: topology.kubernetes.io/zone
+ - matchExpressions:
+ - key: topology.kubernetes.io/zone
               operator: In
               values:
-                - us-east-1a
+ - us-east-1a
 ```
 
-The stock Kustomize layout ships no affinity rules — add them as patches under
+The stock Kustomize layout ships no affinity rules - add them as patches under
 your environment overlay (`envs/`).
 
 Pinning every indexer into one Availability Zone fixes attachment locality but
@@ -106,7 +106,7 @@ across those zones too.
 **Where do changes go in the wazuh-kubernetes repository?**
 
 Put every environment-specific edit under `envs/` (Kustomize overlays). Leave
-the base manifests in the `wazuh/` subfolders alone — a clean base turns
+the base manifests in the `wazuh/` subfolders alone - a clean base turns
 upgrades to newer Wazuh versions into a rebase instead of a merge-conflict
 chase.
 
@@ -130,7 +130,7 @@ Set resource requests/limits in the Kustomize overlays, then watch real usage
 1. Install an Ingress controller (for example AWS Load Balancer Controller or
    ingress-nginx).
 2. Create Ingress resources whose routing rules target the Wazuh dashboard
-   service — confirm the service name and port match the deployment.
+   service - confirm the service name and port match the deployment.
 3. Point DNS at the Ingress controller's external address.
 4. Put TLS settings on the Ingress resource for secure external access.
 
@@ -207,7 +207,7 @@ gives a clear audit trail of who changed which rule and when.
 **Private vs public CA**
 
 Either works. A public CA (Let's Encrypt, DigiCert, ...) or an internal CA is
-fine as long as the certificate is properly signed and trusted by the agents —
+fine as long as the certificate is properly signed and trusted by the agents - 
 distribute the CA cert to every managed system.
 
 **Recommended enrollment method**
@@ -229,7 +229,7 @@ the pod must re-enroll on its own.
 **Are pre-shared keys supported?**
 
 The enrollment password in `/var/ossec/etc/authd.pass` on the manager acts as
-a pre-shared key **for enrollment only**. Ongoing traffic does not use it —
+a pre-shared key **for enrollment only**. Ongoing traffic does not use it - 
 after enrollment, agents talk to the manager over TLS on port 1514 with their
 individual agent keys.
 

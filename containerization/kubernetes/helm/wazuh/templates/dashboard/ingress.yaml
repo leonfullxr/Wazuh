@@ -1,6 +1,6 @@
 {{- if and .Values.dashboard.enabled .Values.dashboard.ingress.enabled }}
 {{/*
-Dashboard Ingress only — never route agent 1514/1515 through Ingress (raw TCP;
+Dashboard Ingress only - never route agent 1514/1515 through Ingress (raw TCP;
 see templates/common/tcp-services.yaml). Dashboard speaks HTTPS on 5601; tell
 the controller (backend-protocol for ingress-nginx). On AWS ALB also set
 success-codes 401: Wazuh API returns 401 on unauthenticated health checks and
@@ -29,11 +29,11 @@ spec:
   {{- end }}
   rules:
     {{- range .Values.dashboard.ingress.hosts }}
-    - host: {{ .host | quote }}
+ - host: {{ .host | quote }}
       http:
         paths:
           {{- range .paths }}
-          - path: {{ .path }}
+ - path: {{ .path }}
             pathType: {{ .pathType }}
             backend:
               service:

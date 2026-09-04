@@ -57,8 +57,8 @@ ingress-nginx forwards raw TCP through its **TCP services** ConfigMap (separate 
       name: tcp-services
       namespace: ingress-nginx
     data:
-      "1515": "<namespace>/wazuh:1515"          # enrollment → master service
-      "1514": "<namespace>/wazuh-workers:1514"   # events → workers service
+      "1515": "<namespace>/wazuh:1515"          # enrollment -> master service
+      "1514": "<namespace>/wazuh-workers:1514"   # events -> workers service
     ```
 
 2. Confirm the controller **starts with** that ConfigMap and exposes the ports on its own Service:
@@ -94,7 +94,7 @@ PROXY protocol prepends the original client IP to a TCP stream. It is all-or-not
         service.beta.kubernetes.io/aws-load-balancer-internal: "true"
     ```
 
-    (Older `aws-load-balancer-internal: 0.0.0.0/0` means **internet-facing**, not internal. Easy trap.)
+    (Older `aws-load-balancer-internal: 0.0.0.0/0` means internet-facing, not internal.)
 - **`NodePort`** exposes a high port on every node. Use it when an external LB or the ingress controller fronts the nodes.
 
 ## ALB Ingress: manager StatefulSet never becomes Ready

@@ -32,7 +32,7 @@ roleRef:
   kind: ClusterRole
   name: system:openshift:scc:{{ $c.scc }}
 subjects:
-  - kind: ServiceAccount
+ - kind: ServiceAccount
     name: {{ include "wazuh.component.serviceAccountName" (dict "context" $ "component" $c.component) }}
     namespace: {{ $.Release.Namespace }}
 {{- end }}

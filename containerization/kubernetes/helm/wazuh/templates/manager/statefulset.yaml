@@ -22,9 +22,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  # Exactly one master per Wazuh cluster — scale manager.worker.replicas instead.
+  # Exactly one master per Wazuh cluster - scale manager.worker.replicas instead.
   replicas: {{ ternary 1 (int $cfg.replicas) $isMaster }}
-  # Shared headless service → stable DNS on the cluster port for every manager pod.
+  # Shared headless service -> stable DNS on the cluster port for every manager pod.
   serviceName: {{ include "wazuh.managerClusterServiceName" $ }}
   podManagementPolicy: Parallel
   selector:
@@ -39,7 +39,7 @@ spec:
         {{- with $.Values.commonLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         {{- with $cfg.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
       annotations:
-        # subPath mounts do not hot-reload ConfigMap updates — roll the StatefulSet on config change.
+        # subPath mounts do not hot-reload ConfigMap updates - roll the StatefulSet on config change.
         checksum/config: {{ include (print $.Template.BasePath "/manager/configmap.yaml") $ | sha256sum }}
         {{- with $.Values.commonAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         {{- with $cfg.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
@@ -73,7 +73,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: wazuh-manager
+ - name: wazuh-manager
           image: {{ include "wazuh.image" (dict "context" $ "image" $.Values.manager.image) }}
           imagePullPolicy: {{ $.Values.manager.image.pullPolicy }}
           {{- with $.Values.manager.containerSecurityContext }}
@@ -81,31 +81,31 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            # Same <remote> block in master.conf and worker.conf — master accepts
+            # Same <remote> block in master.conf and worker.conf - master accepts
             # agent events too (enables zero-worker single-node).
-            - name: agents-events
+ - name: agents-events
               containerPort: 1514
               protocol: TCP
             {{- if $isMaster }}
-            - name: registration
+ - name: registration
               containerPort: 1515
               protocol: TCP
-            - name: api
+ - name: api
               containerPort: 55000
               protocol: TCP
             {{- end }}
-            - name: cluster
+ - name: cluster
               containerPort: 1516
               protocol: TCP
           env:
             {{- include "wazuh.managerEnv" $ | nindent 12 }}
             {{- if $isMaster }}
-            - name: API_USERNAME
+ - name: API_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" $ }}
                   key: api-username
-            - name: API_PASSWORD
+ - name: API_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" $ }}
@@ -143,40 +143,40 @@ spec:
             # Entrypoint copies /wazuh-config-mount onto /var/ossec before daemons
             # start. Avoids mounting over /var/ossec/etc where the PVC would
             # shadow ConfigMap file mounts.
-            - name: config
+ - name: config
               mountPath: /wazuh-config-mount/etc/ossec.conf
               subPath: {{ ternary "master.conf" "worker.conf" $isMaster }}
               readOnly: true
-            - name: config
+ - name: config
               mountPath: /wazuh-config-mount/etc/local_internal_options.conf
               subPath: local_internal_options.conf
               readOnly: true
             {{- if $isMaster }}
-            - name: authd-pass
+ - name: authd-pass
               mountPath: /wazuh-config-mount/etc/authd.pass
               subPath: authd.pass
               readOnly: true
             {{- range $n, $c := $.Values.customRules }}
-            - name: custom-content
+ - name: custom-content
               mountPath: /wazuh-config-mount/etc/rules/{{ $n }}
               subPath: rule-{{ $n }}
               readOnly: true
             {{- end }}
             {{- range $n, $c := $.Values.customDecoders }}
-            - name: custom-content
+ - name: custom-content
               mountPath: /wazuh-config-mount/etc/decoders/{{ $n }}
               subPath: decoder-{{ $n }}
               readOnly: true
             {{- end }}
             {{- range $n, $c := $.Values.customLists }}
-            - name: custom-content
+ - name: custom-content
               mountPath: /wazuh-config-mount/etc/lists/{{ $n }}
               subPath: list-{{ $n }}
               readOnly: true
             {{- end }}
             {{- end }}
             {{- if or $.Values.manager.filebeat.archivesEnabled $.Values.manager.filebeat.config $.Values.manager.filebeat.existingConfigMap }}
-            - name: filebeat-config
+ - name: filebeat-config
               mountPath: /var/ossec/data_tmp/exclusion/etc/filebeat/filebeat.yml
               subPath: filebeat.yml
               readOnly: true
@@ -189,30 +189,30 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:
-        - name: config
+ - name: config
           configMap:
             name: {{ $.Values.manager.existingConfigMap | default (printf "%s-manager-config" (include "wazuh.fullname" $)) }}
         {{- if $isMaster }}
-        - name: authd-pass
+ - name: authd-pass
           secret:
             secretName: {{ include "wazuh.credentialsSecretName" $ }}
             items:
-              - key: authd.pass
+ - key: authd.pass
                 path: authd.pass
         {{- if or $.Values.customRules $.Values.customDecoders $.Values.customLists }}
-        - name: custom-content
+ - name: custom-content
           configMap:
             name: {{ include "wazuh.fullname" $ }}-manager-custom
         {{- end }}
         {{- end }}
         {{- if or $.Values.manager.filebeat.archivesEnabled $.Values.manager.filebeat.config $.Values.manager.filebeat.existingConfigMap }}
-        - name: filebeat-config
+ - name: filebeat-config
           configMap:
             name: {{ $.Values.manager.filebeat.existingConfigMap | default (printf "%s-filebeat-config" (include "wazuh.fullname" $)) }}
         {{- end }}
         {{- include "wazuh.managerCertVolumes" $ | nindent 8 }}
         {{- if not $cfg.persistence.enabled }}
-        - name: data
+ - name: data
           emptyDir: {}
         {{- end }}
         {{- with $cfg.extraVolumes }}
@@ -220,7 +220,7 @@ spec:
         {{- end }}
   {{- if $cfg.persistence.enabled }}
   volumeClaimTemplates:
-    - metadata:
+ - metadata:
         name: data
         labels:
           {{- include "wazuh.component.labels" (dict "context" $ "component" "manager") | nindent 10 }}

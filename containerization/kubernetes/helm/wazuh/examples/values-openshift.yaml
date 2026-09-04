@@ -28,14 +28,14 @@ indexer:
   #   metadata: { name: wazuh-indexer, namespace: openshift-cluster-node-tuning-operator }
   #   spec:
   #     profile:
-  #       - name: wazuh-indexer
+  # - name: wazuh-indexer
   #         data: |
   #           [main]
   #           summary=Raise vm.max_map_count for the Wazuh indexer
   #           [sysctl]
   #           vm.max_map_count=262144
   #     recommend:
-  #       - match: [{ label: node-role.kubernetes.io/worker }]
+  # - match: [{ label: node-role.kubernetes.io/worker }]
   #         priority: 10
   #         profile: wazuh-indexer
   sysctlInitContainer:
@@ -43,7 +43,7 @@ indexer:
 
 # Chart defaults (indexer UID 1000, manager fsGroup 101) match what the images
 # expect, and anyuid allows them, so they are left alone. Under restricted-v2
-# with your own unprivileged images, clear with explicit null — an empty map
+# with your own unprivileged images, clear with explicit null - an empty map
 # does NOT clear a Helm default (it merges and changes nothing):
 #
 #   indexer:
@@ -58,4 +58,4 @@ dashboard:
 
 certs:
   extraDnsNames:
-    - wazuh.apps.example.com
+ - wazuh.apps.example.com

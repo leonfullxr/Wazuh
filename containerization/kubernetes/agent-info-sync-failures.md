@@ -176,9 +176,9 @@ The `wazuh-kubernetes` manifests ship no liveness or readiness probe, and Wazuh 
   livenessProbe:
     exec:
       command:
-      - /bin/sh
-      - -c
-      - 'echo "{\"command\":\"getstats\"}" | timeout 5 socat - UNIX-CONNECT:/var/ossec/queue/db/wdb | grep -q "\"error\":0"'
+ - /bin/sh
+ - -c
+ - 'echo "{\"command\":\"getstats\"}" | timeout 5 socat - UNIX-CONNECT:/var/ossec/queue/db/wdb | grep -q "\"error\":0"'
     initialDelaySeconds: 30
     periodSeconds: 60
     timeoutSeconds: 10

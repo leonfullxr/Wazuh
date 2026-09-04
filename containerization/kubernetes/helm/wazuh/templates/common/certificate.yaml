@@ -34,18 +34,18 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
-  # defaults to PKCS#1 — this encoding is required, not optional.
+  # defaults to PKCS#1 - this encoding is required, not optional.
   privateKey:
     algorithm: RSA
     size: 2048
     encoding: PKCS8
   usages:
-    - server auth
-    - client auth
+ - server auth
+ - client auth
   issuerRef:
     {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
 ---
-# Admin client cert. Subject must appear in plugins.security.authcz.admin_dn —
+# Admin client cert. Subject must appear in plugins.security.authcz.admin_dn - 
 # set certs.subject.adminDn to whatever DN the issuer produces.
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -60,13 +60,13 @@ spec:
   renewBefore: 720h
   commonName: admin
   # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
-  # defaults to PKCS#1 — this encoding is required, not optional.
+  # defaults to PKCS#1 - this encoding is required, not optional.
   privateKey:
     algorithm: RSA
     size: 2048
     encoding: PKCS8
   usages:
-    - client auth
+ - client auth
   issuerRef:
     {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
 ---
@@ -83,18 +83,18 @@ spec:
   renewBefore: 720h
   commonName: filebeat
   dnsNames:
-    - {{ include "wazuh.managerServiceName" . }}
-    - {{ include "wazuh.managerMasterFqdn" . }}
+ - {{ include "wazuh.managerServiceName" . }}
+ - {{ include "wazuh.managerMasterFqdn" . }}
     {{- with .Values.certs.extraDnsNames }}{{- toYaml . | nindent 4 }}{{- end }}
   # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
-  # defaults to PKCS#1 — this encoding is required, not optional.
+  # defaults to PKCS#1 - this encoding is required, not optional.
   privateKey:
     algorithm: RSA
     size: 2048
     encoding: PKCS8
   usages:
-    - client auth
-    - server auth
+ - client auth
+ - server auth
   issuerRef:
     {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
 {{- if .Values.dashboard.enabled }}
@@ -112,20 +112,20 @@ spec:
   renewBefore: 720h
   commonName: dashboard
   dnsNames:
-    - {{ include "wazuh.dashboard.fullname" . }}
-    - {{ printf "%s.%s.svc.cluster.local" (include "wazuh.dashboard.fullname" .) $ns }}
+ - {{ include "wazuh.dashboard.fullname" . }}
+ - {{ printf "%s.%s.svc.cluster.local" (include "wazuh.dashboard.fullname" .) $ns }}
     {{- range .Values.dashboard.ingress.hosts }}
-    - {{ .host | quote }}
+ - {{ .host | quote }}
     {{- end }}
     {{- with .Values.certs.extraDnsNames }}{{- toYaml . | nindent 4 }}{{- end }}
   # Netty (OpenSearch security) parses PEM keys as PKCS#8 only. cert-manager
-  # defaults to PKCS#1 — this encoding is required, not optional.
+  # defaults to PKCS#1 - this encoding is required, not optional.
   privateKey:
     algorithm: RSA
     size: 2048
     encoding: PKCS8
   usages:
-    - server auth
+ - server auth
   issuerRef:
     {{- toYaml .Values.certs.certManager.issuerRef | nindent 4 }}
 {{- end }}

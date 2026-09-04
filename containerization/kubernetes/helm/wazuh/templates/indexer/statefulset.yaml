@@ -64,13 +64,13 @@ spec:
         {{- include "wazuh.pkcs8InitContainer" . | nindent 8 }}
         {{- end }}
         {{- if .Values.indexer.chownInitContainer.enabled }}
-        - name: fix-data-permissions
+ - name: fix-data-permissions
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.initImage) }}
           imagePullPolicy: {{ .Values.indexer.initImage.pullPolicy }}
           command:
-            - sh
-            - -c
-            - chown -R 1000:1000 /var/lib/wazuh-indexer
+ - sh
+ - -c
+ - chown -R 1000:1000 /var/lib/wazuh-indexer
           securityContext:
             runAsUser: 0
           resources:
@@ -81,20 +81,20 @@ spec:
               cpu: 100m
               memory: 128Mi
           volumeMounts:
-            - name: data
+ - name: data
               mountPath: /var/lib/wazuh-indexer
         {{- end }}
         {{- if .Values.indexer.sysctlInitContainer.enabled }}
-        # Needs privileged — restricted PodSecurity/SCC will reject. On
+        # Needs privileged - restricted PodSecurity/SCC will reject. On
         # OpenShift set indexer.sysctlInitContainer.enabled=false and use Node
         # Tuning Operator for vm.max_map_count. See ../../openshift.md
-        - name: increase-vm-max-map-count
+ - name: increase-vm-max-map-count
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.initImage) }}
           imagePullPolicy: {{ .Values.indexer.initImage.pullPolicy }}
           command:
-            - sh
-            - -c
-            - |
+ - sh
+ - -c
+ - |
               current=$(sysctl -n vm.max_map_count)
               if [ "$current" -lt {{ .Values.indexer.sysctlInitContainer.value }} ]; then
                 sysctl -w vm.max_map_count={{ .Values.indexer.sysctlInitContainer.value }}
@@ -112,7 +112,7 @@ spec:
         {{- end }}
       {{- end }}
       containers:
-        - name: wazuh-indexer
+ - name: wazuh-indexer
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.indexer.image) }}
           imagePullPolicy: {{ .Values.indexer.image.pullPolicy }}
           {{- with .Values.indexer.containerSecurityContext }}
@@ -120,28 +120,28 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: http
+ - name: http
               containerPort: 9200
               protocol: TCP
-            - name: transport
+ - name: transport
               containerPort: 9300
               protocol: TCP
           env:
-            - name: CLUSTER_NAME
+ - name: CLUSTER_NAME
               value: {{ .Values.indexer.clusterName | quote }}
-            - name: NETWORK_HOST
+ - name: NETWORK_HOST
               value: "0.0.0.0"
-            - name: NODE_NAME
+ - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: OPENSEARCH_JAVA_OPTS
+ - name: OPENSEARCH_JAVA_OPTS
               # -Xms == -Xmx: a growing heap in a container only delays OOMKill.
               # Keep near half of resources.limits.memory.
               value: "-Xms{{ .Values.indexer.heapSize }} -Xmx{{ .Values.indexer.heapSize }} -Dlog4j2.formatMsgNoLookups=true"
-            - name: DISABLE_INSTALL_DEMO_CONFIG
+ - name: DISABLE_INSTALL_DEMO_CONFIG
               value: "true"
-            - name: INDEXER_PASSWORD
+ - name: INDEXER_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
@@ -149,7 +149,7 @@ spec:
             {{- with .Values.indexer.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          # REST is TLS + auth — unauthenticated httpGet sees 401. TCP is what remains.
+          # REST is TLS + auth - unauthenticated httpGet sees 401. TCP is what remains.
           readinessProbe:
             tcpSocket:
               port: http
@@ -167,33 +167,33 @@ spec:
           resources:
             {{- toYaml .Values.indexer.resources | nindent 12 }}
           volumeMounts:
-            - name: data
+ - name: data
               mountPath: /var/lib/wazuh-indexer
-            - name: config
+ - name: config
               mountPath: /usr/share/wazuh-indexer/config/opensearch.yml
               subPath: opensearch.yml
               readOnly: true
-            - name: securityconfig
+ - name: securityconfig
               mountPath: /usr/share/wazuh-indexer/config/opensearch-security/internal_users.yml
               subPath: internal_users.yml
               readOnly: true
             {{- include "wazuh.indexerCertMounts" . | nindent 12 }}
       volumes:
-        - name: config
+ - name: config
           configMap:
             name: {{ include "wazuh.fullname" . }}-indexer-config
-        - name: securityconfig
+ - name: securityconfig
           secret:
             secretName: {{ include "wazuh.fullname" . }}-indexer-securityconfig
             defaultMode: 0600
         {{- include "wazuh.indexerCertVolumes" . | nindent 8 }}
         {{- if not .Values.indexer.persistence.enabled }}
-        - name: data
+ - name: data
           emptyDir: {}
         {{- end }}
   {{- if .Values.indexer.persistence.enabled }}
   volumeClaimTemplates:
-    - metadata:
+ - metadata:
         name: data
         labels:
           {{- include "wazuh.component.labels" (dict "context" . "component" "indexer") | nindent 10 }}

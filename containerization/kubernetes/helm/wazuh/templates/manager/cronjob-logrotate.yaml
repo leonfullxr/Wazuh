@@ -1,7 +1,7 @@
 {{- if and .Values.manager.enabled .Values.manager.logRetention.enabled }}
 {{/*
 Manager never prunes alerts/archives itself and the path is fixed, so the
-volume fills. Archives grow much faster than alerts — separate retention days.
+volume fills. Archives grow much faster than alerts - separate retention days.
 Prunes the master only; add another CronJob for workers if needed.
 */}}
 apiVersion: batch/v1
@@ -21,7 +21,7 @@ spec:
       template:
         metadata:
           labels:
-            # Not manager component labels — those would join the events Service and steal agent traffic.
+            # Not manager component labels - those would join the events Service and steal agent traffic.
             {{- include "wazuh.selectorLabels" . | nindent 12 }}
             app.kubernetes.io/component: log-retention
         spec:
@@ -33,23 +33,23 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           containers:
-            - name: prune
+ - name: prune
               image: {{ include "wazuh.image" (dict "context" . "image" .Values.manager.image) }}
               imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
               command:
-                - /bin/sh
-                - -c
-                - |
+ - /bin/sh
+ - -c
+ - |
                   set -eu
                   find /var/ossec/logs/alerts/ -type f -mtime +{{ .Values.manager.logRetention.alertsRetentionDays }} -delete
                   find /var/ossec/logs/archives/ -type f -mtime +{{ .Values.manager.logRetention.archivesRetentionDays }} -delete
                   find /var/ossec/logs/alerts/ /var/ossec/logs/archives/ -type d -empty -delete
               volumeMounts:
-                - name: data
+ - name: data
                   mountPath: /var/ossec/logs
                   subPath: wazuh/var/ossec/logs
           volumes:
-            - name: data
+ - name: data
               persistentVolumeClaim:
                 claimName: data-{{ include "wazuh.manager.master.fullname" . }}-0
 {{- end }}

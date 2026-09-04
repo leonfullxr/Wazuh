@@ -26,7 +26,7 @@
 
 ## Build the agent image
 
-`Dockerfile` — swap the `.deb` URL for the package version that matches your manager (keep the `-1` revision suffix):
+`Dockerfile` - swap the `.deb` URL for the package version that matches your manager (keep the `-1` revision suffix):
 
 ```dockerfile
 FROM python:3.9-slim-buster
@@ -49,7 +49,7 @@ RUN chmod 755 /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-`entrypoint.sh` — registers with the manager and turns on the `docker-listener` wodle:
+`entrypoint.sh` - registers with the manager and turns on the `docker-listener` wodle:
 
 ```bash
 #!/bin/bash
@@ -81,9 +81,9 @@ services:
     hostname: wazuh1.agent
     restart: always
     environment:
-      - MANAGER_IP=<YOUR_MANAGER_IP>
+ - MANAGER_IP=<YOUR_MANAGER_IP>
     volumes:
-      - agent1-wazuh-etc:/var/ossec/etc
+ - agent1-wazuh-etc:/var/ossec/etc
 volumes:
   agent1-wazuh-etc:
 ```
@@ -92,7 +92,7 @@ Keeping `/var/ossec/etc` on a volume preserves the agent key when the container 
 
 ## Kubernetes: DaemonSet
 
-`wazuh-daemonset.yaml` — one agent pod on each node. This sample mounts an NGINX log volume along with the Docker socket and the container log directory:
+`wazuh-daemonset.yaml` - one agent pod on each node. This sample mounts an NGINX log volume along with the Docker socket and the container log directory:
 
 ```yaml
 apiVersion: v1
@@ -119,10 +119,10 @@ spec:
       tolerations:
       # Allows the DaemonSet to run on control-plane nodes.
       # Remove if your control-plane nodes can't run pods.
-      - key: node-role.kubernetes.io/master
+ - key: node-role.kubernetes.io/master
         effect: NoSchedule
       containers:
-      - name: wazuh-agent
+ - name: wazuh-agent
         # Modify the image tag with your version
         image: <REGISTRY>/wazuh-agent:<VERSION>
         resources:
@@ -132,31 +132,31 @@ spec:
             cpu: 100m
             memory: 200Mi
         env:
-        # Wazuh manager IP
-        - name: WAZUH_MANAGER_IP
-          value: "10.0.0.10"
+        # Wazuh manager address (replace with your manager IP or DNS name)
+ - name: WAZUH_MANAGER_IP
+          value: "<MANAGER_IP>"
         # Wazuh agent group
-        - name: WAZUH_AGENT_GROUP
+ - name: WAZUH_AGENT_GROUP
           value: "kubernetes"
         volumeMounts:
         # Application logs shared via hostPath
-        - name: nginx-logs
+ - name: nginx-logs
           mountPath: /var/log/wazuh/nginx/
           readOnly: true
         # Optional: Docker events + container logs
-        - name: docker
+ - name: docker
           mountPath: /var/run/docker.sock
-        - name: varlibdockercontainers
+ - name: varlibdockercontainers
           mountPath: /var/lib/docker/containers
       terminationGracePeriodSeconds: 5
       volumes:
-      - name: nginx-logs
+ - name: nginx-logs
         hostPath:
           path: /var/log/kubernetes/nginx/
-      - name: docker
+ - name: docker
         hostPath:
           path: /var/run/docker.sock
-      - name: varlibdockercontainers
+ - name: varlibdockercontainers
         hostPath:
           path: /var/lib/docker/containers
 ```
@@ -175,10 +175,10 @@ kubectl get pods -n wazuh -o wide
 <summary>Expected output - one agent pod per node</summary>
 
 ```text
-NAME                READY   STATUS    RESTARTS   AGE     IP            NODE
-wazuh-agent-tq6p7   1/1     Running   0          142m    10.42.1.56    worker-2
-wazuh-agent-w5kdt   1/1     Running   0          145m    10.42.0.196   control-plane
-wazuh-agent-xlkh2   1/1     Running   0          145m    10.42.2.77    worker-1
+NAME                READY   STATUS    RESTARTS   AGE   IP          NODE
+wazuh-agent-aaaaa   1/1     Running   0          5m    192.0.2.21  worker-2
+wazuh-agent-bbbbb   1/1     Running   0          5m    192.0.2.22  control-plane
+wazuh-agent-ccccc   1/1     Running   0          5m    192.0.2.23  worker-1
 ```
 
 </details>
