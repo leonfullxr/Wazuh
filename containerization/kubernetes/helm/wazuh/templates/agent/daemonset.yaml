@@ -1,8 +1,8 @@
 {{- if .Values.agent.enabled }}
 {{/*
-Agent DaemonSet. See ../../../fim/containers.md: a containerized agent only
+Agent DaemonSet. See ../../../../../../fim/containers.md: a containerized agent only
 sees its own mounts and inventories the CONTAINER's packages/OS/SCA, not the
-node. Fine for hostPath log collection; wrong for host FIM - install the agent
+node. Fine for hostPath log collection; wrong for host FIM, where you install the agent
 on the host OS for full node coverage.
 */}}
 {{- if not .Values.manager.enabled }}
@@ -53,13 +53,13 @@ spec:
         # First run: seed ossec tree from the image. Guard keeps the agent key
         # on restart (avoids overwrite/re-enroll). Stale pid/lock files from an
         # unclean stop block startup.
- - name: seed-ossec-tree
+        - name: seed-ossec-tree
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.agent.image) }}
           imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
           command:
- - /bin/sh
- - -c
- - |
+            - /bin/sh
+            - -c
+            - |
               set -eu
               if [ ! -d /agent/bin ]; then
                 tar -C /var/ossec -cf - . | tar -C /agent -xpf -
@@ -68,41 +68,41 @@ spec:
           securityContext:
             runAsUser: 0
           volumeMounts:
- - name: agent-data
+            - name: agent-data
               mountPath: /agent
       containers:
- - name: wazuh-agent
+        - name: wazuh-agent
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.agent.image) }}
           imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
           securityContext:
             runAsUser: 0
             capabilities:
               add:
- - SETGID
- - SETUID
+                - SETGID
+                - SETUID
           env:
             # Events (workers :1514) and enrollment (master :1515) are separate endpoints.
- - name: WAZUH_MANAGER
+            - name: WAZUH_MANAGER
               value: {{ $events | quote }}
- - name: WAZUH_MANAGER_PORT
+            - name: WAZUH_MANAGER_PORT
               value: {{ .Values.service.events.port | quote }}
- - name: WAZUH_PROTOCOL
+            - name: WAZUH_PROTOCOL
               value: "tcp"
- - name: WAZUH_REGISTRATION_SERVER
+            - name: WAZUH_REGISTRATION_SERVER
               value: {{ $registration | quote }}
- - name: WAZUH_REGISTRATION_PORT
+            - name: WAZUH_REGISTRATION_PORT
               value: {{ .Values.service.master.registrationPort | quote }}
- - name: WAZUH_REGISTRATION_PASSWORD
+            - name: WAZUH_REGISTRATION_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: authd.pass
- - name: WAZUH_AGENT_NAME
+            - name: WAZUH_AGENT_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             {{- with .Values.agent.group }}
- - name: WAZUH_AGENT_GROUP
+            - name: WAZUH_AGENT_GROUP
               value: {{ . | quote }}
             {{- end }}
             {{- with .Values.agent.extraEnv }}
@@ -115,15 +115,15 @@ spec:
               exec:
                 command: ["/var/ossec/bin/wazuh-control", "stop"]
           volumeMounts:
- - name: agent-data
+            - name: agent-data
               mountPath: /var/ossec
             {{- if .Values.agent.hostLogs.enabled }}
- - name: host-logs
+            - name: host-logs
               mountPath: /host/var/log
               readOnly: true
             {{- end }}
       volumes:
- - name: agent-data
+        - name: agent-data
           {{- if eq .Values.agent.dataVolume.type "hostPath" }}
           hostPath:
             path: {{ .Values.agent.dataVolume.hostPath }}
@@ -132,7 +132,7 @@ spec:
           emptyDir: {}
           {{- end }}
         {{- if .Values.agent.hostLogs.enabled }}
- - name: host-logs
+        - name: host-logs
           hostPath:
             path: {{ .Values.agent.hostLogs.path }}
             type: Directory

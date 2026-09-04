@@ -1,0 +1,23 @@
+# gp3 via EBS CSI. Upstream's in-tree kubernetes.io/aws-ebs provisioner was removed
+# from Kubernetes and is absent on current EKS.
+#
+# WaitForFirstConsumer creates the volume in the AZ where the pod actually
+# schedules, which is required for zonal EBS.
+#
+# Retain: deleting a PVC leaves the volume. For a SIEM, accidental
+# `kubectl delete pvc` must not wipe indexer data.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: wazuh-storage
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+  # gp3 baseline is 3000 IOPS / 125 MB/s included. Raise independently of size
+  # for heavy indexer ingest (unlike gp2).
+  iops: "3000"
+  throughput: "125"
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+allowVolumeExpansion: true

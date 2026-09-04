@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wazuh-indexer
+  namespace: wazuh
+spec:
+  replicas: 3
+  # Parallel matches the upstream base. It only affects create/scale; RollingUpdate
+  # still replaces one pod at a time (reverse ordinal), waiting for Ready.
+  #
+  # Do not switch to OrderedReady. Bootstrap needs a quorum of
+  # cluster.initial_master_nodes; OrderedReady waits for pod 0 Ready before
+  # creating pod 1, and pod 0 alone cannot form a cluster. That deadlocks a
+  # fresh install once readiness is meaningful.
+  podManagementPolicy: Parallel
+  template:
+    spec:
+      # One indexer per AZ. DoNotSchedule (not ScheduleAnyway): two indexers in
+      # one AZ put a shard and its replica in the same failure domain.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: wazuh-indexer
+      nodeSelector:
+        wazuh.io/role: indexer
+      containers:
+        - name: wazuh-indexer
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          env:
+            # Heap at half the memory limit; -Xms equals -Xmx.
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms4g -Xmx4g -Dlog4j2.formatMsgNoLookups=true"
+          # REST is TLS + auth; an unauthenticated HTTP probe fails with 401.
+          # TCP is the workable option. Never require green cluster health for
+          # readiness: yellow is normal during rolling restart and would stall
+          # the rollout.
+          readinessProbe:
+            tcpSocket:
+              port: 9200
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 9300
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: wazuh-indexer
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: wazuh-storage
+        resources:
+          requests:
+            storage: 200Gi

@@ -41,7 +41,7 @@ and is not covered here yet.
 - At least two nodes if you keep the default worker anti-affinity, plus enough
   capacity for the [sizing](#sizing) below. On a laptop, start from
   `examples/values-minimal.yaml`.
-- `vm.max_map_count` ≥ 262144 on nodes that run the indexer. By default the
+- `vm.max_map_count` of 262144 or more on nodes that run the indexer. By default the
   chart raises it via a privileged init container; on OpenShift or any cluster
   that blocks that, set the sysctl at the node and turn the container off.
 
@@ -138,7 +138,7 @@ string match and allows one, so
 `CN=*,OU=Wazuh,O=Wazuh,L=California,C=US` covers every indexer node.
 
 Hostname checks use the SAN, never the CN. Put every name clients will actually
-use - including external hostnames and load balancer FQDNs - into
+use, including external hostnames and load balancer FQDNs, into
 `certs.extraDnsNames`.
 
 ## Credentials
@@ -229,13 +229,13 @@ Set `indexer.heapSize` to about half the indexer memory limit. Both `-Xms` and
 
 For high availability use at least three indexer nodes (odd count) and at least
 two managers behind a load balancer. See
-[upgrading/sizing.md](../../../upgrading/sizing.md) for capacity planning and
-[indexer/](../../../indexer/) for shard and retention planning.
+[upgrading/sizing.md](../../../../upgrading/sizing.md) for capacity planning and
+[indexer/](../../../../indexer/) for shard and retention planning.
 
 ### analysisd threads
 
 `manager.analysisdThreads` defaults to 4 and the schema rejects 0. At 0,
-analysisd sizes its pools from the visible CPU count - the node's count, not the
+analysisd sizes its pools from the visible CPU count, which is the node's count and not the
 cgroup quota. On a large node with a small limit that creates thousands of
 threads, starves `wazuh-db`, and surfaces as `Error 2013`, `Error 2017`,
 `database is locked on endpoint: /v1/agents/sync`, plus agents active on a
@@ -245,7 +245,7 @@ will not help; count threads instead. Full write-up in
 
 ## Platform notes
 
-Per-platform storage classes, scheduling, and common issues live in the guides next to
+Per-platform storage classes, scheduling and gotchas live in the guides next to
 this chart. The chart exposes the knobs those guides tell you to change.
 
 - [Amazon EKS](../../eks.md): gp3, zone-aware scheduling, ECR, the ALB 401 gate.

@@ -4,7 +4,7 @@ OpenShift SCC grant = RoleBinding to system:openshift:scc:<name> (what
 `oc adm policy add-scc-to-user` does). Manager/dashboard s6 init must write
 under /var/run before dropping privileges; restricted-v2's random high UID
 dies with "unable to mkdir /var/run/s6". anyuid is the supported fix; forcing
-UID 101 reaches Running but leaves binaries unusable. See ../../openshift.md
+UID 101 reaches Running but leaves binaries unusable. See ../../../../openshift.md
 
 These RoleBindings need cluster-admin. Leave createSCCBindings false and run
 `oc adm policy` by hand when the installer lacks it.
@@ -32,7 +32,7 @@ roleRef:
   kind: ClusterRole
   name: system:openshift:scc:{{ $c.scc }}
 subjects:
- - kind: ServiceAccount
+  - kind: ServiceAccount
     name: {{ include "wazuh.component.serviceAccountName" (dict "context" $ "component" $c.component) }}
     namespace: {{ $.Release.Namespace }}
 {{- end }}

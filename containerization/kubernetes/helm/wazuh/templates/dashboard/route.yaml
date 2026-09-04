@@ -1,6 +1,6 @@
 {{- if and .Values.dashboard.enabled .Values.dashboard.route.enabled }}
 {{/*
-OpenShift dashboard Route. Passthrough - dashboard already terminates TLS on
+OpenShift dashboard Route. Passthrough, because the dashboard already terminates TLS on
 5601; re-terminating would need a second cert. Agent traffic stays off Routes.
 */}}
 apiVersion: route.openshift.io/v1

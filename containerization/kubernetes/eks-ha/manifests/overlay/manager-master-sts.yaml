@@ -1,0 +1,65 @@
+# Master: always exactly one. Wazuh has no standby master or promotion. See
+# 01-architecture.md for what degrades while this pod is down.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wazuh-manager-master
+  namespace: wazuh
+spec:
+  replicas: 1
+  template:
+    spec:
+      nodeSelector:
+        wazuh.io/role: manager
+      # Separate master and worker across AZs. required, not preferred: with two
+      # managers, preferred would silently allow both in one zone.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: wazuh-manager
+      containers:
+        - name: wazuh-manager
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          # TCP probe, not exec. There is no manager health HTTP endpoint, and
+          # exec that hits wazuh-db each cycle loads the component that is
+          # already the bottleneck under failure. See
+          # ../agent-info-sync-failures.md
+          readinessProbe:
+            tcpSocket:
+              port: 55000
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 55000
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            failureThreshold: 3
+          volumeMounts:
+            # analysisd sizes thread pools from visible CPUs (node count, not
+            # cgroup). On a large node with a small limit that spawns thousands
+            # of threads and starves wazuh-db. Mounted pin is cheap insurance.
+            - name: config
+              mountPath: /wazuh-config-mount/etc/local_internal_options.conf
+              subPath: local_internal_options.conf
+              readOnly: true
+  volumeClaimTemplates:
+    - metadata:
+        name: wazuh-manager-master
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: wazuh-storage
+        resources:
+          requests:
+            storage: 100Gi

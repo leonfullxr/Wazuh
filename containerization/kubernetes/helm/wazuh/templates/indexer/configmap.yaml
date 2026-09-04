@@ -17,7 +17,7 @@ data:
     discovery.seed_hosts: {{ include "wazuh.indexerHeadlessServiceName" . }}
     cluster.initial_master_nodes:
     {{- range $i := until (int .Values.indexer.replicas) }}
- - {{ include "wazuh.indexer.fullname" $ }}-{{ $i }}
+      - {{ include "wazuh.indexer.fullname" $ }}-{{ $i }}
     {{- end }}
     path.data: /var/lib/wazuh-indexer
     path.logs: /var/log/wazuh-indexer
@@ -32,22 +32,22 @@ data:
     plugins.security.ssl.transport.enforce_hostname_verification: false
     plugins.security.ssl.transport.resolve_hostname: false
 
-    # Compared to the certificate SUBJECT - must match what certs actually
+    # Compared to the certificate SUBJECT, so this must match what certs actually
     # carry. Chart-generated = bare CN; wazuh-certs-tool.sh = full subject
     # (certs.subject.*). Mismatch is the most common reason the indexer
     # refuses its own nodes.
     plugins.security.authcz.admin_dn:
- - {{ include "wazuh.adminDn" . | quote }}
+      - {{ include "wazuh.adminDn" . | quote }}
     plugins.security.nodes_dn:
- - {{ include "wazuh.nodesDn" . | quote }}
+      - {{ include "wazuh.nodesDn" . | quote }}
 
     plugins.security.check_snapshot_restore_write_privileges: true
     plugins.security.enable_snapshot_restore_privilege: true
     plugins.security.restapi.roles_enabled:
- - "all_access"
- - "security_rest_api_access"
+      - "all_access"
+      - "security_rest_api_access"
     # Loads on-disk security config into .opendistro_security only when
-    # bootstrapping an EMPTY cluster - later password changes need
+    # bootstrapping an EMPTY cluster, so later password changes need
     # indexer.security.runSecurityadmin.
     plugins.security.allow_default_init_securityindex: true
     compatibility.override_main_response_version: true

@@ -1,0 +1,26 @@
+# Master service: enrollment (1515) and Wazuh API (55000).
+#
+# Use an NLB. Port 1515 is raw TCP; an ALB treats the stream as HTTP and resets
+# it. Typical symptom: agents enroll but never send data, or the reverse, when
+# 1514 and 1515 take different paths. See ../load-balancing-and-ingress.md
+apiVersion: v1
+kind: Service
+metadata:
+  name: wazuh
+  namespace: wazuh
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    # Keep the NLB private. Legacy aws-load-balancer-internal: 0.0.0.0/0 meant
+    # internet-facing and is a frequent accidental exposure.
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    # Cross-zone so an agent hitting any AZ still reaches the master. Without
+    # it, AZs with no healthy target get no traffic. Costs cross-AZ transfer.
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "tcp"
+spec:
+  type: LoadBalancer
+  # Preserves client source IP (<use_source_ip> / real addresses in logs). Only
+  # nodes running the pod get traffic, which is why cross-zone is enabled above.
+  externalTrafficPolicy: Local

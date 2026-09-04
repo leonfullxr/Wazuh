@@ -36,7 +36,7 @@ Credentials
 {{- if not .Values.credentials.indexer.password }}
 
   Passwords were generated at install and reused on upgrade. They only appear
-  in this Secret - save them now.
+  in this Secret. Save them now.
 {{- end }}
 {{- end }}
 
@@ -66,7 +66,7 @@ Agent enrollment
   Both services are ClusterIP, so external agents cannot reach them yet. Set
   service.events.type and service.master.type to LoadBalancer, or enable
   tcpServices and expose 1514/1515 on your ingress controller. Never put these
-  ports behind an HTTP Ingress or an ALB - the proxy treats the agent stream as
+  ports behind an HTTP Ingress or an ALB. The proxy treats the agent stream as
   HTTP and resets it.
 {{- end }}
 {{ end -}}
@@ -76,7 +76,7 @@ Agent enrollment
 Certificates
   The chart created its own CA and certificates. Upgrades reuse them (no
   rotation). `helm template` / `--dry-run` show newly generated material instead
-  of cluster state - that is expected. Agents do not use these; they cover
+  of cluster state, which is expected. Agents do not use these; they cover
   manager-to-indexer and dashboard traffic.
 {{- end }}
 

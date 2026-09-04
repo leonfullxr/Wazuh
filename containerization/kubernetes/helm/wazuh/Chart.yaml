@@ -3,7 +3,7 @@ name: wazuh
 description: Wazuh manager cluster, indexer and dashboard on Kubernetes, with an optional agent DaemonSet
 type: application
 
-# Chart version - bump whenever the chart itself changes.
+# Chart version. Bump whenever the chart itself changes.
 version: 0.1.0
 
 # Wazuh release these templates target. Image tags default to this. 4.14.7 is
@@ -14,26 +14,26 @@ appVersion: "4.14.7"
 kubeVersion: ">=1.23.0-0"
 
 keywords:
- - wazuh
- - siem
- - xdr
- - security
- - opensearch
+  - wazuh
+  - siem
+  - xdr
+  - security
+  - opensearch
 
 home: https://documentation.wazuh.com/
 sources:
- - https://github.com/wazuh/wazuh-kubernetes
- - https://github.com/wazuh/wazuh-docker
+  - https://github.com/wazuh/wazuh-kubernetes
+  - https://github.com/wazuh/wazuh-docker
 
 maintainers:
- - name: leonfullxr
+  - name: leonfullxr
 
 annotations:
   artifacthub.io/category: security
   artifacthub.io/license: GPL-2.0-only
   artifacthub.io/links: |
- - name: Wazuh documentation
+    - name: Wazuh documentation
       url: https://documentation.wazuh.com/
- - name: Kubernetes guides in this knowledge base
+    - name: Kubernetes guides in this knowledge base
       url: https://github.com/leonfullxr/Wazuh/tree/main/containerization/kubernetes
   artifacthub.io/containsSecurityUpdates: "false"

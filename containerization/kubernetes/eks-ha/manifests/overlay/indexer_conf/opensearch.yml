@@ -1,0 +1,52 @@
+cluster.name: ${CLUSTER_NAME}
+node.name: ${NODE_NAME}
+network.host: ${NETWORK_HOST}
+
+# Seed all three pods, not only node 0 (upstream base). A single seed means
+# losing that pod during bootstrap can block cluster formation entirely.
+discovery.seed_hosts:
+  - wazuh-indexer-0.wazuh-indexer
+  - wazuh-indexer-1.wazuh-indexer
+  - wazuh-indexer-2.wazuh-indexer
+cluster.initial_master_nodes:
+  - wazuh-indexer-0
+  - wazuh-indexer-1
+  - wazuh-indexer-2
+
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+plugins.security.ssl.http.pemcert_filepath: /usr/share/wazuh-indexer/config/certs/node.pem
+plugins.security.ssl.http.pemkey_filepath: /usr/share/wazuh-indexer/config/certs/node-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+plugins.security.ssl.transport.pemcert_filepath: /usr/share/wazuh-indexer/config/certs/node.pem
+plugins.security.ssl.transport.pemkey_filepath: /usr/share/wazuh-indexer/config/certs/node-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: /usr/share/wazuh-indexer/config/certs/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+plugins.security.authcz.admin_dn:
+  - CN=admin,O=Company,L=California,C=US
+plugins.security.nodes_dn:
+  - CN=indexer,O=Company,L=California,C=US
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.restapi.roles_enabled:
+  - "all_access"
+  - "security_rest_api_access"
+plugins.security.allow_default_init_securityindex: true
+compatibility.override_main_response_version: true
+
+# Keep disk watermarks on. Upstream sets threshold_enabled: false; with them
+# off a node can fill its volume, and a full indexer disk is worse than shards
+# going read-only. Defaults are 85 / 90 / 95; these are tighter to leave SIEM
+# headroom for an ingestion spike (local judgement, not an upstream default).
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 80%
+cluster.routing.allocation.disk.watermark.high: 85%
+cluster.routing.allocation.disk.watermark.flood_stage: 90%
+
+# Delay shard rebuild until a restarting node can return. Default 1m is shorter
+# than a pod reschedule plus EBS reattach, so a rolling restart otherwise forces
+# a full recovery of every shard on the node under restart.
+index.unassigned.node_left.delayed_timeout: 10m

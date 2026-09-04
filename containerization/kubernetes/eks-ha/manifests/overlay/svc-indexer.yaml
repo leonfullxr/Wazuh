@@ -1,0 +1,13 @@
+# Stay ClusterIP. The upstream base uses LoadBalancer and aims managers,
+# Filebeat, and the dashboard at it, so in-cluster traffic hairpins through a
+# cloud LB (latency and cross-AZ charges for traffic that should stay local).
+#
+# External clients should not hit the indexer; use kubectl port-forward for
+# troubleshooting.
+apiVersion: v1
+kind: Service
+metadata:
+  name: indexer
+  namespace: wazuh
+spec:
+  type: ClusterIP

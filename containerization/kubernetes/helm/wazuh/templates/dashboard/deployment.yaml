@@ -49,7 +49,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
- - name: wazuh-dashboard
+        - name: wazuh-dashboard
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.dashboard.image) }}
           imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
           {{- with .Values.dashboard.containerSecurityContext }}
@@ -57,55 +57,55 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
- - name: https
+            - name: https
               containerPort: 5601
               protocol: TCP
           env:
- - name: INDEXER_URL
+            - name: INDEXER_URL
               value: {{ include "wazuh.indexerUrl" . | quote }}
- - name: INDEXER_USERNAME
+            - name: INDEXER_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: indexer-username
- - name: INDEXER_PASSWORD
+            - name: INDEXER_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: indexer-password
- - name: DASHBOARD_USERNAME
+            - name: DASHBOARD_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: dashboard-username
- - name: DASHBOARD_PASSWORD
+            - name: DASHBOARD_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: dashboard-password
- - name: SERVER_SSL_ENABLED
+            - name: SERVER_SSL_ENABLED
               value: "true"
- - name: SERVER_SSL_CERTIFICATE
+            - name: SERVER_SSL_CERTIFICATE
               value: /usr/share/wazuh-dashboard/certs/cert.pem
- - name: SERVER_SSL_KEY
+            - name: SERVER_SSL_KEY
               value: /usr/share/wazuh-dashboard/certs/key.pem
- - name: WAZUH_API_URL
+            - name: WAZUH_API_URL
               value: "https://{{ include "wazuh.managerMasterFqdn" . }}"
- - name: API_PORT
+            - name: API_PORT
               value: {{ .Values.service.master.apiPort | quote }}
- - name: API_USERNAME
+            - name: API_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: api-username
- - name: API_PASSWORD
+            - name: API_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "wazuh.credentialsSecretName" . }}
                   key: api-password
             # Dashboard rewrites wazuh.yml from these env vars every start; that
             # file is not on a volume. RUN_AS here is what keeps RBAC across restarts.
- - name: RUN_AS
+            - name: RUN_AS
               value: {{ .Values.dashboard.runAs | quote }}
             {{- with .Values.dashboard.extraEnv }}
             {{- toYaml . | nindent 12 }}
@@ -127,12 +127,12 @@ spec:
           resources:
             {{- toYaml .Values.dashboard.resources | nindent 12 }}
           volumeMounts:
- - name: config
+            - name: config
               mountPath: /usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
               subPath: opensearch_dashboards.yml
             {{- include "wazuh.dashboardCertMounts" . | nindent 12 }}
       volumes:
- - name: config
+        - name: config
           configMap:
             name: {{ include "wazuh.fullname" . }}-dashboard-config
         {{- include "wazuh.dashboardCertVolumes" . | nindent 8 }}

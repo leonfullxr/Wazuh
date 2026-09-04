@@ -1,0 +1,47 @@
+# HA Wazuh on EKS: one master, one worker, three indexers, one dashboard across
+# three Availability Zones.
+#
+# Copy this directory into a wazuh/wazuh-kubernetes checkout as envs/eks-ha/
+# and apply:
+#
+#   kubectl apply -k envs/eks-ha/
+#
+# It patches the upstream wazuh/ base; run certificate generation under
+# wazuh/certs/ first. See 04-deploy-wazuh.md.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: wazuh
+
+resources:
+  - ../../wazuh
+  # Limits voluntary disruption (node group upgrades). Useless against a node
+  # crash; see 01-architecture.md.
+  - pdb.yaml
+  - ingress-dashboard.yaml
+
+# Merge only opensearch.yml into the base indexer-conf ConfigMap. merge keeps
+# the base internal_users.yml; replace would force re-supplying every key.
+configMapGenerator:
+  - name: indexer-conf
+    behavior: merge
+    files:
+      - indexer_conf/opensearch.yml
+  # Merge local_internal_options.conf next to the base master.conf / worker.conf
+  # so manager StatefulSets can mount it via subPath.
+  - name: wazuh-conf
+    behavior: merge
+    files:
+      - wazuh_conf/local_internal_options.conf
+
+patches:
+  - path: storage-class.yaml
+  - path: indexer-sts.yaml
+  - path: manager-master-sts.yaml
+  - path: manager-worker-sts.yaml
+  - path: dashboard-deploy.yaml
+  - path: svc-wazuh.yaml
+  - path: svc-wazuh-workers.yaml
+  - path: svc-indexer.yaml
+  - path: svc-dashboard.yaml

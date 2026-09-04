@@ -16,7 +16,7 @@ spec:
   selector:
     {{- include "wazuh.component.selectorLabels" (dict "context" . "component" "dashboard") | nindent 4 }}
   ports:
- - name: https
+    - name: https
       port: {{ .Values.dashboard.service.port }}
       targetPort: https
       protocol: TCP

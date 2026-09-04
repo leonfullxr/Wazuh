@@ -1,0 +1,14 @@
+# ClusterIP fronted by the ALB Ingress in ingress-dashboard.yaml. HTTPS on the
+# dashboard is real L7 traffic, unlike the agent TCP ports.
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+  namespace: wazuh
+  annotations:
+    # Upstream sets these for a LoadBalancer; they mean nothing on ClusterIP and
+    # confuse anyone inspecting the live object, so clear them.
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: null
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: null
+spec:
+  type: ClusterIP

@@ -6,6 +6,7 @@ Patterns for running Wazuh as StatefulSets on Kubernetes, managing config throug
 
 | Guide | Description |
 |-------|-------------|
+| [Highly available Wazuh on EKS](./eks-ha/) | Step-by-step end-to-end HA build: 2 managers, 3 indexers, 1 dashboard over 3 AZs. eksctl and Terraform cluster configs, a Kustomize overlay, failure drills with runbooks, and what the single Wazuh master does and does not survive |
 | [Amazon EKS](./eks.md) | gp3 storage classes, pod affinity and Availability Zones, ECR, LoadBalancer-to-Ingress migration, TLS, SSO, secrets, custom CAs, agent enrollment |
 | [Azure AKS](./aks.md) | Azure Disk CSI classes, zone-aware scheduling, indexer capacity sizing, Azure Blob snapshot prerequisites, verification steps |
 | [Google GKE](./gke.md) | Persistent Disk CSI storage class, zone-aware scheduling, init-container image-pull failures, verification |

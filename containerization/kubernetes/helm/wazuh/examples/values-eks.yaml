@@ -31,7 +31,7 @@ indexer:
   # for the whole cluster; spreading keeps each replica with its zonal volume
   # in a different zone.
   topologySpreadConstraints:
- - maxSkew: 1
+    - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
@@ -55,14 +55,14 @@ manager:
       size: 100Gi
   analysisdThreads: 4
 
-# Agent traffic is raw TCP -> NLB, never ALB or Ingress.
+# Agent traffic is raw TCP, so an NLB, never an ALB or Ingress.
 service:
   master:
     type: LoadBalancer
     annotations:
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-      # "true" = internal. Older spelling used 0.0.0.0/0 for internet-facing - 
+      # "true" = internal. Older spelling used 0.0.0.0/0 for internet-facing, which is
       # a common accidental exposure.
       service.beta.kubernetes.io/aws-load-balancer-internal: "true"
   events:
@@ -86,16 +86,16 @@ dashboard:
       # Without this the AWS LB Controller readiness gate never opens.
       alb.ingress.kubernetes.io/success-codes: "401"
     hosts:
- - host: wazuh.internal.example.com
+      - host: wazuh.internal.example.com
         paths:
- - path: /
+          - path: /
             pathType: Prefix
 
 # Put the external hostname and any LB FQDN agents resolve into the SAN.
 # Hostname verification checks the SAN, never the CN.
 certs:
   extraDnsNames:
- - wazuh.internal.example.com
+    - wazuh.internal.example.com
 
 podDisruptionBudget:
   enabled: true

@@ -1,0 +1,175 @@
+# Highly available Wazuh on EKS.
+#
+#   eksctl create cluster -f cluster.yaml
+#
+# Substitute REGION and the three AZ names. The node group layout is intentional;
+# read 01-architecture.md before changing it.
+#
+# Confirm a currently supported Kubernetes version before applying:
+#   https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html
+# Versions exit standard support on a fixed schedule, then cost roughly 6x under
+# extended support. Do not reuse a version string from a guide without checking.
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: wazuh-ha
+  region: eu-west-1
+  version: "1.35"
+  tags:
+    project: wazuh
+    environment: production
+
+# Three AZs: EKS allows two, but a 3-node indexer quorum needs three zones to
+# survive losing one.
+availabilityZones:
+  - eu-west-1a
+  - eu-west-1b
+  - eu-west-1c
+
+iam:
+  # Enables IRSA. Pod Identity is newer and simpler for workloads, but OIDC is
+  # free and many add-ons plus older docs still expect it.
+  withOIDC: true
+  serviceAccounts:
+    # IAM policy for this controller is version-specific and created outside
+    # this file; see 03-cluster-prerequisites.md.
+    - metadata:
+        name: aws-load-balancer-controller
+        namespace: kube-system
+      attachPolicyARNs:
+        - arn:aws:iam::ACCOUNT_ID:policy/AWSLoadBalancerControllerIAMPolicy
+    # Lets the autoscaler replace a failed node inside the same AZ.
+    - metadata:
+        name: cluster-autoscaler
+        namespace: kube-system
+      wellKnownPolicies:
+        autoScaler: true
+
+vpc:
+  # HighlyAvailable NAT: one gateway per AZ. A single shared NAT is cheaper but
+  # turns that AZ into an egress dependency for the whole cluster.
+  nat:
+    gateway: HighlyAvailable
+  clusterEndpoints:
+    privateAccess: true
+    publicAccess: true
+
+addons:
+  - name: vpc-cni
+    version: latest
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+  # Required. In-tree kubernetes.io/aws-ebs is gone; without this addon no PVC
+  # binds and every StatefulSet stays Pending.
+  - name: aws-ebs-csi-driver
+    version: latest
+    wellKnownPolicies:
+      ebsCSIController: true
+
+# ---------------------------------------------------------------------------
+# Node groups: one per AZ per role, each a SINGLE-AZ Auto Scaling group.
+#
+# EBS volumes are zonal. A PV keeps node affinity for the AZ where it was
+# created, so the pod can only schedule there. A multi-AZ ASG may recreate the
+# node in a different zone where the volume cannot follow, and the pod stays
+# Pending forever. One ASG per AZ keeps replacements in the right zone.
+#
+# minSize 1 saves cost and relies on Cluster Autoscaler (a few minutes) for
+# replacement. Raise manager minSize to 2 if the master should land on an
+# already-running node instead.
+# ---------------------------------------------------------------------------
+managedNodeGroups:
+  - name: ng-indexer-1a
+    availabilityZones: ["eu-west-1a"]
+    instanceType: m6i.xlarge      # 4 vCPU, 16 GiB: 8 GiB pod limit, 4 GiB heap
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 2
+    volumeSize: 50                # root volume only; data lives on a separate PVC
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      wazuh.io/role: indexer
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/wazuh-ha: "owned"
+  - name: ng-indexer-1b
+    availabilityZones: ["eu-west-1b"]
+    instanceType: m6i.xlarge
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 2
+    volumeSize: 50
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      wazuh.io/role: indexer
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/wazuh-ha: "owned"
+  - name: ng-indexer-1c
+    availabilityZones: ["eu-west-1c"]
+    instanceType: m6i.xlarge
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 2
+    volumeSize: 50
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      wazuh.io/role: indexer
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/wazuh-ha: "owned"
+
+  - name: ng-manager-1a
+    availabilityZones: ["eu-west-1a"]
+    instanceType: m6i.xlarge
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 2
+    volumeSize: 50
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      wazuh.io/role: manager
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/wazuh-ha: "owned"
+  - name: ng-manager-1b
+    availabilityZones: ["eu-west-1b"]
+    instanceType: m6i.xlarge
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 2
+    volumeSize: 50
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      wazuh.io/role: manager
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/wazuh-ha: "owned"
+  - name: ng-manager-1c
+    availabilityZones: ["eu-west-1c"]
+    instanceType: m6i.xlarge
+    minSize: 1
+    desiredCapacity: 1
+    maxSize: 2
+    volumeSize: 50
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      wazuh.io/role: manager
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/wazuh-ha: "owned"
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 30

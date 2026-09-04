@@ -7,7 +7,7 @@ on every Wazuh version bump:
 
 Two placeholders stay on purpose: entrypoint substitutes
 to_be_replaced_by_cluster_key from $WAZUH_CLUSTER_KEY and
-to_be_replaced_by_hostname from $HOSTNAME at start - keeps the cluster key out
+to_be_replaced_by_hostname from $HOSTNAME at start, which keeps the cluster key out
 of this ConfigMap and gives each pod a unique node name.
 
 Call: (dict "context" $ "nodeType" "master")
@@ -181,7 +181,7 @@ Call: (dict "context" $ "nodeType" "master")
   <global>
     <white_list>127.0.0.1</white_list>
     <white_list>^localhost.localdomain$</white_list>
-    <white_list>192.0.2.10</white_list>
+    <white_list>10.66.0.2</white_list>
   </global>
 
   <command>

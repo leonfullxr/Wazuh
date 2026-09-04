@@ -1,0 +1,63 @@
+# Worker: receives agent events on 1514 so detection continues while the master
+# is down.
+#
+# Scale workers for capacity; the master remains exactly one. See
+# 01-architecture.md.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wazuh-manager-worker
+  namespace: wazuh
+spec:
+  replicas: 1
+  template:
+    spec:
+      nodeSelector:
+        wazuh.io/role: manager
+      # Keep worker and master in different AZs. required, not preferred: with
+      # only two managers, preferred would allow co-location and defeat the
+      # rule. If workers exceed AZ count, switch to preferredDuringScheduling or
+      # surplus pods stay Pending.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: wazuh-manager
+      containers:
+        - name: wazuh-manager
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          readinessProbe:
+            tcpSocket:
+              port: 1514
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 1514
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /wazuh-config-mount/etc/local_internal_options.conf
+              subPath: local_internal_options.conf
+              readOnly: true
+  volumeClaimTemplates:
+    - metadata:
+        name: wazuh-manager-worker
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: wazuh-storage
+        resources:
+          requests:
+            storage: 100Gi

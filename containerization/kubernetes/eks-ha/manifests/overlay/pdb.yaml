@@ -1,0 +1,33 @@
+# PDBs apply only to voluntary disruption (drain, node group upgrades,
+# autoscaler scale-down). They do not help on a node crash. See
+# 01-architecture.md.
+#
+# During a managed node group roll, the second indexer is not evicted until the
+# first is Ready again.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: wazuh-indexer
+  namespace: wazuh
+spec:
+  # Keep at least two of three so a drain cannot break quorum.
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: wazuh-indexer
+---
+# No PDB on the manager master: it is a single pod. minAvailable: 1 blocks every
+# drain; maxUnavailable: 1 is a no-op. Draining the master's node is always a
+# master outage; see 07-failure-drills.md. Use --disable-eviction deliberately
+# or accept the restart.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: wazuh-manager-worker
+  namespace: wazuh
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: wazuh-manager
+      node-type: worker

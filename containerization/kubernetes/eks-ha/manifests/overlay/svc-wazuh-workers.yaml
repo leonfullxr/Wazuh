@@ -1,0 +1,25 @@
+# Agent event traffic (1514) to the workers.
+#
+# Same L4 path as the master service: raw TCP requires an NLB. Mixing paths
+# (e.g. 1515 on NLB and 1514 elsewhere) produces enrollment that succeeds while
+# events are refused.
+apiVersion: v1
+kind: Service
+metadata:
+  name: wazuh-workers
+  namespace: wazuh
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "tcp"
+    # Drop the upstream base's legacy annotation. Value 0.0.0.0/0 on
+    # aws-load-balancer-internal means INTERNET-FACING, not private, and a
+    # strategic-merge patch keeps it unless set to null. Leaving it fights
+    # aws-load-balancer-scheme and can publish agent ingestion publicly.
+    service.beta.kubernetes.io/aws-load-balancer-internal: null
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local

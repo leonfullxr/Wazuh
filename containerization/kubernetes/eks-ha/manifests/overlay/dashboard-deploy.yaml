@@ -1,0 +1,29 @@
+# No PVC, so the pod can land in any AZ. A single replica is intentional: the
+# dashboard is off the alert path, so brief downtime is a browser refresh. Use
+# replicas: 2 for zero-downtime dashboard upgrades.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wazuh-dashboard
+  namespace: wazuh
+spec:
+  replicas: 1
+  template:
+    spec:
+      nodeSelector:
+        wazuh.io/role: manager
+      containers:
+        - name: wazuh-dashboard
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          readinessProbe:
+            tcpSocket:
+              port: 5601
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 6

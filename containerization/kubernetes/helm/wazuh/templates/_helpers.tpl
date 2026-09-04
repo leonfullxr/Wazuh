@@ -98,7 +98,7 @@ and chart appVersion apply:
 {{- if $secrets }}
 imagePullSecrets:
 {{- range $secrets }}
- - name: {{ . }}
+  - name: {{ . }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -158,7 +158,7 @@ prefer wazuh.component.serviceAccountName for workloads.
 {{- end }}
 
 {{/*
-Internal indexer URL. Uses the ClusterIP service on purpose - upstream points
+Internal indexer URL. Uses the ClusterIP service on purpose. Upstream points
 components at a LoadBalancer-typed indexer service and hairpins traffic through
 a cloud LB.
 */}}
@@ -168,8 +168,8 @@ a cloud LB.
 
 {{/*
 Master pod FQDN for ossec.conf cluster peer and dashboard API. Namespace is
-templated in - hardcoding it is why moving out of the `wazuh` namespace silently
-breaks cluster formation. See ../../cluster-debugging.md
+templated in. Hardcoding it is why moving out of the `wazuh` namespace silently
+breaks cluster formation. See ../../../cluster-debugging.md
 */}}
 {{- define "wazuh.managerMasterFqdn" -}}
 {{- printf "%s-0.%s.%s" (include "wazuh.manager.master.fullname" .) (include "wazuh.managerClusterServiceName" .) .Release.Namespace -}}
@@ -192,7 +192,7 @@ storageClassName: {{ $class | quote }}
 {{- end }}
 
 {{/*
-Per-component ServiceAccount - required for OpenShift SCCs and cloud IAM role
+Per-component ServiceAccount, required for OpenShift SCCs and cloud IAM role
 bindings that attach per component.
 */}}
 {{- define "wazuh.component.serviceAccountName" -}}
@@ -205,8 +205,8 @@ default
 
 {{/*
 Credentials resolved once per render and cached on .Values so every template
-agrees. Precedence: explicit values.yaml -> existing Secret key (upgrades never
-rotate) -> fresh random. `lookup` is empty during `helm template` / `--dry-run`,
+agrees. Precedence: explicit values.yaml, then an existing Secret key (upgrades never
+rotate), then a fresh random string. `lookup` is empty during `helm template` / `--dry-run`,
 so dry runs show new passwords; a real install reuses cluster state.
 */}}
 {{- define "wazuh.creds" -}}
@@ -246,7 +246,7 @@ so dry runs show new passwords; a real install reuses cluster state.
 {{- end }}
 
 {{/*
-bcrypt for internal_users.yml. Sprig htpasswd returns "user:$2a$10$..." - strip
+bcrypt for internal_users.yml. Sprig htpasswd returns "user:$2a$10$...", so strip
 the username prefix.
 */}}
 {{- define "wazuh.bcrypt" -}}
@@ -318,7 +318,7 @@ filebeat, dashboard.
 {{- end }}
 
 {{/*
-DNs the indexer trusts - must match certificate subjects. Chart-generated certs
+DNs the indexer trusts. These must match the certificate subjects. Chart-generated certs
 are CN-only; wazuh-certs-tool.sh uses the full upstream subject, so set
 certs.subject.* with certs.mode=existing.
 */}}
@@ -339,14 +339,14 @@ nodes < replicas).
 {{- if eq $mode "hard" }}
 podAntiAffinity:
   requiredDuringSchedulingIgnoredDuringExecution:
- - topologyKey: kubernetes.io/hostname
+    - topologyKey: kubernetes.io/hostname
       labelSelector:
         matchLabels:
           {{- include "wazuh.component.selectorLabels" (dict "context" .context "component" .component) | nindent 10 }}
 {{- else if eq $mode "soft" }}
 podAntiAffinity:
   preferredDuringSchedulingIgnoredDuringExecution:
- - weight: 100
+    - weight: 100
       podAffinityTerm:
         topologyKey: kubernetes.io/hostname
         labelSelector:
@@ -443,9 +443,9 @@ directly. Conversion is still gated by a header check.
   image: {{ include "wazuh.image" (dict "context" . "image" .Values.certs.pkcs8InitImage) }}
   imagePullPolicy: {{ .Values.certs.pkcs8InitImage.pullPolicy }}
   command:
- - /bin/bash
- - -c
- - |
+    - /bin/bash
+    - -c
+    - |
       set -eu
       cp -r /certs-src/. /certs/
       for key in node-key.pem admin-key.pem; do
@@ -465,10 +465,10 @@ directly. Conversion is still gated by a header check.
       cpu: 200m
       memory: 128Mi
   volumeMounts:
- - name: indexer-certs-src
+    - name: indexer-certs-src
       mountPath: /certs-src
       readOnly: true
- - name: indexer-certs
+    - name: indexer-certs
       mountPath: /certs
 {{- end }}
 
@@ -588,7 +588,8 @@ API credentials stay master-only.
 {{- end }}
 
 {{/*
-Manager PVC subPath layout - paths listed in the image's permanent_data.env.
+Manager PVC subPath layout, matching the paths listed in the image's
+permanent_data.env.
 Anything else is regenerated from the image on each start.
 */}}
 {{- define "wazuh.managerDataMounts" -}}
