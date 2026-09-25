@@ -1,3 +1,0 @@
-# Host-side helpers (securityconfig merge, seeding, evals)
-pyyaml~=6.0
-httpx~=0.27

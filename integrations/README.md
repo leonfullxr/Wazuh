@@ -53,9 +53,14 @@ logs.
 
 ## Experimental work
 
-`ai-assistant/` is an experimental proof of concept, not part of the
-production KB procedures indexed above. Treat it as a separate application
-with its own security and deployment review.
+- [integrations/ai-assistant/](ai-assistant/) — OpenSearch Dashboard assistant
+  proof of concept (ML Commons connector, MCP-LLM gateway, OpenSearch MCP server).
+- `ai-soc` — later SOC service (RAG, embeddings, playbooks, vector
+  search, Titan). Kept on disk only; not part of this change.
+
+Both folders are experimental and not part of the production KB procedures
+indexed above. Treat each as a separate application with its own security and
+deployment review.
 
 ## Obsidian-only backlog
 
