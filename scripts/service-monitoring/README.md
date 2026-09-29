@@ -48,3 +48,5 @@ Schedule it the same way as the single-node script.
   agent status via the Wazuh API.
 - [`../resource-monitoring`](../resource-monitoring) - host CPU/memory/disk
   metrics as Wazuh alerts.
+- [`../availability-monitor`](../availability-monitor) - active ICMP and TCP
+  polling of LAN hosts, for services that are not Wazuh's own.

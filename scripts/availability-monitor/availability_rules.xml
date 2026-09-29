@@ -1,0 +1,44 @@
+<group name="local,availability_monitor,">
+  <!-- Parent: scope everything below to this monitor's events -->
+  <rule id="100050" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="reachability_monitor">availability</field>
+    <description>Availability monitor event (base rule, not alerted on its own).</description>
+  </rule>
+
+  <!-- Host just went down over ICMP: fires once, on the transition -->
+  <rule id="100051" level="12">
+    <if_sid>100050</if_sid>
+    <field name="reachability_check">ping</field>
+    <field name="reachability_event">down</field>
+    <description>Server $(reachability_server) ($(reachability_target)) is unreachable: $(reachability_reason), detected at $(reachability_timestamp).</description>
+    <group>availability_down,server_down,</group>
+  </rule>
+
+  <!-- Host just recovered over ICMP: fires once, on the transition -->
+  <rule id="100052" level="7">
+    <if_sid>100050</if_sid>
+    <field name="reachability_check">ping</field>
+    <field name="reachability_event">recovered</field>
+    <description>Server $(reachability_server) ($(reachability_target)) recovered at $(reachability_timestamp) after $(reachability_downtime_human) downtime.</description>
+    <group>availability_recovered,server_recovered,</group>
+  </rule>
+
+  <!-- A specific TCP port just went down: fires once, on the transition -->
+  <rule id="100053" level="12">
+    <if_sid>100050</if_sid>
+    <field name="reachability_check">port</field>
+    <field name="reachability_event">down</field>
+    <description>Port $(reachability_port) on $(reachability_server) ($(reachability_target)) is unreachable: $(reachability_reason), detected at $(reachability_timestamp).</description>
+    <group>availability_down,port_down,</group>
+  </rule>
+
+  <!-- A specific TCP port just recovered: fires once, on the transition -->
+  <rule id="100054" level="7">
+    <if_sid>100050</if_sid>
+    <field name="reachability_check">port</field>
+    <field name="reachability_event">recovered</field>
+    <description>Port $(reachability_port) on $(reachability_server) ($(reachability_target)) recovered at $(reachability_timestamp) after $(reachability_downtime_human) downtime.</description>
+    <group>availability_recovered,port_recovered,</group>
+  </rule>
+</group>

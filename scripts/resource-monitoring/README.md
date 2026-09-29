@@ -182,3 +182,5 @@ sudo systemctl restart wazuh-manager
 
 - [`../service-monitoring`](../service-monitoring) - alerting when the Wazuh
   services themselves go down.
+- [`../availability-monitor`](../availability-monitor) - ICMP and TCP
+  availability polling of other hosts on the LAN.

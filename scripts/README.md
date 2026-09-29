@@ -22,6 +22,9 @@ README with usage instructions plus the script/config files.
   disconnected/pending/never-connected agents.
 - [resource-monitoring](resource-monitoring/) - CPU/memory/disk/load metrics
   as Wazuh alerts, with decoders and threshold rules (Linux and Windows).
+- [availability-monitor](availability-monitor/) - LAN server and TCP service
+  availability polling: one alert when a host or port goes down, one when it
+  recovers, with the downtime duration.
 - [email-alerting](email-alerting/) - granular email alerting: generic vs.
   granular manager-side options, per-agent-group/per-OS routing, and the
   indexer-side OpenSearch Alerting module.

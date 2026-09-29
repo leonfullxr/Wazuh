@@ -44,6 +44,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | Events dropped only in short bursts, or one cluster node saturates while others idle | [server/analysisd.md](server/analysisd.md#the-eps-limit-limitseps-throttles-bursts) |
 | Need to measure how many events per second the manager receives | [server/analysisd.md](server/analysisd.md#measuring-eps) |
 | Syslog ingestion overloads one node / uneven load across cluster workers | [../integrations/syslog/README.md](../integrations/syslog/README.md#load-balancing-syslog-across-cluster-workers) |
+| GCP events visible in Log Explorer but missing, days late, or never alerting in Wazuh | [../cloud/gcp-pubsub.md](../cloud/gcp-pubsub.md#troubleshooting-some-events-never-reach-the-dashboard) |
 | Vulnerability data stale, missing, or `/var/ossec/queue` bloated | [server/vulnerability-detection.md](server/vulnerability-detection.md) |
 | `queue/indexer/` grows tens of GB per node and never drains (SST files pile up) | [server/indexer-connector-queue-growth.md](server/indexer-connector-queue-growth.md) |
 | `indexer-connector: The request is too large` / `was repaired because it was corrupt` | [server/indexer-connector-queue-growth.md](server/indexer-connector-queue-growth.md) |

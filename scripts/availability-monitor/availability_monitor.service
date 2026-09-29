@@ -1,0 +1,17 @@
+[Unit]
+Description=LAN server availability poller for Wazuh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Optional overrides:
+# Environment="AVAILABILITY_INTERVAL_SECONDS=60"
+# Environment="AVAILABILITY_TARGETS_FILE=/etc/availability_monitor/targets.csv"
+ExecStart=/usr/bin/python3 /opt/availability_monitor/availability_monitor.py
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
