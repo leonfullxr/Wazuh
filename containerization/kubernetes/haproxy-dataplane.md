@@ -1,6 +1,6 @@
 # HAProxy and the Data Plane API as the agent load balancer
 
-**Applies to:** Wazuh 4.x on Kubernetes, HAProxy 2.8 LTS, and Data Plane API 2.8.x
+**Applies to:** Wazuh 4.x on Kubernetes, HAProxy, and the HAProxy Data Plane API
 
 [Back to Kubernetes README](./README.md)
 
@@ -62,26 +62,28 @@ so add or remove nodes there yourself when the cluster changes shape.
 - A Wazuh server cluster with a master and at least one worker. The helper
   runs on the master only.
 - `kubectl` access and a namespace for the balancer.
-- The port each manager node actually listens on for agent events. In a
-  containerized cluster these are often non-default inside the pod network,
-  for example 15140, 15141, and 15150. Check the manager's `<remote>` section
+- The port each manager node listens on for agent events. The default is
+  1514 on every node. If a deployment changed it, the backend has to match
+  what each node really listens on, so check the manager's `<remote>` section
   or the listening sockets before you write the backend.
 - A route from the master container to the Data Plane API address and port.
   The helper makes outbound HTTP calls, so the manager has to reach it.
-- HAProxy 2.8 LTS, which Wazuh recommends, and the Data Plane API from the
-  matching 2.8.x release line.
+- HAProxy on an LTS branch, and the Data Plane API from a release of the
+  same branch. The API parses and rewrites `haproxy.cfg` for one HAProxy
+  minor version, so a mismatched pair is the usual cause of a reload that
+  fails.
 - Ports: 1514 for agent events, 1515 for enrollment, 8404 for HAProxy stats
   (internal), and the API port, 5555 by default.
 
 ## Deployment procedure
 
-The procedure below assumes namespace `wazuh-lb` and deployment name
-`haproxy-wazuh`. Rename to taste.
+The procedure below assumes namespace `wazuh` and deployment name `agent-lb`.
+Rename to taste.
 
 ### Step 1. Create the namespace
 
 ```bash
-kubectl create namespace wazuh-lb
+kubectl create namespace wazuh
 ```
 
 ### Step 2. HAProxy configuration ConfigMap
@@ -111,15 +113,22 @@ frontend wazuh_register
 backend wazuh_register
     mode tcp
     balance leastconn
-    server master_node <MASTER_NODE_IP>:<MASTER_ENROLL_PORT> check
-    server worker_01 <WORKER_NODE_IP>:<WORKER_ENROLL_PORT> check
+    server master_node <MASTER_NODE_IP>:1515 check
+    server worker_01 <WORKER_NODE_IP>:1515 check
+
+# Stats, for probes and inspection from inside the pod.
+listen haproxy_stats
+    mode http
+    bind :8404
+    stats enable
+    stats uri /stats
 
 # The 1514 frontend and backend come from the helper,
 # which takes the name from <haproxy_backend>.
 ```
 
 ```bash
-kubectl -n wazuh-lb create configmap haproxy-wazuh-cfg \
+kubectl -n wazuh create configmap agent-lb-haproxy \
   --from-file=haproxy.cfg \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
@@ -141,6 +150,8 @@ dataplaneapi:
       password: <DATAPLANE_PASSWORD>
 haproxy:
   config_file: /etc/haproxy/haproxy.cfg
+  # /usr/sbin/haproxy for a package install, /usr/local/sbin/haproxy in the
+  # official container image.
   haproxy_bin: /usr/sbin/haproxy
   reload:
     reload_delay: 5
@@ -155,7 +166,7 @@ haproxy:
 file in a Secret, or store a hash instead, before the setup leaves a lab.
 
 ```bash
-kubectl -n wazuh-lb create configmap haproxy-dataplane-cfg \
+kubectl -n wazuh create configmap agent-lb-dataplane \
   --from-file=dataplaneapi.yml \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
@@ -163,7 +174,7 @@ kubectl -n wazuh-lb create configmap haproxy-dataplane-cfg \
 ### Step 4. Create the credentials Secret
 
 ```bash
-kubectl -n wazuh-lb create secret generic haproxy-dataplane-secret \
+kubectl -n wazuh create secret generic agent-lb-creds \
   --from-literal=username=<DATAPLANE_USER> \
   --from-literal=password=<DATAPLANE_PASSWORD> \
   --dry-run=client -o yaml | kubectl apply -f -
@@ -179,11 +190,12 @@ One pod, two containers, and init containers that prepare the writable files:
 
 - Copy `haproxy.cfg` from its ConfigMap into the shared `emptyDir`.
 - Copy `dataplaneapi.yml` the same way.
-- Fetch the Data Plane API binary for the pinned branch, or pull the matching
-  container image. The release archives follow this pattern:
+- Fetch the Data Plane API binary for the same branch as your HAProxy, or
+  pull the matching container image. The release archives follow this
+  pattern:
 
 ```bash
-curl -sL https://github.com/haproxytech/dataplaneapi/releases/download/v2.8.X/dataplaneapi_2.8.X_linux_x86_64.tar.gz \
+curl -sL https://github.com/haproxytech/dataplaneapi/releases/download/v<VER>/dataplaneapi_<VER>_linux_x86_64.tar.gz \
   | tar xz
 ```
 
@@ -192,25 +204,35 @@ curl -sL https://github.com/haproxytech/dataplaneapi/releases/download/v2.8.X/da
   success on the write.
 
 ```bash
-kubectl apply -f haproxy-deploy.yaml
-kubectl -n wazuh-lb rollout status deploy/haproxy-wazuh
-kubectl -n wazuh-lb get pods -o wide
+kubectl apply -f agent-lb-deploy.yaml
+kubectl -n wazuh rollout status deploy/agent-lb
+kubectl -n wazuh get pods -o wide
 ```
 
 Run one replica. The helper drives a single address, and it logs that it
 ensures only one HAProxy process before it starts. A second replica would
 hold its own copy of the configuration and never follow cluster membership.
 
-### Step 6. Expose the Data Plane API
+### Step 6. Expose the balancer and the API
+
+Agents need a stable address of their own: a Service on 1514 and 1515, of
+type LoadBalancer when they sit outside the cluster and ClusterIP when they
+do not. The API keeps its default port, 5555, in both variants below.
 
 ```bash
-kubectl apply -f haproxy-dataplane-svc.yaml
-kubectl -n wazuh-lb get svc haproxy-dataplane-nodeport -o wide
+kubectl apply -f agent-lb-svc.yaml
+kubectl apply -f agent-lb-api-svc.yaml
+kubectl -n wazuh get svc
 ```
 
-A NodePort publishes the API on every node IP, which is what a manager
-running outside the cluster needs. If the manager runs in the same cluster,
-point the helper at the ClusterIP service name instead and skip the NodePort.
+Choose the exposure for the API that matches where the manager runs:
+
+- **Manager in the cluster:** the ClusterIP Service on 5555, addressed by
+  its DNS name.
+- **Manager outside the cluster:** a `hostPort` of 5555 on the Deployment,
+  so the helper reaches the API at `<NODE_IP>:5555`. A hostPort holds one
+  pod per node, which matches the single-replica rule above.
+
 Either way the API answers only to the credentials you set in Step 4.
 
 ## Enable the helper on the master
@@ -221,8 +243,8 @@ Add the helper inside the `<cluster>` block of the master's
 ```xml
 <haproxy_helper>
   <haproxy_disabled>no</haproxy_disabled>
-  <haproxy_address><K8S_NODE_IP></haproxy_address>
-  <haproxy_port><DATAPLANE_NODEPORT></haproxy_port>
+  <haproxy_address><API_ADDRESS></haproxy_address>
+  <haproxy_port>5555</haproxy_port>
   <haproxy_protocol>http</haproxy_protocol>
   <haproxy_user><DATAPLANE_USER></haproxy_user>
   <haproxy_password><DATAPLANE_PASSWORD></haproxy_password>
@@ -253,12 +275,12 @@ Work outward: pod, sockets, API, then helper.
 
 ```bash
 # Pod health
-kubectl -n wazuh-lb get pods -o wide
-kubectl -n wazuh-lb describe pod -l app=haproxy-wazuh
+kubectl -n wazuh get pods -o wide
+kubectl -n wazuh describe pod -l app=agent-lb
 
 # Listening sockets inside the HAProxy container
-POD=$(kubectl -n wazuh-lb get pod -l app=haproxy-wazuh -o jsonpath='{.items[0].metadata.name}')
-kubectl -n wazuh-lb exec -it "$POD" -c haproxy -- ss -lntp | grep -E '1514|1515|8404'
+POD=$(kubectl -n wazuh get pod -l app=agent-lb -o jsonpath='{.items[0].metadata.name}')
+kubectl -n wazuh exec -it "$POD" -c haproxy -- ss -lntp | grep -E '1514|1515|8404'
 ```
 
 Read that socket list carefully. Before the helper has run once, only 1515
@@ -268,17 +290,17 @@ the image has no `ss`, read `/proc/net/tcp` instead.
 ```bash
 # Data Plane API, from inside the manager container
 curl -s -u <DATAPLANE_USER>:<DATAPLANE_PASSWORD> \
-  http://<K8S_NODE_IP>:<DATAPLANE_NODEPORT>/v2/info
+  http://<API_ADDRESS>:5555/v2/info
 
 curl -s -u <DATAPLANE_USER>:<DATAPLANE_PASSWORD> \
-  http://<K8S_NODE_IP>:<DATAPLANE_NODEPORT>/v2/services/haproxy/configuration/backends | jq
+  http://<API_ADDRESS>:5555/v2/services/haproxy/configuration/backends | jq
 
 curl -s -u <DATAPLANE_USER>:<DATAPLANE_PASSWORD> \
-  "http://<K8S_NODE_IP>:<DATAPLANE_NODEPORT>/v2/services/haproxy/configuration/servers?backend=wazuh_reporting&parent_type=backend" | jq
+  "http://<API_ADDRESS>:5555/v2/services/haproxy/configuration/servers?backend=wazuh_reporting&parent_type=backend" | jq
 ```
 
-`/v2/info` returns the API version, for example `"version":"v2.8.X"`. The
-servers query shows the backend as the helper has built it.
+`/v2/info` returns the API version and build date. The servers query shows
+the backend as the helper has built it.
 
 ```bash
 # Helper activity, on the master
@@ -296,10 +318,11 @@ Add it back and watch it return.
 ## Exporting the setup for an audit
 
 ```bash
-kubectl -n wazuh-lb get cm haproxy-wazuh-cfg -o yaml > export-haproxy-configmap.yaml
-kubectl -n wazuh-lb get cm haproxy-dataplane-cfg -o yaml > export-dataplane-configmap.yaml
-kubectl -n wazuh-lb get deploy haproxy-wazuh -o yaml > export-haproxy-deploy.yaml
-kubectl -n wazuh-lb get svc haproxy-dataplane-nodeport -o yaml > export-dataplane-svc.yaml
+kubectl -n wazuh get cm agent-lb-haproxy -o yaml > export-agent-lb-cm.yaml
+kubectl -n wazuh get cm agent-lb-dataplane -o yaml > export-agent-lb-dataplane-cm.yaml
+kubectl -n wazuh get deploy agent-lb -o yaml > export-agent-lb-deploy.yaml
+kubectl -n wazuh get svc agent-lb -o yaml > export-agent-lb-svc.yaml
+kubectl -n wazuh get svc agent-lb-api -o yaml > export-agent-lb-api-svc.yaml
 ```
 
 The Secret stays out of this set. Export it only into the secret store that
@@ -311,7 +334,7 @@ holds the original.
 |---|---|---|
 | No `HAPHelper` lines in `cluster.log` | Helper disabled, or the API address is unreachable from the master | `<haproxy_disabled>`, then `curl` the API from inside the manager container |
 | API answers `401 Unauthorized` | Credentials differ between `dataplaneapi.yml` and `ossec.conf` | Compare `<haproxy_user>` and `<haproxy_password>` with the `user` entry in the YAML |
-| Connection refused on the NodePort | API bound to `127.0.0.1`, or the Service targets the wrong port | `host: 0.0.0.0` in `dataplaneapi.yml`, then the Service port against 5555 |
+| Connection refused on 5555 | API bound to `127.0.0.1`, or the exposure does not reach the helper | `host: 0.0.0.0` in `dataplaneapi.yml`, then the Service or `hostPort` against 5555 |
 | Backend list never follows membership | Backend name in HAProxy does not match `<haproxy_backend>` | Name both the same, and keep `balance leastconn` |
 | Helper writes the config, HAProxy keeps the old servers | Reload command fails inside the container | `reload_cmd` must run without an init system, and the script must be executable |
 | 1514 not listening | The helper has not created the frontend yet, or a hand-written 1514 frontend broke it | Helper log lines first, then remove any frontend bound to 1514 |

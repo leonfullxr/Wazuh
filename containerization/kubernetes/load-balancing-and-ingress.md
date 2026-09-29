@@ -134,9 +134,10 @@ list and reload. Agents connect to one stable address and are balanced with
 `leastconn`, and nobody edits `haproxy.cfg` by hand.
 
 The deployment shape is a HAProxy Deployment with the Data Plane API as a
-sidecar in the same pod, plus a NodePort or ClusterIP so the master can reach
-the API. Pin HAProxy 2.8 LTS to a Data Plane API from the matching 2.8.x
-line, and hold the API credentials in a Kubernetes Secret that the helper
+sidecar in the same pod, plus a ClusterIP or `hostPort` so the master can
+reach the API on its default port. Match the Data Plane API release to your
+HAProxy branch, because the API rewrites `haproxy.cfg` for one HAProxy minor
+version, and hold the API credentials in a Kubernetes Secret that the helper
 configuration mirrors.
 
 The full procedure, including the requirement that `haproxy.cfg` carries no
