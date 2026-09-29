@@ -175,4 +175,5 @@ levels to prevent important events being hidden by volume.
 - [Wazuh Windows Event Channel collection](https://documentation.wazuh.com/current/user-manual/capabilities/log-data-collection/configuration.html#monitoring-windows-event-channel)
 - [Microsoft: Create a server audit and specification](https://learn.microsoft.com/en-us/sql/relational-databases/security/auditing/create-a-server-audit-and-server-audit-specification)
 - [Microsoft SQL Server error 18456](https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/mssqlserver-18456-database-engine-error)
+- [Oracle Database audit events](../oracle/README.md) - the same event channel route for an Oracle instance on Windows
 - [Event Channel extraction scripts](../../scripts/eventchannel-extraction/README.md)

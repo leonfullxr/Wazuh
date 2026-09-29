@@ -20,7 +20,7 @@ changes outside production first.
 
 - [containerization/](containerization/) - Wazuh in Docker and Kubernetes: a [Helm chart](containerization/kubernetes/helm/wazuh/) for the full stack, EKS, AKS, GKE, OpenShift, persistent storage, agent DaemonSets, cluster debugging, Docker Swarm, backup/migration, Docker networking and proxy diagnostics.
 - [cloud/](cloud/) - Cloud log ingestion and infrastructure: AWS (`aws-s3` wodle, IAM), Azure (Log Analytics, MS Graph), GCP Pub/Sub, plus Wazuh Cloud usage and dashboard RBAC.
-- [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
+- [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, S3/MinIO snapshot repositories, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
 - [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and [sizing](upgrading/sizing.md), disaster recovery, Wazuh 5.0 migration FAQ.
 - [certificates/](certificates/) - TLS certificate lifecycle for every component, HTTPS for dashboards on private IPs, SAML SSO, and a certificate troubleshooting playbook.
 - [fim/](fim/) - File Integrity Monitoring: choosing between `syscheck` and native OS auditing, large Windows file servers (whodata, SACLs, event 4663, access masks), and FIM inside containers.
@@ -28,7 +28,7 @@ changes outside production first.
 
 ### Integrations & detection
 
-- [integrations/](integrations/) - Integration hub for Fortinet and generic syslog, NGINX agent load balancing, webhooks, MSSQL audit events, Splunk SOAR/Logstash forwarding, threat intelligence, and SaaS audit collection.
+- [integrations/](integrations/) - Integration hub for Fortinet and generic syslog, NGINX agent load balancing, webhooks, MSSQL and Oracle audit events, Splunk SOAR/Logstash forwarding, threat intelligence, and SaaS audit collection.
 - [rules/](rules/) - Custom rule deployment guidance, FortiGate and Vectra suites, and validated [`<var>` examples](rules/examples/var.md).
 - [decoders/](decoders/) - Decoder deployment workflow, FortiGate, Vectra, and NetIQ suites, plus a [syntax reference](decoders/syntax.md).
 - [sca/](sca/) - Security Configuration Assessment content and RHEL hardening scripts.
