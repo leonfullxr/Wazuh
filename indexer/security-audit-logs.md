@@ -137,6 +137,89 @@ GET _cat/indices/security-audit-*?v&s=index
 
 See [ISM retention](ilm-retention.md) for policy mechanics.
 
+## Reading console user activity
+
+With auditing on, the audit index answers the accountability questions about
+console use. It shows which user signed in and from where. It shows which
+API calls the session made, and which settings that user changed. The trail
+records requests that reach the indexer and the dashboard. It does not
+record a click-by-click history of the UI.
+
+Two places to read it:
+
+- **Security > Audit logs** in the dashboard shows the status, the active
+  configuration, and the recent categories.
+- **Discover**, with a data view over the audit index, shows the raw events.
+  They are filterable and exportable for an audit pack.
+
+The index name follows `plugins.security.audit.config.index`, and it differs
+between installations. `security-audit-*` is what this guide configures,
+while `security-auditlog-*` appears on other setups. Confirm the name before
+you create the data view:
+
+```http
+GET _cat/indices/security-audit*?v&s=index
+```
+
+### Question to field
+
+| Question | Filter and fields |
+|---|---|
+| Who signed in, and when | `audit_category: AUTHENTICATED`, plus `audit_request_effective_user` and `@timestamp` |
+| Who failed to sign in | `audit_category: FAILED_LOGIN`. The field `audit_request_effective_user` holds the name the client sent |
+| Which endpoint a user called | `audit_rest_request_path` and `audit_rest_request_method` |
+| Which user was denied | `audit_category: MISSING_PRIVILEGES`, plus `audit_request_privilege` |
+| Which user accessed a resource successfully | `audit_category: GRANTED_PRIVILEGES`, plus `audit_request_privilege` |
+| Which cluster or index setting changed | `CLUSTER_SETTINGS_CHANGED` or `INDEX_SETTINGS_CHANGED`. The `audit_settings_changes` array holds the setting, the old and new value, the operation, and the scope |
+| Which security objects changed | The security-configuration category. Its name differs by release, so read the values from `audit_category` in your own data |
+| Whether the caller used the admin TLS certificate | `audit_request_effective_user_is_admin`, which is true only when the caller presented the admin certificate |
+
+`audit_request_initiating_user` is logged when it differs from the effective
+user, which covers impersonation.
+
+### Mistyped sign-ins look like extra accounts
+
+`FAILED_LOGIN` stores the username string exactly as the client sent it. One
+typo therefore creates a second apparent account with its own timestamps and
+source addresses. Restrict any report on real accounts to successful
+authentication:
+
+```http
+GET security-audit-*/_search
+{
+  "size": 0,
+  "query": {
+    "term": { "audit_category": "AUTHENTICATED" }
+  },
+  "aggs": {
+    "users": {
+      "terms": {
+        "field": "audit_request_effective_user.keyword",
+        "size": 50
+      }
+    }
+  }
+}
+```
+
+If the aggregation reports that the field is not aggregatable, check the
+mapping with `GET security-audit-*/_mapping/field/audit_request_effective_user`
+and use the sub-field name the index actually has.
+
+### What the trail does not cover
+
+| Change | Attributed? | Where it is recorded |
+|---|---|---|
+| Index or cluster settings through the API | Yes | Audit index, with old and new values |
+| Internal users, roles, and role mappings | Yes | Audit index, security-configuration category |
+| Rules, decoders, and `ossec.conf` written on the manager | No | [FIM](../fim/README.md) detects the file change. The user behind it needs whodata, which a containerized manager cannot provide ([details](../fim/containers.md#whodata-attribution-is-not-available-inside-a-container)) |
+| Navigation and page views inside the UI | No | Not recorded |
+
+For manager configuration, pair FIM with a change process that carries
+attribution of its own. Managing rules, decoders, and configuration in a
+repository gives who, what, and when through commit history, and the FIM
+alert confirms when the change reached the manager.
+
 ## Verification
 
 1. Perform one controlled failed login to the indexer API from a test source.
@@ -182,11 +265,13 @@ See [ISM retention](ilm-retention.md) for policy mechanics.
 | Configuration changes disappear | Dynamic audit config was not saved through the Security API, or nodes have inconsistent static settings |
 | Audit indices grow rapidly | Successful request categories, transport auditing, request-body/bulk resolution, ignored service accounts |
 | Dashboard user cannot read audit data | Data-view permissions and index role mapping for `security-audit-*` |
+| One account appears under several usernames | `FAILED_LOGIN` records the name the client sent, typos included. Aggregate on `AUTHENTICATED` only |
 | Cluster pressure increases | Reduce categories, shorten retention, change replicas, or send audit logs to an external backend |
 
 ## See also
 
 - [Built-in internal users](auditing.md)
+- [FIM in containerized environments](../fim/containers.md) - why file changes on the manager carry no user attribution in a pod
 - [Indexer optimization hub](README.md)
 - [OpenSearch audit logs](https://docs.opensearch.org/latest/security/audit-logs/index/)
 - [OpenSearch audit storage types](https://docs.opensearch.org/latest/security/audit-logs/storage-types/)

@@ -127,46 +127,22 @@ kubectl label namespace <namespace> elbv2.k8s.aws/pod-readiness-gate-inject=disa
 
 ## Dynamic HAProxy load balancing with the Wazuh helper
 
-On larger clusters, Wazuh's built-in **HAProxy helper** (inside `wazuh-clusterd`) keeps an HAProxy backend in sync with cluster membership automatically. When workers join or leave, it updates HAProxy through its **Data Plane API**, with no manual config edits or restarts. Agents connect to one stable HAProxy address and are balanced across workers with `leastconn`.
+On larger clusters, Wazuh's HAProxy helper, a thread inside `wazuh-clusterd`,
+keeps an HAProxy backend in step with cluster membership. When workers join
+or leave, it calls HAProxy's Data Plane API to rewrite the backend server
+list and reload. Agents connect to one stable address and are balanced with
+`leastconn`, and nobody edits `haproxy.cfg` by hand.
 
-```
-Agents ──▶ HAProxy :1514 / :1515 ──▶ backend pool (manager + workers)
-Cluster membership change ──▶ Wazuh helper ──▶ Data Plane API ──▶ HAProxy (live reload)
-```
+The deployment shape is a HAProxy Deployment with the Data Plane API as a
+sidecar in the same pod, plus a NodePort or ClusterIP so the master can reach
+the API. Pin HAProxy 2.8 LTS to a Data Plane API from the matching 2.8.x
+line, and hold the API credentials in a Kubernetes Secret that the helper
+configuration mirrors.
 
-Deployment shape (HAProxy as a Deployment, Data Plane API as a sidecar in the same pod):
-
-- **Ports:** `1514` agent events, `1515` enrollment, `8404` HAProxy stats (internal), Data Plane API exposed via a **NodePort** (e.g. `30560`) so the manager can reach it.
-- **Version pinning matters:** use HAProxy **2.8 LTS** (Wazuh's recommended line) with a **matching Data Plane API 2.8.x**. A Data Plane API version that does not match the HAProxy branch will fail to drive it.
-- Credentials for the Data Plane API live in a Kubernetes Secret; the helper authenticates with the same user/password.
-
-Enable the helper in the manager's `ossec.conf`, inside the `<cluster>` block, then restart the manager:
-
-```xml
-<haproxy_helper>
-  <haproxy_disabled>no</haproxy_disabled>
-  <haproxy_address><K8S_NODE_IP></haproxy_address>
-  <haproxy_port>30560</haproxy_port>
-  <haproxy_user><DATAPLANE_USER></haproxy_user>
-  <haproxy_password><DATAPLANE_PASSWORD></haproxy_password>
-  <haproxy_backend>be_wazuh_1514</haproxy_backend>
-</haproxy_helper>
-```
-
-Confirm the helper is driving HAProxy:
-
-```bash
-# Backends and servers seen by the Data Plane API (run from the manager)
-curl -s -u <USER>:<PASS> \
-  "http://<K8S_NODE_IP>:30560/v2/services/haproxy/configuration/backends" | jq
-curl -s -u <USER>:<PASS> \
-  "http://<K8S_NODE_IP>:30560/v2/services/haproxy/configuration/servers?backend=be_wazuh_1514&parent_type=backend" | jq
-
-# Helper activity in the cluster log
-egrep "HAPHelper" /var/ossec/logs/cluster.log | tail -50
-```
-
-Reference: [Wazuh HAProxy helper documentation](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/wazuh-cluster/load-balancer-configuration.html).
+The full procedure, including the requirement that `haproxy.cfg` carries no
+frontend on 1514, is in
+[HAProxy and the Data Plane API as the agent load balancer](./haproxy-dataplane.md).
+Reference: [Wazuh load balancer documentation](https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/load-balancers.html).
 
 ## Verifying the path
 

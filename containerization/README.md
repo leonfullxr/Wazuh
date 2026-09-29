@@ -31,6 +31,7 @@ after every rollout.
 | Docker deployment or migration | [Docker hub](./docker/README.md) |
 | EKS, AKS, GKE, or OpenShift | [Kubernetes hub](./kubernetes/README.md) |
 | Persist custom rules, decoders, or dashboard settings | [Kubernetes persistence](./kubernetes/persistent-storage.md) |
+| Load-balance agent connections across manager nodes | [HAProxy and the Data Plane API](./kubernetes/haproxy-dataplane.md) |
 | Diagnose pod, DNS, or service failures | [Kubernetes debugging](./kubernetes/cluster-debugging.md) |
 | Agents show `disconnected` on the master but are active on their worker | [Agent-info sync failures](./kubernetes/agent-info-sync-failures.md) |
 | Understand FIM coverage in containers | [FIM in containers](../fim/containers.md) |
