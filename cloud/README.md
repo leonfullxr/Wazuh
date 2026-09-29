@@ -16,7 +16,7 @@ indexing as separate layers.
 |---|---|
 | [aws.md](aws.md) | AWS log ingestion with the `aws-s3` wodle: CloudTrail, GuardDuty, VPC Flow Logs, CloudWatch, Security Lake; IAM/credential setup, Kubernetes secret mounts, state-database gotchas, debugging |
 | [azure.md](azure.md) | Azure log ingestion: `azure-logs` wodle (Log Analytics, Graph, blob storage) and the native `ms-graph` module (Defender, Entra ID Protection); app registration, admin consent, indexer mapping conflicts |
-| [gcp-pubsub.md](gcp-pubsub.md) | Google Cloud log ingestion via Pub/Sub with Application Default Credentials -- no service account key files; subscriber script, localfile monitor, base rule |
+| [gcp-pubsub.md](gcp-pubsub.md) | Google Cloud log ingestion via Pub/Sub with Application Default Credentials -- no service account key files; subscriber script, localfile monitor, base rule, plus a fork for events that are visible in Google Cloud but missing or late in the dashboard |
 | [wazuh-cloud-service.md](wazuh-cloud-service.md) | Wazuh Cloud SaaS from the customer side: credential types, `/api/wazuh/` and `/api/elastic/` endpoints, hot vs cold storage stages, downloading archive data with `wcloud-cli` |
 | [rbac-dashboards.md](rbac-dashboards.md) | Letting operators save/edit dashboards and generate reports without admin rights (OpenSearch Security roles, reporting system indices) |
 
@@ -35,5 +35,6 @@ All three provider integrations follow the same shape: create a low-privilege id
 | Collect CloudTrail, GuardDuty, VPC Flow Logs, or Security Lake | [AWS](aws.md) |
 | Collect Log Analytics, Blob, Defender, or Entra events | [Azure](azure.md) |
 | Route Cloud Logging or GKE audit logs through Pub/Sub | [Google Cloud Pub/Sub](gcp-pubsub.md) |
+| GCP events visible in Log Explorer but missing, days late, or never alerting in Wazuh | [Google Cloud Pub/Sub troubleshooting](gcp-pubsub.md#troubleshooting-some-events-never-reach-the-dashboard) |
 | Use Wazuh Cloud API endpoints or archive storage | [Wazuh Cloud service](wazuh-cloud-service.md) |
 | Let non-admin users edit dashboards or run reports | [Dashboard RBAC](rbac-dashboards.md) |
