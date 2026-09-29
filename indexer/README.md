@@ -111,7 +111,7 @@ out through [ISM retention](ilm-retention.md), or
 | Route selected alerts to another index | [Index separation](index-separation.md) |
 | Change the timestamp embedded in `full_log` | [Ingest pipeline customization](ingest-pipeline-customization.md) |
 | Reset or recover indexer credentials | [Password reset and recovery](../troubleshooting/passwords-recovery.md) |
-| Record indexer authentication and authorization activity | [Security audit logs](security-audit-logs.md) |
+| Record indexer authentication and authorization activity, or answer which console user made a change | [Security audit logs](security-audit-logs.md) |
 
 ## Advanced operations
 

@@ -14,7 +14,7 @@ File Integrity Monitoring answers two questions: what changed on disk, and who c
 | Guide | Description |
 |---|---|
 | [FIM on a large Windows file server](windows-file-servers.md) | `syscheck` with whodata, the scale at which its inventory stalls, and the move to native Windows object access auditing: audit policy, SACLs, event 4663, access masks, and the dashboard |
-| [FIM in containerized environments](containers.md) | What FIM can and cannot do per agent deployment model, volumes against bind mounts, and centralized syscheck configuration |
+| [FIM in containerized environments](containers.md) | What FIM can and cannot do per agent deployment model, volumes against bind mounts, centralized syscheck configuration, and why whodata attribution is unavailable inside a pod |
 
 ## Choosing an approach
 

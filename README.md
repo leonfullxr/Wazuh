@@ -23,7 +23,7 @@ changes outside production first.
 - [indexer/](indexer/) - Wazuh Indexer optimization and troubleshooting hub: shard/heap planning, replicas, ISM retention and rollover decisions, disk recovery, S3/MinIO snapshot repositories, reindexing, ingest-pipeline customization, cross-cluster search, and security auditing.
 - [upgrading/](upgrading/) - Pre-upgrade checklist, agent upgrades via API/CLI, deployment architecture and port matrix, per-component health checks, capacity planning and [sizing](upgrading/sizing.md), disaster recovery, Wazuh 5.0 migration FAQ.
 - [certificates/](certificates/) - TLS certificate lifecycle for every component, HTTPS for dashboards on private IPs, SAML SSO, and a certificate troubleshooting playbook.
-- [fim/](fim/) - File Integrity Monitoring: choosing between `syscheck` and native OS auditing, large Windows file servers (whodata, SACLs, event 4663, access masks), and FIM inside containers.
+- [fim/](fim/) - File Integrity Monitoring: choosing between `syscheck` and native OS auditing, large Windows file servers (whodata, SACLs, event 4663, access masks), FIM inside containers, and why whodata attribution is unavailable inside a pod.
 - [troubleshooting/](troubleshooting/) - Symptom-driven guides: agent disconnections, flooding and buffer tuning, enrollment conflicts, analysisd queue/EPS tuning, vulnerability detection internals and reset, password recovery, LDAP/AD, Windows registry monitoring.
 
 ### Integrations & detection

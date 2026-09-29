@@ -13,6 +13,7 @@
 - [Volumes vs bind mounts](#volumes-vs-bind-mounts)
 - [Monitoring container files through shared volumes](#monitoring-container-files-through-shared-volumes)
 - [Example centralized syscheck configuration](#example-centralized-syscheck-configuration)
+- [Whodata attribution is not available inside a container](#whodata-attribution-is-not-available-inside-a-container)
 
 ## Overview
 
@@ -114,8 +115,59 @@ Apply syscheck settings to all node agents at once through a group's shared `age
 
 Tune the `<directories>` and `<ignore>` entries to your workloads - excluding high-churn paths (package caches, spool, logs) keeps FIM noise and database size manageable.
 
+## Whodata attribution is not available inside a container
+
+A FIM alert arrives for the configuration file, but it carries no
+`syscheck.audit` block. The fields `syscheck.audit.login_user.name` and
+`syscheck.audit.user.name` are missing. The alert reports
+`"mode": "realtime"` even though the directory asks for `whodata="yes"`.
+
+The reason is that whodata reads the kernel audit subsystem through the
+audit daemon. A container or pod that cannot reach the host audit subsystem
+never starts the whodata engine, and syscheck falls back to realtime
+monitoring. eBPF-based attribution needs kernel privileges for the same
+reason. The setting alone does not provide attribution. The operating
+system has to answer.
+
+Realtime mode still reports what changed:
+
+```json
+"syscheck": {
+  "path": "/var/ossec/etc/ossec.conf",
+  "event": "modified",
+  "mode": "realtime",
+  "changed_attributes": ["size", "mtime", "md5", "sha1", "sha256"],
+  "diff": "<frequency>30</frequency> ... <frequency>3000</frequency>"
+}
+```
+
+Path, attributes, hashes, modification times, and the diff are all there.
+The user behind the change is not.
+
+| Setup | User attribution | Notes |
+|---|---|---|
+| Agent on the node or host | Yes | whodata reaches the host audit subsystem. See [Recommended setup](#recommended-setup-agent-on-the-host) |
+| Agent inside a pod or container | No | Realtime mode only, whatever `ossec.conf` asks for |
+| Manager configuration kept in a repository | Yes, outside Wazuh | Commit author, review, and merge time. The FIM alert then confirms that the file changed on the manager |
+
+Keep the whodata request in the configuration anyway. The same block starts
+reporting attribution as soon as the agent runs where the audit daemon is
+reachable, and until then it costs nothing:
+
+```xml
+<syscheck>
+  <directories whodata="yes" report_changes="yes">/var/ossec/etc/ossec.conf</directories>
+  <directories whodata="yes" report_changes="yes">/var/ossec/etc/rules/</directories>
+  <directories whodata="yes" report_changes="yes">/var/ossec/etc/decoders/</directories>
+</syscheck>
+```
+
+Confirm the mode that actually ran from the alert (`syscheck.mode`) or from
+the agent debug log. Do not read it from the configuration file.
+
 ## Related
 
+- [Wazuh Indexer security audit logs](../indexer/security-audit-logs.md) - attribution for console and API users, which is a different layer from file changes
 - [Deploying an agent on a Kubernetes node](../containerization/kubernetes/agent-on-node.md)
 - [Containerized agent as a DaemonSet](../containerization/kubernetes/agent-daemonset.md)
 - [Wazuh agent deployment - DaemonSet & Sidecar](../containerization/kubernetes/wazuh-agent-deployment.md)
