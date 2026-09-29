@@ -98,6 +98,8 @@ out through [ISM retention](ilm-retention.md), or
 | Shards exceed 40-50 GB or recovery is slow | [Shard sizing and template changes](shard-management.md#sizing-guidelines) |
 | New indices fail at rollover or midnight | [Shard-count monitoring](shard-management.md#monitoring-shard-count) and [disk management](disk-management.md) |
 | Disk watermark or read-only indices | [Disk management](disk-management.md) |
+| Register a snapshot repository in MinIO or another S3 store | [S3 snapshot repository](snapshots-minio.md) |
+| Bucket keeps growing after snapshots are deleted | [Why MinIO disk usage does not fall](snapshots-minio.md#why-minio-disk-usage-does-not-fall) |
 | Define or verify retention | [ISM / ILM retention](ilm-retention.md) |
 | Old alerts still on disk after the ISM delete phase | [Manager-side retention](ilm-retention.md#manager-side-retention-is-separate-and-not-automatic) |
 | Choosing a compression codec to save disk | [Index codecs](ilm-retention.md#index-codecs-and-compression) |
@@ -122,6 +124,7 @@ out through [ISM retention](ilm-retention.md), or
 | [Security audit logs](security-audit-logs.md) | Record and retain authentication, authorization, TLS, and security-configuration events |
 | [Index separation](index-separation.md) | Give selected event classes distinct access control or retention |
 | [Reindexing](reindexing.md) | Repair mappings or migrate historical indices to a new shard design |
+| [S3 snapshot repository with MinIO](snapshots-minio.md) | Store snapshots in an S3-compatible bucket and reclaim bucket space after a delete |
 
 ## Quick diagnostic commands
 

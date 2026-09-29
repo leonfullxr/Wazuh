@@ -97,6 +97,15 @@ In practice, the most common real-world fixes are: restart the process
 holding a deleted log, vacuum journald, prune Docker, or adjust the ext4
 reserved-block percentage.
 
+### Snapshots held in an object store
+
+Space consumed by snapshots is not always on the indexer node. When snapshots
+go to an S3-compatible store such as MinIO, deleting a snapshot leaves every
+older object version on the MinIO disk. Bucket versioning writes a delete
+marker and keeps the data, so the cluster reports the deletion and the object
+store usage never falls. A lifecycle rule on the bucket reclaims it. See
+[S3 snapshot repository with MinIO](snapshots-minio.md#why-minio-disk-usage-does-not-fall).
+
 ## Quick wins to free space
 
 When the indexer node is at the flood-stage watermark and you need headroom

@@ -20,6 +20,8 @@ filter at a sustainable volume, and test both success and outage behavior.
 | Load-balance agent TCP connections across manager workers | [NGINX stream load balancer](nginx/README.md) |
 | Send selected alerts to an HTTPS endpoint | [Generic webhook](webhook/README.md) |
 | Monitor SQL Server login and audit events | [Microsoft SQL Server](mssql/README.md) |
+| Collect Oracle database audit events on Windows | [Oracle Database audit](oracle/README.md) |
+| Collect iLO, iDRAC and IPMI hardware health and management events | [IPMI / server hardware](ipmi/README.md) |
 | Send alerts to Splunk SOAR | [Splunk SOAR hook](splunk/README.md) |
 | Copy Wazuh Indexer alerts to Splunk through Logstash | [Splunk Logstash forwarding](splunk/logstash-forwarding.md) |
 | Authenticate dashboard users with LDAP/AD | [LDAP and Active Directory](../troubleshooting/ldap-ad.md) |
