@@ -22,9 +22,13 @@ Two ways to audit file activity on a Windows file share. This guide covers the s
   - [Collect the Security channel](#collect-the-security-channel)
   - [Event 4660 may never appear](#event-4660-may-never-appear)
   - [Decode the access mask](#decode-the-access-mask)
+  - [Renames, moves, and directories](#renames-moves-and-directories)
 - [Verify on the endpoint](#verify-on-the-endpoint)
 - [Build the file activity dashboard](#build-the-file-activity-dashboard)
+  - [The activity vocabulary](#the-activity-vocabulary)
+  - [Fields, filters, and saved searches](#fields-filters-and-saved-searches)
 - [Detect ransomware and mass activity](#detect-ransomware-and-mass-activity)
+  - [Rule starting points](#rule-starting-points)
 - [Related](#related)
 
 ## Choose the approach before you configure anything
@@ -43,7 +47,7 @@ Both approaches answer "who touched this file, and when". They differ in what ca
 
 Use file counts to decide. Below roughly 100,000 files in scope, use `syscheck`. Above roughly 1 million, go straight to object access auditing and do not spend a month tuning exclusions first. Between the two, pilot `syscheck` on one directory and measure.
 
-The count that matters is files **in scope after exclusions**, not the size of the disk.
+The count that matters is files in scope after exclusions, not the size of the disk.
 
 ## Approach 1: FIM syscheck with whodata
 
@@ -79,7 +83,7 @@ Three attributes decide the cost:
 
 - `check_all="yes"` checks size, permissions, owner, hash, and modification time.
 - `whodata="yes"` adds the user and the process behind each change.
-- `report_changes="yes"` is **absent on purpose**. It copies every monitored file into a private directory to compute line-by-line differences. On a multi-terabyte share it fills the disk. Enable it only on a small set of text or configuration files.
+- `report_changes="yes"` is absent on purpose. It copies every monitored file into a private directory to compute line-by-line differences. On a multi-terabyte share it fills the disk. Enable it only on a small set of text or configuration files.
 
 `<process_priority>19</process_priority>` lowers the scan priority so the baseline scan competes less with the file-serving workload.
 
@@ -96,7 +100,7 @@ Three attributes decide the cost:
 
 Never enable the whole share at once. The baseline scan is the heaviest moment in the deployment.
 
-1. Start with the **lowest-volume** directories in scope.
+1. Start with the lowest-volume directories in scope.
 2. Watch for 48 hours:
    - CPU and RAM on the file server at peak hours.
    - The agent `ossec.log`, for queue-full warnings and whodata errors.
@@ -133,7 +137,7 @@ This needs Windows Server 2016 or later, or Windows 10 build 1607 or later. The 
 
 This is how approach 1 fails at scale, and it is easy to misread as a configuration mistake.
 
-The FIM inventory in the dashboard climbs and then stops at a round-looking number. The count stays flat across restarts and rescans. **No error appears in `ossec.log`**, and raising `<file_limit>` changes nothing. One investigated file server sat at roughly 59,000 files, and a second stalled at 100,000, against a share holding about 1.5 million files.
+The FIM inventory in the dashboard climbs and then stops at a round-looking number. The count stays flat across restarts and rescans. No error appears in `ossec.log`, and raising `<file_limit>` changes nothing. One investigated file server sat at roughly 59,000 files, and a second stalled at 100,000, against a share holding about 1.5 million files.
 
 Before concluding that you have hit the ceiling, rule out the quiet causes:
 
@@ -198,9 +202,9 @@ Documentation and most guides pair two event IDs for deletion:
 | 4663 | An attempt was made to access an object |
 | 4660 | An object was deleted |
 
-On Windows Server 2025, file deletion tests produced **no 4660 at all**. The deletion appeared as **4663 with an access mask of `0x10000`**, which is the `DELETE` access right. That event carried the file name, the user, and the process.
+On Windows Server 2025, file deletion tests produced no 4660 at all. The deletion appeared as 4663 with an access mask of `0x10000`, which is the `DELETE` access right. That event carried the file name, the user, and the process.
 
-Build deletion detection on **4663 with access mask `0x10000`**. Treat 4660 as a supplement where the platform emits it, not as the primary signal. A dashboard that keys deletion off 4660 alone can show zero deletions on a server that is deleting files all day.
+Build deletion detection on 4663 with access mask `0x10000`. Treat 4660 as a supplement where the platform emits it, not as the primary signal. A dashboard that keys deletion off 4660 alone can show zero deletions on a server that is deleting files all day.
 
 ### Decode the access mask
 
@@ -214,6 +218,20 @@ The access mask on 4663 is what turns one event ID into distinct activity types.
 | `0x10000` | DELETE | File or directory deleted |
 
 A single event can carry a combined mask, because a mask is a bit field. Match on the bit rather than on string equality where your query language allows it.
+
+### Renames, moves, and directories
+
+There is no rename event. Windows records a rename as the two accesses it performs, so build the "renamed" and "moved" views by correlating a pair of events instead of filtering for an event that never arrives:
+
+- **Rename or move.** A DELETE right (`0x10000`) on the old path, immediately followed by an add (`0x2`, or `0x4` for a directory) on the new path from the same `win.eventdata.processName` in the same second. The old path disappears and the new path appears; that pair is the operation.
+- **Directory created.** `0x4` (AppendData, AddSubdirectory) on the directory path.
+- **Directory deleted.** `0x10000` on the directory path.
+
+A rename in place and a move between directories are the same operation to Windows. Tell them apart by comparing the parent paths of the two events: same parent means rename, different parents means move.
+
+Confirm the pair on your own build with the [endpoint check](#verify-on-the-endpoint) before you rely on it. Windows Server versions differ in what they emit, which is the same lesson as [4660](#event-4660-may-never-appear).
+
+When `syscheck` owns the inventory instead (approach 1), it reports the same operation as a delete on the old path and an add on the new path, so the pairing rule holds across both approaches.
 
 ## Verify on the endpoint
 
@@ -242,27 +260,99 @@ The result splits the problem cleanly:
 
 ## Build the file activity dashboard
 
-The dashboard the ticket asked for comes down to four visualizations plus two saved searches, all over the collected 4663 events.
+The dashboard comes down to four visualizations plus two saved searches, all over the collected 4663 events, with the agent name and a time range as filters so the same panels serve every file server in the group.
 
 Create one visualization per activity type, each filtered on event ID 4663 plus one access mask from the [decode table](#decode-the-access-mask). That gives read, write, append, and delete panels from a single event ID.
 
-Then save two searches, which is what makes per-file history practical:
+### The activity vocabulary
 
-- **By user.** Filter on the subject user name field to answer "what did this account touch".
-- **By object name.** Filter on the object name field to answer "who touched this file". This is the file-history search: enter a file name or a full path and read the events in time order.
+Panels labeled Created, Modified, Renamed, Uploaded, and so on are all views over the same events. This is the mapping:
 
-Add the agent name and a time range as dashboard filters so the same panels serve every file server in the group.
+| Activity | Signal to filter on |
+|---|---|
+| Created | 4663 with `0x2` (AddFile), or `0x4` for a directory. FIM: `syscheck.event` is `added` |
+| Modified | 4663 with `0x2` (WriteData) or `0x4` (AppendData). FIM: `syscheck.event` is `modified` |
+| Deleted | 4663 with `0x10000`. FIM: `syscheck.event` is `deleted` |
+| Renamed or moved | `0x10000` on the old path plus an add on the new path, same process, same second ([see above](#renames-moves-and-directories)) |
+| Accessed, read | 4663 with `0x1` |
+| Uploaded or downloaded | No distinct event on a share. An upload is a create or write at the destination, a download is a read; direction only exists if you compare both ends |
+
+The `syscheck.*` columns exist only where approach 1 keeps the inventory. Under approach 2 the event ID and the access mask are the whole vocabulary.
+
+### Fields, filters, and saved searches
+
+| What you filter by | Field |
+|---|---|
+| Server | `agent.name` |
+| Time range | `timestamp` |
+| User | `win.eventdata.subjectUserName`, plus `win.eventdata.subjectDomainName` where accounts repeat across domains |
+| File name or path | `win.eventdata.objectName` |
+| Activity type | `win.system.eventID` together with `win.eventdata.accessMask` |
+| Process behind the access | `win.eventdata.processName` |
+| FIM path and change type | `syscheck.path` and `syscheck.event` |
+
+Two saved searches are what make per-file history practical:
+
+```text
+# Full history of one file: who touched it, and when
+win.system.eventID: 4663 and win.eventdata.objectName: *report.xlsx*
+
+# Everything one account touched
+win.system.eventID: 4663 and win.eventdata.subjectUserName: jdoe
+```
+
+Search on a file name fragment rather than a full path. The wildcard form avoids escaping the backslashes in `D:\...`, and it follows the file even after a rename or a move to another folder.
+
+Save both, add the access-mask filter to turn either into an activity view, and keep the agent name and time range as dashboard filters rather than baking them into the queries.
 
 ## Detect ransomware and mass activity
 
-Mass modification and mass deletion are volume signals, not new event types. Build them as frequency-based custom rules that fire when many FIM or object access events arrive from one agent inside a short window.
+Mass modification and mass deletion are volume signals, not new event types. Build them as frequency rules that fire when many FIM events from one agent arrive inside a short window, plus an extension rule for the rename-to-encrypted pattern that counting can miss when an encryptor writes new files instead of rewriting old ones.
 
-The building blocks:
+### Rule starting points
 
-- **Mass activity.** A custom rule with `frequency` and `timeframe` on top of the FIM rules for added, modified, and deleted files, grouped per agent.
-- **Extension changes.** A rule matching known ransomware extensions in the file path field. This catches the rename-to-encrypted pattern that mass-modification counting can miss when the tool writes new files rather than modifying existing ones.
+```xml
+<group name="local,ransomware,">
+  <!-- Mass modification: counts rule 550, the default "integrity checksum changed" rule -->
+  <rule id="100150" level="12" frequency="150" timeframe="60" ignore="300">
+    <if_matched_sid>550</if_matched_sid>
+    <description>Many files modified within 60 seconds, possible ransomware activity.</description>
+    <group>mass_file_modified,</group>
+  </rule>
 
-Tune the threshold against a measured baseline. A file server where a backup job legitimately rewrites 10,000 files each night needs a different threshold from a workstation share. See [custom rules](../rules/README.md).
+  <!-- Mass deletion: counts rule 553, the default "file deleted" rule -->
+  <rule id="100151" level="12" frequency="50" timeframe="60" ignore="300">
+    <if_matched_sid>553</if_matched_sid>
+    <description>Many files deleted within 60 seconds, possible mass deletion.</description>
+    <group>mass_file_deleted,</group>
+  </rule>
+
+  <!-- Mass creation: counts rule 554, the default "file added to the system" rule -->
+  <rule id="100152" level="10" frequency="150" timeframe="60" ignore="300">
+    <if_matched_sid>554</if_matched_sid>
+    <description>Many files created within 60 seconds.</description>
+    <group>mass_file_added,</group>
+  </rule>
+
+  <!-- Extension sweep: the rename-to-encrypted pattern -->
+  <rule id="100153" level="12">
+    <if_sid>550 553 554</if_sid>
+    <field name="syscheck.path" type="pcre2">(?i)\.(locked|encrypted|crypt|wcry|wannacry)$</field>
+    <description>File added, modified, or deleted under a ransomware-style extension.</description>
+    <group>ransomware_extension,</group>
+  </rule>
+</group>
+```
+
+Notes on these:
+
+- The three frequency rules count the default FIM rules 550, 553, and 554, so those rules must stay above level 3. A level 0 match is not stored, and a frequency rule over it never fires. If you have overwritten their levels, point `if_matched_sid` at your own parent rule instead.
+- The frequency counter is per agent by default, so two file servers do not add to one total.
+- `frequency` and `timeframe` here are starting values, not thresholds. A backup job that legitimately rewrites thousands of files each night needs a different number from a workstation share. `ignore` keeps one incident from producing a fresh alert every few seconds.
+- Keep the descriptions static. The path, the agent, and the timestamp are fields of the alert itself (`syscheck.path`, `agent.name`, `timestamp`), and the dynamic `$(field)` form depends on how your release maps FIM fields into rules.
+- If the extension list grows past a handful, move it to a CDB list rather than lengthening the rule. See [custom rules](../rules/README.md).
+
+Test each rule with `wazuh-logtest` against a positive match, a near miss, and a benign event before you rely on it.
 
 ## Related
 

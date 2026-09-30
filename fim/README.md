@@ -13,7 +13,7 @@ File Integrity Monitoring answers two questions: what changed on disk, and who c
 
 | Guide | Description |
 |---|---|
-| [FIM on a large Windows file server](windows-file-servers.md) | `syscheck` with whodata, the scale at which its inventory stalls, and the move to native Windows object access auditing: audit policy, SACLs, event 4663, access masks, and the dashboard |
+| [FIM on a large Windows file server](windows-file-servers.md) | `syscheck` with whodata, the scale at which its inventory stalls, and the move to native Windows object access auditing: audit policy, SACLs, event 4663, access masks, renames, the dashboard fields and saved searches, and ransomware frequency rules |
 | [FIM in containerized environments](containers.md) | What FIM can and cannot do per agent deployment model, volumes against bind mounts, centralized syscheck configuration, and why whodata attribution is unavailable inside a pod |
 
 ## Choosing an approach
@@ -25,7 +25,7 @@ File Integrity Monitoring answers two questions: what changed on disk, and who c
 | Files inside a container | Usually not FIM. See [containers](containers.md) |
 | The Windows registry | [Registry monitoring](../troubleshooting/agents/windows-registry.md) |
 
-The number that decides it is the count of files **in scope after exclusions**, not the size of the volume. `syscheck` builds and maintains its own inventory of every monitored file, so its cost scales with file count. Native auditing keeps no inventory, so it does not.
+The number that decides it is the count of files in scope after exclusions, not the size of the volume. `syscheck` builds and maintains its own inventory of every monitored file, so its cost scales with file count. Native auditing keeps no inventory, so it does not.
 
 ## Costs to plan for
 
