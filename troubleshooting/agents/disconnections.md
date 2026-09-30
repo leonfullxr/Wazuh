@@ -194,3 +194,4 @@ If the loop is caused by duplicate agent names or key mismatches rather than con
 - [Agent-info sync failures](../../containerization/kubernetes/agent-info-sync-failures.md) - on a clustered manager, an agent that is `active` on its worker but `disconnected` on the master shows a sync failure, not an agent fault
 - [Flooding](flooding.md) - a flooded agent buffer can precede disconnection events
 - [Diagnosis script](../../scripts/diagnosis/) - collects agent status and manager logs in one pass
+- [LAN availability monitor](../../scripts/availability-monitor/) - active ICMP/TCP polling when a disconnect alert is not enough to say whether the host itself is up
