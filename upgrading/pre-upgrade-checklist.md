@@ -19,6 +19,8 @@ Before upgrading a Wazuh environment, verify that everything is healthy and take
 
 Also confirm you have working admin credentials at hand before starting: the indexer `admin` user, the Wazuh API user, and SSH access to every node.
 
+> Downgrades are not a supported recovery path for any central component. Once index data has been written under the new version, the indexer cannot go back: the underlying Lucene format has no downgrade, so an older binary cannot read newer data. This applies identically to package installs and containers; swapping a container image tag back does not undo the on-disk format change. The manager and dashboard carry no such irreversible format, but no downgrade path is published or tested for them either, and agent downgrades are explicitly unsupported. Recovery from a bad upgrade means restoring the pre-upgrade backup or snapshot (indexer snapshots, including the automatically created `pre_upgrade` ones, and the file-level backup in [Central Component Backup](central-component-backup.md)), not reinstalling the old version over new data. Take those backups before upgrading, when rollback is still cheap.
+
 Official reference: [Upgrade guide - Wazuh documentation](https://documentation.wazuh.com/current/upgrade-guide/index.html).
 
 ## Upgrade Order

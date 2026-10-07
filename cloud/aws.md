@@ -140,6 +140,15 @@ spec:
 
 Verify inside the pod with `aws configure list` and `aws s3 ls --profile <profile_name>`.
 
+### Persisting an ephemeral hotfix
+
+A file edited directly inside a manager pod (for example a workaround in `/var/ossec/wodles/aws/subscribers/`) lives only in that container's writable layer. Any restart, reschedule, or scale event replaces the pod from the image and the edit is gone. Until the fix lands in the image you run, apply it on every pod birth instead of patching live containers:
+
+- **initContainer patch (preferred).** Add an init container to the manager StatefulSet that mounts the same path, applies the edit, clears the matching `__pycache__`, and exits before the main container starts.
+- **ConfigMap overlay.** Store the patched file in a ConfigMap and mount it over the original path with `subPath`, the same mechanism as the credentials mount above.
+
+Either way, pin the workaround to the fixed version (see [Common Pitfalls](#common-pitfalls)) and remove it once the image includes the upstream fix.
+
 ## Common Pitfalls
 
 - **State database.** Processed files are tracked in SQLite databases under `/var/ossec/wodles/aws/` (e.g. `s3_cloudtrail.db`). `only_logs_after` only matters on the *first* run; to re-ingest you must clear the relevant DB entries or run the script manually with `--reparse`.
@@ -147,6 +156,19 @@ Verify inside the pod with `aws configure list` and `aws s3 ls --profile <profil
 - **Date format.** `only_logs_after` uses `YYYY-MMM-DD` (e.g. `2026-JAN-01`), not ISO 8601.
 - **Permissions errors.** `AccessDenied` or throttling from AWS usually means the IAM policy is missing list/get permissions on the exact bucket and prefix, or the wrong profile is being picked up -- the wodle runs as root, so it reads `/root/.aws/credentials`.
 - **Multi-account organizations.** CloudTrail organization trails need `<aws_organization_id>` so the S3 path layout is resolved correctly.
+- **Cross-account SQS subscriber with `iam_role_arn` fails with `Queue does not exist` (exit code 20).** On versions before 4.14.7, `subscribers/sqs_queue.py` builds the STS client without the role ARN, so the account ID sent as `QueueOwnerAWSAccountId` to `get_queue_url` is the local account and SQS looks for the queue in the wrong account. The tell is that a same-account queue works while the cross-account one fails with identical trust configuration (a manual `aws sts assume-role` followed by the wodle CLI succeeds and shows the queue URL under the target account ID). Fixed in 4.14.7 ([issue #36197](https://github.com/wazuh/wazuh/issues/36197), [PR #36791](https://github.com/wazuh/wazuh/pull/36791)): upgrade to resolve. On older versions the workaround is to drop the owner parameter from the call, since the SQS client already carries the assumed-role credentials:
+
+  ```bash
+  systemctl stop wazuh-manager
+  sed -i.bak -zE 's/self\.client\.get_queue_url\(QueueName=self\.sqs_name,[[:space:]]+QueueOwnerAWSAccountId=self\.account_id\)/self.client.get_queue_url(QueueName=self.sqs_name)/' \
+      /var/ossec/wodles/aws/subscribers/sqs_queue.py
+  grep -n "get_queue_url(QueueName=self.sqs_name)\['QueueUrl'\]" \
+      /var/ossec/wodles/aws/subscribers/sqs_queue.py
+  rm -f /var/ossec/wodles/aws/subscribers/__pycache__/sqs_queue.*.pyc
+  systemctl start wazuh-manager
+  ```
+
+  Confirm with the manual repro below: the `-i` invocation should now resolve the queue URL under the target account instead of returning `Queue does not exist`. Keep the `.bak` file to revert.
 
 ## Debugging
 
@@ -164,6 +186,19 @@ Or run the wodle by hand with the same parameters as your config:
 /var/ossec/wodles/aws/aws-s3 --bucket YOUR_BUCKET --aws_profile default \
   --only_logs_after 2026-JAN-01 --type cloudtrail --debug 2 --skip_on_error
 ```
+
+For a suspect cross-account SQS subscriber, reproduce directly against both accounts:
+
+```bash
+# Same-account queue: succeeds, prints the queue URL under the local account
+/var/ossec/wodles/aws/aws-s3 --subscriber buckets --queue <LOCAL_QUEUE> --debug 2
+# Cross-account queue with role assumption: fails before 4.14.7 with
+# ERROR: Queue does not exist, verify the given name
+/var/ossec/wodles/aws/aws-s3 --subscriber buckets --queue <REMOTE_QUEUE> \
+  --debug 2 -i arn:aws:iam::<REMOTE_ACCOUNT_ID>:role/<ROLE_NAME> -r <REGION>
+```
+
+If the second command fails but the same queue works after exporting manually assumed credentials (`aws sts assume-role` plus `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`), the trust relationship is fine and the bug is the owner-ID parameter described in [Common Pitfalls](#common-pitfalls).
 
 Troubleshooting page: [AWS troubleshooting - Wazuh documentation](https://documentation.wazuh.com/current/cloud-security/amazon/troubleshooting.html)
 

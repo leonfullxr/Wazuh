@@ -36,5 +36,6 @@ All three provider integrations follow the same shape: create a low-privilege id
 | Collect Log Analytics, Blob, Defender, or Entra events | [Azure](azure.md) |
 | Route Cloud Logging or GKE audit logs through Pub/Sub | [Google Cloud Pub/Sub](gcp-pubsub.md) |
 | GCP events visible in Log Explorer but missing, days late, or never alerting in Wazuh | [Google Cloud Pub/Sub troubleshooting](gcp-pubsub.md#troubleshooting-some-events-never-reach-the-dashboard) |
+| Cross-account SQS subscriber fails with `Queue does not exist` (exit code 20) | [AWS common pitfalls](aws.md#common-pitfalls) |
 | Use Wazuh Cloud API endpoints or archive storage | [Wazuh Cloud service](wazuh-cloud-service.md) |
 | Let non-admin users edit dashboards or run reports | [Dashboard RBAC](rbac-dashboards.md) |

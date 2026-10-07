@@ -22,6 +22,7 @@ Requirements that trip most deployments:
 - [4. Connect the dashboard to the remote managers](#4-connect-the-dashboard-to-the-remote-managers)
 - [5. Create the remote index pattern](#5-create-the-remote-index-pattern)
 - [6. LDAP authorization across CCS environments](#6-ldap-authorization-across-ccs-environments)
+- [MSSP design: topology, sizing, and segmentation](#mssp-design-topology-sizing-and-segmentation)
 - [Adding a cluster later](#adding-a-cluster-later)
 
 ## 1. Regenerate certificates from a shared CA
@@ -306,6 +307,43 @@ write indices or modify agents. When using custom indexer roles instead of
 `readall`, explicitly include the remote alias/index patterns and test them on
 the bundled OpenSearch version; do not assume a local index permission
 automatically covers `<cluster-alias>:<index-pattern>`.
+
+## MSSP design: topology, sizing, and segmentation
+
+When the central cluster serves multiple client environments (MSSP model),
+each client keeps its own full stack and local data. The central indexer
+never stores the clients' alert bulk: it federates each search to the remote
+clusters, merges the results, and renders them on the central dashboard.
+
+- **Indexer nodes:** run a minimum of 3 for quorum-based manager election
+  (odd number, tolerates one node loss). See
+  [Cluster topology](cluster-topology.md). Starting points per node:
+  minimum 2 CPU / 4 GB RAM, recommended 8 CPU / 16 GB RAM, with 100-200 GB
+  SSD each for cluster state, the security index, saved objects, and query
+  result buffering.
+- **Dashboard nodes:** stateless, so no quorum rule applies. Run a minimum
+  of 2 for HA behind a load balancer (HAProxy, ALB/NLB, nginx); each node
+  connects independently to the same central indexer. Starting points:
+  minimum 2 CPU / 4 GB RAM, recommended 4 CPU / 8 GB RAM.
+- **What drives sizing:** query concurrency and the number of federated
+  clusters per search, not agent count. Consider sizing above recommended
+  around 15-20 federated clusters in a single query or dozens of
+  concurrent dashboard users with frequent or auto-refreshing queries.
+- **Segmentation:** deny-by-default with narrow allows is sufficient; no
+  VPN tunnel is required. The central indexer needs outbound access to each
+  remote indexer on 9200 (API) and 9300 (transport, the actual
+  `cluster.remote` search path). The central dashboard needs outbound
+  access to each remote manager API on 55000.
+- **Per-client isolation:** create one indexer role per client scoped to
+  that client's remote alias (for example `clientA:wazuh-alerts-*` rather
+  than `*:wazuh-alerts-*`), map each operator only to their client's role,
+  and layer tenants on top for separate saved dashboards. The LDAP
+  workflow in [section 6](#6-ldap-authorization-across-ccs-environments)
+  uses the same per-alias scoping for directory-backed deployments.
+- **Containerized CCS:** one container per VM across hosts is workable but
+  not officially validated; see
+  [One container per VM](../containerization/docker/one-container-per-vm.md)
+  for networking, volumes, and the host kernel setting.
 
 ## Adding a cluster later
 

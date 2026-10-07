@@ -25,6 +25,7 @@ certificate paths before deployment.
 | [Archives disabled after container update](./archives-disabled-after-update.md) | `wazuh-archives-*` indices stop receiving data after image upgrades due to `filebeat.yml` being regenerated at container startup |
 | [Network & proxy debugging](./network-proxy-debugging.md) | Inspecting container networking, service-to-service reachability, and HTTP proxy connectivity in Wazuh compose stacks |
 | [Docker Swarm and Portainer](./swarm.md) | Running Wazuh as a Swarm stack: overlay networks, service constraints, and common deployment pitfalls |
+| [One container per VM](./one-container-per-vm.md) | Spreading central-component containers across hosts: bridge publishing, volumes, host kernel setting |
 | [Backup and migration](./backup-and-migration.md) | Backing up and restoring Wazuh Docker volumes, and migrating a containerized deployment to a new host |
 
 ## Quick reference
@@ -36,6 +37,7 @@ certificate paths before deployment.
 | Containers cannot reach each other or an HTTP proxy | [Network and proxy debugging](./network-proxy-debugging.md) |
 | Move the deployment to another host | [Backup and migration](./backup-and-migration.md) |
 | Run a manager cluster under Docker Swarm | [Docker Swarm](./swarm.md) |
+| Spread containers one-per-VM across hosts | [One container per VM](./one-container-per-vm.md) |
 | Put the dashboard behind NGINX | [SOC NGINX proxy](./soc-nginx/README.md) |
 
 Back up named volumes and the deployment configuration before changing image
