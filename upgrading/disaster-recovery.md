@@ -165,6 +165,7 @@ The front-end (LB or DNS target) must accept the ports your agents and operators
 
 ## See also
 
+- [Central Component Backup](central-component-backup.md) - scheduled file-level backup (config tarball plus cold-log sync) that feeds into site recovery
 - [Deployment Architecture](deployment-architecture.md) - sizing and firewall baseline
 - [Pre-Upgrade Checklist](pre-upgrade-checklist.md) - backup practices before major changes
 - [Agent disconnections](../troubleshooting/agents/disconnections.md) - verify 1514/1515 after failover

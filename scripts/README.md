@@ -48,6 +48,9 @@ README with usage instructions plus the script/config files.
   time window.
 - [rotate_logs.sh](rotate_logs.sh) - log rotation helper.
 - [recovery](recovery/) - re-inject archived events into the pipeline.
+- [central-backup](central-backup/) - scheduled config tarball plus
+  incremental cold-log sync to a remote host, with HTML email reports
+  (see also [central component backup](../../upgrading/central-component-backup.md)).
 
 ## Event processing
 

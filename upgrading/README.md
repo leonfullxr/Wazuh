@@ -17,6 +17,7 @@ component.
 | [Pre-Upgrade Checklist](pre-upgrade-checklist.md) | Backups, health checks, and compatibility verification before touching anything |
 | [Deployment Architecture](deployment-architecture.md) | Planning questions, hardware prerequisites, firewall ports, and connectivity requirements |
 | [Disaster Recovery](disaster-recovery.md) | Active/passive multi-site DR: load-balancer failover, configuration and data sync between sites, and failback |
+| [Central Component Backup](central-component-backup.md) | File-level backup runbook: config tarball plus incremental cold-log sync, retention, failure modes, and restore |
 | [Health Check](healthcheck.md) | Per-component verification commands for the manager, Filebeat, indexer, and dashboard |
 | [Upgrading Agents](upgrading-agents.md) | Version rules, remote WPK upgrade from the manager (CLI and API), package-manager upgrades, air-gapped networks, verification, and rollback |
 
@@ -45,3 +46,4 @@ Agents must never run a newer version than the manager.
 | A remote agent upgrade failed | [Upgrading agents - when an upgrade fails](upgrading-agents.md#when-an-upgrade-fails) |
 | Upgrading agents without internet access | [Upgrading agents - air-gapped networks](upgrading-agents.md#air-gapped-networks) |
 | Planning site failover and failback | [Disaster recovery](disaster-recovery.md) |
+| Backing up config and cold logs on a schedule | [Central component backup](central-component-backup.md) |

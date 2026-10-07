@@ -50,7 +50,7 @@ filebeat test output
 
 ## Backups
 
-If the environment runs on virtual machines, the ideal is to take a **complete VM snapshot** of each node when possible. In addition (or when snapshots are not an option), back up the following per component.
+If the environment runs on virtual machines, the ideal is to take a **complete VM snapshot** of each node when possible. In addition (or when snapshots are not an option), back up the following per component. For a scheduled file-level procedure with reference scripts, see [Central Component Backup](central-component-backup.md).
 
 ### Wazuh Manager
 
