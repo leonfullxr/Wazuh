@@ -132,6 +132,37 @@ systemctl restart wazuh-agent
 
 Make the change persistent in the host's network configuration (netplan / NetworkManager / `ifcfg`), not just the live `ip link` command. In one investigated case, agents connected but ingested nothing until the host MTU was lowered to 1300; the buffer then drained, ACKs advanced, and logs appeared within minutes. If lowering the MTU fixes it, the durable fix is to repair PMTU discovery on the path (allow ICMP type 3 code 4) or clamp TCP MSS at the gateway (`iptables ... TCPMSS --clamp-mss-to-pmtu`), so individual hosts do not each need a manual MTU.
 
+Confirm with the frozen-state signature before changing anything else. Read the state file twice, a few minutes apart:
+
+```bash
+sudo cat /var/ossec/var/run/wazuh-agentd.state
+# wait 2-3 minutes, then read again
+sudo cat /var/ossec/var/run/wazuh-agentd.state
+ss -tnp | grep 1514
+```
+
+- **Frozen timestamps:** `last_keepalive` and `last_ack` identical across reads while `status` still reports `connected` means the send path is blocked, not the connection itself. The manager flips the agent to `Disconnected` after about 60 seconds without an ACK even though the agent still believes it is connected.
+- **Stuck buffer:** `msg_count` frozen with a nonzero `msg_buffer` (or a large `Send-Q` in the `ss` output) points at bulk transfer stalling rather than log collection failing. Small packets flow, so handshake and enrollment succeed and only large records hang.
+- **Disabled client buffer:** with `<disabled>yes</disabled>` the send is synchronous in the main loop, so one blocked send freezes keepalives too (one keepalive, then silence). With `<disabled>no</disabled>` a dispatcher thread keeps keepalives flowing on a slow link. Keep the buffer enabled (see [Flooding](flooding.md)) so the state file reflects reality while diagnosing.
+
+> Do not read MTR or tracepath at face value here. Total loss at the final hop with working TCP means ICMP is blocked at the destination, not real loss. High loss at one intermediate hop with clean hops after it means ICMP rate limiting on that router. And `tracepath` reporting `pmtu 1500` does not rule out a black hole: it relies on ICMP fragmentation-needed messages, which are exactly what a black hole drops. A large-packet `mtr` run must cover the full path into the manager network, not stop at an intermediate hop.
+
+On MSS clamping versus interface MTU: a `TCPMSS --set-mss` rule on the agent's `OUTPUT ... --syn` packets only changes the MSS advertised for traffic the agent receives. It does not cap the segments the agent transmits as reliably as lowering the interface MTU does. In the investigated case, MSS values down to 1060 still stalled while `mtu 1300` on the interface cleared the backlog. Prefer the interface MTU workaround, and treat the durable fix as path repair or MSS clamping at the gateway with `--clamp-mss-to-pmtu`.
+
+A matching timing clue is a stall that repeats about every 15 to 16 minutes: a few events get through, then silence, then another small batch. That interval matches the Linux default `net.ipv4.tcp_retries2=15` (about 924 seconds of exponential-backoff retransmission before the kernel gives up on an unacknowledged segment). As a reversible mitigation while the path is fixed, shorten detection so the agent reconnects instead of sitting stuck:
+
+```bash
+# /etc/sysctl.d/99-wazuh-agent.conf
+net.ipv4.tcp_retries2 = 5
+net.ipv4.tcp_user_timeout = 30000
+```
+
+```bash
+sudo sysctl --system
+```
+
+This does not fix the black hole; it only shrinks each stall from many minutes to about 30 seconds. Remove the file and re-run `sysctl --system` to revert. Note that `telnet` and `openssl s_client` probes against 1514/1515 produce the same `unexpected eof` lines as a real failure, so compare timestamps against real agent traffic before treating them as evidence.
+
 ## Agent enrolls on-prem but not from a cloud VPC
 
 A classic split: on-prem agents enroll and connect fine, but agents in a cloud VPC (AWS/Azure/GCP) fail with the **same** config and password. On-prem-works-but-cloud-doesn't means the differentiator is the **cloud egress path to the manager**, not Wazuh. Two agent-side signatures point straight at it:
