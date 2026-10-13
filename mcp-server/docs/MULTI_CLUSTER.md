@@ -23,7 +23,7 @@ Connections are opened lazily on first use, so an unreachable cluster does not p
 cp config/clusters.json.example config/clusters.json
 ```
 
-`compose.yml` mounts `./config` read-only at `/app/config`, so the file is picked up on the next `docker compose up -d`. The example defines `prod-eu`, `prod-us` and an `all` entry (see [Cross-Cluster Search](#cross-cluster-search-ccs)):
+`compose.yml` mounts `./config` read-only at `/app/config`, but the file is read once at startup: run `docker compose restart` after editing it. The example defines `prod-eu`, `prod-us` and an `all` entry (see [Cross-Cluster Search](#cross-cluster-search-ccs)):
 
 ```json
 {

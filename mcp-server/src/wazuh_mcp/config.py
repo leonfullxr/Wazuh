@@ -191,8 +191,7 @@ class WazuhConfig:
         if not all([host, user, password]):
             raise ConfigurationError(
                 "Missing required Wazuh settings.\n"
-                "Please run: ./scripts/configure.sh\n"
-                "Or set: WAZUH_HOST, WAZUH_USER, WAZUH_PASS"
+                "Set WAZUH_HOST, WAZUH_USER and WAZUH_PASS (see .env.example)."
             )
 
         # Helper function for safe integer conversion

@@ -52,12 +52,12 @@ Unless an identity provider is configured (see [Sign-in through your identity pr
   ```
 
   ```bash
-  API_KEYS=[{"id":"alice","name":"Alice","key_hash":"<hash>","created_at":"2026-09-01T00:00:00Z","scopes":["wazuh:read"]}]
+  API_KEYS='[{"id":"alice","name":"Alice","key_hash":"<hash>","created_at":"2026-09-01T00:00:00Z","scopes":["wazuh:read"]}]'
   ```
 
   `id`, `name`, `key_hash`, `created_at` are required; `scopes`, `expires_at` and `active` are optional. Changing `AUTH_SECRET_KEY` invalidates every hash.
 
-If no key is configured, the server generates a temporary read-only key at startup. In production that key is never displayed (the server logs a warning instead), so no client can use it; only with `ENVIRONMENT=development` is it printed to stderr. Configure a key explicitly.
+If no key is configured, the server generates a temporary read-only key at startup. In production that key is never displayed (the server logs a warning instead), so no client can use it; only in bearer mode (`AUTH_MODE=bearer`) with `ENVIRONMENT=development` is it printed to stderr. In OAuth mode it is never printed. Configure a key explicitly.
 
 ## Add the connector in Claude
 
