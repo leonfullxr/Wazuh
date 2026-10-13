@@ -1,0 +1,42 @@
+# Wazuh MCP - Production Grade
+# MCP-compliant remote server with comprehensive monitoring
+#
+# Version ranges carry an upper bound so a new MAJOR release of a dependency
+# cannot silently break a build. For fully reproducible images, generate a
+# hash-locked file (pip-compile / uv pip compile) and install it in the
+# Dockerfile with --require-hashes.
+
+# Web framework + ASGI server (the MCP protocol is implemented directly on FastAPI)
+fastapi>=0.128.0,<1.0.0
+uvicorn[standard]>=0.40.0,<1.0.0
+
+# HTTP client for the Wazuh Manager API and Indexer
+httpx>=0.28.1,<1.0.0
+
+# Data validation
+pydantic>=2.12.0,<3.0.0
+
+# Environment configuration
+python-dotenv>=1.0.0,<2.0.0
+
+# Authentication (JWT, HS256)
+pyjwt[crypto]>=2.9.0,<3.0.0
+python-multipart>=0.0.20,<1.0.0  # Form parsing for the OAuth token endpoint
+
+# Monitoring and metrics
+prometheus-client>=0.24.0,<1.0.0
+psutil>=6.0.0,<8.0.0
+
+# Resilience / retry logic
+tenacity>=9.0.0,<10.0.0
+
+# Encryption (Fernet, used by config validation)
+cryptography>=50.0.0,<51.0.0
+
+# Optional features, installed so the image supports them without a rebuild:
+# Redis-backed session store for multi-instance deployments (REDIS_URL). Without it the
+# documented Redis setup failed every initialize with a 500.
+redis>=7.0.0,<9.0.0
+
+# GCF response encoding for record tools (RESPONSE_FORMAT=gcf); zero-dependency, pinned exact.
+gcf-python==2.7.1

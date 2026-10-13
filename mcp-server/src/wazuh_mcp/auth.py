@@ -1,0 +1,461 @@
+#!/usr/bin/env python3
+"""
+Authentication module for MCP SSE Server
+Implements token-based authentication with API key support
+"""
+
+import hashlib
+import hmac
+import json
+import logging
+import os
+import secrets
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
+import jwt
+from jwt.exceptions import ExpiredSignatureError, PyJWTError
+from pydantic import BaseModel, Field
+
+from wazuh_mcp.config import env_unquoted
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AuthToken:
+    """Authentication token data."""
+
+    token: str
+    api_key_id: str
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+    scopes: List[str] = None
+    metadata: Dict[str, Any] = None
+
+    def is_valid(self) -> bool:
+        """Check if token is still valid."""
+        if self.expires_at:
+            return datetime.now(timezone.utc) < self.expires_at
+        return True
+
+    def has_scope(self, scope: str) -> bool:
+        """Check if token has specific scope. Fails closed: no configured scopes => no access."""
+        if not self.scopes:  # None or empty => no permissions
+            return False
+        return scope in self.scopes
+
+
+class APIKey(BaseModel):
+    """API Key model."""
+
+    id: str = Field(description="Unique key identifier")
+    name: str = Field(description="Human-readable name")
+    key_hash: str = Field(description="Hashed API key")
+    created_at: datetime = Field(description="Creation timestamp")
+    expires_at: Optional[datetime] = Field(default=None, description="Expiration timestamp")
+    scopes: List[str] = Field(default_factory=list, description="Allowed scopes")
+    active: bool = Field(default=True, description="Whether key is active")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+
+
+class AuthManager:
+    """Manage authentication for MCP server."""
+
+    def __init__(self):
+        # Single source of truth for the signing secret: the validated ServerConfig.
+        # This guarantees API-key hashing and JWT verification use the same key, and
+        # that production startup has already enforced AUTH_SECRET_KEY (see config.py).
+        from wazuh_mcp.config import get_config
+
+        self.secret_key = get_config().AUTH_SECRET_KEY
+        try:
+            self.token_lifetime = int(os.getenv("TOKEN_LIFETIME_HOURS", "24"))
+        except (ValueError, TypeError):
+            logger.warning("Invalid TOKEN_LIFETIME_HOURS, defaulting to 24")
+            self.token_lifetime = 24
+        self.api_keys: Dict[str, APIKey] = {}
+        self.tokens: Dict[str, AuthToken] = {}
+        self._default_api_key: Optional[str] = None  # Stores auto-generated key for display
+
+        # Load API keys from environment or config
+        self._load_api_keys()
+
+    def get_default_api_key(self) -> Optional[str]:
+        """Get the auto-generated default API key for display on startup.
+
+        Returns None if API key was configured via environment variable.
+        Only returns a value for auto-generated keys (development mode).
+        """
+        return self._default_api_key
+
+    @staticmethod
+    def _configured_key_scopes() -> List[str]:
+        """Scopes for the env-configured API key. Read-only unless explicitly granted more.
+
+        Set MCP_API_KEY_SCOPES (space-separated, e.g. "wazuh:read wazuh:write") to grant
+        write access. Defaults to read-only so destructive tools are opt-in.
+        """
+        raw = env_unquoted("MCP_API_KEY_SCOPES")
+        if not raw:
+            return ["wazuh:read"]
+        scopes = [s for s in raw.split() if s in ("wazuh:read", "wazuh:write")]
+        return scopes or ["wazuh:read"]
+
+    def _load_api_keys(self):
+        """Load API keys from configuration.
+
+        Priority order:
+        1. MCP_API_KEY environment variable (recommended for production)
+        2. API_KEYS environment variable (JSON array format)
+        3. Auto-generated key (displayed on startup for development)
+        """
+        # First, check for MCP_API_KEY (simple single-key configuration)
+        mcp_api_key = os.getenv("MCP_API_KEY", "").strip()
+        if mcp_api_key:
+            if mcp_api_key.startswith("wazuh_") and len(mcp_api_key) == 49:
+                # Deterministic id (HMAC of the key): identical on every replica sharing
+                # AUTH_SECRET_KEY and across restarts, so tokens bound to it keep validating
+                # and audit/rate-limit identities stay stable.
+                key_id = f"env-{self.hash_api_key(mcp_api_key)[:16]}"
+                key_obj = APIKey(
+                    id=key_id,
+                    name="MCP API Key (from environment)",
+                    key_hash=self.hash_api_key(mcp_api_key),
+                    created_at=datetime.now(timezone.utc),
+                    # Write access is opt-in: read-only unless MCP_API_KEY_SCOPES grants more.
+                    scopes=self._configured_key_scopes(),
+                )
+                self.api_keys[key_id] = key_obj
+                logger.info(
+                    f"Loaded API key from MCP_API_KEY environment variable (scopes: {' '.join(key_obj.scopes)})"
+                )
+                return
+            else:
+                logger.warning(
+                    "MCP_API_KEY format invalid. Expected format: wazuh_<43-char-base64>. "
+                    "Generate with: python -c \"import secrets; print('wazuh_' + secrets.token_urlsafe(32))\""
+                )
+
+        # Load from API_KEYS environment variable (JSON format for multiple keys)
+        api_keys_json = env_unquoted("API_KEYS") or None
+        if api_keys_json:
+            try:
+                keys_data = json.loads(api_keys_json)
+                for key_data in keys_data:
+                    api_key = APIKey(**key_data)
+                    self.api_keys[api_key.id] = api_key
+                logger.info(f"Loaded {len(self.api_keys)} API key(s) from API_KEYS environment")
+                return
+            except (json.JSONDecodeError, TypeError, KeyError) as e:
+                logger.error(f"Error loading API keys from API_KEYS env: {e}")
+
+        # Create default API key if none configured. In production this is a read-only
+        # key plus a loud warning - operators should set MCP_API_KEY explicitly. In
+        # development it grants write for convenience.
+        if not self.api_keys:
+            from wazuh_mcp.config import get_config
+
+            is_prod = get_config().ENVIRONMENT == "production"
+            if is_prod:
+                default_scopes = ["wazuh:read"]
+                logger.warning(
+                    "No MCP_API_KEY configured in production - generated a temporary READ-ONLY "
+                    "default key. Set MCP_API_KEY (and MCP_API_KEY_SCOPES for write) for a stable key."
+                )
+            else:
+                # Read-only here too: write access is only ever granted explicitly
+                # (MCP_API_KEY_SCOPES or API_KEYS), as README and RBAC promise
+                default_scopes = ["wazuh:read"]
+            default_key = self.create_api_key(name="Default API Key", scopes=default_scopes)
+            # Store the raw key for display
+            self._default_api_key = default_key
+            logger.info("Created default API key - save this securely for client authentication")
+
+    def hash_api_key(self, api_key: str) -> str:
+        """Hash an API key using HMAC-SHA256."""
+        return hmac.new(self.secret_key.encode(), api_key.encode(), hashlib.sha256).hexdigest()
+
+    def create_api_key(
+        self,
+        name: str,
+        scopes: Optional[List[str]] = None,
+        expires_at: Optional[datetime] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Create new API key."""
+        # Generate secure random key
+        api_key = f"wazuh_{secrets.token_urlsafe(32)}"
+        key_id = secrets.token_urlsafe(16)
+
+        # Create key object
+        key_obj = APIKey(
+            id=key_id,
+            name=name,
+            key_hash=self.hash_api_key(api_key),
+            created_at=datetime.now(timezone.utc),
+            expires_at=expires_at,
+            scopes=scopes or [],
+            metadata=metadata or {},
+        )
+
+        self.api_keys[key_id] = key_obj
+        return api_key
+
+    def validate_api_key(self, api_key: str) -> Optional[APIKey]:
+        """Validate API key and return key object if valid with proper cryptographic verification."""
+        # Input validation
+        if not api_key or not isinstance(api_key, str):
+            return None
+
+        # Format validation - must start with wazuh_ and have proper length
+        # secrets.token_urlsafe(32) generates 43 chars, so total = 6 + 43 = 49
+        if not api_key.startswith("wazuh_") or len(api_key) != 49:
+            return None
+
+        # Sanitize input to prevent injection attacks
+        if not api_key.replace("_", "").replace("-", "").isalnum():
+            return None
+
+        # Use constant-time comparison to prevent timing attacks
+        key_hash = self.hash_api_key(api_key)
+
+        for key_obj in self.api_keys.values():
+            # Use hmac.compare_digest for constant-time comparison
+            if hmac.compare_digest(key_obj.key_hash, key_hash) and key_obj.active:
+                # Check expiration with timezone awareness
+                if key_obj.expires_at and datetime.now(timezone.utc) > key_obj.expires_at:
+                    # Log expiration attempt (without exposing key)
+                    logger.warning(f"Attempted use of expired API key (ID: {key_obj.id[:8]}...)")
+                    return None
+                return key_obj
+
+        return None
+
+    def create_token(self, api_key: str) -> Optional[str]:
+        """Create authentication token from API key."""
+        key_obj = self.validate_api_key(api_key)
+        if not key_obj:
+            return None
+
+        # Generate token
+        token = f"wst_{secrets.token_urlsafe(48)}"  # wst = Wazuh Session Token
+
+        # Create token object
+        token_obj = AuthToken(
+            token=token,
+            api_key_id=key_obj.id,
+            created_at=datetime.now(timezone.utc),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=self.token_lifetime),
+            scopes=key_obj.scopes,
+            metadata={"api_key_name": key_obj.name, **key_obj.metadata},
+        )
+
+        # Bound token storage to prevent memory growth
+        if len(self.tokens) > 10000:
+            self.cleanup_expired()
+        if len(self.tokens) > 10000:
+            # Still too many - evict oldest tokens
+            sorted_tokens = sorted(self.tokens.items(), key=lambda t: t[1].created_at)
+            for old_token, _ in sorted_tokens[: len(sorted_tokens) - 5000]:
+                self.tokens.pop(old_token, None)
+
+        self.tokens[token] = token_obj
+        return token
+
+    def validate_token(self, token: str) -> Optional[AuthToken]:
+        """Validate token and return token object if valid."""
+        if not token or not token.startswith("wst_"):
+            return None
+
+        token_obj = self.tokens.get(token)
+        if token_obj and token_obj.is_valid():
+            return token_obj
+
+        # Clean up expired token
+        if token_obj:
+            del self.tokens[token]
+
+        return None
+
+    def revoke_token(self, token: str) -> bool:
+        """Revoke a token."""
+        if token in self.tokens:
+            del self.tokens[token]
+            return True
+        return False
+
+    def revoke_api_key(self, key_id: str) -> bool:
+        """Revoke an API key and all associated tokens."""
+        if key_id in self.api_keys:
+            self.api_keys[key_id].active = False
+
+            # Revoke all tokens for this key
+            tokens_to_revoke = [token for token, token_obj in self.tokens.items() if token_obj.api_key_id == key_id]
+
+            for token in tokens_to_revoke:
+                del self.tokens[token]
+
+            return True
+        return False
+
+    def cleanup_expired(self):
+        """Clean up expired tokens."""
+        expired_tokens = [token for token, token_obj in self.tokens.items() if not token_obj.is_valid()]
+
+        for token in expired_tokens:
+            del self.tokens[token]
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get authentication statistics."""
+        self.cleanup_expired()
+
+        return {
+            "api_keys": {"total": len(self.api_keys), "active": sum(1 for k in self.api_keys.values() if k.active)},
+            "tokens": {"total": len(self.tokens), "active": sum(1 for t in self.tokens.values() if t.is_valid())},
+        }
+
+
+# Global auth manager instance
+auth_manager = AuthManager()
+
+
+def usable_api_key(key_id: Optional[str]) -> Optional[APIKey]:
+    """The API key a token was issued for, if it still exists, is active and has not expired."""
+    key_obj = auth_manager.api_keys.get(key_id) if key_id else None
+    if key_obj is None or not key_obj.active:
+        return None
+    if key_obj.expires_at and datetime.now(timezone.utc) > key_obj.expires_at:
+        return None
+    return key_obj
+
+
+def current_key_scopes(granted: List[str], key_obj: APIKey) -> List[str]:
+    """Scopes a token may still use: those it was granted that its key still holds.
+
+    Tokens survive restarts (key ids are deterministic), so narrowing a key's scopes has to
+    narrow the tokens already issued from it, not only new ones.
+    """
+    # A key without a scopes list is read-only everywhere else (sign-in, token minting)
+    return [s for s in granted if s in (key_obj.scopes or ["wazuh:read"])]
+
+
+async def verify_bearer_token(authorization: str) -> AuthToken:
+    """
+    Verify bearer token from Authorization header.
+
+    Supports two token types:
+    1. Session tokens (wst_*) - Created via auth_manager.create_token()
+    2. JWT tokens - Created via /auth/token endpoint
+
+    Args:
+        authorization: The Authorization header value (e.g., "Bearer <token>")
+
+    Returns:
+        AuthToken object representing the validated token
+
+    Raises:
+        ValueError: If the token is invalid or expired
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise ValueError("Invalid authorization header format")
+
+    token = authorization[7:]  # Remove "Bearer " prefix
+
+    # First, try session token validation (wst_* tokens)
+    if token.startswith("wst_"):
+        token_obj = auth_manager.validate_token(token)
+        if token_obj:
+            return token_obj
+        raise ValueError("Invalid or expired session token")
+
+    # Second, try JWT token validation (tokens from /auth/token endpoint)
+    try:
+        # Import config to get the same secret key used for token creation
+        from wazuh_mcp.config import get_config
+
+        config = get_config()
+
+        # Verify and decode the JWT token using the config's AUTH_SECRET_KEY
+        # This must match the key used in server.py's /auth/token endpoint
+        payload = verify_token(token, config.AUTH_SECRET_KEY)
+        if not payload.get("exp"):
+            raise ValueError("Token has no expiry")
+        if payload.get("type") == "refresh":
+            raise ValueError("Refresh tokens are not access tokens")
+
+        # Bind the token to the API key it was minted from: revoking or rotating the key must
+        # end its tokens too, not leave them valid until expiry (24h by default).
+        sub = payload.get("sub")
+        key_obj = usable_api_key(sub)
+        if key_obj is None:
+            raise ValueError("The API key this token was issued for is no longer valid")
+
+        # Extract timestamps from JWT payload
+        exp_timestamp = payload.get("exp")
+        iat_timestamp = payload.get("iat")
+
+        expires_at = None
+        if exp_timestamp:
+            expires_at = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+
+        created_at = datetime.now(timezone.utc)
+        if iat_timestamp:
+            created_at = datetime.fromtimestamp(iat_timestamp, tz=timezone.utc)
+
+        # Parse scopes from JWT payload. Fail closed: a token without an explicit
+        # scope claim gets read-only, never write.
+        scope_string = payload.get("scope", "")
+        scopes = current_key_scopes(scope_string.split() if scope_string else ["wazuh:read"], key_obj)
+
+        # Derive a stable per-principal id for rate-limit bucketing. Prefer the JWT
+        # subject (the API key id); fall back to a token hash so distinct tokens
+        # without a sub still land in distinct buckets rather than one shared one.
+        sub = payload.get("sub")
+        if sub:
+            principal_id = f"jwt:{sub}"
+        else:
+            principal_id = f"jwt:{hashlib.sha256(token.encode()).hexdigest()[:16]}"
+
+        # Create AuthToken object from JWT payload
+        return AuthToken(
+            token=token,
+            api_key_id=principal_id,
+            created_at=created_at,
+            expires_at=expires_at,
+            scopes=scopes,
+            metadata={"sub": payload.get("sub"), "token_type": "jwt"},
+        )
+
+    except ValueError:
+        # JWT validation failed
+        raise ValueError("Invalid or expired token")
+
+
+def create_access_token(data: Dict[str, Any], secret_key: str, expires_delta: Optional[timedelta] = None) -> str:
+    """Create JWT access token."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc)})
+
+    try:
+        encoded_jwt = jwt.encode(to_encode, secret_key, algorithm="HS256")
+        return encoded_jwt
+    except Exception as e:
+        raise ValueError(f"Failed to create access token: {str(e)}")
+
+
+def verify_token(token: str, secret_key: str) -> Dict[str, Any]:
+    """Verify and decode JWT token."""
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+        return payload
+    except ExpiredSignatureError:
+        raise ValueError("Token has expired")
+    except PyJWTError:
+        raise ValueError("Invalid token")

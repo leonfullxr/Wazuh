@@ -36,6 +36,7 @@ changes outside production first.
 ### Automation & tooling
 
 - [scripts/](scripts/) - Operational scripts, each with its own README: agent management and deployment, service and resource monitoring, LAN server and port availability polling, alert retention and deletion policies, syscheck email notifications, granular email alerting, active response (CDB blocklist, YARA scan-and-delete on Windows), eventchannel extraction, EPS measurement, diagnosis, MaxMind updates, all-in-one installs.
+- [mcp-server/](mcp-server/) - wazuh-mcp: an MCP server that exposes the Wazuh manager API and indexer to AI clients (Claude, local LLMs) over Streamable HTTP, with scoped read/write tools and guarded active response.
 - [ansible/](ansible/) - Ansible playbooks (agent renaming).
 - [packages/](packages/) - Platform-specific packaging notes (Solaris).
 - [images/](images/) - Vagrant lab images (Windows, FreeBSD).

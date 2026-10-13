@@ -1,0 +1,680 @@
+"""
+Wazuh Indexer client for alert and vulnerability queries.
+
+Wazuh stores alerts and vulnerability data in the Wazuh Indexer
+(Elasticsearch/OpenSearch), not the Manager API. This client queries:
+  - wazuh-alerts-* - alert data (alerts have never had a Manager API endpoint)
+  - wazuh-states-vulnerabilities-* - vulnerability data (removed from Manager API in 4.8.0)
+"""
+
+import asyncio
+import json
+import logging
+import re
+from typing import Any, Dict, List, Optional, Union
+
+import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+from wazuh_mcp.config import tls_verify
+
+logger = logging.getLogger(__name__)
+
+# Index patterns for Wazuh 4.x
+ALERTS_INDEX = "wazuh-alerts-*"
+VULNERABILITY_INDEX = "wazuh-states-vulnerabilities-*"
+
+
+_QUOTED = re.compile(r'("[^"]*")')
+
+
+def _to_simple_query_syntax(query: str) -> str:
+    """Map AND/OR/NOT to simple_query_string's +, |, - operators (outside quoted phrases).
+
+    simple_query_string has no word operators: "sshd AND fail*" searched for the literal term
+    "AND" and, with default_operator=AND, required it in every hit, silently emptying results.
+    The tool description advertises AND/OR/NOT, so translate them.
+    """
+    parts = _QUOTED.split(query)
+    for i in range(0, len(parts), 2):  # even indexes are outside quotes
+        seg = re.sub(r"\bNOT\s+", "-", parts[i])
+        seg = re.sub(r"\bAND\b", "+", seg)
+        parts[i] = re.sub(r"\bOR\b", "|", seg)
+    return "".join(parts)
+
+
+class WazuhIndexerClient:
+    """
+    Client for querying the Wazuh Indexer (Elasticsearch/OpenSearch).
+
+    Required for vulnerability queries in Wazuh 4.8.0 and later.
+    """
+
+    def __init__(
+        self,
+        host: str,
+        port: int = 9200,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        verify_ssl: Union[bool, str] = True,
+        timeout: int = 30,
+        use_ssl: bool = True,
+        ccs_prefix: str = "",
+    ):
+        # Detect scheme from the host prefix before stripping it; an explicit http://
+        # prefix wins over use_ssl so an OpenSearch node served over plain HTTP works.
+        detected_scheme = self._detect_scheme(host)
+        # Normalize host (strip protocol if user included it)
+        self.host = self._normalize_host(host)
+        self.port = port
+        self.username = username
+        self.password = password
+        self.verify_ssl = verify_ssl
+        self.timeout = timeout
+        self.scheme = detected_scheme or ("https" if use_ssl else "http")
+        self.client: Optional[httpx.AsyncClient] = None
+        self._initialized = False
+        self._init_lock = asyncio.Lock()
+        self._circuit_breaker = None  # Initialized lazily to avoid import-time fastapi dependency
+        # Cross-Cluster Search: prefix index patterns with a remote cluster name
+        # (e.g. "eu" -> "eu:wazuh-alerts-*", "*" -> all configured remote clusters)
+        self.ccs_prefix = ccs_prefix.strip().rstrip(":") if ccs_prefix else ""
+
+    def _qualified(self, index: str) -> str:
+        """Qualify an index pattern with the CCS remote-cluster prefix when configured."""
+        return f"{self.ccs_prefix}:{index}" if self.ccs_prefix else index
+
+    @staticmethod
+    def _normalize_host(host: str) -> str:
+        """Strip protocol prefix from host if present."""
+        if not host:
+            return host
+        for prefix in ("https://", "http://"):
+            if host.lower().startswith(prefix):
+                host = host[len(prefix) :]
+                break
+        return host.rstrip("/")
+
+    @staticmethod
+    def _detect_scheme(host: str) -> Optional[str]:
+        """Return 'http' or 'https' if the host includes an explicit scheme, else None."""
+        if not host:
+            return None
+        lowered = host.lower()
+        if lowered.startswith("http://"):
+            return "http"
+        if lowered.startswith("https://"):
+            return "https"
+        return None
+
+    @staticmethod
+    def _total_hits(hits: Dict[str, Any], default: int = 0) -> int:
+        """Read hits.total tolerating both the object ({'value': N}) and legacy int forms."""
+        total = hits.get("total", default)
+        if isinstance(total, dict):
+            return total.get("value", default)
+        return total if isinstance(total, int) else default
+
+    @property
+    def base_url(self) -> str:
+        """Get the base URL for the Wazuh Indexer."""
+        return f"{self.scheme}://{self.host}:{self.port}"
+
+    async def initialize(self):
+        """Initialize the HTTP client and circuit breaker."""
+        # Close existing client to prevent resource leak on re-initialization
+        if self.client:
+            try:
+                await self.client.aclose()
+            except Exception:
+                pass
+
+        auth = None
+        if self.username and self.password:
+            auth = (self.username, self.password)
+
+        self.client = httpx.AsyncClient(
+            verify=tls_verify(self.verify_ssl),
+            timeout=self.timeout,
+            auth=auth,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+
+        # Initialize circuit breaker (deferred to avoid import-time fastapi dependency)
+        if self._circuit_breaker is None:
+            from wazuh_mcp.resilience import CircuitBreaker, CircuitBreakerConfig
+
+            self._circuit_breaker = CircuitBreaker(
+                CircuitBreakerConfig(
+                    failure_threshold=5,
+                    recovery_timeout=60,
+                    expected_exception=(
+                        ConnectionError,
+                        httpx.ConnectError,
+                        httpx.TimeoutException,
+                        httpx.HTTPStatusError,
+                    ),
+                )
+            )
+
+        self._initialized = True
+        logger.info(f"WazuhIndexerClient initialized for {self.base_url} (verify_ssl={self.verify_ssl})")
+
+    async def close(self):
+        """Close the HTTP client."""
+        try:
+            if self.client:
+                await self.client.aclose()
+        except Exception:
+            pass  # Best-effort close
+        finally:
+            self.client = None
+            self._initialized = False
+
+    async def _ensure_initialized(self):
+        """Ensure client is initialized (thread-safe)."""
+        if self._initialized:
+            return
+        async with self._init_lock:
+            if not self._initialized:
+                await self.initialize()
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type(
+            (httpx.RequestError, httpx.HTTPStatusError, httpx.ConnectError, httpx.TimeoutException)
+        ),
+        reraise=True,
+    )
+    async def _search(
+        self, index: str, query: Dict[str, Any], size: int = 100, sort: Optional[list] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute a search query against the Wazuh Indexer with retry + circuit breaker.
+
+        Args:
+            index: Index pattern to search
+            query: Elasticsearch query DSL
+            size: Maximum number of results
+            sort: Optional sort specification
+
+        Returns:
+            Search results from the indexer
+        """
+        if self._circuit_breaker is not None:
+            return await self._circuit_breaker._call(self._execute_search, index, query, size, sort)
+        # Fallback if circuit breaker not yet initialized (shouldn't happen in normal flow)
+        return await self._execute_search(index, query, size, sort)
+
+    async def _execute_search(
+        self, index: str, query: Dict[str, Any], size: int = 100, sort: Optional[list] = None
+    ) -> Dict[str, Any]:
+        """Execute the actual search request (called within circuit breaker)."""
+        await self._ensure_initialized()
+
+        url = f"{self.base_url}/{self._qualified(index)}/_search"
+        # track_total_hits=true so hits.total is the true match count, not the default 10k cap.
+        # The summary tools (alert summary, pattern analysis, top threats, IOC reputation) report
+        # this as the exact total; without it they silently plateau at "10000" on a busy SIEM.
+        body: Dict[str, Any] = {"query": query, "size": size, "track_total_hits": True}
+        if sort:
+            body["sort"] = sort
+
+        try:
+            response = await self.client.post(url, json=body, headers={"Content-Type": "application/json"})
+            response.raise_for_status()
+            try:
+                return response.json()
+            except (json.JSONDecodeError, ValueError):
+                raise ValueError(f"Invalid JSON response from Wazuh Indexer: {index}")
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Indexer search failed: {e.response.status_code} - {e.response.text}")
+            if e.response.status_code in (401, 403):
+                raise ValueError(
+                    "Wazuh Indexer authentication failed (HTTP "
+                    f"{e.response.status_code}). Check WAZUH_INDEXER_USER / WAZUH_INDEXER_PASS."
+                )
+            if e.response.status_code >= 500:
+                # Let server errors propagate so tenacity retry can see them
+                raise
+            raise ValueError(f"Indexer query failed: {e.response.status_code}")
+        except httpx.ConnectError:
+            # Let connection errors propagate for retry
+            raise
+        except httpx.TimeoutException:
+            # Let timeout errors propagate for retry
+            raise
+
+    async def _execute_body(self, index: str, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a search with an arbitrary request body (e.g. aggregations).
+
+        Shares the same error handling as _execute_search so server errors propagate for
+        retry while client errors surface as ValueError. Call via the circuit breaker.
+        """
+        await self._ensure_initialized()
+
+        url = f"{self.base_url}/{self._qualified(index)}/_search"
+        try:
+            response = await self.client.post(url, json=body, headers={"Content-Type": "application/json"})
+            response.raise_for_status()
+            try:
+                return response.json()
+            except (json.JSONDecodeError, ValueError):
+                raise ValueError(f"Invalid JSON response from Wazuh Indexer: {index}")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Indexer aggregation failed: {e.response.status_code} - {e.response.text}")
+            if e.response.status_code >= 500:
+                raise
+            raise ValueError(f"Indexer query failed: {e.response.status_code}")
+        except (httpx.ConnectError, httpx.TimeoutException):
+            raise
+
+    async def aggregate_alerts(
+        self,
+        timestamp_start: str = "now-24h",
+        timestamp_end: str = "now",
+        index: str = "wazuh-alerts-*",
+        top_rules: int = 50,
+        top_agents: int = 50,
+    ) -> Dict[str, Any]:
+        """Summarize alerts over a time range using aggregations (size=0, no document paging).
+
+        Unlike get_alerts, this is not bounded by a document limit - it returns the true
+        total match count plus the top rules, severity levels, and agents for the window.
+        Both ISO 8601 and OpenSearch date math (e.g. now-7d) are accepted for the bounds.
+        """
+        range_filter: Dict[str, str] = {}
+        if timestamp_start:
+            range_filter["gte"] = timestamp_start
+        if timestamp_end:
+            range_filter["lte"] = timestamp_end
+        query: Dict[str, Any] = (
+            {"bool": {"must": [{"range": {"timestamp": range_filter}}]}} if range_filter else {"match_all": {}}
+        )
+        body = {
+            "size": 0,
+            "track_total_hits": True,
+            "query": query,
+            "aggs": {
+                "by_rule": {
+                    "terms": {"field": "rule.id", "size": top_rules},
+                    "aggs": {"info": {"top_hits": {"size": 1, "_source": ["rule.description", "rule.level"]}}},
+                },
+                "by_level": {"terms": {"field": "rule.level", "size": 20}},
+                "by_agent": {"terms": {"field": "agent.name", "size": top_agents}},
+            },
+        }
+        if self._circuit_breaker is not None:
+            resp = await self._circuit_breaker._call(self._execute_body, index, body)
+        else:
+            resp = await self._execute_body(index, body)
+
+        aggs = resp.get("aggregations", {})
+
+        def _rule_row(bucket: Dict[str, Any]) -> Dict[str, Any]:
+            hits = bucket.get("info", {}).get("hits", {}).get("hits", [])
+            source = (hits[0].get("_source") or {}) if hits else {}
+            rule = (source.get("rule") or {}) if isinstance(source, dict) else {}
+            return {
+                "rule_id": bucket.get("key"),
+                "count": bucket.get("doc_count", 0),
+                "description": rule.get("description"),
+                "level": rule.get("level"),
+            }
+
+        return {
+            "time_range": {"gte": timestamp_start, "lte": timestamp_end},
+            "total_alerts": self._total_hits(resp.get("hits", {})),
+            "top_rules": [_rule_row(b) for b in aggs.get("by_rule", {}).get("buckets", [])],
+            "by_level": [
+                {"level": b.get("key"), "count": b.get("doc_count", 0)}
+                for b in aggs.get("by_level", {}).get("buckets", [])
+            ],
+            "top_agents": [
+                {"agent": b.get("key"), "count": b.get("doc_count", 0)}
+                for b in aggs.get("by_agent", {}).get("buckets", [])
+            ],
+        }
+
+    async def get_alerts(
+        self,
+        limit: int = 100,
+        rule_id: Optional[str] = None,
+        level: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        timestamp_start: Optional[str] = None,
+        timestamp_end: Optional[str] = None,
+        query_text: Optional[str] = None,
+        srcip: Optional[str] = None,
+        dstip: Optional[str] = None,
+        rule_groups: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get alerts from the Wazuh Indexer (wazuh-alerts-* index).
+
+        Args:
+            limit: Maximum number of results
+            rule_id: Filter by rule ID
+            level: Minimum rule level (severity)
+            agent_id: Filter by agent ID
+            timestamp_start: Start of time range (ISO 8601)
+            timestamp_end: End of time range (ISO 8601)
+            query_text: Free-text search via Elasticsearch query_string (searches all fields)
+            srcip: Filter by source IP (data.srcip)
+            dstip: Filter by destination IP (data.dstip)
+            rule_groups: Filter by rule group membership - matches alerts whose
+                rule.groups array contains ANY of the given group names
+
+        Returns:
+            Alert data in standard Wazuh format
+        """
+        # Build bool query with must clauses for each non-empty filter
+        must_clauses: list = []
+
+        if rule_id:
+            # Exact match on a keyword field - term, not match (which would tokenize).
+            must_clauses.append({"term": {"rule.id": rule_id}})
+
+        if agent_id:
+            must_clauses.append({"term": {"agent.id": agent_id}})
+
+        if rule_groups:
+            # rule.groups is a keyword array - a terms query matches documents whose
+            # groups contain at least one of the requested values (OR semantics)
+            must_clauses.append({"terms": {"rule.groups": rule_groups}})
+
+        if level:
+            # level is a minimum severity threshold (e.g. "10" means level >= 10).
+            # Coerce via str() first: an int level (10) - plausible from JSON - would hit
+            # AttributeError on .rstrip and the filter would be silently dropped, returning
+            # ALL alerts instead of level>=10. Raise on genuinely-bad input rather than swallow.
+            try:
+                min_level = int(str(level).rstrip("+"))
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid level filter {level!r}: expected a number like '10' or '10+'")
+            must_clauses.append({"range": {"rule.level": {"gte": min_level}}})
+
+        if srcip:
+            # IPs are exact-match keyword fields - term avoids false positives from
+            # tokenizing on the dots (e.g. 192.168.1.1 matching 192.168.1.99).
+            must_clauses.append({"term": {"data.srcip": srcip}})
+
+        if dstip:
+            must_clauses.append({"term": {"data.dstip": dstip}})
+
+        if timestamp_start or timestamp_end:
+            time_range: Dict[str, str] = {}
+            if timestamp_start:
+                time_range["gte"] = timestamp_start
+            if timestamp_end:
+                time_range["lte"] = timestamp_end
+            must_clauses.append({"range": {"timestamp": time_range}})
+
+        if query_text:
+            # simple_query_string has a restricted, injection-safe grammar (no arbitrary
+            # field:value probes, no regexp, no leading wildcards) and never errors on bad
+            # syntax - unlike query_string, which allowed Lucene injection and wildcard/regex
+            # denial-of-service from authenticated read users. AND/OR/NOT, quoted phrases,
+            # and trailing-wildcard prefixes remain supported.
+            qt = _to_simple_query_syntax(query_text.strip().lstrip("*?"))  # no leading wildcard
+            must_clauses.append(
+                {
+                    "simple_query_string": {
+                        "query": qt,
+                        "default_operator": "AND",
+                        "flags": "AND|OR|NOT|PHRASE|PREFIX|WHITESPACE",
+                        "lenient": True,
+                    }
+                }
+            )
+
+        if must_clauses:
+            query = {"bool": {"must": must_clauses}}
+        else:
+            query = {"match_all": {}}
+
+        # Use _search helper for consistent retry logic (sorted by timestamp desc)
+        result = await self._search(ALERTS_INDEX, query, size=limit, sort=[{"timestamp": {"order": "desc"}}])
+
+        # Transform to standard Wazuh format
+        hits = result.get("hits", {})
+        alerts = [(hit.get("_source") or {}) for hit in hits.get("hits", [])]
+
+        return {
+            "data": {
+                "affected_items": alerts,
+                "total_affected_items": self._total_hits(hits, len(alerts)),
+                "total_failed_items": 0,
+                "failed_items": [],
+            }
+        }
+
+    async def latest_fim_event(self, agent_id: str, path: str, event: str) -> Optional[Dict[str, Any]]:
+        """Most recent FIM alert of `event` type ("added"/"modified"/"deleted") for an exact path."""
+        query = {
+            "bool": {
+                "filter": [
+                    {"term": {"agent.id": agent_id}},
+                    {"term": {"syscheck.path": path}},
+                    {"term": {"syscheck.event": event}},
+                ]
+            }
+        }
+        result = await self._search(ALERTS_INDEX, query, size=1, sort=[{"timestamp": {"order": "desc"}}])
+        hits = result.get("hits", {}).get("hits", [])
+        return (hits[0].get("_source") or {}) if hits else None
+
+    async def get_vulnerabilities(
+        self,
+        agent_id: Optional[str] = None,
+        severity: Optional[str] = None,
+        cve_id: Optional[str] = None,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Get vulnerabilities from the Wazuh Indexer.
+
+        Args:
+            agent_id: Filter by agent ID
+            severity: Filter by severity (Critical, High, Medium, Low)
+            cve_id: Filter by specific CVE ID
+            limit: Maximum number of results
+
+        Returns:
+            Vulnerability data matching the criteria
+        """
+        # Build query
+        must_clauses = []
+
+        if agent_id:
+            must_clauses.append({"term": {"agent.id": agent_id}})
+
+        if severity:
+            # Normalize severity to match indexer format (keyword exact match)
+            severity_normalized = severity.capitalize()
+            must_clauses.append({"term": {"vulnerability.severity": severity_normalized}})
+
+        if cve_id:
+            # CVE ids in the index are upper-case (CVE-2021-44228). A term query is exact and
+            # case-sensitive, so normalize the input or "cve-2021-44228" silently matches nothing.
+            must_clauses.append({"term": {"vulnerability.id": str(cve_id).upper()}})
+
+        # Build the query
+        if must_clauses:
+            query = {"bool": {"must": must_clauses}}
+        else:
+            query = {"match_all": {}}
+
+        result = await self._search(VULNERABILITY_INDEX, query, size=limit)
+
+        # Transform to standard format
+        hits = result.get("hits", {})
+        vulnerabilities = []
+
+        for hit in hits.get("hits", []):
+            source = hit.get("_source") or {}
+            vulnerabilities.append(
+                {
+                    "id": source.get("vulnerability", {}).get("id"),
+                    "cve": source.get("vulnerability", {}).get("id"),
+                    "severity": source.get("vulnerability", {}).get("severity"),
+                    "description": source.get("vulnerability", {}).get("description"),
+                    "reference": source.get("vulnerability", {}).get("reference"),
+                    # There is no vulnerability.status in wazuh-states-vulnerabilities-* (it was
+                    # always null); CVSS base score and under_evaluation are real fields.
+                    "cvss_score": (source.get("vulnerability", {}).get("score") or {}).get("base"),
+                    "under_evaluation": source.get("vulnerability", {}).get("under_evaluation"),
+                    "detected_at": source.get("vulnerability", {}).get("detected_at"),
+                    "published_at": source.get("vulnerability", {}).get("published_at"),
+                    "agent": {
+                        "id": (source.get("agent") or {}).get("id"),
+                        "name": (source.get("agent") or {}).get("name"),
+                    },
+                    "package": {
+                        "name": source.get("package", {}).get("name"),
+                        "version": source.get("package", {}).get("version"),
+                        "architecture": source.get("package", {}).get("architecture"),
+                    },
+                }
+            )
+
+        return {
+            "data": {
+                "affected_items": vulnerabilities,
+                "total_affected_items": self._total_hits(hits, len(vulnerabilities)),
+                "total_failed_items": 0,
+                "failed_items": [],
+            }
+        }
+
+    async def get_critical_vulnerabilities(self, limit: int = 50) -> Dict[str, Any]:
+        """
+        Get critical severity vulnerabilities.
+
+        Args:
+            limit: Maximum number of results
+
+        Returns:
+            Critical vulnerability data
+        """
+        return await self.get_vulnerabilities(severity="Critical", limit=limit)
+
+    async def get_vulnerability_summary(
+        self, agent_id: Optional[str] = None, detected_since: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get vulnerability summary statistics.
+
+        Args:
+            agent_id: Only count vulnerabilities on this agent
+            detected_since: Only count vulnerabilities first detected at/after this date-math
+                value (e.g. "now-7d"); None covers every currently open vulnerability
+
+        Returns:
+            Summary with counts by severity
+        """
+        await self._ensure_initialized()
+
+        filters: List[Dict[str, Any]] = []
+        if agent_id:
+            filters.append({"term": {"agent.id": agent_id}})
+        if detected_since:
+            filters.append({"range": {"vulnerability.detected_at": {"gte": detected_since}}})
+        query = {"bool": {"filter": filters}} if filters else None
+
+        # Use aggregation query via circuit breaker (custom body with size=0)
+        if self._circuit_breaker is not None:
+            result = await self._circuit_breaker._call(self._execute_agg_search, query)
+        else:
+            result = await self._execute_agg_search(query)
+
+        # Parse aggregations
+        aggs = result.get("aggregations", {})
+        severity_buckets = aggs.get("by_severity", {}).get("buckets", [])
+
+        severity_counts = {}
+        for bucket in severity_buckets:
+            severity_counts[bucket.get("key", "unknown")] = bucket.get("doc_count", 0)
+
+        return {
+            "data": {
+                "total_vulnerabilities": aggs.get("total_vulnerabilities", {}).get("value", 0),
+                "affected_agents": aggs.get("by_agent", {}).get("value", 0),
+                "by_severity": severity_counts,
+                "critical": severity_counts.get("Critical", 0),
+                "high": severity_counts.get("High", 0),
+                "medium": severity_counts.get("Medium", 0),
+                "low": severity_counts.get("Low", 0),
+            }
+        }
+
+    async def _execute_agg_search(self, query: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Execute vulnerability aggregation query (called within circuit breaker)."""
+        await self._ensure_initialized()
+        url = f"{self.base_url}/{self._qualified(VULNERABILITY_INDEX)}/_search"
+        body: Dict[str, Any] = {
+            "size": 0,
+            "aggs": {
+                "by_severity": {"terms": {"field": "vulnerability.severity", "size": 10}},
+                "by_agent": {"cardinality": {"field": "agent.id"}},
+                "total_vulnerabilities": {"value_count": {"field": "vulnerability.id"}},
+            },
+        }
+        if query:
+            body["query"] = query
+
+        try:
+            response = await self.client.post(url, json=body, headers={"Content-Type": "application/json"})
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Vulnerability summary query failed: {e.response.status_code}")
+            if e.response.status_code >= 500:
+                raise  # Let circuit breaker track server errors
+            raise ValueError(f"Vulnerability summary query failed: {e.response.status_code}")
+        except (httpx.ConnectError, httpx.TimeoutException):
+            raise ConnectionError(f"Cannot connect to Wazuh Indexer at {self.host}:{self.port}")
+
+    async def health_check(self) -> Dict[str, Any]:
+        """
+        Check Wazuh Indexer health status.
+
+        Returns:
+            Health status information
+        """
+        await self._ensure_initialized()
+
+        try:
+            response = await self.client.get(f"{self.base_url}/_cluster/health")
+            response.raise_for_status()
+            health = response.json()
+
+            return {
+                "status": health.get("status"),
+                "cluster_name": health.get("cluster_name"),
+                "number_of_nodes": health.get("number_of_nodes"),
+                "active_shards": health.get("active_shards"),
+            }
+
+        except Exception as e:
+            return {"status": "unavailable", "error": str(e)}
+
+
+class IndexerNotConfiguredError(Exception):
+    """Raised when Wazuh Indexer is not configured but required."""
+
+    def __init__(self, message: str = None):
+        default_message = (
+            "Wazuh Indexer not configured. "
+            "Alert and vulnerability tools require the Wazuh Indexer.\n\n"
+            "Please set the following environment variables:\n"
+            "  WAZUH_INDEXER_HOST=<indexer_hostname>\n"
+            "  WAZUH_INDEXER_USER=<indexer_username>\n"
+            "  WAZUH_INDEXER_PASS=<indexer_password>\n"
+            "  WAZUH_INDEXER_PORT=9200 (optional, default: 9200)\n\n"
+            "Note: The /vulnerability API was removed in Wazuh 4.8.0. "
+            "Vulnerability data must be queried from the Wazuh Indexer."
+        )
+        super().__init__(message or default_message)

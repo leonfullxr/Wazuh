@@ -1,0 +1,122 @@
+# syntax=docker/dockerfile:1.9
+# wazuh-mcp - multi-stage build
+# MCP-compliant remote server with Streamable HTTP transport
+# Optimized for security, performance, and OS-agnostic deployment
+
+ARG PYTHON_VERSION=3.13
+ARG BUILD_DATE
+ARG VERSION=0.1.0
+
+# Stage 1: Build dependencies
+FROM python:${PYTHON_VERSION}-alpine AS builder
+
+# Set build-time metadata
+LABEL stage=builder
+
+# Install build dependencies (minimal set for compiling Python C extensions)
+RUN apk update && apk upgrade && apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    python3-dev \
+    build-base \
+    ca-certificates \
+    && rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Create build directory
+WORKDIR /build
+
+# Copy and install Python dependencies with latest pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --user --no-cache-dir --no-compile -r requirements.txt
+
+# Stage 2: Production image with latest Alpine
+FROM python:${PYTHON_VERSION}-alpine AS production
+
+# Redeclare build args inside this stage. ARGs declared before the first FROM are only in scope
+# for FROM lines; without this, the org.opencontainers.image.version/created LABELs below expand
+# to empty strings and the VERSION/BUILD_DATE build-args passed by compose/CI are silently ignored.
+ARG VERSION=0.1.0
+ARG BUILD_DATE
+
+LABEL stage=production
+
+# Install minimal runtime dependencies
+RUN apk update && apk upgrade && apk add --no-cache \
+    tini \
+    curl \
+    ca-certificates \
+    openssl \
+    tzdata \
+    jq \
+    && rm -rf /var/cache/apk/* /tmp/* /var/tmp/* \
+    && update-ca-certificates
+
+# pip is only needed in the builder stage. The base image's copy vendors its own msgpack and
+# setuptools, which image scanners flag (GHSA-6v7p-g79w-8964, CVE-2025-47273), so drop it
+# rather than ship an unused package manager.
+RUN python -m pip uninstall -y pip
+
+# Security: Create non-root user with proper shell
+RUN addgroup -g 1000 -S wazuh && \
+    adduser -u 1000 -S wazuh -G wazuh -s /bin/sh
+
+# Set up directory structure
+WORKDIR /app
+RUN mkdir -p /app/logs /app/data && \
+    chown -R wazuh:wazuh /app
+
+# Copy Python packages from builder
+COPY --from=builder --chown=wazuh:wazuh /root/.local /home/wazuh/.local
+
+# Copy application code
+COPY --chown=wazuh:wazuh src/ ./src/
+COPY --chown=wazuh:wazuh .env.example .env.example
+
+# Security: Set proper permissions
+RUN find /app -type d -exec chmod 755 {} \; && \
+    find /app -type f -exec chmod 644 {} \; && \
+    chmod 600 .env.example && \
+    chmod +x /app/src/wazuh_mcp/*.py
+
+# Switch to non-root user (numeric uid:gid so the host can resolve it)
+USER 1000:1000
+
+# Environment configuration
+ENV PATH="/home/wazuh/.local/bin:${PATH}" \
+    PYTHONPATH="/app/src:${PYTHONPATH}" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Enable Python fault handler for crash diagnostics
+    PYTHONFAULTHANDLER=1 \
+    # Default to production settings
+    MCP_HOST=0.0.0.0 \
+    MCP_PORT=3000 \
+    LOG_LEVEL=INFO \
+    ENVIRONMENT=production
+
+# Comprehensive health check with JSON validation and timeout handling.
+# Uses ${MCP_PORT:-3000} (expanded by the sh -c shell from the container env) so the probe
+# follows a MCP_PORT override instead of curling a hardcoded 3000 and reporting unhealthy.
+HEALTHCHECK --interval=15s --timeout=10s --start-period=45s --retries=5 \
+    CMD ["sh", "-c", "curl -f --max-time 5 --retry 2 --retry-delay 1 -H 'Accept: application/json' http://localhost:${MCP_PORT:-3000}/health | jq -e '.status == \"healthy\"' > /dev/null || exit 1"]
+
+# Expose the MCP port
+EXPOSE 3000
+
+# OCI-compliant metadata labels
+LABEL org.opencontainers.image.title="wazuh-mcp" \
+      org.opencontainers.image.description="MCP-compliant remote server for Wazuh SIEM integration (Streamable HTTP)" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/leonfullxr/Wazuh" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.base.name="python:3.13-alpine"
+
+# Use tini for proper signal handling
+ENTRYPOINT ["tini", "--"]
+
+# Run the MCP server using the main module
+CMD ["python", "-m", "wazuh_mcp"]

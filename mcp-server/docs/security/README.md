@@ -1,0 +1,388 @@
+# Security Guide
+
+How Wazuh MCP authenticates clients, limits what they can do, and protects the Wazuh
+deployment behind it, plus the settings to review before running it in production. Applies to
+version 0.1.0 and the current `main` branch.
+
+To report a vulnerability, contact the maintainer privately rather than opening a public issue.
+
+## Contents
+
+- [Architecture and trust boundaries](#architecture-and-trust-boundaries)
+- [Client authentication](#client-authentication)
+- [Authorization (RBAC scopes)](#authorization-rbac-scopes)
+- [Active response safeguards](#active-response-safeguards)
+- [HTTP layer protections](#http-layer-protections)
+- [Credential handling and redaction](#credential-handling-and-redaction)
+- [Audit logging](#audit-logging)
+- [Connections to Wazuh](#connections-to-wazuh)
+- [Container and deployment hardening](#container-and-deployment-hardening)
+- [Known limitations](#known-limitations)
+- [Production checklist](#production-checklist)
+
+## Architecture and trust boundaries
+
+```
+MCP client --HTTPS--> reverse proxy (TLS) --HTTP--> Wazuh MCP --HTTPS--> Wazuh Manager API (:55000)
+                                                              +--HTTPS--> Wazuh Indexer (:9200)
+```
+
+- The server listens on plain HTTP (`MCP_HOST`/`MCP_PORT`, default `127.0.0.1:3000`; the Docker image binds `0.0.0.0`). It has no
+  inbound TLS listener; terminate TLS at a reverse proxy.
+- It holds one Wazuh Manager API account and, optionally, one Indexer account per cluster.
+  Every MCP client acts through those accounts, so the server's own authentication and scope
+  checks are what separate MCP users from each other.
+- Tool output (alert text, log lines, rule descriptions) can contain attacker-controlled
+  content. The server's `instructions` string tells clients to treat tool output as untrusted
+  data and to confirm active-response targets with a human. That is guidance to the model, not
+  an enforcement mechanism; the enforced controls are described below.
+
+## Client authentication
+
+`AUTH_MODE` selects the mode (`bearer` by default; `oauth`; `none`). Any other value stops the
+server at startup.
+
+### API keys
+
+- Format: `wazuh_` followed by 43 URL-safe characters (49 characters total). Generate one with
+  `python -c "import secrets; print('wazuh_' + secrets.token_urlsafe(32))"`.
+- Keys are stored only as HMAC-SHA256 digests keyed with `AUTH_SECRET_KEY` and compared with
+  `hmac.compare_digest` (`auth.py`).
+- `MCP_API_KEY` configures one key. Its id is derived from the key's HMAC, so it is identical
+  across restarts and replicas that share `AUTH_SECRET_KEY`. `API_KEYS` (JSON array) configures
+  several keys, one per user.
+- `MCP_API_KEY_SCOPES` sets the env key's scopes. It defaults to `wazuh:read`; write access
+  must be granted explicitly (`wazuh:read wazuh:write`).
+- If no key is configured, the server generates a read-only key at startup. In development (bearer mode) the key is printed to stderr; in production it is never shown and only a warning is logged, so configure `MCP_API_KEY` or `API_KEYS`.
+
+### Bearer mode (`AUTH_MODE=bearer`)
+
+`POST /auth/token` with `{"api_key": "wazuh_..."}` returns an HS256 JWT signed with
+`AUTH_SECRET_KEY`, valid for `TOKEN_LIFETIME_HOURS` (default 24). On every request
+(`verify_bearer_token` in `auth.py`):
+
+- the signature and `exp` are verified, and a token without `exp` is refused;
+- refresh-type tokens are refused as access tokens;
+- the token's `sub` must name an API key that still exists, is active and has not expired, so
+  removing or rotating a key ends its tokens;
+- a token without a `scope` claim is treated as read-only.
+
+There is no refresh flow for these tokens; clients request a new one with the API key.
+
+### OAuth mode (`AUTH_MODE=oauth`)
+
+Implemented in `oauth.py`:
+
+- **Sign-in at an OpenID Connect identity provider** (when `OAUTH_IDP_ISSUER` is set; `oidc.py`).
+  `/oauth/authorize` parks the client's request (for at most `OAUTH_IDP_LOGIN_TTL`, default 600 s)
+  and redirects the user to the provider with its own `state`, `nonce` and PKCE `S256` challenge.
+  On `/oauth/callback` the server exchanges the code and verifies the ID token:
+  - signature: RS256 only, with a key from the provider's JWKS selected by `kid`. The token
+    header's `alg` is never trusted, so `none` and HMAC tokens are refused. Unknown `kid`s trigger
+    at most one rate-limited JWKS refresh;
+  - claims: `iss` must equal the discovered issuer (for a templated Entra issuer, the issuer of the
+    token's own `tid`), `aud` must contain `OAUTH_IDP_CLIENT_ID` (and `azp` must match it when
+    there are several audiences), `exp`, `iat` and `sub` are required (60 s leeway), and `nonce`
+    must match the one sent for this login.
+
+  The verified identity must then pass the allow-lists: `OAUTH_IDP_ALLOWED_TENANTS` (Entra `tid`),
+  `OAUTH_IDP_ALLOWED_DOMAINS` (Google `hd` or the e-mail domain) and `OAUTH_IDP_ALLOWED_USERS`.
+  An e-mail address counts as identity only when it is vouched for: `email_verified: true`, a
+  Google `hd` equal to the e-mail domain, or an allow-listed Entra tenant. Otherwise the subject
+  falls back to `preferred_username` (skipped when it looks like an e-mail address), then `sub`,
+  and a domain allow-list denies the user. `OAUTH_IDP_ALLOWED_USERS` matches only `sub`, the
+  configured subject claim or a vouched e-mail, never a fallback `preferred_username`, which many
+  providers let users edit. The
+  scope comes from `OAUTH_IDP_GROUP_SCOPE_MAP` applied to the `OAUTH_IDP_GROUP_CLAIM` claim, or
+  `OAUTH_IDP_DEFAULT_SCOPE` (default `wazuh:read`) when no group matches, and is intersected with
+  the client's registered scope; an empty result is denied. At startup the server refuses a
+  non-`https` issuer, a missing `OAUTH_IDP_CLIENT_ID`, a Google issuer
+  (`accounts.google.com`) without `OAUTH_IDP_ALLOWED_DOMAINS` or `OAUTH_IDP_ALLOWED_USERS`, and a
+  multi-tenant Entra issuer (`/common/`, `/organizations/`, `/consumers/`) without
+  `OAUTH_IDP_ALLOWED_TENANTS`.
+- **Sign-in with an API key** (when no IdP is configured). `GET /oauth/authorize` renders a
+  sign-in page. The user pastes a `wazuh_` API key; the granted scope is the intersection of the
+  requested scope, the client's registered scope and the key's scopes. If the key has none of the
+  requested scopes the request is refused.
+- **Per-user tokens.** Access and refresh tokens record who signed in: the API key id (`usr`
+  claim, subject kind `api_key`) or the IdP subject (`idp_sub` claim, subject kind `idp_user`).
+  Rate limits, session bounds and audit records use that identity. Tokens of kind `api_key` stay
+  bound to the key: on every request the key must still exist and be active, so removing or
+  deactivating it ends the user's OAuth access as well as bearer JWTs minted from it.
+- **PKCE `S256` is mandatory**; `plain` and missing challenges are rejected.
+- **Authorization codes** are single-use and expire after `OAUTH_AUTHORIZATION_CODE_TTL`
+  (default 600 s). The redirect URI must exactly match a registered one; the authorization
+  response includes the RFC 9207 `iss` parameter.
+- **Tokens** are HS256 JWTs. Access tokens last `OAUTH_ACCESS_TOKEN_TTL` (default 3600 s),
+  refresh tokens `OAUTH_REFRESH_TOKEN_TTL` (default 86400 s).
+- **Refresh rotation with replay detection.** Each refresh issues a new refresh token and
+  revokes the old one. Presenting an already-used refresh token revokes every token in that
+  grant's family (one user's authorization), not every user of the client.
+- **Revocation** (`POST /oauth/revoke`, RFC 7009) records both the token string and its `jti`,
+  so a revoked token cannot be replayed under a different base64url spelling. Tokens of kind
+  `idp_user` are not re-checked at the identity provider, so disabling a user there takes effect
+  when their tokens expire or are revoked here.
+- **Confidential clients** must present their secret at the token endpoint. The pre-registered
+  client (`client_id=claude-desktop`, redirect URIs on `claude.ai`/`claude.com`) is a public
+  client secured by PKCE.
+- **Dynamic Client Registration** is off (`OAUTH_ENABLE_DCR=false`). When enabled, redirect URIs
+  must be `https` (or `http` on `localhost`/`127.0.0.1`/`::1`) without fragments,
+  `grant_types` must be a subset of `authorization_code`/`refresh_token`,
+  `token_endpoint_auth_method` must be `none`, `client_secret_post` or `client_secret_basic`, and once 1000 clients are registered, idle dynamically registered clients are dropped to make room (registration is refused if none is idle).
+- **Issuer.** Set `OAUTH_ISSUER_URL`. Without it the issuer is derived from the request and
+  `X-Forwarded-Proto`/`X-Forwarded-Host` are honored only from loopback or `TRUSTED_PROXIES`.
+- **Discovery.** `/.well-known/oauth-authorization-server` (RFC 8414) and
+  `/.well-known/oauth-protected-resource` (RFC 9728). When `OAUTH_ISSUER_URL` is set, 401
+  responses carry `WWW-Authenticate: Bearer resource_metadata="..."`.
+
+### Authless mode (`AUTH_MODE=none`)
+
+No authentication. Every caller gets `wazuh:read`; write tools stay unavailable unless
+`AUTHLESS_ALLOW_WRITE=true`. Use only on a trusted, isolated network.
+
+### Signing secret
+
+`AUTH_SECRET_KEY` signs JWTs and keys the API-key HMAC. With `ENVIRONMENT=production` and
+`AUTH_MODE` other than `none`, startup fails if it is missing, shorter than 32 characters, or
+looks like a placeholder (`change_me`, `example`, `<...>`, `your-secret`). Outside production a
+random per-process value is generated, which invalidates tokens on restart. Use the same value
+on every replica.
+
+## Authorization (RBAC scopes)
+
+Two scopes exist: `wazuh:read` and `wazuh:write`. Enforcement is in `handle_tools_call` (`server/tool_calls.py`), with the scope sets in `server/tool_policy.py`:
+
+- `WRITE_SCOPE_TOOLS` lists the 14 state-changing tools: `wazuh_block_ip`,
+  `wazuh_isolate_host`, `wazuh_kill_process`, `wazuh_disable_user`, `wazuh_quarantine_file`,
+  `wazuh_active_response`, `wazuh_firewall_drop`, `wazuh_host_deny`, `wazuh_restart`,
+  `wazuh_unisolate_host`, `wazuh_enable_user`, `wazuh_restore_file`, `wazuh_firewall_allow`,
+  `wazuh_host_allow`.
+- `READ_SCOPE_TOOLS` lists every read tool explicitly. The scope lookup fails closed: any name
+  not in that list requires `wazuh:write`. A name in neither set is rejected as an unknown tool
+  before the scope check.
+- Tokens without `wazuh:write` do not see write tools in `tools/list`, and calls to them are
+  refused at `tools/call` time.
+- Scope, confirmation, disabled-tool and unknown-argument refusals are returned as tool results
+  with `isError: true`, so the model sees the reason.
+- `WAZUH_TOOLSETS` and `WAZUH_DISABLED_TOOLS` remove tools from `tools/list` and refuse them at
+  call time, whatever the token's scope. Unknown names fail at startup.
+- Tool input schemas are closed (`additionalProperties: false`), and undeclared arguments are
+  refused.
+- Every tool carries MCP annotations derived from its scope: write tools carry `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, and read tools carry `readOnlyHint` and `openWorldHint`. Clients and gateways can use them to require approval for write tools.
+
+## Active response safeguards
+
+In addition to the `wazuh:write` scope:
+
+| Control | Behavior | Setting |
+|---|---|---|
+| Confirmation gate | Every write tool advertises an optional `confirm` flag. While the gate is on, a call without `confirm=true` is refused with instructions to get human approval. | On by default when `ENVIRONMENT=production`, off otherwise; `WAZUH_REQUIRE_ACTION_CONFIRMATION=true`/`false` overrides |
+| Manager guard | Actions targeting agent `000` (the Manager itself) are refused: `wazuh_isolate_host`, `wazuh_kill_process`, `wazuh_disable_user`, `wazuh_quarantine_file`, `wazuh_active_response`, `wazuh_firewall_drop`, `wazuh_host_deny`, `wazuh_block_ip` with an `agent_id`, and `wazuh_restart` with `target=manager` (or `0`/`000`). | `WAZUH_ALLOW_MANAGER_AR=true` to override |
+| Fleet-wide actions | `wazuh_block_ip` with `all_agents=true` is refused. | `WAZUH_ALLOW_FLEET_AR=true` to allow |
+| Protected targets | IP-blocking tools (`wazuh_block_ip`, `wazuh_firewall_drop`, `wazuh_host_deny`) refuse loopback, the Manager's IP (when `WAZUH_HOST` is an IP), and anything in the list. Leading-zero and IPv4-mapped IPv6 spellings are normalized first. The generic `wazuh_active_response` tool refuses `firewall-drop` and `host-deny`, so no IP block bypasses this check. | `WAZUH_PROTECTED_IPS` (comma-separated IPs/CIDRs) |
+| Quarantine paths | `wazuh_quarantine_file` accepts only absolute paths and refuses system and agent directories (`/etc`, `/boot`, `/bin`, `/sbin`, `/lib*`, `/usr`, `/proc`, `/sys`, `/dev`, `/var/ossec`, `/var/lib`, macOS system paths, `C:\Windows`, `C:\Program Files*`). | `WAZUH_QUARANTINE_DENY_PREFIXES` adds to the list; `WAZUH_QUARANTINE_ALLOW_PREFIXES` restricts quarantine to the listed directories |
+| Explicit targeting | A PUT to `/active-response` is sent without `agents_list` (which Wazuh treats as every agent) only when the caller explicitly asked for all agents; a target that yields no numeric agent id is refused. | none |
+| No expiring blocks | A positive `duration` is refused because Wazuh ignores the timeout for API-dispatched commands; blocks are permanent until removed. | none |
+| Rollback tools | `wazuh_firewall_allow` and `wazuh_host_allow` refuse unless an undo command is configured, instead of re-running the block. | `WAZUH_AR_FIREWALL_UNDO_COMMAND`, `WAZUH_AR_HOSTDENY_UNDO_COMMAND` |
+
+The three `WAZUH_*` switches above are validated at startup; a value other than a recognised
+boolean stops the server. Active-response results report `execution_status: "dispatched"`: Wazuh
+confirms delivery to the agent, not execution. Use the `wazuh_check_*` tools to confirm the
+effect. Per-tool details are in the [active response reference](../api/active-response.md).
+
+## HTTP layer protections
+
+Implemented in `security.py`, `server/http_security.py` and `server/transport.py`:
+
+- **Origin validation.** On `/mcp` (POST, GET, DELETE) and `/`, a request with an `Origin`
+  header not in `ALLOWED_ORIGINS` gets HTTP 403. Requests without `Origin` are accepted. A
+  literal `*` is honored only when `ENVIRONMENT=development`.
+- **CORS.** Origins come from `ALLOWED_ORIGINS` (default `https://claude.ai,http://localhost:3000`).
+  If it is empty or `*` outside development, the allow list falls back to `https://claude.ai`
+  and `https://claude.anthropic.com`. Methods: GET, POST, DELETE, OPTIONS. Allowed headers are
+  an explicit list that includes `Authorization`, `MCP-Protocol-Version`, `MCP-Session-Id`,
+  `Mcp-Method`, `Mcp-Name` and `Last-Event-ID`.
+- **Rate limiting.**
+  - `/mcp` and `/`: a sliding window of `RATE_LIMIT_REQUESTS` per `RATE_LIMIT_WINDOW` seconds
+    (default 100 per 60 s) per principal and client IP.
+  - Failed authentication on the MCP endpoints is counted per client IP in the same limiter;
+    a client that keeps failing gets 429.
+  - Other routes (for example `/auth/token` and `/oauth/*`) use a per-IP sliding window
+    configured by `RATE_LIMIT_REQUESTS` (default 100) and `RATE_LIMIT_WINDOW` (default 60 s).
+  - `/health`, `/ready`, `/metrics` and their aliases are exempt.
+  - A 429 carries `Retry-After`: the seconds until the oldest request leaves the window.
+- **Client IP.** `X-Forwarded-For` and `X-Real-IP` are used only when the direct peer is loopback
+  or listed in `TRUSTED_PROXIES`; the rightmost untrusted address in `X-Forwarded-For` is taken.
+- **Body size.** POST/PUT/PATCH bodies over 1 MB are rejected with 413, checked against
+  `Content-Length` and again while streaming (covers chunked uploads). JSON nesting is capped at
+  64 levels; JSON-RPC batches at 100 items.
+- **Request screening.** Headers and query strings are checked for script-injection,
+  path-traversal and shell patterns. The JSON-RPC body on `/mcp` is exempt because analysts
+  legitimately search for such strings; tool arguments go through typed validators instead
+  (agent/rule ids, IPs via `ipaddress`, hashes, timestamps, active-response command names).
+- **Response headers.** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `X-XSS-Protection: 1; mode=block`,
+  `Strict-Transport-Security: max-age=31536000; includeSubDomains`, and
+  `Content-Security-Policy: default-src 'self'` unless a route sets a stricter one (the OAuth
+  sign-in page does). HSTS only takes effect when the client reaches the server over HTTPS.
+- **Session bounds.** With the in-memory session store, at most `MAX_SESSIONS` (default 1000)
+  sessions are kept, and at most `MAX_SESSIONS_PER_PRINCIPAL` (default 100) per API key or OAuth
+  identity. When a bound is reached, expired sessions are reclaimed first, then the least recently
+  active sessions are evicted; their clients re-initialize. Authless mode and tokens without an
+  identity share one principal, so only the global bound applies to them. With `REDIS_URL`,
+  sessions expire in Redis after `SESSION_TTL_SECONDS` (default 1800) and the count bounds are not
+  applied. Stored client metadata is bounded in both cases: only `clientInfo.name`, `version` and
+  `title` (128 characters each) and up to 32 top-level capability names are kept.
+- **Memory guard.** Requests other than health/metrics probes get 503 when process memory
+  exceeds `MAX_MEMORY_MB` (default 512, minimum 64).
+
+## Credential handling and redaction
+
+- **Wazuh Manager.** The client exchanges `WAZUH_USER`/`WAZUH_PASS` (HTTP Basic) at
+  `POST /security/user/authenticate` for a Wazuh JWT and re-authenticates when it expires.
+  Other requests carry only the JWT.
+- **Log redaction.** `SanitizingLogFilter` is attached to the emitting handlers (including
+  uvicorn's). It redacts credentials in URLs (`user:pass@host`), `Bearer` and `Basic`
+  credentials, values after `password`, `token`, `api_key`, `secret` and `authorization` labels,
+  `wst_` tokens, `wazuh_` API keys and bare JWTs. It applies to the message, its arguments,
+  exception tracebacks and structured `extra` fields.
+- **Tool output redaction.** Every tool result passes through `_sanitize_output_text`, which
+  redacts `password`/`passwd`/`pwd`, `api_key`/`secret`/`token` key-value pairs and
+  `Authorization:` headers before the text reaches the client. Results are capped at
+  `MAX_TOOL_RESPONSE_CHARS` (default 1,000,000) and truncated with a note.
+- **Error text.** `resources/read` does not return raw backend exception text.
+- **Clusters file.** `clusters.json` supports `${ENV_VAR}` interpolation so secrets need not be
+  stored in the file.
+
+Keep `.env` out of version control and readable only by the service account (`chmod 600 .env`).
+If you use a secret manager, inject the values as environment variables at container start.
+
+## Audit logging
+
+Audit logging is always on. Each write-tool call produces two WARNING records on the
+`wazuh_mcp.audit` logger:
+
+```
+AUDIT: tool=wazuh_block_ip client=<principal> session=<session_id> cluster=<cluster> args={...}
+AUDIT_OUTCOME: tool=wazuh_block_ip outcome=success principal=<principal> session=<session_id> cluster=<cluster> duration_ms=<n> args={...}
+```
+
+The first is written before the action runs, the second after it with the outcome. The
+`parameters` and `confirm` arguments are omitted. Calls refused by the scope, confirmation or
+unknown-argument checks are refused before this point and produce no audit record. The
+principal is the API key id (`jwt:<key id>` for bearer JWTs), `oauth:<client>:<key id>` or
+`oauth:<client>:<IdP subject>` for OAuth, or `authless` in authless mode. Records go to the server's standard log output; ship them with your container log
+driver or log collector.
+
+## Connections to Wazuh
+
+### TLS verification
+
+| Setting | Default | Effect |
+|---|---|---|
+| `WAZUH_VERIFY_SSL` | `true` | Verify the Manager API certificate. |
+| `WAZUH_ALLOW_SELF_SIGNED` | `false` | `true` disables Manager certificate verification. |
+| `WAZUH_CA_BUNDLE` | *(none)* | CA PEM trusted for the Manager and Indexer instead of the system store. A path that does not exist stops the server at startup. Not used for a connection whose verification is disabled. |
+| `WAZUH_INDEXER_VERIFY_SSL` | `true` | Verify the Indexer certificate. Not affected by `WAZUH_ALLOW_SELF_SIGNED`. |
+
+Manager verification is on by default. The stock Wazuh API certificate is self-signed for
+`CN=wazuh.com` without a subjectAltName and cannot be verified for any host; reissue it with a
+subjectAltName matching `WAZUH_HOST` and set `WAZUH_CA_BUNDLE`, or opt out with
+`WAZUH_ALLOW_SELF_SIGNED=true` (logged at startup; as an error in production). The container
+image runs Python 3.13, whose default TLS context applies strict X.509 checks: the CA in
+`WAZUH_CA_BUNDLE` needs a `keyUsage` extension with `keyCertSign`. See
+[Manager TLS](../configuration.md#manager-tls). Clusters in `clusters.json` accept a per-cluster `ca_bundle`.
+
+### Least-privilege Wazuh accounts
+
+Create a dedicated Manager API user rather than using the built-in admin account. The Manager
+API actions the server uses (from the `x-rbac-actions` of each endpoint in the Wazuh 4.14 API
+specification):
+
+| Purpose | Actions | Resource type |
+|---|---|---|
+| Read tools | `agent:read`, `sca:read`, `syscheck:read`, `syscollector:read` | `agent:id` |
+| | `cluster:read` | `node:id` |
+| | `manager:read` | `*:*` |
+| | `rules:read` | `rule:file` |
+| | `group:read` (agent configuration lookup) | `group:id` |
+| Write tools (only if you grant `wazuh:write`) | `active-response:command`, `agent:restart` | `agent:id` |
+| | `manager:restart` (only for `wazuh_restart` with `target=manager`, which also needs `WAZUH_ALLOW_MANAGER_AR=true`) | `*:*` |
+
+Create the user with `POST /security/users`, a policy per resource type with
+`POST /security/policies`, a role with `POST /security/roles`, then link them with
+`POST /security/roles/{role_id}/policies` and `POST /security/users/{user_id}/roles`. See the
+[Wazuh RBAC documentation](https://documentation.wazuh.com/current/user-manual/api/rbac/index.html).
+If you never grant `wazuh:write`, leave out the write actions so a compromised server cannot
+run active response.
+
+The Indexer account needs search access to `wazuh-alerts-*` and
+`wazuh-states-vulnerabilities-*` (prefixed with the remote cluster name when `ccs_prefix` is
+used). It does not need write access.
+
+## Container and deployment hardening
+
+`Dockerfile`:
+
+- Multi-stage build on `python:<version>-alpine`; build tools stay in the builder stage.
+- `pip` is uninstalled from the runtime image.
+- Runs as UID/GID 1000 (`USER 1000:1000`) with `tini` as the entrypoint.
+
+`compose.yml`:
+
+- Publishes the port on `127.0.0.1` only (`MCP_BIND` overrides it).
+- `read_only: true`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]`.
+- `tmpfs` for `/tmp` and `/app/logs` (`noexec,nosuid`); `./config` mounted read-only.
+- CPU and memory limits (1 CPU, 512 MB).
+- Sets `ENVIRONMENT=production`, so `AUTH_SECRET_KEY` is required unless `AUTH_MODE=none`.
+
+Put a TLS-terminating reverse proxy in front and add it to `TRUSTED_PROXIES` if it is not on
+loopback. A minimal nginx TLS block:
+
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers on;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_buffering off;   # needed for the SSE stream on GET /mcp
+```
+
+## Known limitations
+
+- **Per-process security state.** OAuth clients, authorization codes, pending IdP logins,
+  refresh-token records, the revocation denylist and rate-limit counters live in process memory. They are not shared
+  between replicas and are lost on restart (for example, a revoked OAuth token becomes usable
+  again on another replica until it expires). `REDIS_URL` moves MCP sessions to Redis, not this
+  state. Run a single instance, or use sticky routing and short token lifetimes.
+- **No inbound TLS.** HTTPS depends on the reverse proxy.
+- **IdP deprovisioning is not immediate.** Tokens issued after an identity-provider sign-in are
+  not re-checked at the provider; a user disabled there keeps access until the access token
+  (`OAUTH_ACCESS_TOKEN_TTL`) and refresh token (`OAUTH_REFRESH_TOKEN_TTL`) expire, unless they are
+  revoked here first.
+- **Shared Wazuh identity.** All MCP users act through the same Wazuh account; Wazuh's own audit
+  trail cannot tell them apart. Use the server's audit log for attribution.
+
+## Production checklist
+
+- [ ] `ENVIRONMENT=production` and `AUTH_MODE=bearer` or `oauth`.
+- [ ] `AUTH_SECRET_KEY` is random, at least 32 characters, and identical on all replicas.
+- [ ] One API key per user (`API_KEYS`), with `wazuh:write` only where needed.
+- [ ] `ALLOWED_ORIGINS` lists only the origins your clients use.
+- [ ] TLS terminated at a reverse proxy; the server port not exposed directly; the proxy in
+      `TRUSTED_PROXIES` if it is not on loopback.
+- [ ] Manager certificate verified (`WAZUH_ALLOW_SELF_SIGNED` left `false`), using a reissued certificate and `WAZUH_CA_BUNDLE` where needed;
+      `WAZUH_INDEXER_VERIFY_SSL=true`.
+- [ ] Dedicated least-privilege Wazuh API and Indexer accounts.
+- [ ] If write tools are enabled: the confirmation gate left on (do not set
+      `WAZUH_REQUIRE_ACTION_CONFIRMATION=false`), `WAZUH_PROTECTED_IPS` set, and
+      `WAZUH_ALLOW_FLEET_AR` / `WAZUH_ALLOW_MANAGER_AR` left unset. Otherwise remove the write
+      tools with `WAZUH_TOOLSETS`/`WAZUH_DISABLED_TOOLS`.
+- [ ] `OAUTH_ISSUER_URL` set and `OAUTH_ENABLE_DCR=false` unless registration is needed.
+- [ ] With an identity provider: a tenant-specific issuer or `OAUTH_IDP_ALLOWED_TENANTS`, an
+      allow-list (`OAUTH_IDP_ALLOWED_DOMAINS` or `OAUTH_IDP_ALLOWED_USERS`), and `wazuh:write`
+      granted only through `OAUTH_IDP_GROUP_SCOPE_MAP`.
+- [ ] `wazuh_mcp.audit` records collected and retained.
+- [ ] `.env` permissions restricted to the service account.
+
+See also: [Configuration](../configuration.md), [Operations](../OPERATIONS.md),
+[Troubleshooting](../TROUBLESHOOTING.md).

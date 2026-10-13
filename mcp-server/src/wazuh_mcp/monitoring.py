@@ -1,0 +1,384 @@
+#!/usr/bin/env python3
+"""
+Production monitoring, metrics, and observability for Wazuh MCP
+Implements comprehensive monitoring with Prometheus metrics and health checks
+"""
+
+import asyncio
+import contextvars
+import json
+import logging
+import os
+import sys
+import time
+import uuid
+from collections import deque
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+import psutil
+from fastapi import Request
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, Info
+
+from wazuh_mcp import __version__
+
+logger = logging.getLogger(__name__)
+
+# Context variable for request correlation ID
+correlation_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("correlation_id", default="")
+
+
+def get_correlation_id() -> str:
+    """Get the current correlation ID from context."""
+    return correlation_id_var.get() or str(uuid.uuid4())[:8]
+
+
+def set_correlation_id(correlation_id: Optional[str] = None) -> str:
+    """Set correlation ID in context. Generates one if not provided."""
+    cid = correlation_id or str(uuid.uuid4())[:8]
+    correlation_id_var.set(cid)
+    return cid
+
+
+class StructuredLogger:
+    """Structured logging helper for consistent log format."""
+
+    def __init__(self, name: str):
+        self._logger = logging.getLogger(name)
+
+    def _format_extra(self, extra: Dict[str, Any]) -> Dict[str, Any]:
+        """Add correlation ID and timestamp to log extra."""
+        return {"correlation_id": get_correlation_id(), "timestamp": datetime.now(timezone.utc).isoformat(), **extra}
+
+    def info(self, message: str, **extra: Any) -> None:
+        """Log info with structured data."""
+        self._logger.info(message, extra=self._format_extra(extra))
+
+    def warning(self, message: str, **extra: Any) -> None:
+        """Log warning with structured data."""
+        self._logger.warning(message, extra=self._format_extra(extra))
+
+    def error(self, message: str, exc_info: bool = False, **extra: Any) -> None:
+        """Log error with structured data."""
+        self._logger.error(message, exc_info=exc_info, extra=self._format_extra(extra))
+
+    def debug(self, message: str, **extra: Any) -> None:
+        """Log debug with structured data."""
+        self._logger.debug(message, extra=self._format_extra(extra))
+
+
+# Structured logger instance
+structured_logger = StructuredLogger(__name__)
+
+# Prometheus metrics registry
+REGISTRY = CollectorRegistry()
+
+# Known endpoints for metric label normalization (prevents unbounded cardinality)
+_KNOWN_ENDPOINTS = {"/", "/mcp", "/sse", "/health", "/metrics", "/docs", "/openapi.json"}
+
+
+def _normalize_endpoint(path: str) -> str:
+    """Collapse unknown paths to 'other' to prevent label explosion."""
+    if path in _KNOWN_ENDPOINTS:
+        return path
+    return "other"
+
+
+# Core metrics
+REQUEST_COUNT = Counter(
+    "wazuh_mcp_requests_total", "Total number of requests", ["method", "endpoint", "status_code"], registry=REGISTRY
+)
+
+REQUEST_DURATION = Histogram(
+    "wazuh_mcp_request_duration_seconds", "Request duration in seconds", ["method", "endpoint"], registry=REGISTRY
+)
+
+ACTIVE_CONNECTIONS = Gauge("wazuh_mcp_active_connections", "Number of active SSE connections", registry=REGISTRY)
+
+AUTHENTICATION_ATTEMPTS = Counter(
+    "wazuh_mcp_auth_attempts_total", "Authentication attempts", ["result"], registry=REGISTRY
+)
+
+SYSTEM_MEMORY_USAGE = Gauge("wazuh_mcp_memory_usage_bytes", "Memory usage in bytes", registry=REGISTRY)
+
+SYSTEM_CPU_USAGE = Gauge("wazuh_mcp_cpu_usage_percent", "CPU usage percentage", registry=REGISTRY)
+
+ERROR_RATE = Counter("wazuh_mcp_errors_total", "Total errors", ["error_type", "component"], registry=REGISTRY)
+
+SERVER_INFO = Info("wazuh_mcp_info", "Server information", registry=REGISTRY)
+
+# Session metrics for improved observability
+SESSION_CREATED = Counter("wazuh_mcp_sessions_created_total", "Total sessions created", registry=REGISTRY)
+
+SESSION_EXPIRED = Counter("wazuh_mcp_sessions_expired_total", "Total sessions expired", registry=REGISTRY)
+
+# Cache metrics for performance monitoring
+CACHE_HITS = Counter("wazuh_mcp_cache_hits_total", "Cache hits", ["cache_type"], registry=REGISTRY)
+
+CACHE_MISSES = Counter("wazuh_mcp_cache_misses_total", "Cache misses", ["cache_type"], registry=REGISTRY)
+
+# Rate limiter metrics
+RATE_LIMIT_HITS = Counter(
+    "wazuh_mcp_rate_limit_hits_total", "Rate limit enforcement count", ["endpoint"], registry=REGISTRY
+)
+
+# MCP tool execution metrics
+TOOL_EXECUTION_COUNT = Counter(
+    "wazuh_mcp_tool_executions_total", "Total tool executions", ["tool_name", "status"], registry=REGISTRY
+)
+
+TOOL_EXECUTION_DURATION = Histogram(
+    "wazuh_mcp_tool_duration_seconds",
+    "Tool execution duration in seconds",
+    ["tool_name"],
+    buckets=(0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
+    registry=REGISTRY,
+)
+
+
+class MetricsCollector:
+    """Collect and export system metrics."""
+
+    def __init__(self):
+        self.collection_interval = 30  # seconds
+        self.last_collection = 0
+        self._collection_task = None
+        # Reuse a single Process instance so cpu_percent() measures delta between calls
+        # (psutil.Process.cpu_percent() returns 0.0 on the first call to a new instance)
+        self._process = psutil.Process()
+
+    async def start_collection(self):
+        """Start metrics collection task."""
+        if self._collection_task is None:
+            self._collection_task = asyncio.create_task(self._collection_loop())
+
+    async def stop_collection(self):
+        """Stop metrics collection task."""
+        if self._collection_task:
+            self._collection_task.cancel()
+            try:
+                await self._collection_task
+            except asyncio.CancelledError:
+                pass
+            self._collection_task = None
+
+    async def _collection_loop(self):
+        """Main metrics collection loop."""
+        while True:
+            try:
+                await self._collect_system_metrics()
+                await asyncio.sleep(self.collection_interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Metrics collection error: {e}")
+                await asyncio.sleep(5)  # Short retry delay
+
+    async def _collect_system_metrics(self):
+        """Collect system-level metrics."""
+        try:
+            # Memory usage
+            memory_info = self._process.memory_info()
+            SYSTEM_MEMORY_USAGE.set(memory_info.rss)
+
+            # CPU usage (uses delta since last call on the persistent _process instance)
+            cpu_percent = self._process.cpu_percent()
+            SYSTEM_CPU_USAGE.set(cpu_percent)
+
+        except Exception as e:
+            logger.error(f"System metrics collection failed: {e}")
+
+
+class PerformanceProfiler:
+    """Profile performance and detect bottlenecks."""
+
+    def __init__(self):
+        self.slow_requests: deque = deque(maxlen=100)
+        self.slow_threshold = 1.0  # seconds
+
+    def record_request(self, method: str, path: str, duration: float, status_code: int):
+        """Record request performance."""
+        if duration > self.slow_threshold:
+            self.slow_requests.append(
+                {
+                    "method": method,
+                    "path": path,
+                    "duration": duration,
+                    "status_code": status_code,
+                    "timestamp": datetime.now(timezone.utc),
+                }
+            )
+
+    def get_slow_requests(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent slow requests."""
+        return list(self.slow_requests)[-limit:]
+
+
+# Global instances
+metrics_collector = MetricsCollector()
+performance_profiler = PerformanceProfiler()
+
+
+# Set up server info metric
+SERVER_INFO.info(
+    {
+        "version": __version__,
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "start_time": datetime.now(timezone.utc).isoformat(),
+    }
+)
+
+
+def setup_monitoring_middleware():
+    """Set up monitoring middleware for FastAPI."""
+
+    async def monitoring_middleware(request: Request, call_next):
+        """Monitoring middleware with correlation ID tracking."""
+        # Extract or generate correlation ID
+        correlation_id = request.headers.get("X-Correlation-ID") or request.headers.get("X-Request-ID")
+        correlation_id = set_correlation_id(correlation_id)
+
+        # Record request start
+        start_time = time.time()
+        method = request.method
+        path = request.url.path
+
+        # Process request
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+
+            # Add correlation ID to response headers
+            response.headers["X-Correlation-ID"] = correlation_id
+
+        except Exception as e:
+            status_code = 500
+            ERROR_RATE.labels(error_type=type(e).__name__, component="request_processing").inc()
+            structured_logger.error(
+                f"Request failed: {method} {path}",
+                error_type=type(e).__name__,
+                error_message=str(e),
+                method=method,
+                path=path,
+            )
+            raise
+        finally:
+            # Record metrics
+            duration = time.time() - start_time
+
+            normalized = _normalize_endpoint(path)
+            REQUEST_COUNT.labels(method=method, endpoint=normalized, status_code=status_code).inc()
+            REQUEST_DURATION.labels(method=method, endpoint=normalized).observe(duration)
+
+            # Record slow requests with correlation ID
+            if duration > performance_profiler.slow_threshold:
+                structured_logger.warning(
+                    f"Slow request detected: {method} {path}",
+                    duration_seconds=duration,
+                    status_code=status_code,
+                    method=method,
+                    path=path,
+                )
+
+            performance_profiler.record_request(method, path, duration, status_code)
+
+        return response
+
+    return monitoring_middleware
+
+
+def record_tool_execution(tool_name: str, duration: float, success: bool) -> None:
+    """Record tool execution metrics."""
+    status = "success" if success else "error"
+    TOOL_EXECUTION_COUNT.labels(tool_name=tool_name, status=status).inc()
+    TOOL_EXECUTION_DURATION.labels(tool_name=tool_name).observe(duration)
+
+
+def record_cache_access(cache_type: str, hit: bool) -> None:
+    """Record cache access metrics."""
+    if hit:
+        CACHE_HITS.labels(cache_type=cache_type).inc()
+    else:
+        CACHE_MISSES.labels(cache_type=cache_type).inc()
+
+
+def record_session_event(event: str) -> None:
+    """Record session lifecycle events."""
+    if event == "created":
+        SESSION_CREATED.inc()
+    elif event == "expired":
+        SESSION_EXPIRED.inc()
+
+
+def record_auth_attempt(success: bool) -> None:
+    """Record an authentication attempt (result=success|failure)."""
+    AUTHENTICATION_ATTEMPTS.labels(result="success" if success else "failure").inc()
+
+
+def record_rate_limit_hit(endpoint: str) -> None:
+    """Record a rate-limit rejection for an endpoint."""
+    RATE_LIMIT_HITS.labels(endpoint=endpoint).inc()
+
+
+class JsonLogFormatter(logging.Formatter):
+    """Structured JSON log formatter that surfaces the correlation ID and any `extra` fields.
+
+    The default text formatter silently drops the `correlation_id` (and other structured
+    fields) attached via `extra=`, so correlation IDs never appeared in output. Select this
+    with LOG_FORMAT=json.
+    """
+
+    _RESERVED = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__) | {"message", "asctime", "taskName"}
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        cid = getattr(record, "correlation_id", None) or get_correlation_id()
+        if cid:
+            payload["correlation_id"] = cid
+        if record.exc_info:
+            payload["exc_info"] = self.formatException(record.exc_info)
+        # Include any structured extras passed via logger(..., extra={...}).
+        for key, value in record.__dict__.items():
+            if key not in self._RESERVED and key not in payload and not key.startswith("_"):
+                try:
+                    json.dumps(value)
+                    payload[key] = value
+                except (TypeError, ValueError):
+                    payload[key] = str(value)
+        return json.dumps(payload, default=str)
+
+
+def configure_logging(log_format: Optional[str] = None, level: int = logging.INFO) -> None:
+    """Configure root logging. LOG_FORMAT=json installs the structured formatter."""
+    log_format = (log_format or os.getenv("LOG_FORMAT", "text")).lower()
+    root = logging.getLogger()
+    root.setLevel(level)
+    if not root.handlers:
+        root.addHandler(logging.StreamHandler())
+    if log_format == "json":
+        formatter: logging.Formatter = JsonLogFormatter()
+    else:
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - [%(correlation_id)s] %(message)s")
+    for handler in root.handlers:
+        handler.setFormatter(formatter)
+    # The text formatter references %(correlation_id)s, which is absent on most records;
+    # a filter defaults it so formatting never raises.
+    _install_correlation_default(root)
+
+
+class _CorrelationIdDefaultFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not hasattr(record, "correlation_id"):
+            record.correlation_id = get_correlation_id() or "-"
+        return True
+
+
+def _install_correlation_default(root: logging.Logger) -> None:
+    for handler in root.handlers:
+        if not any(isinstance(f, _CorrelationIdDefaultFilter) for f in handler.filters):
+            handler.addFilter(_CorrelationIdDefaultFilter())
