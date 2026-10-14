@@ -1,0 +1,61 @@
+# wazuh-mcp - development compose file (Docker Compose v2).
+# Source is mounted for quick edit-restart cycles (not live reload: the entrypoint runs
+# uvicorn without --reload; edit, then `docker compose restart`).
+
+name: wazuh-mcp-dev
+
+services:
+  wazuh-mcp-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.13}
+        VERSION: ${VERSION:-dev}
+
+    image: wazuh-mcp:dev
+    container_name: wazuh-mcp-dev
+    hostname: wazuh-mcp-dev
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+    environment:
+      # Development overrides
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 3000
+      ENVIRONMENT: development
+      LOG_LEVEL: DEBUG
+      PYTHONUNBUFFERED: 1
+
+    ports:
+      - "${MCP_BIND:-127.0.0.1}:${MCP_PORT:-3000}:3000"
+
+    # Development volume mounts: source available in-container for quick edit-restart cycles
+    volumes:
+      - ./src:/app/src:ro
+      - ./requirements.txt:/app/requirements.txt:ro
+
+    # Simplified health check for development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+      start_period: 30s
+
+    # Development logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "1"
+
+    # Development labels
+    labels:
+      - "com.docker.compose.service=wazuh-mcp-dev"
+      - "org.opencontainers.image.title=wazuh-mcp (development)"
+      - "development.source-mounted=true"

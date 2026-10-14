@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Configuration
+config/wazuh.env
+.env.local
+.env.production
+
+# Docker
+compose.override.yml
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# Temporary files
+*.tmp
+*.bak
+temp/
+tmp/
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+.api_key
+
+# Package managers
+uv.lock
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Sensitive documentation (maintainer-only content)
+MAINTAINER_MANUAL.md
+
+# Internal planning documents
+localllm.md
+
+# Local Claude Code guidance (not for distribution)
+CLAUDE.md
+
+# Local review scratch output
+.review/

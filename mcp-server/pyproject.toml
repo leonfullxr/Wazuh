@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wazuh-mcp"
+version = "0.1.0"
+description = "Production-grade MCP remote server for Wazuh SIEM integration with SSE transport"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Leon Elliott Fuller"}
+]
+keywords = ["wazuh", "security", "mcp", "sse", "siem", "remote-server"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Topic :: Security",
+    "Topic :: System :: Monitoring",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.11"
+dependencies = [
+    # Web framework + ASGI server (MCP protocol implemented directly on FastAPI)
+    "fastapi>=0.128.0,<1.0.0",
+    "uvicorn[standard]>=0.40.0,<1.0.0",
+    # HTTP & Data
+    "httpx>=0.28.1,<1.0.0",
+    "pydantic>=2.12.0,<3.0.0",
+    # Security & Auth
+    "pyjwt[crypto]>=2.9.0,<3.0.0",
+    "cryptography>=50.0.0,<51.0.0",
+    "python-multipart>=0.0.20,<1.0.0",
+    # Monitoring
+    "prometheus-client>=0.24.0,<1.0.0",
+    "psutil>=6.0.0,<8.0.0",
+    # Resilience
+    "tenacity>=9.0.0,<10.0.0",
+    # Utilities
+    "python-dotenv>=1.0.0,<2.0.0",
+]
+
+[project.optional-dependencies]
+redis = [
+    "redis>=7.0.0,<9.0.0",
+]
+# Opt-in GCF response encoding (RESPONSE_FORMAT=gcf); zero-dependency, pinned exact
+gcf = [
+    "gcf-python==2.7.1",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "ruff>=0.1.0",
+    "gcf-python==2.7.1",
+]
+
+[project.scripts]
+wazuh-mcp = "wazuh_mcp.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/leonfullxr/Wazuh/tree/main/mcp-server"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["wazuh_mcp*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.black]
+target-version = ["py311"]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
+src_paths = ["src", "tests"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/wazuh_mcp"]
+branch = true
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+# Honest floor at the current level. Ratchet upward as coverage grows; never down.
+fail_under = 37
+show_missing = false
+
+[tool.bandit]
+# B104: binding 0.0.0.0 is the documented default for this containerized server (MCP_HOST)
+# B105/B106: false positives on token-type labels ("access", "refresh", "Bearer", "jwt",
+#            "authless") and scoring thresholds; real secret detection is handled by
+#            gitleaks and TruffleHog in the Security Audit workflow
+# B110: best-effort cleanup paths (client close / cache eviction) intentionally swallow errors
+skips = ["B104", "B105", "B106", "B110"]
