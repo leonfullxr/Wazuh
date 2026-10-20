@@ -19,6 +19,8 @@ Field-tested command reference for diagnosing Wazuh clusters built from the offi
 
 ## Local lab with minikube
 
+For a full walkthrough (WSL2, `minikube tunnel`, Windows agent) see [Minikube in WSL2](minikube-wsl2-lab.md); for k3s with Rancher see [k3s-rancher-lab.md](k3s-rancher-lab.md).
+
 Start a local cluster and apply the local environment overlay:
 
 ```bash
