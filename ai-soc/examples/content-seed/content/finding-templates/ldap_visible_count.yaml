@@ -1,0 +1,11 @@
+template_id: ldap_visible_count
+topic_id: ldap
+kind: observation
+required_bindings:
+  ldap_recent_alert_count: [count]
+texts:
+  en: The synthetic LDAP example reports only {ldap_recent_alert_count} as its configured visible count.
+  es: El ejemplo sintético de LDAP informa solo de {ldap_recent_alert_count} como recuento visible configurado.
+required_check_outcomes: []
+allowed_evidence_kinds: [aggregate]
+relations: []

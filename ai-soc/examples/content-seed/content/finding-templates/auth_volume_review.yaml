@@ -1,0 +1,10 @@
+template_id: auth_volume_review
+topic_id: auth_review
+kind: recommendation
+required_bindings: {n: [count]}
+texts:
+  en: This read contains {n} matching visible records. Visibility may be restricted. Refer the volume for manual review; the threshold is not an attack verdict.
+  es: Esta lectura contiene {n} registros visibles coincidentes. La visibilidad puede estar restringida. Remita el volumen a revisión manual; el umbral no determina que sea un ataque.
+required_check_outcomes: [{check_id: auth_volume, outcome: passed}]
+allowed_evidence_kinds: [aggregate]
+relations: []

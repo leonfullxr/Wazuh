@@ -1,0 +1,17 @@
+schema_version: '1'
+topic_id: auth_review
+name: {en: Authentication review, es: Revisión de autenticación}
+aliases:
+- {alias_id: auth_review_en, language: en, text: authentication review, normalized: authentication review, boundary: phrase, topic_id: auth_review}
+- {alias_id: auth_review_es, language: es, text: revisión de autenticación, normalized: revision de autenticacion, boundary: phrase, topic_id: auth_review}
+public_document:
+  document_id: auth_review_guide
+  language: en
+  source_path: public-docs/en/auth_review.md
+  heading: Authentication failure review
+  anchor: authentication-failure-review
+  sha256: 6e3a7aad73e0bec0871df75fdb4807151b01bdb1d76ab0c82bdc6f4bfd68849e
+  published_path: en/auth-review.html
+playbook_id: auth_review_playbook
+finding_template_ids: [auth_count, auth_sample, auth_volume_review, auth_priority_observed, auth_source_gap, auth_recency_gap]
+fetch_bindings: []

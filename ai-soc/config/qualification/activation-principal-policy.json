@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SubscribeOnlyToTheSelectedMarketplaceProduct",
+      "Effect": "Allow",
+      "Action": "aws-marketplace:Subscribe",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws-marketplace:ProductId": "REPLACE_WITH_SELECTED_MODEL_PRODUCT_ID"
+        }
+      }
+    },
+    {
+      "Sid": "ManageSelectedModelSubscriptionPrerequisites",
+      "Effect": "Allow",
+      "Action": [
+        "aws-marketplace:Unsubscribe",
+        "aws-marketplace:ViewSubscriptions",
+        "bedrock:PutUseCaseForModelAccess"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

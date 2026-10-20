@@ -1,0 +1,36 @@
+schema_version: '1'
+topic_id: ldap
+name:
+  en: LDAP
+  es: LDAP
+aliases:
+- alias_id: ldap_en
+  language: en
+  text: LDAP
+  normalized: ldap
+  boundary: word
+  topic_id: ldap
+- alias_id: ldaps_en
+  language: en
+  text: LDAPS
+  normalized: ldaps
+  boundary: word
+  topic_id: ldap
+- alias_id: ldap_es
+  language: es
+  text: LDAP
+  normalized: ldap
+  boundary: word
+  topic_id: ldap
+public_document:
+  document_id: ldap_setup
+  language: en
+  source_path: public-docs/en/ldap.md
+  heading: Synthetic LDAP setup example
+  anchor: synthetic-ldap-setup-example
+  sha256: 428b407c8321b148b3f62aa5f5634d1543bedbf995069a5d03d11dd444b2fe49
+  published_path: en/ldap.html
+playbook_id: ldap_read_checks
+finding_template_ids:
+- ldap_visible_count
+fetch_bindings: []

@@ -1,0 +1,35 @@
+schema_version: '1'
+playbook_id: vuln_review_playbook
+topic_id: vuln_review
+title: {en: Vulnerability record review, es: Revisión de registros de vulnerabilidades}
+internal_context: Review visible High and Critical vulnerability records in a rolling 24-hour window. Checks describe returned rows only.
+steps:
+- kind: fetch
+  step_id: vuln_rows_step
+  fetch_id: vuln_rows
+  template_id: vulnerabilities_rows_v1
+  window_default: {unit: hours, amount: 24}
+  filters: [{field: vulnerability.severity, op: in, value: [High, Critical]}]
+  label: {en: High and Critical vulnerability records, es: Registros de vulnerabilidad High y Critical}
+- kind: compare_count
+  step_id: vuln_nonzero_step
+  check_id: vuln_nonzero
+  left_fetch_id: vuln_rows
+  op: gte
+  right: {kind: literal, value: 1}
+  label: {en: At least one matching record, es: Al menos un registro coincidente}
+- kind: field_present
+  step_id: vuln_versions_step
+  check_id: vuln_versions
+  fetch_id: vuln_rows
+  field: package.version
+  quantifier: all
+  label: {en: Package version field coverage, es: Cobertura del campo de versión del paquete}
+- kind: expectation_match
+  step_id: vuln_priority_step
+  check_id: vuln_priority
+  fetch_id: vuln_rows
+  field: vulnerability.severity
+  expectation_id: vuln_priority
+  quantifier: any
+  label: {en: Critical severity observed, es: Severidad Critical observada}

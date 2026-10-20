@@ -1,0 +1,58 @@
+{
+  "schema_version": "3",
+  "gate_id": "LV-NIGHTLY",
+  "acceptance_ids": [
+    "GP3"
+  ],
+  "owners": [
+    "staging provisioner",
+    "SOC operations owner"
+  ],
+  "artifacts": {
+    "service_sha": "0000000000000000000000000000000000000000",
+    "content_sha": "1111111111111111111111111111111111111111",
+    "artifact_digest": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "expected_deployment": {
+    "account_id": "000000000000",
+    "region": "eu-central-1",
+    "cluster_arn": "arn:aws:ecs:eu-central-1:000000000000:cluster/synthetic-staging",
+    "service_arn": "arn:aws:ecs:eu-central-1:000000000000:service/synthetic-staging/synthetic-staging",
+    "task_definition_arn": "arn:aws:ecs:eu-central-1:000000000000:task-definition/synthetic-staging:1",
+    "deployment_name": "synthetic-staging",
+    "image_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "service_sha": "0000000000000000000000000000000000000000",
+    "content_sha": "1111111111111111111111111111111111111111",
+    "configuration_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "commands": [
+    "make staging-golden"
+  ],
+  "evidence_refs": [
+    "synthetic-staging/nightly-baseline-v1"
+  ],
+  "inputs": {
+    "nightly": {
+      "required_case_ids": [
+        "G001"
+      ],
+      "baseline": {
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "en_cases": 20,
+        "es_cases": 20,
+        "drop_rate": 0.0,
+        "independently_reviewed": true
+      },
+      "results": [
+        {
+          "case_id": "G001",
+          "language": "en",
+          "outcome": "completed",
+          "route_matches": true,
+          "valid_candidates": 0,
+          "dropped_candidates": 0
+        }
+      ]
+    }
+  }
+}

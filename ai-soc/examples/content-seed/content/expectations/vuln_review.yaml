@@ -1,0 +1,8 @@
+schema_version: '1'
+expectation_id: vuln_priority
+topic_id: vuln_review
+field: vulnerability.severity
+op: eq
+value: Critical
+source: content
+version: '1'

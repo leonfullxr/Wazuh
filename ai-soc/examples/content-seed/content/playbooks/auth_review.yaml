@@ -1,0 +1,48 @@
+schema_version: '1'
+playbook_id: auth_review_playbook
+topic_id: auth_review
+title: {en: Authentication failure review, es: Revisión de fallos de autenticación}
+internal_context: Review visible authentication failure records in a rolling 24-hour window. Counts are matching visible records only. The recency limit of 3600 s is synthetic; real limits are deployment inputs.
+steps:
+- kind: fetch
+  step_id: auth_rows_step
+  fetch_id: auth_rows
+  template_id: alerts_rows_v1
+  window_default: {unit: hours, amount: 24}
+  filters: [{field: rule.groups, op: eq, value: authentication_failed}]
+  label: {en: Authentication failure records, es: Registros de fallos de autenticación}
+- kind: compare_count
+  step_id: auth_nonzero_step
+  check_id: auth_nonzero
+  left_fetch_id: auth_rows
+  op: gte
+  right: {kind: literal, value: 1}
+  label: {en: At least one matching record, es: Al menos un registro coincidente}
+- kind: compare_count
+  step_id: auth_volume_step
+  check_id: auth_volume
+  left_fetch_id: auth_rows
+  op: gte
+  right: {kind: literal, value: 10}
+  label: {en: Review volume threshold, es: Umbral de volumen para revisión}
+- kind: field_present
+  step_id: auth_sources_step
+  check_id: auth_sources
+  fetch_id: auth_rows
+  field: data.srcip
+  quantifier: all
+  label: {en: Source address field coverage, es: Cobertura del campo de dirección de origen}
+- kind: expectation_match
+  step_id: auth_priority_step
+  check_id: auth_priority
+  fetch_id: auth_rows
+  field: rule.level
+  expectation_id: auth_priority
+  quantifier: any
+  label: {en: Higher severity rule observed, es: Regla de nivel superior observada}
+- kind: record_age
+  step_id: auth_recency_step
+  check_id: auth_recency
+  fetch_id: auth_rows
+  max_age_seconds: 3600
+  label: {en: Newest returned record within synthetic limit, es: Registro devuelto reciente dentro del umbral sintético}
