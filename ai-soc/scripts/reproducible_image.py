@@ -575,7 +575,7 @@ def normalize_generated_asset_timestamps(assets: Path, source_epoch: int) -> Non
 def build_images(scratch_base: Path) -> Path:
     _check_cache()
     image_contexts = _prepared_image_check()
-    if _git("status", "--porcelain", "--untracked-files=all"):
+    if _git("status", "--porcelain", "--untracked-files=all", "--", "."):
         raise RuntimeError("commit source changes before producing image identity evidence")
     service_sha = _git("rev-parse", "HEAD")
     source_epoch = int(_git("show", "-s", "--format=%ct", "HEAD"))
