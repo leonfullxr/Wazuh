@@ -4,12 +4,12 @@ description: Wazuh manager cluster, indexer and dashboard on Kubernetes, with an
 type: application
 
 # Chart version. Bump whenever the chart itself changes.
-version: 0.1.0
+version: 0.2.0
 
-# Wazuh release these templates target. Image tags default to this. 4.14.7 is
+# Wazuh release these templates target. Image tags default to this. 4.14.9 is
 # the current stable line; 5.x reshapes the upstream deployment and is not
 # supported yet.
-appVersion: "4.14.7"
+appVersion: "4.14.9"
 
 kubeVersion: ">=1.23.0-0"
 

@@ -33,6 +33,8 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | `authd` rejects enrollment: `duplicate name ... registration time` or `... not disconnected` | [agents/enrollment-key-conflicts.md](agents/enrollment-key-conflicts.md#decoding-authd-enrollment-rejections) |
 | Agent stuck `never_connected`: `Waiting for server reply` then `SSL read (unable to receive message)` | [agents/enrollment-key-conflicts.md](agents/enrollment-key-conflicts.md#enrollment-loops-and-the-duplicate-name-storm) |
 | `Invalid password` enrollment storm, or `Too many connections. Rejecting.` on authd | [agents/enrollment-key-conflicts.md](agents/enrollment-key-conflicts.md#decoding-authd-enrollment-rejections) |
+| Disconnected agents pile up after Kubernetes nodes are replaced or scaled in | [../containerization/kubernetes/agent-daemonset.md](../containerization/kubernetes/agent-daemonset.md#agent-identity-on-nodes-that-come-and-go) |
+| DaemonSet agents keep reporting the old version after the image tag was bumped | [../containerization/kubernetes/wazuh-agent-deployment.md](../containerization/kubernetes/wazuh-agent-deployment.md#upgrading-the-agent-image) |
 | `Agent buffer is full` warnings, events dropped at the agent | [agents/flooding.md](agents/flooding.md) |
 | A handful of rules generate most of your alert volume | [agents/flooding.md](agents/flooding.md#step-2-reduce-noise-at-the-source) |
 | macOS agent collects nothing useful / needs health metrics | [agents/macos.md](agents/macos.md) |

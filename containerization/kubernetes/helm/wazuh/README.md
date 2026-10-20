@@ -25,6 +25,7 @@ and is not covered here yet.
 - [Certificates](#certificates)
 - [Credentials](#credentials)
 - [Exposing agents](#exposing-agents)
+- [Agent DaemonSet](#agent-daemonset)
 - [Sizing](#sizing)
 - [Platform notes](#platform-notes)
 - [Differences from the upstream deployment](#differences-from-the-upstream-deployment)
@@ -209,6 +210,79 @@ The dashboard is different. It speaks HTTPS on 5601, so `dashboard.ingress` is
 a normal Ingress. On an AWS ALB you also need `success-codes: "401"`, because
 the Wazuh API correctly answers an unauthenticated health check with 401 and
 the injected pod readiness gate otherwise never opens.
+
+## Agent DaemonSet
+
+`agent.enabled=true` runs the official `wazuh/wazuh-agent` image on every node,
+control plane included. The chart only enrolls the agent. What it collects comes
+from the group `agent.conf` on the manager, so point `agent.group` at a group
+and keep the paths there in the agent's view of the node:
+
+| Node path | Path inside the agent pod | How it gets there |
+|---|---|---|
+| `/var/log` | `/host/var/log` | `agent.hostLogs` (on by default) |
+| Anything else, for example `/etc` | `/host/etc` by convention | `agent.extraVolumes` plus `agent.extraVolumeMounts`, read-only |
+
+A `<localfile>` for `/var/log/messages` therefore reads
+`/host/var/log/messages`, and host FIM watches `/host/etc`, not `/etc`.
+
+What a containerized agent cannot do, whatever you mount:
+
+- **Inventory the node.** Syscollector, SCA and rootcheck run against the
+  agent container's own OS and packages. Disable them in the group or expect
+  results that describe the container.
+- **Attribute file changes.** `whodata` needs the host audit subsystem, so FIM
+  falls back to realtime and alerts carry no user. See
+  [FIM in containers](../../../../fim/containers.md#whodata-attribution-is-not-available-inside-a-container).
+- **Survive node replacement.** Agent state lives on `agent.dataVolume`
+  (hostPath by default), so a new node enrolls as a new agent. Plan
+  disconnected-agent cleanup on autoscaled node groups with the scoped
+  [stale agent cleanup](../../../../scripts/agent-management/README.md#stale-agent-cleanup-for-replaced-nodes)
+  CronJob.
+
+The `seed-ossec-tree` init container copies the image's `/var/ossec` to the
+hostPath on first start and refreshes the program files whenever
+`VERSION.json` differs, keeping `etc`, `queue`, `logs` and `var`. Without that
+step a tag bump would leave seeded nodes on their first agent version; see
+[Upgrading the agent image](../../wazuh-agent-deployment.md#upgrading-the-agent-image).
+
+Bottlerocket enforces SELinux and runs ordinary pods as `container_t`, which may
+be denied host paths outside `/var/log`. `agent.securityContext.privileged=true`
+moves the pod to `control_t`, and that label can write the Bottlerocket API
+socket, which means full control of the node configuration. Test with the
+defaults first, look for denials, and treat `privileged` as a security review
+decision. Bottlerocket also renders `/etc` from settings on every boot, so
+expect inode and mtime changes after a reboot.
+
+With `report_changes="yes"` on `/host/etc`, add `<nodiff>` for key material
+(for example `<nodiff type="sregex">\.key$</nodiff>`), or the diff ships the
+file content to the indexer. `<ignore>` does not help with noisy trees such as
+`/var/lib/kubelet/pods`: ignored paths are still scanned, only not reported.
+
+### Community agent-only chart
+
+[MaximeWewer/wazuh-agent-helm](https://github.com/MaximeWewer/wazuh-agent-helm)
+is a separate agent-only chart that writes `ossec.conf` itself instead of
+relying on group configuration. It exposes options this chart leaves to the
+manager or does not need in-cluster: a failover `<server>` list,
+`force_reconnect_interval`, `config-profile`, raw `extraOssecConf` XML, and
+active response scripts from values. Review it before use (checked at 4.14.9):
+
+- Its init containers copy `ossec.conf`, `local_internal_options.conf` and
+  `authd.pass` into `/mnt/etc`, which only exists when `persistence.etc` is
+  enabled. That key defaults to off, so the defaults and the docker, FIM and
+  host-logs examples stop in `Init:CrashLoopBackOff` with
+  `cp: can't create '/mnt/etc/ossec.conf': No such file or directory`. Enable
+  `persistence.etc` with `type: hostPath`.
+- `persistence.*.type: pvc` references a claim the chart never creates, and a
+  single claim shared by every node would also share one `client.keys`. Use
+  hostPath on a DaemonSet.
+- The default `local_internal_options.conf` sets
+  `wazuh_command.remote_commands=1`, so anyone who can edit the group's
+  `agent.conf` on the manager can run commands as root on every node. Override
+  `localInternalOptions` unless you need the `command` wodle.
+- It creates a Role with read access to pods, logs and ConfigMaps that the
+  agent never uses. Set `rbac.create=false`.
 
 ## Sizing
 

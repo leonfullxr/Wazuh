@@ -1,0 +1,67 @@
+# Removes agents of one group that have been disconnected (or never connected)
+# for longer than OLDER_THAN. Meant for DaemonSet agents on autoscaled or
+# replaced nodes, where each new node enrolls as a new agent and the old entry
+# stays behind. The API user only needs agent:delete on agent:group:<group>;
+# see README.md for the RBAC setup.
+#
+# kubectl -n wazuh create secret generic wazuh-agent-cleanup \
+#   --from-literal=username=agent-cleanup --from-literal=password='<PASSWORD>' \
+#   --from-file=api-ca.pem=<CA that signed the API certificate>
+# (with key pinning instead, the api-ca.pem key can be any placeholder file)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wazuh-stale-agent-cleanup
+  namespace: wazuh
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+            - name: cleanup
+              image: curlimages/curl:8.10.1
+              env:
+                - name: WAZUH_API_URL
+                  value: "https://wazuh.wazuh.svc:55000"
+                - name: AGENT_GROUP
+                  value: "k8s-nodes"
+                # Longer than the longest planned node outage. A node that
+                # comes back after its agent was removed enrolls again.
+                - name: OLDER_THAN
+                  value: "2d"
+                # The default API certificate is self-signed for localhost, so
+                # --cacert fails against the service name. Either replace it
+                # with one your CA signs, or pin its key (README.md):
+                #   -k --pinnedpubkey sha256//<BASE64_SPKI_HASH>
+                - name: CURL_TLS
+                  value: "--cacert /secret/api-ca.pem"
+                - name: WAZUH_API_USER
+                  valueFrom: { secretKeyRef: { name: wazuh-agent-cleanup, key: username } }
+                - name: WAZUH_API_PASSWORD
+                  valueFrom: { secretKeyRef: { name: wazuh-agent-cleanup, key: password } }
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  TOKEN=$(curl -fsS $CURL_TLS -u "$WAZUH_API_USER:$WAZUH_API_PASSWORD" \
+                    -X POST "$WAZUH_API_URL/security/user/authenticate?raw=true")
+                  curl -fsS $CURL_TLS -H "Authorization: Bearer $TOKEN" -X DELETE \
+                    "$WAZUH_API_URL/agents?agents_list=all&status=disconnected,never_connected&older_than=$OLDER_THAN&group=$AGENT_GROUP&purge=true"
+              volumeMounts:
+                - name: secret
+                  mountPath: /secret
+                  readOnly: true
+          volumes:
+            - name: secret
+              secret:
+                secretName: wazuh-agent-cleanup
+                items:
+                  - key: api-ca.pem
+                    path: api-ca.pem

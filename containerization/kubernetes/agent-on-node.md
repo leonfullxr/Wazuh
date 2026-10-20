@@ -12,7 +12,7 @@ This walkthrough uses an NGINX deployment: pods write logs to a hostPath, and th
 
 ## Why on the node instead of in a container
 
-There is no official Wazuh agent image or DaemonSet. Running the agent inside a container brings two limits that a node-level install avoids:
+Wazuh publishes an agent image and [DaemonSet manifests](./wazuh-agent-deployment.md), but running the agent inside a container still brings two limits that a node-level install avoids:
 
 - **The agent reports the container's OS, not the node's.** An agent in a pod inventories the container image. Package list, SCA results, and system inventory describe the container, not the worker node you care about. Bind-mounting host paths into the container does not fully fix this: the installed-package list and similar data are still queried from inside the container.
 - **Heterogeneous workload logs are hard to normalize.** Logs from different workloads on a node rarely share one format (syslog, JSON, and so on). You cannot infer the format from the file name, so parsing often fails and needs per-source custom decoders.
@@ -42,16 +42,16 @@ spec:
         name: nginx-app
     spec:
       containers:
- - name: nginx
+      - name: nginx
         image: nginx
         ports:
- - containerPort: 80
+        - containerPort: 80
         volumeMounts:
         # NGINX stores its logs here inside the container
- - name: nginx-logs
+        - name: nginx-logs
           mountPath: /var/log/nginx/
       volumes:
- - name: nginx-logs
+      - name: nginx-logs
         hostPath:
           # Path on the node that the Wazuh agent will monitor
           path: /var/log/kubernetes/nginx/
