@@ -12,6 +12,13 @@ Patterns for running Wazuh as StatefulSets on Kubernetes, managing config throug
 | [Google GKE](./gke.md) | Persistent Disk CSI storage class, zone-aware scheduling, init-container image-pull failures, verification |
 | [Red Hat OpenShift / OKD](./openshift.md) | Fitting the stack under OpenShift Security Context Constraints: s6-overlay UID blocker, indexer `vm.max_map_count` via Node Tuning Operator, per-component SCCs, ServiceAccount bindings, community custom SCC |
 
+## Local labs
+
+| Guide | Description |
+|-------|-------------|
+| [Minikube in WSL2 with a Windows agent](./minikube-wsl2-lab.md) | Single-machine lab: StorageClass fix, `minikube tunnel` exposure on `127.0.0.1`, enrolling the Windows host (leave `WAZUH_MANAGER_PORT` unset) |
+| [k3s with Rancher management](./k3s-rancher-lab.md) | Two Vagrant VMs: k3s with `local-path` storage, NodePort dashboard (Traefik owns 443), `securityadmin` bootstrap, importing the cluster into a standalone Rancher, clearing stuck `cattle-*` namespaces |
+
 ## Agent deployment
 
 | Guide | Description |

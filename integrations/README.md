@@ -58,9 +58,9 @@ logs.
 
 ## Experimental work
 
-- [integrations/ai-assistant/](ai-assistant/) — OpenSearch Dashboard assistant
+- [integrations/ai-assistant/](ai-assistant/) - OpenSearch Dashboard assistant
   proof of concept (ML Commons connector, MCP-LLM gateway, OpenSearch MCP server).
-- `ai-soc` — later SOC service (RAG, embeddings, playbooks, vector
+- `ai-soc` - later SOC service (RAG, embeddings, playbooks, vector
   search, Titan). Kept on disk only; not part of this change.
 
 Both folders are experimental and not part of the production KB procedures
