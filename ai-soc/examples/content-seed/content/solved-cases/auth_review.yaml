@@ -1,0 +1,7 @@
+schema_version: '1'
+case_id: synthetic_auth_review_case
+topic_id: auth_review
+synthetic: true
+description: Fictional alert records meet a volume review threshold; the record count alone does not establish attack activity.
+promotion_status: candidate
+anonymization_attestation: {reviewer_id: synthetic-template-owner, date: '2026-10-19'}

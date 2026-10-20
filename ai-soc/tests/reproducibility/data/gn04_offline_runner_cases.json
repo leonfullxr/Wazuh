@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "case_id": "B6-GN04.offline-runner.private",
+  "acceptance_id": "GN04",
+  "variants": {
+    "positive": {
+      "ambient": {
+        "AWS_ACCESS_KEY_ID": "positive-access-sentinel",
+        "AWS_SECRET_ACCESS_KEY": "positive-secret-sentinel",
+        "AWS_PROFILE": "positive-profile-sentinel"
+      },
+      "expected_cleared": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_PROFILE"
+      ]
+    },
+    "negative": {
+      "ambient": {
+        "AWS_WEB_IDENTITY_TOKEN_FILE": "/tmp/negative-token-sentinel",
+        "AWS_SESSION_TOKEN": "negative-session-sentinel",
+        "SOC_MODE": "live"
+      },
+      "expected_cleared": [
+        "AWS_WEB_IDENTITY_TOKEN_FILE",
+        "AWS_SESSION_TOKEN"
+      ],
+      "expected_fixed": {
+        "SOC_MODE": "fixture"
+      }
+    },
+    "boundary": {
+      "ambient": {
+        "TZ": "Pacific/Honolulu",
+        "LC_ALL": "C",
+        "PYTHONHASHSEED": "random"
+      },
+      "expected_fixed": {
+        "TZ": "UTC",
+        "LC_ALL": "C.UTF-8",
+        "PYTHONHASHSEED": "0",
+        "AWS_REGION": "us-east-1",
+        "AWS_EC2_METADATA_DISABLED": "true"
+      }
+    },
+    "failure": {
+      "argv": ["/definitely/missing/soc-b6-offline-command"],
+      "expected_returncode": 1
+    }
+  }
+}

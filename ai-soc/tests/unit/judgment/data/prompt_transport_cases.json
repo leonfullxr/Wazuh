@@ -1,0 +1,22 @@
+{
+  "fixture_version": 1,
+  "model_id": "arn:aws:bedrock:us-east-1:123456789012:inference-profile/test-profile",
+  "expected_count_method": "count_tokens",
+  "expected_judgment_method": "converse",
+  "forbidden_transport_methods": [
+    "converse_stream",
+    "invoke_model_with_response_stream"
+  ],
+  "forbidden_arguments": [
+    "toolConfig",
+    "outputConfig"
+  ],
+  "non_judgment_calls": 0,
+  "timeout_error": "synthetic Converse timeout",
+  "timeout_state": "model_unavailable",
+  "timeout_attempts": 1,
+  "invalid_guardrail": {
+    "identifier": "DRAFT",
+    "version": "1"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "expectation_id": "vuln_priority",
+  "field": "vulnerability.severity",
+  "op": "eq",
+  "schema_version": "1",
+  "source": "content",
+  "topic_id": "vuln_review",
+  "value": "Critical",
+  "version": "1"
+}

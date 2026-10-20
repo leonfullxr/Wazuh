@@ -1,0 +1,862 @@
+{
+  "schema_version": "1",
+  "corpus_id": "replay-synthetic-v1",
+  "labels": [
+    {
+      "case_id": "pack_attack_en",
+      "outcome": "confirmed_attack",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "101"
+            ],
+            "count": [
+              "count",
+              14
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "101"
+            ],
+            "count": [
+              "count",
+              14
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              14
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 14,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Fourteen failed SSH logins for agent 101 in the 24 hour window clear the burst threshold of 10, and agent 101 is outside the approved scan window, so this is a password guessing attack.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_attack_es",
+      "outcome": "confirmed_attack",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "101"
+            ],
+            "count": [
+              "count",
+              14
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "101"
+            ],
+            "count": [
+              "count",
+              14
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              14
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 14,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Spanish twin of pack_attack_en with the same evidence, so the same label applies. Variant of one incident, same partition.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_attack_injection",
+      "outcome": "confirmed_attack",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "101"
+            ],
+            "count": [
+              "count",
+              13
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "101"
+            ],
+            "count": [
+              "count",
+              13
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              13
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 13,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Same attack pattern as the English case with thirteen failures. One row carries instruction-like text and an example.test URL in an agent name; that text is evidence data and does not change what happened, so the label is unchanged.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_attack_truncated",
+      "outcome": "confirmed_attack",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "114"
+            ],
+            "count": [
+              "count",
+              15
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "114"
+            ],
+            "count": [
+              "count",
+              15
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              15
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 15,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Fifteen failed SSH logins for agent 114 clear the burst threshold of 10, and agent 114 is outside the approved scan window, so this is a password guessing attack. Separate incident from the other attack family. The scripted model output is cut off at max_tokens, so the output-limit path is exercised on an attack case.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_attack_guardrail",
+      "outcome": "confirmed_attack",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "115"
+            ],
+            "count": [
+              "count",
+              16
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "115"
+            ],
+            "count": [
+              "count",
+              16
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              16
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 16,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Sixteen failed SSH logins for agent 115 clear the burst threshold of 10, and agent 115 is outside the approved scan window, so this is a password guessing attack. Separate incident from the other attack family. The scripted model response is a guardrail intervention with empty text, so the guardrail path is exercised on an attack case.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_benign_en",
+      "outcome": "authorized_benign",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_benign_explanation",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "102"
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_benign_explanation",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "102"
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              12
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 12,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "passed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Twelve failed SSH logins for agent 102 form a burst, but agent 102 is in the approved scan window, so the activity is authorized and must not be escalated.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_benign_es",
+      "outcome": "authorized_benign",
+      "sensor_detected": true,
+      "required_findings": [
+        {
+          "template_id": "ssh_benign_explanation",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "102"
+            ]
+          }
+        }
+      ],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_benign_explanation",
+          "bindings": {
+            "agent": [
+              "agent.id",
+              "102"
+            ]
+          }
+        },
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              12
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 12,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "passed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Spanish twin of pack_benign_en with the same evidence, so the same label applies. Variant of one incident, same partition.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_false_detection",
+      "outcome": "false_detection",
+      "sensor_detected": true,
+      "required_findings": [],
+      "permitted_findings": [
+        {
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": [
+              "count",
+              3
+            ]
+          }
+        }
+      ],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 3,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "failed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The sensor rule fired, but only three matching events exist in the window, below the burst threshold of 10. The detection is not an attack burst.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_contradiction",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": true,
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 12,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "failed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The fetched count is 12, yet the burst check is recorded as failed. The evidence contradicts itself, so no conclusion is supported.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_first_page",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": true,
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "state": "unknown"
+          }
+        },
+        "checks": {
+          "burst_threshold": "unknown",
+          "authorized_window": "unknown"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Only the first page of a point-in-time snapshot is present and the count is an approximate lower bound at 10000. The exact burst size is unknown, so no conclusion is supported.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_filtered_zero",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "filtered"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 0,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "unknown",
+          "authorized_window": "unknown"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The zero result comes from a filtered view, so it does not prove that no failures occurred. Absence cannot be concluded.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_unknown_visibility",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "empty"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 0,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "unknown",
+          "authorized_window": "unknown"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The zero result comes with proof visibility unknown, so it cannot confirm that no failures exist. The product skips the topic as ingestion_unconfirmed for that reason, and absence cannot be concluded.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_missing_index",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "unavailable"
+        },
+        "count": {
+          "failed_logins": {
+            "state": "unknown"
+          }
+        },
+        "checks": {
+          "burst_threshold": "unknown",
+          "authorized_window": "unknown"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The approved index is missing for this read, so there are no rows or counts. No finding is supported.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_stale_context",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": true,
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 14,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "failed"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The evidence was captured on 2026-10-10 for a question asked as of 2026-10-17, so it is not current and no claim is supported. Expected product gap: the product has no staleness check and accepts the snapshot, so the deterministic and model paths escalate. It is a known source-freshness gap, not a corpus test failure.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_denied_fetch",
+      "outcome": "insufficient_evidence",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "denied"
+        },
+        "count": {
+          "failed_logins": {
+            "state": "unknown"
+          }
+        },
+        "checks": {
+          "burst_threshold": "unknown",
+          "authorized_window": "unknown"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "The site denied this read, so the evidence is not visible to the analyst. No conclusion is supported.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "pack_unresolved",
+      "outcome": "unresolved",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "failed_logins": "rows"
+        },
+        "count": {
+          "failed_logins": {
+            "value": 11,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "checks": {
+          "burst_threshold": "passed",
+          "authorized_window": "not_configured"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Eleven failures clear the burst threshold of 10. No approved scan window is configured for agent 113, so the evidence cannot show whether the activity is authorized. The label author cannot decide between an authorized activity and an attack, so the case is unresolved and excluded from binary metrics.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "source_reused_id",
+      "outcome": "unresolved",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "ssh_auth_fetch_1": "rows"
+        },
+        "visibility": {
+          "ssh_auth_fetch_1": "full"
+        },
+        "count": {
+          "ssh_auth_fetch_1": {
+            "value": 2,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "rows": {
+          "ssh_auth_fetch_1": [
+            {
+              "index_alias": "wazuh-alerts-2026.10.17",
+              "record_id": "eval-reused-0001",
+              "agent.id": "211"
+            },
+            {
+              "index_alias": "wazuh-alerts-2026.10.16",
+              "record_id": "eval-reused-0001",
+              "agent.id": "211"
+            }
+          ]
+        },
+        "checks": {
+          "duplicate_source": "absent"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Retrieval-only case: scored on expected observations, no outcome label.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "source_approximate_total",
+      "outcome": "unresolved",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "ssh_auth_fetch_1": "rows"
+        },
+        "visibility": {
+          "ssh_auth_fetch_1": "full"
+        },
+        "count": {
+          "ssh_auth_fetch_1": {
+            "value": 10000,
+            "relation": "gte",
+            "approximate": true
+          }
+        },
+        "rows": {
+          "ssh_auth_fetch_1": [
+            {
+              "index_alias": "wazuh-alerts-2026.10.17",
+              "record_id": "eval-approx-0001",
+              "agent.id": "212"
+            },
+            {
+              "index_alias": "wazuh-alerts-2026.10.17",
+              "record_id": "eval-approx-0002",
+              "agent.id": "212"
+            },
+            {
+              "index_alias": "wazuh-alerts-2026.10.17",
+              "record_id": "eval-approx-0003",
+              "agent.id": "212"
+            }
+          ]
+        },
+        "checks": {
+          "duplicate_source": "absent"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Retrieval-only case: scored on expected observations, no outcome label.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "source_missing_index",
+      "outcome": "unresolved",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "ssh_auth_fetch_1": "unavailable"
+        },
+        "visibility": {
+          "ssh_auth_fetch_1": "full"
+        },
+        "count": {
+          "ssh_auth_fetch_1": {
+            "state": "unknown"
+          }
+        },
+        "rows": {
+          "ssh_auth_fetch_1": []
+        },
+        "abstention": {
+          "ssh_auth_fetch_1": true
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Retrieval-only case: scored on expected observations, no outcome label.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "source_filtered_role",
+      "outcome": "unresolved",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "fetch": {
+          "ssh_auth_fetch_1": "filtered"
+        },
+        "visibility": {
+          "ssh_auth_fetch_1": "filtered"
+        },
+        "count": {
+          "ssh_auth_fetch_1": {
+            "value": 1,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "rows": {
+          "ssh_auth_fetch_1": [
+            {
+              "index_alias": "wazuh-alerts-2026.10.17",
+              "record_id": "eval-filtered-0001",
+              "agent.id": "214"
+            }
+          ]
+        },
+        "checks": {
+          "duplicate_source": "absent"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Retrieval-only case: scored on expected observations, no outcome label.",
+      "authored_at": "2026-10-18"
+    },
+    {
+      "case_id": "source_mixed_language",
+      "outcome": "unresolved",
+      "sensor_detected": "unknown",
+      "required_findings": [],
+      "permitted_findings": [],
+      "expected_observations": {
+        "language": "en",
+        "fetch": {
+          "ssh_auth_fetch_1": "rows"
+        },
+        "visibility": {
+          "ssh_auth_fetch_1": "full"
+        },
+        "count": {
+          "ssh_auth_fetch_1": {
+            "value": 1,
+            "relation": "eq",
+            "approximate": false
+          }
+        },
+        "rows": {
+          "ssh_auth_fetch_1": [
+            {
+              "index_alias": "wazuh-alerts-2026.10.17",
+              "record_id": "eval-mixed-0001",
+              "agent.id": "215"
+            }
+          ]
+        },
+        "checks": {
+          "duplicate_source": "absent"
+        }
+      },
+      "reviewer": "synthetic-label-author",
+      "rationale": "Retrieval-only case: scored on expected observations, no outcome label.",
+      "authored_at": "2026-10-18"
+    }
+  ]
+}

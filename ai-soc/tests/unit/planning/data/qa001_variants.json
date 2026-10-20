@@ -1,0 +1,10 @@
+{
+  "positive": {
+    "question": "LDAP is failing, what should I fix?",
+    "expected_topic": "ldap",
+    "expected_document": true,
+    "expected_failure": true,
+    "expected_judgment": true,
+    "expected_playbook": "ldap_checks"
+  }
+}

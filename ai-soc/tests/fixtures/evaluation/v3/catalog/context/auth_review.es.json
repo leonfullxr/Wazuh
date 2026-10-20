@@ -1,0 +1,12 @@
+{
+  "content_sha": "2e47a19e70cbb5af804987a12375358422f0d200",
+  "document_section": null,
+  "internal_context": "Use solo la evidencia suministrada. Los recuentos son registros visibles y las recomendaciones solicitan revision manual.",
+  "language": "es",
+  "missing": [
+    "public_document"
+  ],
+  "schema_version": "1",
+  "sha256": "90a79e9a82753f05fc4e76662200fe0edf27303d94be5837f2f2fdba005851c6",
+  "topic_id": "auth_review"
+}

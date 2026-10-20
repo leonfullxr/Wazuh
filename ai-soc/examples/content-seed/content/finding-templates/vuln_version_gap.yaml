@@ -1,0 +1,10 @@
+template_id: vuln_version_gap
+topic_id: vuln_review
+kind: observation
+required_bindings: {o: [outcome]}
+texts:
+  en: Package version was absent from at least one returned row; outcome {o}. This check describes returned rows only.
+  es: Faltó la versión del paquete en al menos una fila devuelta; resultado {o}. Esta comprobación describe solo las filas devueltas.
+required_check_outcomes: [{check_id: vuln_versions, outcome: failed}]
+allowed_evidence_kinds: [check]
+relations: []

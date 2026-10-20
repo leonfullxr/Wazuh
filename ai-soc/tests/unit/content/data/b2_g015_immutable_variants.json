@@ -1,0 +1,20 @@
+{
+  "positive": {
+    "question": "LDAP is failing; recommend fixes",
+    "expected_aliases": ["ldap_en", "ldaps_en", "ldap_es"],
+    "expected_playbook": "ldap_read_checks"
+  },
+  "negative": {
+    "path": "pack/topics/ldap.json",
+    "expected_write_error": "PermissionError"
+  },
+  "boundary": {
+    "questions": ["   ", "???", "unknown topic"],
+    "expected_same_pack_hash": true
+  },
+  "failure": {
+    "path": "pack/topics/ldap.json",
+    "mutation": "append-space",
+    "expected_error": "manifest file hash mismatch"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "repository": "https://example.test/synthetic-content",
+  "source_path": "public-docs/en/ldap.md",
+  "published_path": "en/ldap.html",
+  "heading": "Synthetic LDAP setup example",
+  "anchor": "synthetic-ldap-setup-example",
+  "base_document": "# Synthetic LDAP setup example\n\nThis page is a synthetic fixture only. Replace it with reviewed, site-specific setup guidance before approval.\n",
+  "revised_document": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+  "dirty_document": "# Synthetic LDAP setup example\n\nThis unapproved dirty working-tree edit must not be promoted.\n",
+  "cases": {
+    "positive": {
+      "action": "build_same_approved_commit_twice",
+      "expected_identical_pack": true
+    },
+    "negative": {
+      "action": "mutate_loaded_artifact_docs",
+      "path": "docs/en/ldap.html",
+      "expected_context": "# Synthetic LDAP setup example\n\nThis page is a synthetic fixture only. Replace it with reviewed, site-specific setup guidance before approval.\n",
+      "expected_error": "manifest file hash mismatch",
+      "changed_bytes": "tampered approved docs asset\n"
+    },
+    "boundary": {
+      "action": "approve_revised_document",
+      "expected_context": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+      "expected_published_path": "en/ldap.html"
+    },
+    "failure": {
+      "action": "pair_old_pack_with_new_provenance",
+      "expected_error": "runtime provenance does not match the verified content pack"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "expectation_id": "auth_priority",
+  "field": "rule.level",
+  "op": "gte",
+  "schema_version": "1",
+  "source": "content",
+  "topic_id": "auth_review",
+  "value": 10,
+  "version": "1"
+}

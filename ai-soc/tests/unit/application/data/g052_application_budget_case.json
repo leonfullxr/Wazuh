@@ -1,0 +1,52 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Application boundary oracle for context-token reservation without evidence truncation.",
+  "cases": {
+    "positive": {
+      "counted_input_tokens": 6,
+      "reserved_output_tokens": 1024,
+      "safety_margin_tokens": 256,
+      "context_tokens": 1287,
+      "expected_total_tokens": 1286,
+      "expected_context_difference": 1,
+      "expected_converse_attempts": 1,
+      "expected_judgment_state": "no_findings",
+      "expected_left_out": []
+    },
+    "negative": {
+      "counted_input_tokens": 7,
+      "reserved_output_tokens": 1024,
+      "safety_margin_tokens": 256,
+      "context_tokens": 1286,
+      "expected_total_tokens": 1287,
+      "expected_context_difference": -1,
+      "expected_converse_attempts": 0,
+      "expected_judgment_state": "context_exceeded",
+      "expected_left_out": ["context_exceeded"]
+    },
+    "boundary": {
+      "counted_input_tokens": 7,
+      "reserved_output_tokens": 1024,
+      "safety_margin_tokens": 256,
+      "context_tokens": 1287,
+      "expected_total_tokens": 1287,
+      "expected_context_difference": 0,
+      "expected_converse_attempts": 1,
+      "expected_judgment_state": "no_findings",
+      "expected_left_out": []
+    },
+    "failure": {
+      "counted_input_tokens": 7,
+      "reserved_output_tokens": 1024,
+      "safety_margin_tokens": 256,
+      "context_tokens": 1287,
+      "count_failure": true,
+      "expected_converse_attempts": 0,
+      "expected_judgment_state": "token_count_unavailable",
+      "expected_left_out": ["token_count_unavailable"]
+    }
+  },
+  "evidence_must_remain_identical": true
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Independent application oracle for per-topic denied and allowed fetch outcomes.",
+  "cases": {
+    "positive": {
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "fetch_state": "denied"},
+        {"topic_id": "vpn", "ordinal": 1, "fetch_state": "rows", "judgment": true}
+      ],
+      "expected_calls": ["authentication", "vpn"],
+      "expected_left_out": [],
+      "expected_judgment_attempts": 1,
+      "expected_allowed_findings": ["Allowed VPN evidence: Synthetic vpn alert"]
+    },
+    "negative": {
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "fetch_state": "denied"}
+      ],
+      "expected_calls": ["authentication"],
+      "expected_left_out": [],
+      "expected_judgment_attempts": 0,
+      "expected_allowed_findings": []
+    },
+    "boundary": {
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "fetch_state": "denied"},
+        {"topic_id": "vpn", "ordinal": 31, "fetch_state": "rows", "judgment": true}
+      ],
+      "expected_calls": ["authentication", "vpn"],
+      "expected_left_out": [],
+      "expected_judgment_attempts": 1,
+      "expected_allowed_findings": ["Allowed VPN evidence: Synthetic vpn alert"]
+    },
+    "failure": {
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "fetch_state": "denied"},
+        {"topic_id": "vpn", "ordinal": 1, "fetch_state": "rows", "judgment": true},
+        {"topic_id": "tls", "ordinal": 2, "fetch_state": "unavailable"}
+      ],
+      "expected_calls": ["authentication", "vpn", "tls"],
+      "expected_left_out": [{"topic_id": "tls", "stage": "fetch", "reason": "evidence_unavailable"}],
+      "expected_judgment_attempts": 1,
+      "expected_allowed_findings": ["Allowed VPN evidence: Synthetic vpn alert"]
+    }
+  }
+}

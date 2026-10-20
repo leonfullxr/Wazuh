@@ -1,0 +1,28 @@
+{
+  "positive": {
+    "english_cue_id": "fixture_failure_en",
+    "english_text": "experiences a disruption",
+    "spanish_cue_id": "fixture_failure_es",
+    "spanish_text": "experimenta una avería",
+    "question": "LDAP experiences a disruption",
+    "expected_failure": true
+  },
+  "negative": {
+    "unreviewed_text": "experiences a disruption",
+    "question": "LDAP experiences a disruption",
+    "expected_failure": false
+  },
+  "boundary": {
+    "english_cue_id": "fixture_failure_en",
+    "english_text": "experiences a disruption",
+    "spanish_cue_id": "fixture_failure_es",
+    "spanish_text": "experimenta una avería",
+    "changed_text": "experiences a major disruption"
+  },
+  "failure": {
+    "duplicate_cue_id": "duplicate_failure_en",
+    "english_text": "experiences a disruption",
+    "spanish_cue_id": "fixture_failure_es",
+    "spanish_text": "experimenta una avería"
+  }
+}

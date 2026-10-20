@@ -1,0 +1,24 @@
+{
+  "cases": {
+    "positive": {
+      "left": {"state": "rows", "count": 3},
+      "right": {"state": "rows", "count": 3},
+      "expected": "passed"
+    },
+    "negative": {
+      "left": {"state": "rows", "count": 3},
+      "right": {"state": "rows", "count": 4},
+      "expected": "failed"
+    },
+    "boundary": {
+      "left": {"state": "unavailable", "count": null},
+      "right": {"state": "rows", "count": 3},
+      "expected": "unknown"
+    },
+    "failure": {
+      "left": {"state": "denied", "count": null},
+      "right": {"state": "rows", "count": 3},
+      "expected": "denied"
+    }
+  }
+}

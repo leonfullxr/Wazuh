@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "official MCP SDK client, owner context, typed error and request-size contract cases.",
+  "cases": {
+    "positive": {
+      "owner_tokens": ["Bearer owner-alpha", "Bearer owner-beta"],
+      "owner_keys": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+      "request": {"question": "show alerts", "environment_id": "alpha"},
+      "expected_tools": ["soc_ask", "soc_feedback", "soc_page"],
+      "unsupported_protocol_version": "1900-01-01",
+      "negotiated_protocol_version": "2025-11-25"
+    },
+    "negative": {
+      "authorization": "Bearer invalid-token",
+      "expected_status": 401,
+      "expected_calls": 0,
+      "challenge_path": "oauth-protected-resource/mcp",
+      "disallowed_origin": "https://hostile.example.test",
+      "origin_status": 403
+    },
+    "boundary": {
+      "request_limit_bytes": 65536,
+      "over_limit_bytes": 65537,
+      "expected_status": 200,
+      "over_limit_status": 413
+    },
+    "failure": {
+      "error_code": "MODEL_UNAVAILABLE",
+      "public_message": "Judgment is temporarily unavailable.",
+      "hostile_provider_sentinel": "RAW-PROVIDER-CANARY-G053"
+    }
+  }
+}

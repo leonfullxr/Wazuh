@@ -1,0 +1,74 @@
+{
+  "schema_version": "1",
+  "repository": "https://example.test/synthetic-content",
+  "source_path": "public-docs/en/ldap.md",
+  "published_path": "en/ldap.html",
+  "heading": "Synthetic LDAP setup example",
+  "anchor": "synthetic-ldap-setup-example",
+  "base_document": "# Synthetic LDAP setup example\n\nThis page is a synthetic fixture only. Replace it with reviewed, site-specific setup guidance before approval.\n",
+  "revised_document": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+  "untracked_topic_path": "content/topics/dns.yaml",
+  "untracked_topic": "schema_version: '1'\ntopic_id: dns\nname: {en: DNS, es: DNS}\naliases: []\npublic_document: null\nplaybook_id: null\nfinding_template_ids: []\nfetch_bindings: []\n",
+  "dirty_document": "# Synthetic LDAP setup example\n\nThis unapproved dirty working-tree edit must not be promoted.\n",
+  "solved_cases": {
+    "positive": {
+      "schema_version": "1",
+      "case_id": "synthetic_ldap_case",
+      "topic_id": "ldap",
+      "synthetic": true,
+      "description": "A fictional LDAP check has two visible synthetic alerts.",
+      "promotion_status": "approved",
+      "anonymization_attestation": {
+        "reviewer_id": "synthetic-anonymization-reviewer",
+        "date": "2026-10-03"
+      },
+      "review_record": "https://reviews.example.test/synthetic-content/1"
+    },
+    "negative": {
+      "schema_version": "1",
+      "case_id": "synthetic_ldap_case",
+      "topic_id": "ldap",
+      "synthetic": true,
+      "description": "A fictional LDAP check has two visible synthetic alerts.",
+      "promotion_status": "approved",
+      "anonymization_attestation": {
+        "reviewer_id": "synthetic-anonymization-reviewer",
+        "date": "2026-10-03"
+      }
+    },
+    "boundary": {
+      "schema_version": "1",
+      "case_id": "synthetic_ldap_case",
+      "topic_id": "ldap",
+      "synthetic": true,
+      "description": "A fictional LDAP check has two visible synthetic alerts.",
+      "promotion_status": "approved",
+      "anonymization_attestation": {
+        "reviewer_id": "synthetic-anonymization-reviewer",
+        "date": "2024-02-29"
+      },
+      "review_record": "https://reviews.example.test/synthetic-content/1"
+    },
+    "failure": {
+      "schema_version": "1",
+      "case_id": "synthetic_ldap_case",
+      "topic_id": "ldap",
+      "synthetic": true,
+      "description": "A fictional aws_secret_access_key=synthetic-secret-sentinel must never enter a pack.",
+      "promotion_status": "candidate",
+      "anonymization_attestation": {
+        "reviewer_id": "synthetic-anonymization-reviewer",
+        "date": "2026-10-03"
+      }
+    }
+  },
+  "expected": {
+    "first_context": "# Synthetic LDAP setup example\n\nThis page is a synthetic fixture only. Replace it with reviewed, site-specific setup guidance before approval.\n",
+    "revised_context": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+    "dirty_error": "tracked source tree is dirty",
+    "stale_provenance_error": "runtime provenance does not match the verified content pack",
+    "tampered_pack_error": "manifest file hash mismatch",
+    "missing_case_review_error": "approved solved case requires a detached review record",
+    "secret_error": "secret-like value in content source"
+  }
+}

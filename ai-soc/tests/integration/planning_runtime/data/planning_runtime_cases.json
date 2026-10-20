@@ -1,0 +1,474 @@
+{
+  "schema_version": "1",
+  "timezone": "Europe/Madrid",
+  "anchor_at": "2026-09-30T12:00:00Z",
+  "g001": [
+    {
+      "variant": "positive",
+      "question": "Show LDAP alerts for the last 24 hours; recommend fixes",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 1,
+            "playbook": false,
+            "judgment_state": "no_findings",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [
+          "ldap"
+        ],
+        "playbook_calls": [],
+        "judgment_calls": [
+          "ldap"
+        ]
+      },
+      "provider_outcome": "success",
+      "model_id": "fixture-model",
+      "effort": "low"
+    },
+    {
+      "variant": "negative",
+      "question": "Show LDAP alerts for the last 24 hours; recommend fixes",
+      "expected": {
+        "language": "en",
+        "status": "partial",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 1,
+            "playbook": false,
+            "judgment_state": "invalid_output",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [
+          "ldap"
+        ],
+        "playbook_calls": [],
+        "judgment_calls": [
+          "ldap"
+        ]
+      },
+      "provider_outcome": "invalid_output",
+      "model_id": "fixture-model",
+      "effort": "low"
+    },
+    {
+      "variant": "boundary",
+      "question": "Show LDAP alerts for the last 1 minute; recommend fixes",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 1,
+            "playbook": false,
+            "judgment_state": "no_findings",
+            "table_counts": [
+              1
+            ]
+          }
+        ],
+        "fetch_calls": [
+          "ldap"
+        ],
+        "playbook_calls": [],
+        "judgment_calls": [
+          "ldap"
+        ]
+      },
+      "provider_outcome": "success",
+      "model_id": "fixture-model",
+      "effort": "low"
+    },
+    {
+      "variant": "failure",
+      "question": "Show LDAP alerts for the last 24 hours; recommend fixes",
+      "expected": {
+        "language": "en",
+        "status": "partial",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 1,
+            "playbook": false,
+            "judgment_state": "model_unavailable",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [
+          "ldap"
+        ],
+        "playbook_calls": [],
+        "judgment_calls": [
+          "ldap"
+        ]
+      },
+      "provider_outcome": "unavailable",
+      "model_id": "fixture-model",
+      "effort": "low"
+    }
+  ],
+  "g009": [
+    {
+      "variant": "positive",
+      "question": "LDAP",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": false,
+            "judgment_state": "not_requested",
+            "table_counts": []
+          }
+        ],
+        "fetch_calls": [],
+        "playbook_calls": [],
+        "judgment_calls": []
+      }
+    },
+    {
+      "variant": "negative",
+      "question": "Show alerts for the last 24 hours",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "_records",
+            "document": false,
+            "direct_fetches": 1,
+            "playbook": false,
+            "judgment_state": "not_requested",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [
+          "_records"
+        ],
+        "playbook_calls": [],
+        "judgment_calls": []
+      }
+    },
+    {
+      "variant": "boundary",
+      "question": "Show LDAP alerts for the last 24 hours; recommend fixes",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 1,
+            "playbook": false,
+            "judgment_state": "no_findings",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [
+          "ldap"
+        ],
+        "playbook_calls": [],
+        "judgment_calls": [
+          "ldap"
+        ]
+      },
+      "provider_outcome": "success",
+      "model_id": "fixture-model",
+      "effort": "low"
+    },
+    {
+      "variant": "failure",
+      "question": "What is the weather today?",
+      "expected": {
+        "language": "en",
+        "status": "refused",
+        "topics": [],
+        "fetch_calls": [],
+        "playbook_calls": [],
+        "judgment_calls": []
+      }
+    }
+  ],
+  "g020": [
+    {
+      "variant": "positive",
+      "questions": {
+        "en": "Show LDAP alerts for the last 24 hours",
+        "es": "Muestra alertas LDAP de las últimas 24 horas"
+      },
+      "expected": {
+        "topic_ids": [
+          "ldap"
+        ],
+        "fetch_topics": [
+          "ldap"
+        ],
+        "template_ids": [
+          "alerts_rows_v1"
+        ],
+        "window_start": "2026-09-29T12:00:00Z",
+        "window_end": "2026-09-30T12:00:00Z",
+        "languages": [
+          "en",
+          "es"
+        ],
+        "statuses": [
+          "answered",
+          "answered"
+        ]
+      },
+      "language_hints": {
+        "en": "en",
+        "es": "es"
+      }
+    },
+    {
+      "variant": "negative",
+      "questions": {
+        "en": "LDAP is failing",
+        "es": "LDAP falla"
+      },
+      "expected": {
+        "topic_ids": [
+          "ldap"
+        ],
+        "fetch_topics": [],
+        "template_ids": [],
+        "playbook_topics": [
+          "ldap"
+        ],
+        "languages": [
+          "en",
+          "es"
+        ],
+        "statuses": [
+          "answered",
+          "answered"
+        ]
+      },
+      "language_hints": {
+        "en": "en",
+        "es": "es"
+      }
+    },
+    {
+      "variant": "boundary",
+      "questions": {
+        "en": "Show LDAP alerts from 2026-03-29 00:00 to 2026-03-29 04:00",
+        "es": "Muestra alertas LDAP desde 2026-03-29 00:00 hasta 2026-03-29 04:00"
+      },
+      "expected": {
+        "topic_ids": [
+          "ldap"
+        ],
+        "fetch_topics": [
+          "ldap"
+        ],
+        "template_ids": [
+          "alerts_rows_v1"
+        ],
+        "window_start": "2026-03-28T23:00:00Z",
+        "window_end": "2026-03-29T02:00:00Z",
+        "languages": [
+          "en",
+          "es"
+        ],
+        "statuses": [
+          "answered",
+          "answered"
+        ]
+      },
+      "language_hints": {
+        "en": "en",
+        "es": "es"
+      }
+    },
+    {
+      "variant": "failure",
+      "questions": {
+        "en": "Can you solve my riddle?",
+        "es": "¿Puedes resolver mi acertijo?"
+      },
+      "expected": {
+        "topic_ids": [],
+        "fetch_topics": [],
+        "template_ids": [],
+        "languages": [
+          "en",
+          "es"
+        ],
+        "statuses": [
+          "refused",
+          "refused"
+        ]
+      },
+      "language_hints": {
+        "en": "en",
+        "es": "es"
+      }
+    }
+  ],
+  "g031": [
+    {
+      "variant": "positive",
+      "question": "LDAP is failing; how do I configure DNS?",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": true,
+            "judgment_state": "not_requested",
+            "table_counts": [
+              2
+            ]
+          },
+          {
+            "topic_id": "dns",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": false,
+            "judgment_state": "not_requested",
+            "table_counts": []
+          }
+        ],
+        "fetch_calls": [],
+        "playbook_calls": [
+          "ldap"
+        ],
+        "judgment_calls": []
+      }
+    },
+    {
+      "variant": "negative",
+      "question": "LDAP falla; no recomiendes una solución",
+      "expected": {
+        "language": "es",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": true,
+            "judgment_state": "not_requested",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [],
+        "playbook_calls": [
+          "ldap"
+        ],
+        "judgment_calls": []
+      },
+      "language_hint": "es"
+    },
+    {
+      "variant": "boundary",
+      "question": "How do I configure DNS?; LDAP is failing",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "dns",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": false,
+            "judgment_state": "not_requested",
+            "table_counts": []
+          },
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": true,
+            "judgment_state": "not_requested",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [],
+        "playbook_calls": [
+          "ldap"
+        ],
+        "judgment_calls": []
+      }
+    },
+    {
+      "variant": "failure",
+      "question": "LDAP is failing; how do I configure DNS?; TLS is failing",
+      "expected": {
+        "language": "en",
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "ldap",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": true,
+            "judgment_state": "not_requested",
+            "table_counts": [
+              2
+            ]
+          },
+          {
+            "topic_id": "dns",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": false,
+            "judgment_state": "not_requested",
+            "table_counts": []
+          },
+          {
+            "topic_id": "tls",
+            "document": true,
+            "direct_fetches": 0,
+            "playbook": true,
+            "judgment_state": "not_requested",
+            "table_counts": [
+              2
+            ]
+          }
+        ],
+        "fetch_calls": [],
+        "playbook_calls": [
+          "ldap",
+          "tls"
+        ],
+        "judgment_calls": []
+      }
+    }
+  ]
+}

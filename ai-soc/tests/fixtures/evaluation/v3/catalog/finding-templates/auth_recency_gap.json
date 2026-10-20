@@ -1,0 +1,24 @@
+{
+  "allowed_evidence_kinds": [
+    "check"
+  ],
+  "kind": "observation",
+  "relations": [],
+  "required_bindings": {
+    "o": [
+      "outcome"
+    ]
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "auth_recency",
+      "outcome": "failed"
+    }
+  ],
+  "template_id": "auth_recency_gap",
+  "texts": {
+    "en": "The newest returned record with a valid timestamp inside the read window is older than the configured synthetic limit; visible data may be delayed, filtered or incomplete; confirm ingestion manually. Outcome {o}.",
+    "es": "El registro devuelto m\u00e1s reciente con una marca de tiempo v\u00e1lida dentro de la ventana de lectura supera el l\u00edmite de antig\u00fcedad sint\u00e9tico configurado; los datos visibles pueden estar retrasados, filtrados o incompletos; confirme la ingesta manualmente. Resultado {o}."
+  },
+  "topic_id": "auth_review"
+}

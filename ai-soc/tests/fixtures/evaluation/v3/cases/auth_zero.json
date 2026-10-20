@@ -1,0 +1,312 @@
+{
+  "checks": [
+    {
+      "check_id": "auth_nonzero",
+      "evidence_ids": [
+        "ev1_caa8178442adb11d18ec3b815c590649a92ee126d8baa8764f781c8f29eb50d8"
+      ],
+      "expectation_id": null,
+      "label": "auth_nonzero",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "failed",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_volume",
+      "evidence_ids": [
+        "ev1_6347452b6ee1cd44a040867b94bd013b0b2701598e429730ca0f3ac4894d45e1"
+      ],
+      "expectation_id": null,
+      "label": "auth_volume",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "failed",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_sources",
+      "evidence_ids": [
+        "ev1_c0c920f31984f1495626365e48a0988c869705c0f0fcbf63919457a1adbfa49a"
+      ],
+      "expectation_id": null,
+      "label": "auth_sources",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "unknown",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_priority",
+      "evidence_ids": [
+        "ev1_6b7251eb5e58902bb450a9e69502da146e0eed60cb437418404f795464da7f80"
+      ],
+      "expectation_id": "auth_priority",
+      "label": "auth_priority",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "unknown",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_recency",
+      "evidence_ids": [
+        "ev1_58619069c06f44aa1cdcf7e6abf103fe7f090a1cdfe4faaa44592f3e4b8c9be0"
+      ],
+      "expectation_id": null,
+      "label": "auth_recency",
+      "message": "Newest valid returned timestamp is outside the configured synthetic limit; based on returned rows only.",
+      "outcome": "unknown",
+      "topic_id": "auth_review"
+    }
+  ],
+  "content_sha": "2e47a19e70cbb5af804987a12375358422f0d200",
+  "environment_id": "soc-eval",
+  "fetches": [
+    {
+      "bucket_completeness": "complete",
+      "buckets": [],
+      "checks": [],
+      "columns": [],
+      "count": {
+        "approximate": false,
+        "computed_by": "indexer",
+        "relation": "eq",
+        "scope": "matching_visible_records",
+        "value": 0
+      },
+      "empty_proof": null,
+      "error": null,
+      "fetch_id": "auth_rows",
+      "items": [
+        {
+          "check_id": null,
+          "evidence_id": "ev1_4c7fe7b75c2f1942eb7febb85a57234dbcf143031c185ea4bc52afba48aad5b2",
+          "fetch_id": "auth_rows",
+          "kind": "aggregate",
+          "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+            "kind": "pit"
+          },
+          "source": {
+            "filters": [
+              {
+                "field": "rule.groups",
+                "op": "eq",
+                "value": "authentication_failed"
+              }
+            ],
+            "scope": "matching_visible_records",
+            "template_id": "alerts_rows_v1",
+            "window": {
+              "anchor_at": "2026-10-17T12:00:00.000000Z",
+              "end": "2026-10-17T12:00:00.000000Z",
+              "semantics": "rolling",
+              "source_text": "rolling:24:hours",
+              "start": "2026-10-16T12:00:00.000000Z",
+              "timezone": "UTC"
+            }
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "approximate": false,
+            "count": 0,
+            "relation": "eq"
+          },
+          "visibility": "full"
+        }
+      ],
+      "message": null,
+      "next_cursor": null,
+      "rows": [],
+      "scope": {
+        "displayed_rows": 0,
+        "environment_id": "soc-eval",
+        "filters": [
+          {
+            "field": "rule.groups",
+            "op": "eq",
+            "value": "authentication_failed"
+          }
+        ],
+        "index_family": "alerts",
+        "policy_hash": "50c2f36416b3ca30d728a7bcf3d2357ea8739627376c34af0f033ab7f46788c1",
+        "snapshot": "pit",
+        "template_id": "alerts_rows_v1",
+        "visibility": "full"
+      },
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "snapshot_at": "2026-10-17T11:59:00.000000Z",
+      "state": "empty",
+      "topic_id": "auth_review",
+      "window": {
+        "anchor_at": "2026-10-17T12:00:00.000000Z",
+        "end": "2026-10-17T12:00:00.000000Z",
+        "semantics": "rolling",
+        "source_text": "rolling:24:hours",
+        "start": "2026-10-16T12:00:00.000000Z",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "items": [
+    {
+      "check_id": null,
+      "evidence_id": "ev1_4c7fe7b75c2f1942eb7febb85a57234dbcf143031c185ea4bc52afba48aad5b2",
+      "fetch_id": "auth_rows",
+      "kind": "aggregate",
+      "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "source": {
+        "filters": [
+          {
+            "field": "rule.groups",
+            "op": "eq",
+            "value": "authentication_failed"
+          }
+        ],
+        "scope": "matching_visible_records",
+        "template_id": "alerts_rows_v1",
+        "window": {
+          "anchor_at": "2026-10-17T12:00:00.000000Z",
+          "end": "2026-10-17T12:00:00.000000Z",
+          "semantics": "rolling",
+          "source_text": "rolling:24:hours",
+          "start": "2026-10-16T12:00:00.000000Z",
+          "timezone": "UTC"
+        }
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "approximate": false,
+        "count": 0,
+        "relation": "eq"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_nonzero",
+      "evidence_id": "ev1_caa8178442adb11d18ec3b815c590649a92ee126d8baa8764f781c8f29eb50d8",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_nonzero_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "failed"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_volume",
+      "evidence_id": "ev1_6347452b6ee1cd44a040867b94bd013b0b2701598e429730ca0f3ac4894d45e1",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_volume_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "failed"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_sources",
+      "evidence_id": "ev1_c0c920f31984f1495626365e48a0988c869705c0f0fcbf63919457a1adbfa49a",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_sources_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_priority",
+      "evidence_id": "ev1_6b7251eb5e58902bb450a9e69502da146e0eed60cb437418404f795464da7f80",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_priority_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_recency",
+      "evidence_id": "ev1_58619069c06f44aa1cdcf7e6abf103fe7f090a1cdfe4faaa44592f3e4b8c9be0",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "38775aa8ef625debe62423b9680aa65055be8621fde8c789774d49d35bc0b9fb",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "3981d1a66e7bdf6d900c565719512d59eec760022e4f70817ba11f4752cd5fdb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_recency_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    }
+  ],
+  "policy_hash": "50c2f36416b3ca30d728a7bcf3d2357ea8739627376c34af0f033ab7f46788c1",
+  "question_id": "089ef9b5-210a-5563-bdb4-00c8bf587962",
+  "schema_version": "1",
+  "sha256": "2c91b2a878e4e9e5d084f94ee0927949c29c2a4f6fa79369949cfc805aecbcfc",
+  "topic_id": "auth_review"
+}

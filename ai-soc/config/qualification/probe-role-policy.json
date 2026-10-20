@@ -1,0 +1,73 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CountOnlyProfileDestinationFoundationModels",
+      "Effect": "Allow",
+      "Action": "bedrock:CountTokens",
+      "Resource": [
+        "arn:aws:bedrock:REPLACE_REGION::foundation-model/REPLACE_DESTINATION_MODEL_ID_1"
+      ]
+    },
+    {
+      "Sid": "GuardedInvocationOnlyForSelectedModel",
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": [
+        "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:inference-profile/REPLACE_PROFILE_ID",
+        "arn:aws:bedrock:REPLACE_REGION::foundation-model/REPLACE_DESTINATION_MODEL_ID_1"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "bedrock:GuardrailIdentifier": "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:guardrail/REPLACE_GUARDRAIL_ID:REPLACE_NUMERIC_VERSION"
+        }
+      }
+    },
+    {
+      "Sid": "ApplyOnlyTheSelectedGuardrail",
+      "Effect": "Allow",
+      "Action": "bedrock:ApplyGuardrail",
+      "Resource": "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:guardrail/REPLACE_GUARDRAIL_ID"
+    },
+    {
+      "Sid": "DenyMissingGuardrail",
+      "Effect": "Deny",
+      "Action": "bedrock:InvokeModel",
+      "Resource": [
+        "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:inference-profile/REPLACE_PROFILE_ID",
+        "arn:aws:bedrock:REPLACE_REGION::foundation-model/REPLACE_DESTINATION_MODEL_ID_1"
+      ],
+      "Condition": {
+        "Null": {
+          "bedrock:GuardrailIdentifier": "true"
+        }
+      }
+    },
+    {
+      "Sid": "DenyMismatchedGuardrailIdentifier",
+      "Effect": "Deny",
+      "Action": "bedrock:InvokeModel",
+      "Resource": [
+        "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:inference-profile/REPLACE_PROFILE_ID",
+        "arn:aws:bedrock:REPLACE_REGION::foundation-model/REPLACE_DESTINATION_MODEL_ID_1"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "bedrock:GuardrailIdentifier": "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:guardrail/REPLACE_GUARDRAIL_ID:REPLACE_NUMERIC_VERSION"
+        }
+      }
+    },
+    {
+      "Sid": "DenyNonAllowlistedBedrockResources",
+      "Effect": "Deny",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:CountTokens"
+      ],
+      "NotResource": [
+        "arn:aws:bedrock:REPLACE_REGION:REPLACE_ACCOUNT_ID:inference-profile/REPLACE_PROFILE_ID",
+        "arn:aws:bedrock:REPLACE_REGION::foundation-model/REPLACE_DESTINATION_MODEL_ID_1"
+      ]
+    }
+  ]
+}

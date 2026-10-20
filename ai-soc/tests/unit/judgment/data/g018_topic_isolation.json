@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G018.topic-isolation.private",
+  "requirements": ["G018"],
+  "variants": {
+    "positive": {"topics": ["ldap", "dns"], "expected_states": ["ready", "ready"]},
+    "negative": {"topic": "ldap", "foreign_topic": "dns", "expected_error": "foreign topic item"},
+    "boundary": {"topics": ["ldap", "dns"], "denied_topic": "dns", "expected_states": ["ready", "denial"]},
+    "failure": {"topics": ["ldap", "dns"], "unavailable_topic": "dns", "expected_states": ["ready", "evidence_unavailable"]}
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "case_id": "QA-012.resolution",
+  "requirements": ["GUI", "GMCP", "GP1", "G053"],
+  "request": {
+    "question": "show synthetic alerts",
+    "environment_id": "alpha"
+  },
+  "expected": {
+    "success_status": 200,
+    "answer_status": "answered",
+    "denied_status": 403,
+    "denied_application_calls": 0,
+    "boundary_accepted_status": 200,
+    "boundary_application_calls": 1
+  },
+  "security": {
+    "allowed_origin": "https://soc.example.test",
+    "foreign_origin": "https://attacker.example.test",
+    "csrf_cookie": "__Host-soc-csrf",
+    "body_limit_bytes": 65536,
+    "oversize_status": 413,
+    "oversize_code": "REQUEST_TOO_LARGE",
+    "invalid_csrf_status": 403,
+    "malformed_json": "{",
+    "malformed_status": 400,
+    "malformed_code": "BAD_REQUEST"
+  }
+}

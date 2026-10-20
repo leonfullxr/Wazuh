@@ -1,0 +1,1858 @@
+{
+  "schema_version": "1",
+  "entries": [
+    {
+      "requirement": "D01",
+      "acceptance_id": "G001",
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D02",
+      "acceptance_id": "G002",
+      "tasks": [
+        "B4-T01",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G002.model-selection.private"
+      ]
+    },
+    {
+      "requirement": "D03",
+      "acceptance_id": "G003",
+      "tasks": [
+        "B2-T03",
+        "B3-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B3-G003.compiler"
+      ]
+    },
+    {
+      "requirement": "D04",
+      "acceptance_id": "G004",
+      "tasks": [
+        "B1-T03",
+        "B2-T04",
+        "B5-T01",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-006.resolution"
+      ]
+    },
+    {
+      "requirement": "D05",
+      "acceptance_id": "G005",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B3-T03",
+        "B3-T04",
+        "B4-T03",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-010.resolution",
+        "B4-G005.empty-fetch-eligibility.private",
+        "QA-002.resolution",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D06",
+      "acceptance_id": "G006",
+      "tasks": [
+        "B3-T03",
+        "B4-T01",
+        "B5-T02",
+        "B5-T04",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-005.resolution",
+        "QA-015.resolution"
+      ]
+    },
+    {
+      "requirement": "D07",
+      "acceptance_id": "G007",
+      "tasks": [
+        "B1-T01",
+        "B4-T01",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G007.effort-capability.private",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D08",
+      "acceptance_id": "G008",
+      "tasks": [
+        "B2-T02",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G008.content"
+      ]
+    },
+    {
+      "requirement": "D09",
+      "acceptance_id": "G009",
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D10",
+      "acceptance_id": "G010",
+      "tasks": [
+        "B2-T03",
+        "B3-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B3-G010.expectation"
+      ]
+    },
+    {
+      "requirement": "D11",
+      "acceptance_id": "G011",
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B2-T02",
+        "B2-T03",
+        "B3-T03",
+        "B3-T04",
+        "B4-T02",
+        "B4-T03",
+        "B5-T03",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-007.resolution",
+        "QA-003.resolution",
+        "SEC-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D12",
+      "acceptance_id": "G012",
+      "tasks": [
+        "B2-T03",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G012.parser"
+      ]
+    },
+    {
+      "requirement": "D13",
+      "acceptance_id": "G013",
+      "tasks": [
+        "B1-T02",
+        "B2-T02",
+        "B2-T03",
+        "B3-T04",
+        "B4-T03",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G013.parser"
+      ]
+    },
+    {
+      "requirement": "D14",
+      "acceptance_id": "G014",
+      "tasks": [
+        "B2-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G014.pointer"
+      ]
+    },
+    {
+      "requirement": "D15",
+      "acceptance_id": "G015",
+      "tasks": [
+        "B2-T01",
+        "B6-T04"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G015.immutable"
+      ]
+    },
+    {
+      "requirement": "D16",
+      "acceptance_id": "G016",
+      "tasks": [
+        "B4-T01",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G016.prompt-safety"
+      ]
+    },
+    {
+      "requirement": "D17",
+      "acceptance_id": "G017",
+      "tasks": [
+        "B2-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G017.disclosure"
+      ]
+    },
+    {
+      "requirement": "D18",
+      "acceptance_id": "G018",
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B4-T04",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G018.topic-isolation.private",
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D19",
+      "acceptance_id": "G019",
+      "tasks": [
+        "B1-T03",
+        "B2-T04",
+        "B5-T01",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-006.resolution"
+      ]
+    },
+    {
+      "requirement": "D20",
+      "acceptance_id": "G020",
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D21",
+      "acceptance_id": "G021",
+      "tasks": [
+        "B2-T02",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G021.approved-template-boundary.private",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D22",
+      "acceptance_id": "G022",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T02",
+        "B3-T03",
+        "B4-T02",
+        "B4-T03",
+        "B4-T04",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-012.resolution",
+        "QA-001.resolution",
+        "B4-G022.topic-evidence-binding.private"
+      ]
+    },
+    {
+      "requirement": "D23",
+      "acceptance_id": "G023",
+      "tasks": [
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G023.refusal"
+      ]
+    },
+    {
+      "requirement": "D24",
+      "acceptance_id": "G024",
+      "tasks": [
+        "B3-T03",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G024.denial-precedence.private",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D25",
+      "acceptance_id": "G025",
+      "tasks": [
+        "B3-T04",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G025.denied-evidence-boundary.private",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D26",
+      "acceptance_id": "G026",
+      "tasks": [
+        "B2-T01",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G026.aliases"
+      ]
+    },
+    {
+      "requirement": "D27",
+      "acceptance_id": "G027",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T01",
+        "B2-T03",
+        "B3-T03",
+        "B3-T05",
+        "B4-T02",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-004.resolution",
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D28",
+      "acceptance_id": "G028",
+      "tasks": [
+        "B1-T03",
+        "B2-T04",
+        "B5-T01",
+        "B5-T02",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-006.resolution"
+      ]
+    },
+    {
+      "requirement": "D29",
+      "acceptance_id": "G029",
+      "tasks": [
+        "B3-T03",
+        "B4-T01",
+        "B4-T02",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-005.resolution",
+        "B4-G029.context-budget.private",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D30",
+      "acceptance_id": "G030",
+      "tasks": [
+        "B2-T03",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-016.resolution"
+      ]
+    },
+    {
+      "requirement": "D31",
+      "acceptance_id": "G031",
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D32",
+      "acceptance_id": "G032",
+      "tasks": [
+        "B1-T05",
+        "B2-T02",
+        "B6-T04"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G032.authority"
+      ]
+    },
+    {
+      "requirement": "D33",
+      "acceptance_id": "G033",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T04",
+        "B5-T01",
+        "B5-T02",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-008.resolution",
+        "B5-G033.followup-application.private",
+        "QA-006.resolution"
+      ]
+    },
+    {
+      "requirement": "D34",
+      "acceptance_id": "G034",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T04",
+        "B5-T01",
+        "B5-T02",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-008.resolution",
+        "B5-G034.continuation-application.private",
+        "QA-006.resolution"
+      ]
+    },
+    {
+      "requirement": "D35",
+      "acceptance_id": "G035",
+      "tasks": [
+        "B3-T03",
+        "B4-T01",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-005.resolution",
+        "QA-005.resolution",
+        "B5-G035.application-judgment"
+      ]
+    },
+    {
+      "requirement": "D36",
+      "acceptance_id": "G036",
+      "tasks": [
+        "B2-T01",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G036.static-cues"
+      ]
+    },
+    {
+      "requirement": "D37",
+      "acceptance_id": "G037",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T01",
+        "B2-T02",
+        "B3-T03",
+        "B3-T04",
+        "B4-T02",
+        "B4-T03",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-007.resolution",
+        "QA-002.resolution",
+        "QA-003.resolution"
+      ]
+    },
+    {
+      "requirement": "D38",
+      "acceptance_id": "G038",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T01",
+        "B3-T03",
+        "B3-T04",
+        "B4-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-012.resolution",
+        "QA-002.resolution",
+        "SEC-002.resolution",
+        "SEC-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D39",
+      "acceptance_id": "G039",
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B4-T03",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G039.spanish-renderer.private",
+        "QA-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D40",
+      "acceptance_id": "G040",
+      "tasks": [
+        "B1-T01",
+        "B1-T02",
+        "B1-T03",
+        "B1-T04",
+        "B1-T05",
+        "B6-T02",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-011.resolution",
+        "QA-009.resolution",
+        "QA-010.resolution",
+        "B1-G040.coverage"
+      ]
+    },
+    {
+      "requirement": "D41",
+      "acceptance_id": "G041",
+      "tasks": [
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G041.parser"
+      ]
+    },
+    {
+      "requirement": "D42",
+      "acceptance_id": "G042",
+      "tasks": [
+        "B1-T02",
+        "B5-T01",
+        "B5-T02",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "infra",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-001.resolution",
+        "B5-G042.composition.private"
+      ]
+    },
+    {
+      "requirement": "D43",
+      "acceptance_id": "G043",
+      "tasks": [
+        "B6-T03",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "infra",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": []
+    },
+    {
+      "requirement": "D44",
+      "acceptance_id": "G044",
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B3-T02",
+        "B3-T03",
+        "B3-T05",
+        "B5-T01",
+        "B5-T02",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-001.resolution",
+        "ARCH-002.resolution",
+        "ARCH-004.resolution",
+        "ARCH-009.resolution",
+        "QA-007.resolution",
+        "QA-011.resolution"
+      ]
+    },
+    {
+      "requirement": "D45",
+      "acceptance_id": "G045",
+      "tasks": [
+        "B4-T01",
+        "B6-T03",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "infra",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B6-G045.private"
+      ]
+    },
+    {
+      "requirement": "D46",
+      "acceptance_id": "G046",
+      "tasks": [
+        "B1-T01",
+        "B1-T02",
+        "B2-T02",
+        "B4-T01",
+        "B4-T03",
+        "B4-T04",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G046.numbered-guardrail.private",
+        "QA-001.resolution"
+      ]
+    },
+    {
+      "requirement": "D47",
+      "acceptance_id": "G047",
+      "tasks": [
+        "B6-T01",
+        "B6-T03",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "infra",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": []
+    },
+    {
+      "requirement": "D48",
+      "acceptance_id": "G048",
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B2-T02",
+        "B6-T02",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-006.resolution",
+        "QA-008.resolution",
+        "QA-013.resolution"
+      ]
+    },
+    {
+      "requirement": "D49",
+      "acceptance_id": "G049",
+      "tasks": [
+        "B4-T01",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B4-G049.tool-free-converse.private"
+      ]
+    },
+    {
+      "requirement": "D50",
+      "acceptance_id": "G050",
+      "tasks": [
+        "B1-T02",
+        "B3-T04",
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-010.resolution",
+        "B4-G050.empty-scope-proof.private",
+        "QA-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D51",
+      "acceptance_id": "G051",
+      "tasks": [
+        "B1-T02",
+        "B3-T03",
+        "B3-T04",
+        "B4-T04",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-010.resolution"
+      ]
+    },
+    {
+      "requirement": "D52",
+      "acceptance_id": "G052",
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B3-T03",
+        "B4-T02",
+        "B4-T03",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B5-G052.application-budget.private",
+        "SEC-004.resolution"
+      ]
+    },
+    {
+      "requirement": "D53",
+      "acceptance_id": "G053",
+      "tasks": [
+        "B1-T02",
+        "B3-T03",
+        "B4-T01",
+        "B4-T04",
+        "B5-T01",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-001.resolution",
+        "ARCH-005.resolution",
+        "QA-005.resolution",
+        "QA-012.resolution"
+      ]
+    },
+    {
+      "requirement": "D54",
+      "acceptance_id": "G054",
+      "tasks": [
+        "B1-T02",
+        "B1-T05",
+        "B2-T01",
+        "B2-T02",
+        "B6-T02",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-006.resolution",
+        "QA-008.resolution",
+        "QA-013.resolution"
+      ]
+    },
+    {
+      "requirement": "D55",
+      "acceptance_id": "G055",
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B2-T02",
+        "B6-T02",
+        "B6-T03",
+        "B6-T04",
+        "B6-T05",
+        "B6-T06"
+      ],
+      "layer": "infra",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-006.resolution",
+        "QA-008.resolution",
+        "QA-013.resolution"
+      ]
+    },
+    {
+      "requirement": "D56",
+      "acceptance_id": "G056",
+      "tasks": [
+        "B1-T02",
+        "B3-T01",
+        "B3-T02",
+        "B3-T05",
+        "B5-T01",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "SEC-003.resolution"
+      ]
+    },
+    {
+      "requirement": "D57",
+      "acceptance_id": "G057",
+      "tasks": [
+        "B3-T02",
+        "B6-T03",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "infra",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B3-G057.private-route"
+      ]
+    },
+    {
+      "requirement": "D58",
+      "acceptance_id": "G058",
+      "tasks": [
+        "B2-T05",
+        "B4-T05",
+        "B6-T01",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-014.resolution",
+        "B4-G058.embedding-admission.private"
+      ]
+    },
+    {
+      "requirement": "D59",
+      "acceptance_id": "G059",
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B2-T01",
+        "B2-T02",
+        "B3-T03",
+        "B3-T04",
+        "B4-T03",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-012.resolution",
+        "QA-001.resolution",
+        "QA-002.resolution",
+        "SEC-002.resolution",
+        "SEC-005.resolution"
+      ]
+    },
+    {
+      "requirement": "D60",
+      "acceptance_id": "G060",
+      "tasks": [
+        "B1-T02",
+        "B2-T02",
+        "B3-T04",
+        "B4-T02",
+        "B4-T03",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-007.resolution",
+        "B4-G060.prompt-checkpoints.private",
+        "QA-001.resolution"
+      ]
+    },
+    {
+      "requirement": "D61",
+      "acceptance_id": "G061",
+      "tasks": [
+        "B2-T01",
+        "B6-T04"
+      ],
+      "layer": "reproducibility",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B2-G061.anonymized-seed"
+      ]
+    },
+    {
+      "requirement": "P1",
+      "acceptance_id": "GP1",
+      "tasks": [
+        "B1-T02",
+        "B3-T02",
+        "B3-T03",
+        "B3-T05",
+        "B4-T01",
+        "B5-T01",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-003.resolution",
+        "ARCH-009.resolution",
+        "QA-012.resolution",
+        "SEC-001.resolution",
+        "SEC-003.resolution",
+        "B3-READ-001.resolution"
+      ]
+    },
+    {
+      "requirement": "P2",
+      "acceptance_id": "GP2",
+      "tasks": [
+        "B1-T02",
+        "B2-T05",
+        "B4-T05",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B6-T01",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B5-GP2.feedback-lifecycle.private",
+        "QA-014.resolution",
+        "SEC-001.resolution"
+      ]
+    },
+    {
+      "requirement": "P3",
+      "acceptance_id": "GP3",
+      "tasks": [
+        "B1-T02",
+        "B2-T05",
+        "B3-T03",
+        "B4-T01",
+        "B4-T05",
+        "B5-T01",
+        "B5-T02",
+        "B6-T01",
+        "B6-T03",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-003.resolution",
+        "QA-014.resolution"
+      ]
+    },
+    {
+      "requirement": "P4",
+      "acceptance_id": "GP4",
+      "tasks": [
+        "B3-T02",
+        "B6-T03",
+        "B6-T04",
+        "B6-T06"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "B3-GP4.ca-trust"
+      ]
+    },
+    {
+      "requirement": "UI",
+      "acceptance_id": "GUI",
+      "tasks": [
+        "B1-T05",
+        "B3-T03",
+        "B4-T01",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "e2e",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-005.resolution",
+        "QA-012.resolution"
+      ]
+    },
+    {
+      "requirement": "MCP",
+      "acceptance_id": "GMCP",
+      "tasks": [
+        "B1-T02",
+        "B1-T05",
+        "B2-T01",
+        "B3-T01",
+        "B3-T03",
+        "B4-T01",
+        "B4-T03",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "integration",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-005.resolution",
+        "QA-012.resolution",
+        "SEC-004.resolution"
+      ]
+    },
+    {
+      "requirement": "Additional",
+      "acceptance_id": "GN01",
+      "tasks": [
+        "B1-T03",
+        "B1-T04",
+        "B1-T05",
+        "B3-T03",
+        "B6-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "QA-009.resolution"
+      ]
+    },
+    {
+      "requirement": "Additional",
+      "acceptance_id": "GN02",
+      "tasks": [
+        "B1-T02",
+        "B2-T04",
+        "B3-T03",
+        "B4-T01",
+        "B5-T01",
+        "B5-T02",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-001.resolution",
+        "ARCH-002.resolution",
+        "ARCH-003.resolution",
+        "ARCH-008.resolution",
+        "QA-007.resolution",
+        "QA-011.resolution"
+      ]
+    },
+    {
+      "requirement": "Additional",
+      "acceptance_id": "GN03",
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B3-T02",
+        "B3-T03",
+        "B3-T05",
+        "B5-T01",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-004.resolution",
+        "ARCH-009.resolution",
+        "B3-GN03.cursor-binding-component",
+        "SEC-003.resolution"
+      ]
+    },
+    {
+      "requirement": "Additional",
+      "acceptance_id": "GN04",
+      "tasks": [
+        "B1-T01",
+        "B1-T02",
+        "B1-T03",
+        "B1-T04",
+        "B1-T05",
+        "B2-T01",
+        "B3-T03",
+        "B3-T05",
+        "B4-T03",
+        "B5-T02",
+        "B5-T03",
+        "B5-T05",
+        "B6-T02",
+        "B6-T04",
+        "B6-T05"
+      ],
+      "layer": "golden",
+      "required_variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "test_node_ids": [],
+      "results_status": "PENDING_IMPLEMENTATION",
+      "fixture_status": "FREEZE_AT_CF-1",
+      "review_cases": [
+        "ARCH-004.resolution",
+        "B2-GN04.reviewed-synthetic-release",
+        "QA-009.resolution",
+        "QA-010.resolution",
+        "SEC-004.resolution"
+      ]
+    }
+  ],
+  "coverage_gate": "collected executable nodes plus actual non-skipped results required at OV-1; inventory alone cannot pass"
+}

@@ -1,0 +1,98 @@
+{
+  "as_of": "2026-10-17T12:00:00.000000Z",
+  "case_id": "source_missing_index",
+  "principal": {
+    "assertion_hash": "290511e35cc51ef98db52fefa5dcf900ce68e85f303692aab516744e95b42f9a",
+    "authenticated_at": "2026-10-17T11:00:00.000000Z",
+    "edge": "fixture",
+    "expires_at": "2026-10-17T13:00:00.000000Z",
+    "groups": [
+      "soc-analysts"
+    ],
+    "issuer": "https://issuer.example.test",
+    "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+    "sub": "synthetic-analyst-01"
+  },
+  "question": "Show SSH alerts for the last 24 hours for agent id 213",
+  "responses": [
+    {
+      "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+      "response": {
+        "error": {
+          "type": "index_not_found_exception"
+        },
+        "status": 404
+      },
+      "status": 404
+    },
+    {
+      "body_sha256": "40be439fde0cbde946249bb2099d949efe21dda3dd59c231afb45eb8cf79e44c",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_validate/query",
+      "response": {
+        "error": {
+          "type": "index_not_found_exception"
+        },
+        "status": 404
+      },
+      "status": 404
+    },
+    {
+      "body_sha256": "1be8853c0429e409c3bfbc63bbe559cbf5e6a7a866d892621b7fbd1b30f784a2",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_search",
+      "response": {
+        "error": {
+          "type": "index_not_found_exception"
+        },
+        "status": 404
+      },
+      "status": 404
+    }
+  ],
+  "site": {
+    "allowed_index_patterns": {
+      "alerts": [
+        "wazuh-alerts-*"
+      ]
+    },
+    "allowed_templates": [
+      "alerts_rows_v1",
+      "alerts_count_v1"
+    ],
+    "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+    "ca_secret_version": "1",
+    "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+    "composite_role_visibility": {
+      "analyst": "full",
+      "filtered_analyst": "filtered"
+    },
+    "dls_attestation_version": "1",
+    "enabled": true,
+    "environment_id": "soc-eval",
+    "expectations": [],
+    "group_role_map": {
+      "soc-analysts": [
+        "analyst"
+      ],
+      "soc-filtered": [
+        "filtered_analyst"
+      ]
+    },
+    "indexer_origin": "https://indexer.example.test",
+    "jwt_audience": "soc-eval-api",
+    "jwt_issuer": "https://issuer.example.test",
+    "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+    "label": "Synthetic evaluation site",
+    "mapping_profile": "wazuh-v4-fixture",
+    "pit_supported": true,
+    "policy_version": "1",
+    "private_network_ref": "synthetic-private-network",
+    "role_visibility": {
+      "analyst": "full",
+      "filtered_analyst": "filtered"
+    }
+  }
+}

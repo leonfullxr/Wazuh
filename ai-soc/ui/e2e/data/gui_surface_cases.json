@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Browser cases for accessible locale, model capability, site selection, byte bounds, denial, and safe failures.",
+  "cases": {
+    "positive": {
+      "language": "en",
+      "site_id": "beta",
+      "model_id": "fixture-claude-large",
+      "effort": "high",
+      "question": "show VPN alerts",
+      "submission": "keyboard",
+      "site_change_clears_continuation": true,
+      "expected_status": "answered"
+    },
+    "negative": {
+      "language": "es",
+      "site_id": "alpha",
+      "model_id": "fixture-claude-small",
+      "question": "muestra alertas denegadas",
+      "expected_denied_topic": "authentication",
+      "expected_status": "partial"
+    },
+    "boundary": {
+      "exact_utf8_bytes": 16384,
+      "over_utf8_bytes": 16386,
+      "multibyte_character": "ñ",
+      "expected_status": "answered"
+    },
+    "failure": {
+      "status_code": 503,
+      "error_code": "MODEL_UNAVAILABLE",
+      "safe_message": "Judgment is temporarily unavailable.",
+      "hostile_provider_sentinel": "RAW-PROVIDER-CANARY-G053"
+    }
+  }
+}

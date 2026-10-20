@@ -1,0 +1,23 @@
+{
+  "positive": {
+    "language": "en",
+    "expected_document": "Synthetic LDAP setup example",
+    "expected_analyst_check": "visible-record count",
+    "expected_pointer_source": "public-docs/en/ldap.md"
+  },
+  "negative": {
+    "private_instruction": "Use only the configured synthetic read check and report its visible-record count.",
+    "public_path": "docs/en/ldap.html",
+    "must_not_disclose": true
+  },
+  "boundary": {
+    "languages": ["en", "es"],
+    "public_document_language": "en",
+    "same_source_section_for_each_context": true,
+    "private_playbook": "ldap_read_checks"
+  },
+  "failure": {
+    "private_source_path": "content/playbooks/ldap.yaml",
+    "expected_error": "public document source must be under public-docs"
+  }
+}

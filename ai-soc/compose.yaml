@@ -1,0 +1,79 @@
+name: ai-soc-fixture
+services:
+  adot-collector:
+    labels:
+      com.ai-soc.owner: soc-local-compose
+      com.ai-soc.scope: fixture-protocol
+    image: public.ecr.aws/aws-observability/aws-otel-collector@sha256:bb72328152c72fb9662056759b275f7cc85e115db12bbb114fbea9f68dc4816c
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./dev/adot-collector-fixture.yaml:/etc/otelcol/config.yaml:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    networks: [soc-fixture]
+    security_opt:
+      - no-new-privileges:true
+
+  dynamodb-local:
+    labels:
+      com.ai-soc.owner: soc-local-compose
+      com.ai-soc.scope: fixture-protocol
+    image: amazon/dynamodb-local@sha256:744bf7138f0e893a6438de89bc3374501105b42bc7473cef6d561f30ff2dec6a
+    command: ["-Djava.library.path=/home/dynamodblocal/DynamoDBLocal_lib", "-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory", "-disableTelemetry"]
+    working_dir: /home/dynamodblocal
+    read_only: true
+    tmpfs:
+      - /tmp:exec,size=64m,nosuid
+    ports:
+      - target: 8000
+        published: "${DYNAMODB_LOCAL_PORT:?DYNAMODB_LOCAL_PORT must be selected dynamically}"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    networks: [soc-fixture]
+    security_opt:
+      - no-new-privileges:true
+
+  app:
+    labels:
+      com.ai-soc.owner: soc-local-compose
+      com.ai-soc.scope: fixture-application
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:?set SOURCE_DATE_EPOCH from service commit}
+        SERVICE_SHA: ${SERVICE_SHA:?set SERVICE_SHA to a Git SHA}
+        CONTENT_SHA: ${CONTENT_SHA:?set CONTENT_SHA to a synthetic pack SHA}
+    environment:
+      SOC_MODE: fixture
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_DEFAULT_REGION: us-east-1
+      DYNAMODB_ENDPOINT_URL: http://dynamodb-local:8000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://adot-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_SERVICE_NAME: ai-soc-fixture
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    ports:
+      - target: 8000
+        published: "${APP_LOCAL_PORT:?APP_LOCAL_PORT must be selected dynamically}"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    depends_on:
+      dynamodb-local:
+        condition: service_started
+      adot-collector:
+        condition: service_started
+    networks: [soc-fixture]
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  soc-fixture:
+    driver: bridge
+    internal: false
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"

@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "positive": {
+      "template_id": "alerts_rows_v1",
+      "filter_value": "007",
+      "expected": "compiled"
+    },
+    "negative": {
+      "template_id": "alerts_rows_v1",
+      "filter_value": "007\" OR *:* #",
+      "expected": "literal"
+    },
+    "boundary": {
+      "window": "[start,end)",
+      "expected": "end-exclusive"
+    },
+    "failure": {
+      "template_id": "alerts_rows_v1",
+      "expected": "site-template-denied"
+    }
+  }
+}

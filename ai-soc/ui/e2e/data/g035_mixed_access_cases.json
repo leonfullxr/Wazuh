@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Independent UI oracle for denied and allowed topics in one answer.",
+  "cases": {
+    "positive": {
+      "status": "partial",
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "outcome": "denied"},
+        {"topic_id": "vpn", "ordinal": 1, "outcome": "allowed"}
+      ],
+      "expected_allowed": ["vpn"],
+      "expected_denied": ["authentication"]
+    },
+    "negative": {
+      "status": "partial",
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "outcome": "denied"}
+      ],
+      "expected_allowed": [],
+      "expected_denied": ["authentication"]
+    },
+    "boundary": {
+      "status": "partial",
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "outcome": "denied"},
+        {"topic_id": "vpn", "ordinal": 31, "outcome": "allowed"}
+      ],
+      "expected_allowed": ["vpn"],
+      "expected_denied": ["authentication"]
+    },
+    "failure": {
+      "status": "partial",
+      "topics": [
+        {"topic_id": "authentication", "ordinal": 0, "outcome": "denied"},
+        {"topic_id": "vpn", "ordinal": 1, "outcome": "allowed"},
+        {"topic_id": "tls", "ordinal": 2, "outcome": "unavailable"}
+      ],
+      "expected_allowed": ["vpn"],
+      "expected_denied": ["authentication"],
+      "expected_failed": ["tls"]
+    }
+  }
+}

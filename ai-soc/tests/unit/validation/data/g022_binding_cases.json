@@ -1,0 +1,13 @@
+{
+  "fixture_version": 1,
+  "evidence_id": "ev1_2222222222222222222222222222222222222222222222222222222222222222",
+  "foreign_evidence_id": "ev1_9999999999999999999999999999999999999999999999999999999999999999",
+  "primary_topic": "ldap",
+  "foreign_topic": "dns",
+  "variants": {
+    "positive": {"expected_state": "validated", "expected_removed": 0},
+    "negative": {"expected_state": "all_removed", "expected_removed": 1},
+    "boundary": {"expected_state": "validated", "expected_removed": 1, "retained_candidates": 1},
+    "failure": {"expected_state": "invalid_output", "expected_removed": 0}
+  }
+}

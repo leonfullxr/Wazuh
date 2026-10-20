@@ -1,0 +1,24 @@
+{
+  "allowed_evidence_kinds": [
+    "check"
+  ],
+  "kind": "observation",
+  "relations": [],
+  "required_bindings": {
+    "o": [
+      "outcome"
+    ]
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "auth_sources",
+      "outcome": "failed"
+    }
+  ],
+  "template_id": "auth_source_gap",
+  "texts": {
+    "en": "A source address was absent from at least one returned row; outcome {o}. This check describes returned rows only.",
+    "es": "Falto una direccion de origen en al menos una fila devuelta; resultado {o}. Esta comprobacion describe solo las filas devueltas."
+  },
+  "topic_id": "auth_review"
+}

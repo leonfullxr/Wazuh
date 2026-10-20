@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G025.denied-evidence-boundary.private",
+  "requirements": ["G025"],
+  "variants": {
+    "positive": {"check_outcome": "denied", "required_outcome": "denied", "expected_state": "validated", "expected_text": "Verificación TLS: denied"},
+    "negative": {"check_outcome": "denied", "required_outcome": "passed", "expected_state": "all_removed", "removed_reason": "failed_prerequisite"},
+    "boundary": {"candidate_outcomes": ["denied", "passed"], "expected_rendered": 2, "expected_removed": 0},
+    "failure": {"raw_text": "{invalid-json", "expected_state": "invalid_output"}
+  }
+}

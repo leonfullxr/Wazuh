@@ -1,0 +1,8 @@
+{
+  "cases": {
+    "positive": {"key_window": "previous-and-current", "claim": "matching"},
+    "negative": {"key_window": "previous-and-current", "claim": "foreign-owner"},
+    "boundary": {"key_window": "previous-and-current", "now_offset_seconds": 299},
+    "failure": {"key_window": "previous-and-current", "tamper": true}
+  }
+}

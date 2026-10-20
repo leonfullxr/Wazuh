@@ -1,0 +1,46 @@
+{
+  "purpose": "Unbound candidate cases for the composed MCP bearer audience, scope, origin, and group barriers.",
+  "positive": {
+    "audience": "https://soc.example.test/mcp",
+    "scope": "soc:ask",
+    "origin": "https://soc.example.test",
+    "groups": ["soc"],
+    "status": 200
+  },
+  "negative": [
+    {
+      "name": "wrong-audience",
+      "audience": "https://other.example.test/mcp",
+      "scope": "soc:ask",
+      "origin": "https://soc.example.test",
+      "status": 401,
+      "code": "AUTH_INVALID"
+    },
+    {
+      "name": "missing-scope",
+      "audience": "https://soc.example.test/mcp",
+      "scope": "soc:read",
+      "origin": "https://soc.example.test",
+      "status": 403,
+      "code": "SCOPE_DENIED"
+    },
+    {
+      "name": "denied-origin",
+      "audience": "https://soc.example.test/mcp",
+      "scope": "soc:ask",
+      "origin": "https://attacker.example.test",
+      "status": 403,
+      "code": "ORIGIN_DENIED"
+    }
+  ],
+  "boundary": {
+    "group_count": 128,
+    "status": 200
+  },
+  "failure": {
+    "key_resolver_error": "MCP-IDENTITY-PRIVATE-KEY-CANARY",
+    "status": 401,
+    "code": "AUTH_INVALID",
+    "secret_must_not_appear": true
+  }
+}

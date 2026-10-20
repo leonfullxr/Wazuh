@@ -1,0 +1,12 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "RequestRuntime accepted deadline bounds and cancellation-before-attempt behavior.",
+  "cases": {
+    "positive": {"deadline_seconds": 120, "expected_offset_seconds": 120},
+    "negative": {"invalid_deadline_seconds": [0, 121]},
+    "boundary": {"deadline_seconds": [1, 120]},
+    "failure": {"cancel_before_attempt": true, "expected_attempts": 0}
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G039.spanish-renderer.private",
+  "requirements": ["G039"],
+  "variants": {
+    "positive": {"language": "es", "expected_state": "validated", "expected_text": "Verificación TLS: passed"},
+    "negative": {"language": "es", "missing_approved_template": true, "expected_state": "all_removed"},
+    "boundary": {"language": "es", "hostile_value": "<script>alert(1)</script>", "expected_state": "validated", "expected_text": "Verificación TLS: ⟦&lt;script&gt;alert(1)&lt;/script&gt;⟧"},
+    "failure": {"language": "es", "raw_text": "{invalid-json", "expected_state": "invalid_output"}
+  }
+}

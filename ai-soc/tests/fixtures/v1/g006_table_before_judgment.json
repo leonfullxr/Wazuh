@@ -1,0 +1,85 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Independent UI/application oracle for G006 table ordering and retention after judgment failure.",
+  "cases": {
+    "positive": {
+      "input": {
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "authentication",
+            "ordinal": 0,
+            "table": {"state": "rows", "label": "Authentication alerts", "count_label": "rows · =1"},
+            "judgment": {"state": "validated", "sentences": ["Synthetic finding is linked to the visible alert."]}
+          }
+        ],
+        "left_out": []
+      },
+      "expected": {
+        "render_order": ["table:authentication", "count:authentication", "judgment:authentication"],
+        "table_visible": true,
+        "finding_visible": true
+      }
+    },
+    "negative": {
+      "input": {
+        "status": "partial",
+        "topics": [
+          {
+            "topic_id": "authentication",
+            "ordinal": 0,
+            "table": {"state": "rows", "label": "Authentication alerts", "count_label": "rows · =1"},
+            "judgment": {"state": "unavailable", "sentences": []}
+          }
+        ],
+        "left_out": [{"topic_id": "authentication", "stage": "judgment", "reason": "model_unavailable", "retryable": true}]
+      },
+      "expected": {
+        "render_order": ["table:authentication", "count:authentication", "judgment:authentication"],
+        "table_visible": true,
+        "fabricated_finding_visible": false,
+        "retryable_judgment_left_out": true
+      }
+    },
+    "boundary": {
+      "input": {
+        "status": "answered",
+        "topics": [
+          {
+            "topic_id": "authentication",
+            "ordinal": 0,
+            "table": {"state": "rows", "label": "Authentication alerts", "count_label": "rows · =2"},
+            "judgment": {"state": "validated", "sentences": ["Synthetic authentication finding."]}
+          },
+          {
+            "topic_id": "vpn",
+            "ordinal": 1,
+            "table": {"state": "rows", "label": "VPN alerts", "count_label": "rows · =1"},
+            "judgment": {"state": "validated", "sentences": ["Synthetic VPN finding."]}
+          }
+        ],
+        "left_out": []
+      },
+      "expected": {
+        "render_order": ["table:authentication", "count:authentication", "judgment:authentication", "table:vpn", "count:vpn", "judgment:vpn"],
+        "topic_order": ["authentication", "vpn"]
+      }
+    },
+    "failure": {
+      "input": {
+        "fetch_state": "rows",
+        "fetch_count": 1,
+        "judgment_provider_outcome": "model_unavailable",
+        "topic_id": "authentication"
+      },
+      "expected": {
+        "answer_status": "partial",
+        "table_retained": true,
+        "fabricated_finding": false,
+        "left_out": {"topic_id": "authentication", "stage": "judgment", "reason": "model_unavailable", "retryable": true}
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G049.tool-free-converse.private",
+  "production_source": "src/ai_soc/judgment/bedrock.py",
+  "variants": {
+    "positive": {
+      "sdk_import": "boto3",
+      "sdk_calls": ["count_tokens", "converse"],
+      "attempts": 2,
+      "excluded_dependency_prefixes": ["langchain", "langchain_aws"],
+      "forbidden_locked_dependencies": []
+    },
+    "negative": {
+      "source": "import langchain\nfor tool in response['toolUse']:\n    client.converse(toolConfig={'tools': [tool]})\nclient.converse_stream(modelId='x')\n",
+      "violations": ["framework_import:langchain", "stream_call:converse_stream", "tool_configuration:tools", "tool_configuration:toolConfig", "tool_loop:converse"]
+    },
+    "boundary": {
+      "source": "# langchain is forbidden as an import\nmessage = 'toolConfig and converse_stream are data, not API calls'\n",
+      "violations": []
+    },
+    "failure": {
+      "source": "import boto3\nasync def broken(:\n    pass\n",
+      "error": "SyntaxError"
+    }
+  }
+}

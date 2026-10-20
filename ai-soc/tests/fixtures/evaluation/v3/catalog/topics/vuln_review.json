@@ -1,0 +1,43 @@
+{
+  "aliases": [
+    {
+      "alias_id": "vuln_review_en",
+      "boundary": "phrase",
+      "language": "en",
+      "normalized": "vulnerability review",
+      "text": "vulnerability review",
+      "topic_id": "vuln_review"
+    },
+    {
+      "alias_id": "vuln_review_es",
+      "boundary": "phrase",
+      "language": "es",
+      "normalized": "revision de vulnerabilidades",
+      "text": "revision de vulnerabilidades",
+      "topic_id": "vuln_review"
+    }
+  ],
+  "fetch_bindings": [],
+  "finding_template_ids": [
+    "vuln_count",
+    "vuln_sample",
+    "vuln_priority_review",
+    "vuln_version_gap"
+  ],
+  "name": {
+    "en": "Vulnerability review",
+    "es": "Revision de vulnerabilidades"
+  },
+  "playbook_id": "vuln_review_playbook",
+  "public_document": {
+    "anchor": "vulnerability-record-review",
+    "document_id": "vuln_review_guide",
+    "heading": "Vulnerability record review",
+    "language": "en",
+    "published_path": "en/vulnerability-review.html",
+    "sha256": "52a0a9a6374f6ff9961e9e1a59d4862c689c9b13e02057513210c4a7475f0a4d",
+    "source_path": "public-docs/en/vuln_review.md"
+  },
+  "schema_version": "1",
+  "topic_id": "vuln_review"
+}

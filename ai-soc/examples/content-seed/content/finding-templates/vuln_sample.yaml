@@ -1,0 +1,16 @@
+template_id: vuln_sample
+topic_id: vuln_review
+kind: observation
+required_bindings:
+  agent: [agent.id]
+  cve: [vulnerability.id]
+  package: [package.name]
+  version: [package.version]
+  severity: [vulnerability.severity]
+  detected: [vulnerability.detected_at]
+texts:
+  en: One returned record identifies agent {agent}, vulnerability {cve}, package {package} version {version}, severity {severity}, and detection time {detected}.
+  es: Un registro devuelto identifica el agente {agent}, la vulnerabilidad {cve}, el paquete {package} versión {version}, severidad {severity} y fecha de detección {detected}.
+required_check_outcomes: []
+allowed_evidence_kinds: [row]
+relations: [{kind: same_record, bindings: [agent, cve, package, version, severity, detected]}]

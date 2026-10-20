@@ -1,0 +1,94 @@
+{
+  "aliases": [],
+  "ambiguities": [],
+  "cues": [
+    {
+      "boundary": "word",
+      "cue_id": "fetch_alerts_en",
+      "kind": "fetch",
+      "language": "en",
+      "negation_rule": "direct_negation",
+      "normalized": "alerts",
+      "text": "alerts"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "fetch_alerts_es",
+      "kind": "fetch",
+      "language": "es",
+      "negation_rule": "direct_negation",
+      "normalized": "alertas",
+      "text": "alertas"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "judgment_recommend_en",
+      "kind": "judgment",
+      "language": "en",
+      "negation_rule": "direct_negation",
+      "normalized": "recommend",
+      "text": "recommend"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "judgment_recommend_es",
+      "kind": "judgment",
+      "language": "es",
+      "negation_rule": "direct_negation",
+      "normalized": "recomienda",
+      "text": "recomienda"
+    },
+    {
+      "boundary": "phrase",
+      "cue_id": "failure_working_en",
+      "kind": "failure",
+      "language": "en",
+      "normalized": "not working",
+      "text": "not working"
+    },
+    {
+      "boundary": "phrase",
+      "cue_id": "failure_working_es",
+      "kind": "failure",
+      "language": "es",
+      "normalized": "no funciona",
+      "text": "no funciona"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "failure_investigate_en",
+      "kind": "failure",
+      "language": "en",
+      "normalized": "investigate",
+      "text": "investigate"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "failure_investiga_es",
+      "kind": "failure",
+      "language": "es",
+      "normalized": "investiga",
+      "text": "investiga"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "judgment_assess_en",
+      "kind": "judgment",
+      "language": "en",
+      "negation_rule": "direct_negation",
+      "normalized": "assess",
+      "text": "assess"
+    },
+    {
+      "boundary": "word",
+      "cue_id": "judgment_evalua_es",
+      "kind": "judgment",
+      "language": "es",
+      "negation_rule": "direct_negation",
+      "normalized": "evalua",
+      "text": "evalua"
+    }
+  ],
+  "sha256": "0a43eb3c46ffdc74a021f6883d6a90ae1ced14339f155bdc1101ea842828d11a",
+  "version": "1"
+}

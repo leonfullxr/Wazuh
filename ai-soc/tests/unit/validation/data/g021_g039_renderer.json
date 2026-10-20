@@ -1,0 +1,27 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G021-G039.approved-renderer.private",
+  "variants": {
+    "positive": {
+      "language": "es",
+      "approved_template": "tls_ok",
+      "expected_state": "validated",
+      "expected_text": "Verificación TLS: passed"
+    },
+    "negative": {
+      "missing_item": "approved_template",
+      "model_supplied_template": "tls_ok",
+      "expected_state": "all_removed",
+      "removed_candidates": 1
+    },
+    "boundary": {
+      "hostile_value": "<script>alert(1)</script>",
+      "expected_state": "validated",
+      "expected_text": "Verificación TLS: ⟦&lt;script&gt;alert(1)&lt;/script&gt;⟧"
+    },
+    "failure": {
+      "raw_text": "{invalid-json",
+      "expected_state": "invalid_output"
+    }
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "checks": [
+    {
+      "check_id": "burst_threshold",
+      "evidence_ids": [
+        "ev1_e7122c27eb6001c7442656fa60505123f6af6051bc8379fd7cfca0f52c2b715e"
+      ],
+      "expectation_id": null,
+      "label": "Failed login burst threshold",
+      "message": "Burst threshold recorded from the frozen fetch.",
+      "outcome": "unknown",
+      "topic_id": "ssh_auth"
+    },
+    {
+      "check_id": "authorized_window",
+      "evidence_ids": [
+        "ev1_f436a68cbd136b23a6447ec8c6b9d59a0f867b4e13a62028cba5b1dfac63569e"
+      ],
+      "expectation_id": "authorized_scan_window",
+      "label": "Approved scan window",
+      "message": "Approved scan window recorded from the frozen fetch.",
+      "outcome": "unknown",
+      "topic_id": "ssh_auth"
+    }
+  ],
+  "content_sha": "9de81733c834bc86610d234e27c2d31d1c5f44d9",
+  "environment_id": "soc-eval",
+  "fetches": [
+    {
+      "bucket_completeness": "complete",
+      "buckets": [],
+      "checks": [],
+      "columns": [],
+      "count": null,
+      "empty_proof": null,
+      "error": {
+        "code": "INDEXER_DENIED",
+        "details": {},
+        "message": "The site could not complete this read.",
+        "retryable": false,
+        "trace_id": "00000000000000000000000000000000"
+      },
+      "fetch_id": "failed_logins",
+      "items": [],
+      "message": null,
+      "next_cursor": null,
+      "rows": [],
+      "scope": {
+        "displayed_rows": 0,
+        "environment_id": "soc-eval",
+        "filters": [
+          {
+            "field": "rule.id",
+            "op": "in",
+            "value": [
+              "5710",
+              "5716"
+            ]
+          },
+          {
+            "field": "agent.id",
+            "op": "eq",
+            "value": "111"
+          }
+        ],
+        "index_family": "alerts",
+        "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+        "snapshot": "pit",
+        "template_id": "alerts_rows_v1",
+        "visibility": "full"
+      },
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "532969965bf7942c83a182ff5f4cb2867f3352a73dd93ce2b2b85349f47c63bb",
+        "kind": "pit"
+      },
+      "snapshot_at": "2026-10-17T11:59:00.000000Z",
+      "state": "denied",
+      "topic_id": "ssh_auth",
+      "window": {
+        "anchor_at": "2026-10-17T12:00:00.000000Z",
+        "end": "2026-10-17T12:00:00.000000Z",
+        "semantics": "rolling",
+        "source_text": "rolling:24:hours",
+        "start": "2026-10-16T12:00:00.000000Z",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "items": [
+    {
+      "check_id": "burst_threshold",
+      "evidence_id": "ev1_e7122c27eb6001c7442656fa60505123f6af6051bc8379fd7cfca0f52c2b715e",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "fef471733249fcc7e799be0962e08850909055f9ddb5f956c3fb7a2675fe09f0",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "532969965bf7942c83a182ff5f4cb2867f3352a73dd93ce2b2b85349f47c63bb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "compare_burst"
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "authorized_window",
+      "evidence_id": "ev1_f436a68cbd136b23a6447ec8c6b9d59a0f867b4e13a62028cba5b1dfac63569e",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "fef471733249fcc7e799be0962e08850909055f9ddb5f956c3fb7a2675fe09f0",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "532969965bf7942c83a182ff5f4cb2867f3352a73dd93ce2b2b85349f47c63bb",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "match_authorized"
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "expectation_id": "authorized_scan_window",
+        "expectation_version": "1",
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    }
+  ],
+  "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+  "question_id": "6b0a1b6a-781e-5e0c-ab83-5002e8405070",
+  "schema_version": "1",
+  "sha256": "ced762b4f96c1abed2a21d2d41f0444943d5efa286a0c4a091fb78eb12bab882",
+  "topic_id": "ssh_auth"
+}

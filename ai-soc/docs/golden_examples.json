@@ -1,0 +1,1037 @@
+{
+  "fixture": {
+    "mode": "fixture",
+    "anchor": "2026-09-30T12:00:00Z",
+    "golden_topic_bindings": "each failure topic has one alerts_count_v1 fetch; fake positive coherent evidence; zero optional mapping/validate/PIT probes for parser layer",
+    "special_case": "shared LDAP/DNS/TLS examples require synthetic catalog/site authorization all3; canonical alpha/beta isolation cases remain separate"
+  },
+  "cases": [
+    {
+      "schema_version": "1",
+      "case_id": "G010.en.doc",
+      "requirements": [
+        "G010"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "How do I configure LDAP?",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "en"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "en",
+          "topic_plans": [
+            {
+              "topic_id": "ldap",
+              "document": true,
+              "failure": false,
+              "judgment": false,
+              "fetch_templates": []
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 0,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "G010.es.failure",
+      "requirements": [
+        "G010"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "LDAP en 636 no funciona",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "es"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "es",
+          "topic_plans": [
+            {
+              "topic_id": "ldap",
+              "document": true,
+              "failure": true,
+              "judgment": false,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 0,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "G003.en.fetch",
+      "requirements": [
+        "G003"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "Show LDAP alerts for the last 24 hours for agent id 007",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "en"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "en",
+          "topic_plans": [
+            {
+              "topic_id": "ldap",
+              "document": true,
+              "failure": false,
+              "judgment": false,
+              "fetch_templates": [
+                "alerts_rows_v1"
+              ],
+              "filter_agent_id": "007"
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 0,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "QA-004.en.generic",
+      "requirements": [
+        "G009",
+        "G020"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "Show alerts for the last 24 hours; recommend fixes",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "en"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "en",
+          "topic_plans": [
+            {
+              "topic_id": "_records",
+              "document": false,
+              "failure": false,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_rows_v1"
+              ]
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 1,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "QA-004.es.generic",
+      "requirements": [
+        "G009",
+        "G020"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "Muestra alertas de las \u00faltimas 24 horas; recomienda correcciones",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "es"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "es",
+          "topic_plans": [
+            {
+              "topic_id": "_records",
+              "document": false,
+              "failure": false,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_rows_v1"
+              ]
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 1,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "QA-004.en.shared",
+      "requirements": [
+        "G009",
+        "G020"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "LDAP is failing; DNS is failing; TLS is failing; recommend fixes",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "en"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "en",
+          "topic_plans": [
+            {
+              "topic_id": "ldap",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "dns",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "tls",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 3,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "QA-004.es.shared",
+      "requirements": [
+        "G009",
+        "G020"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "LDAP falla; DNS falla; TLS falla; recomienda correcciones",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "es"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "es",
+          "topic_plans": [
+            {
+              "topic_id": "ldap",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "dns",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "tls",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 3,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "G031.en.mixed",
+      "requirements": [
+        "G031"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "LDAP is failing; how do I configure DNS?",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "en"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "en",
+          "topic_plans": [
+            {
+              "topic_id": "ldap",
+              "document": true,
+              "failure": true,
+              "judgment": false,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "dns",
+              "document": true,
+              "failure": false,
+              "judgment": false,
+              "fetch_templates": []
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 0,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "G012.es.bare",
+      "requirements": [
+        "G012"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "\u00bfQu\u00e9 deber\u00eda corregir?",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "es"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "es",
+          "topic_plans": [],
+          "planning_status": "clarify",
+          "judgment_candidates": 0,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": "missing_subject"
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    },
+    {
+      "schema_version": "1",
+      "case_id": "G027.en.over32",
+      "requirements": [
+        "G027"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "layer": "golden",
+      "variant": "positive",
+      "evidence_class": "offline",
+      "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+      "content_sha": "0000000000000000000000000000000000000000",
+      "input": {
+        "kind": "request",
+        "payload": {
+          "question": "topic00 is failing; topic01 is failing; topic02 is failing; topic03 is failing; topic04 is failing; topic05 is failing; topic06 is failing; topic07 is failing; topic08 is failing; topic09 is failing; topic10 is failing; topic11 is failing; topic12 is failing; topic13 is failing; topic14 is failing; topic15 is failing; topic16 is failing; topic17 is failing; topic18 is failing; topic19 is failing; topic20 is failing; topic21 is failing; topic22 is failing; topic23 is failing; topic24 is failing; topic25 is failing; topic26 is failing; topic27 is failing; topic28 is failing; topic29 is failing; topic30 is failing; topic31 is failing; topic32 is failing; topic33 is failing; topic34 is failing; topic35 is failing; topic36 is failing; topic37 is failing; topic38 is failing; topic39 is failing; recommend fixes",
+          "environment_id": "alpha",
+          "model_id": "fixture-claude-large",
+          "effort": "high",
+          "timezone": "UTC",
+          "language_hint": "en"
+        }
+      },
+      "expected": {
+        "kind": "invariants",
+        "payload": {
+          "language": "en",
+          "topic_plans": [
+            {
+              "topic_id": "topic00",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic01",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic02",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic03",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic04",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic05",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic06",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic07",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic08",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic09",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic10",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic11",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic12",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic13",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic14",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic15",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic16",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic17",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic18",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic19",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic20",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic21",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic22",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic23",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic24",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic25",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic26",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic27",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic28",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic29",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic30",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic31",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic32",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic33",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic34",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic35",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic36",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic37",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic38",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            },
+            {
+              "topic_id": "topic39",
+              "document": true,
+              "failure": true,
+              "judgment": true,
+              "fetch_templates": [
+                "alerts_count_v1"
+              ]
+            }
+          ],
+          "planning_status": "planned",
+          "judgment_candidates": 40,
+          "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+          "clarify_kind": null
+        }
+      },
+      "calls": [
+        {
+          "operation": "embedding",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        },
+        {
+          "operation": "parser_external_calls",
+          "principal": "alice",
+          "site": "alpha",
+          "count": 0
+        }
+      ],
+      "timeout_seconds": 30
+    }
+  ]
+}

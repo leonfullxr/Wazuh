@@ -1,0 +1,3265 @@
+{
+  "schema_version": "1",
+  "purpose": "normative acceptance catalog; concrete GoldenCase inputs frozen in the contract; runtime not executed",
+  "cases": [
+    {
+      "case_id": "ARCH-001.resolution",
+      "requirements": [
+        "G042",
+        "G044",
+        "GN02",
+        "G053"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B5-T01",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Pause A before completion; B reclaims/completes; A emits no Answer/anchor for fetch/doc/model/key/no-key; valid delayed delivery remains allowed.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "212d735dad68716bc65b3f6675c44f10059f1e2d226c63d2f874be77938214ed"
+        ],
+        "negative": [
+          "212d735dad68716bc65b3f6675c44f10059f1e2d226c63d2f874be77938214ed"
+        ],
+        "boundary": [
+          "212d735dad68716bc65b3f6675c44f10059f1e2d226c63d2f874be77938214ed"
+        ],
+        "failure": [
+          "212d735dad68716bc65b3f6675c44f10059f1e2d226c63d2f874be77938214ed"
+        ]
+      }
+    },
+    {
+      "case_id": "ARCH-002.resolution",
+      "requirements": [
+        "G044",
+        "GN02"
+      ],
+      "tasks": [
+        "B5-T01",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Kill at reserve/start/send/response/settle; restart with no request; two reconcilers converge once within120s; response-lost transactions do not double charge."
+    },
+    {
+      "case_id": "ARCH-003.resolution",
+      "requirements": [
+        "GP1",
+        "GP3",
+        "GN02"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B3-T03",
+        "B4-T01",
+        "B5-T01",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Two replicas exhaust alpha while beta/document/control work continues; no new owner/key/page/embed escapes limits; actual attempts stay bounded."
+    },
+    {
+      "case_id": "ARCH-004.resolution",
+      "requirements": [
+        "G027",
+        "G044",
+        "GN03",
+        "GN04"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B3-T03",
+        "B3-T05",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "32x16384 counterexample rejected by in-list bounds; test every byte boundary; emitted cursor round-trips; no evidence trimming; normal four topics pass."
+    },
+    {
+      "case_id": "ARCH-005.resolution",
+      "requirements": [
+        "G006",
+        "G029",
+        "G035",
+        "G053",
+        "GUI",
+        "GMCP"
+      ],
+      "tasks": [
+        "B3-T03",
+        "B4-T01",
+        "B5-T02",
+        "B5-T05",
+        "B6-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Barriers at every stage/deadline; no new calls after cancellation, physical slots retained; config rejects60s; live80s synthetic response separate."
+    },
+    {
+      "case_id": "ARCH-006.resolution",
+      "requirements": [
+        "G048",
+        "G054",
+        "G055"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B2-T02",
+        "B6-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Commit synthetic source once, detached approval, two unchanged clean read-only builds identical; wrong tree/repo/commit/approval fails."
+    },
+    {
+      "case_id": "ARCH-007.resolution",
+      "requirements": [
+        "G011",
+        "G037",
+        "G060"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T02",
+        "B3-T04",
+        "B4-T02",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Contract-only fake supplies exact section and configured comparisons; typecheck/roundtrip; denied/not-configured/failed/passed distinct.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "36798c43a45b010d0aea370bbee1506314f23ea059afa464a7178edf11eec6bb"
+        ],
+        "negative": [
+          "36798c43a45b010d0aea370bbee1506314f23ea059afa464a7178edf11eec6bb"
+        ],
+        "boundary": [
+          "36798c43a45b010d0aea370bbee1506314f23ea059afa464a7178edf11eec6bb"
+        ],
+        "failure": [
+          "36798c43a45b010d0aea370bbee1506314f23ea059afa464a7178edf11eec6bb"
+        ]
+      }
+    },
+    {
+      "case_id": "ARCH-008.resolution",
+      "requirements": [
+        "G033",
+        "G034",
+        "GN02"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T04",
+        "B5-T01",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Two branches leave parent unchanged; busy/clarify/refusal keys not active; completed same key makes no calls; changed payload conflicts."
+    },
+    {
+      "case_id": "ARCH-009.resolution",
+      "requirements": [
+        "GP1",
+        "GN03",
+        "G044"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B3-T02",
+        "B3-T05",
+        "B5-T01",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Role/visibility/DLS/CA change invalidates before broker/query/model; equivalent token renewal does not."
+    },
+    {
+      "case_id": "ARCH-010.resolution",
+      "requirements": [
+        "G005",
+        "G050",
+        "G051"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B3-T04",
+        "B4-T04",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Mutate visible data between probes; mixed snapshots never qualify; same PIT/combination zero works; no PIT yields0 Converse for zero.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ],
+        "negative": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ],
+        "boundary": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ],
+        "failure": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ]
+      }
+    },
+    {
+      "case_id": "ARCH-011.resolution",
+      "requirements": [
+        "G040"
+      ],
+      "tasks": [
+        "B1-T04",
+        "B6-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The minimal deployment scaffold can be validated with its documented direct commands."
+    },
+    {
+      "case_id": "ARCH-012.resolution",
+      "requirements": [
+        "G022",
+        "G038",
+        "G059"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B3-T03",
+        "B4-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Independent vectors match for all kinds; pages/topics/questions cannot alias; conflicting ID rejected."
+    },
+    {
+      "case_id": "QA-001.resolution",
+      "requirements": [
+        "G022",
+        "G046",
+        "G059",
+        "G060"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T02",
+        "B4-T03",
+        "B5-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "All named types/ports instantiate/roundtrip; absent/cross-topic template fails; no hidden peer file import."
+    },
+    {
+      "case_id": "QA-002.resolution",
+      "requirements": [
+        "G005",
+        "G037",
+        "G038",
+        "G059"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B3-T03",
+        "B3-T04",
+        "B4-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Golden row/bucket/count/probe/check/two-page vectors resolve one topic each and equivalent producer IDs."
+    },
+    {
+      "case_id": "QA-003.resolution",
+      "requirements": [
+        "G011",
+        "G037"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B3-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Two-fetch comparisons produce all5 outcomes; unknown/forward/cyclic/forbidden field references fail."
+    },
+    {
+      "case_id": "QA-004.resolution",
+      "requirements": [
+        "G001",
+        "G009",
+        "G018",
+        "G020",
+        "G027",
+        "G031",
+        "G039"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Paired generic fetch judgment/four failure topics/distinct windows/setup/quote/negation/missing slots freeze exact plans and calls.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "2e4e06a11dd92d169e25791db83e7e16d8ed8777081666b5fa83b1ec3ab2ed5d"
+        ],
+        "negative": [
+          "2c0b9a2c93e9ed8b92c49f41a450fc24b190d79175e5205fcaf9bd9169fd3a58"
+        ],
+        "boundary": [
+          "2c0b9a2c93e9ed8b92c49f41a450fc24b190d79175e5205fcaf9bd9169fd3a58"
+        ]
+      }
+    },
+    {
+      "case_id": "QA-005.resolution",
+      "requirements": [
+        "G005",
+        "G007",
+        "G021",
+        "G024",
+        "G025",
+        "G029",
+        "G035",
+        "G050",
+        "G053"
+      ],
+      "tasks": [
+        "B4-T04",
+        "B5-T02",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Table-driven all rows/mixed inputs/cross-topic failures, no false all-clear or stale partial success; count failure preserves table."
+    },
+    {
+      "case_id": "QA-006.resolution",
+      "requirements": [
+        "G004",
+        "G019",
+        "G028",
+        "G033",
+        "G034"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B2-T04",
+        "B5-T01",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Two tabs/select LDAP+TLS/empty/not-left-out/foreign/expired/new content/roles have one result; no answered calls.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "6e12e6028ffdb486fef594b8b01b5f20d1d4c2253fff27b9aacd3e26d9d6c0ce"
+        ],
+        "negative": [
+          "6e12e6028ffdb486fef594b8b01b5f20d1d4c2253fff27b9aacd3e26d9d6c0ce"
+        ],
+        "boundary": [
+          "6e12e6028ffdb486fef594b8b01b5f20d1d4c2253fff27b9aacd3e26d9d6c0ce"
+        ],
+        "failure": [
+          "3898a39d604e96bdc5db43f87308ce393f9a3e626027c2d4f31fb3e3d57af4d2",
+          "6e12e6028ffdb486fef594b8b01b5f20d1d4c2253fff27b9aacd3e26d9d6c0ce"
+        ]
+      }
+    },
+    {
+      "case_id": "QA-007.resolution",
+      "requirements": [
+        "G044",
+        "GN02"
+      ],
+      "tasks": [
+        "B5-T01",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Kill at every transition; retained/deleted/recreated lease; late settle/recovery cannot double charge/free replacement."
+    },
+    {
+      "case_id": "QA-008.resolution",
+      "requirements": [
+        "G048",
+        "G054",
+        "G055"
+      ],
+      "tasks": [
+        "B2-T01",
+        "B2-T02",
+        "B6-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Ordinary committed fixture source builds twice; wrong SHA/dirty source/different repo fails."
+    },
+    {
+      "case_id": "QA-009.resolution",
+      "requirements": [
+        "G040",
+        "GN01",
+        "GN04"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B1-T04",
+        "B1-T05",
+        "B6-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Missing/dangling/zero/skipped/xfail/duplicate case fails; controlled GN01/G052/G053 mutations trip exact intended assertions."
+    },
+    {
+      "case_id": "QA-010.resolution",
+      "requirements": [
+        "G040",
+        "GN04"
+      ],
+      "tasks": [
+        "B1-T01",
+        "B1-T04",
+        "B6-T02",
+        "B6-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Clean prepared cache runs all offline tiers; lock drift fails unchanged; dirty HOME/region/timezone cannot change outputs; tripwire sentinel fails."
+    },
+    {
+      "case_id": "QA-011.resolution",
+      "requirements": [
+        "G044",
+        "GN02"
+      ],
+      "tasks": [
+        "B3-T03",
+        "B4-T01",
+        "B4-T05",
+        "B5-T01",
+        "B5-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Exact keys/expiry/fence/version/ConsistentRead and transaction boundaries; physical read 20/8 and shared count+Converse 8/2 slot maxima, site isolation, atomic races, exact/stale fenced release, actual DDB transaction shape, immediate typed rejection, blocked-cancellation slot retention and recovery only after hard deadline+35s; embedding is one in-flight/question and outside the 8/2 pool; stage rejection remains a typed partial, not request 429.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e2e6afef52785c4e6e4ecd6bfb52bf872a728b59185c1ebcd2d4838c40f88a0f"
+        ],
+        "negative": [
+          "e2e6afef52785c4e6e4ecd6bfb52bf872a728b59185c1ebcd2d4838c40f88a0f"
+        ],
+        "boundary": [
+          "e2e6afef52785c4e6e4ecd6bfb52bf872a728b59185c1ebcd2d4838c40f88a0f"
+        ],
+        "failure": [
+          "e2e6afef52785c4e6e4ecd6bfb52bf872a728b59185c1ebcd2d4838c40f88a0f"
+        ]
+      }
+    },
+    {
+      "case_id": "QA-012.resolution",
+      "requirements": [
+        "GUI",
+        "GMCP",
+        "GP1",
+        "G053"
+      ],
+      "tasks": [
+        "B5-T03",
+        "B5-T04",
+        "B6-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Actual route browser/MCP with missing nonce/wrong Origin denies before calls; hostile text absent at every barrier; manual keyboard/axe report."
+    },
+    {
+      "case_id": "QA-013.resolution",
+      "requirements": [
+        "G048",
+        "G054",
+        "G055"
+      ],
+      "tasks": [
+        "B2-T02",
+        "B6-T02",
+        "B6-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Two clean builds different paths/mtime/time match pack/docs/archive/runtime digest; altered input changes proper hash; signature verification separate."
+    },
+    {
+      "case_id": "QA-014.resolution",
+      "requirements": [
+        "G058",
+        "GP2",
+        "GP3"
+      ],
+      "tasks": [
+        "B2-T05",
+        "B4-T05",
+        "B6-T01",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Threshold epsilon/equality/tie/nonfinite/mode fixtures; baseline+5pp exact/over,20-candidate minimum,zero/missing run explicit."
+    },
+    {
+      "case_id": "SEC-001.resolution",
+      "requirements": [
+        "GP1",
+        "GP2"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B5-T02",
+        "B5-T03",
+        "B5-T04",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "SEC-G001: foreign/tampered/expired uniform errors; valid receipt works on replica2 including clarify/refusal with no follow-up; queue outage distinct."
+    },
+    {
+      "case_id": "SEC-002.resolution",
+      "requirements": [
+        "G038",
+        "G059"
+      ],
+      "tasks": [
+        "B1-T03",
+        "B3-T03",
+        "B4-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "SEC-G002: independently authored vectors/all references/duplicate conflict/replayed pages validate.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ],
+        "negative": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ],
+        "boundary": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ],
+        "failure": [
+          "4ee012d1c092d192baae112559b02f774d7300d879e7615e56d441f5972d4cbb"
+        ]
+      }
+    },
+    {
+      "case_id": "SEC-003.resolution",
+      "requirements": [
+        "GP1",
+        "G056",
+        "GN03"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B3-T02",
+        "B3-T05",
+        "B5-T01",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "SEC-G003: roles/composite/DLS changes fail before PIT/broker/model; renewed equivalent token works.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "0c1b54007e698db9df7ff163e4d66d4dff08f198b11c2537365998ff59e57876"
+        ],
+        "negative": [
+          "0c1b54007e698db9df7ff163e4d66d4dff08f198b11c2537365998ff59e57876"
+        ],
+        "boundary": [
+          "0c1b54007e698db9df7ff163e4d66d4dff08f198b11c2537365998ff59e57876"
+        ],
+        "failure": [
+          "0c1b54007e698db9df7ff163e4d66d4dff08f198b11c2537365998ff59e57876"
+        ]
+      }
+    },
+    {
+      "case_id": "SEC-004.resolution",
+      "requirements": [
+        "G011",
+        "G052",
+        "GN04",
+        "GMCP"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B3-T03",
+        "B4-T03",
+        "B5-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "SEC-G004: fragmented/chunked/deep/unknown fields and every bound+1 reject at intended stage with zero unauthorized side effects, no silent trim."
+    },
+    {
+      "case_id": "SEC-005.resolution",
+      "requirements": [
+        "G038",
+        "G059"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B2-T01",
+        "B4-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "SEC-G005: all-agent count cannot bind agent007; cross-row agent/address rejected; valid same-scope rows survive; unknown prereq fails."
+    },
+    {
+      "case_id": "CONT-01.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "In-process KMS broker trust is an explicit residual task-compromise risk. KMS cannot validate JWT contents. Restrict key access and identity claims, and verify actual site read roles during live qualification. A separate service is outside the current architecture scope."
+    },
+    {
+      "case_id": "CONT-02.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Identity, Wazuh, model, cache, count, and MCP versions are live deployment inputs and fail closed when unavailable. The live inventory and qualification gates verify them; fixtures cannot establish their deployed values."
+    },
+    {
+      "case_id": "CONT-03.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Drain buffered work within the 120-second request deadline and 160-second grace period. Changed content, policy, or CA anchors return a safe conflict and require a fresh question. Rolling configuration tests verify the behavior; no migration occurs across an unreviewed content pack."
+    },
+    {
+      "case_id": "CONT-04.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "A dedicated encrypted audit SQS acknowledgment is mandatory before completion. The durable archive/DLQ consumer must not silently drop events. A sink outage returns 503 without an Answer. Qualification verifies delivery through the live log gate."
+    },
+    {
+      "case_id": "CHOICE-01.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Indexed topic slots display first-mention order, and one judgment at a time is admitted in ordinal order. Out-of-order fetch completion cannot reorder answer blocks."
+    },
+    {
+      "case_id": "CHOICE-02.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Budget remaining_tokens+version CAS uses legal condition `remaining_tokens >= :requested`; aggregate/state transition one transaction, no invented arithmetic expression. QA-011 SDK conformance."
+    },
+    {
+      "case_id": "CHOICE-03.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Lease counter retained without TTL; unique lease/holder identity protects deletion/recreation. PIT close on known exhaustion/cancel; abandoned cursor relies on bounded300s PIT expiry. No raw-row cleanup store. GN02/GN03."
+    },
+    {
+      "case_id": "CHOICE-04.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "FastAPI/Pydantic/boto3/native TypeScript and bilingual template renderer are fixed choices; G020/G039/GUI usefulness review. No model prose/tool/slot-filler concession."
+    },
+    {
+      "case_id": "SEC-NV-001.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "In-process KMS broker trust is an explicit residual task-compromise risk. KMS cannot validate JWT contents. Restrict key access and identity claims, and verify actual site read roles during live qualification. A separate service is outside the current architecture scope."
+    },
+    {
+      "case_id": "SEC-NV-002.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "ALB assertion verification is not immediate revocation. Identity owner supplies <=15min revocation-delay objective and IdP token/ALB session refresh settings; inability to satisfy objective blocks live, not unsigned local bypass. G056/LV-IDENTITY tests revoked user/group/expiry."
+    },
+    {
+      "case_id": "SEC-NV-003.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Guardrail/VPCE/IAM policy includes embedding InvokeModel path; exact capabilities mandatory, truncate=NONE, unavailable path disables live suggestion. G058 offline interface still mandatory; LV-MODEL includes embedding negatives."
+    },
+    {
+      "case_id": "SEC-NV-004.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Coordinated deployed DLS/combined-role attestation, mapping/PIT/JWT syntax/private DNS/CA are per-site inputs; unknown visibility never full. LV-SITE/LV-NETWORK."
+    },
+    {
+      "case_id": "SEC-NV-005.resolution",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Invocation logs account/Region scope; privacy/security owner inventories co-resident apps/destination readers/decrypt/lifecycle/APM/exports.30d raw invocation logs,90d metadata audit; LV-OBSERVABILITY verifies synthetic delivery."
+    },
+    {
+      "case_id": "SEC-I001.resolution",
+      "requirements": [
+        "GN04"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Build only the materialized approved Git tree, including checks that reject untracked files. Verify the trusted signer, repository, commit, and policy rather than relying on URL syntax."
+    },
+    {
+      "case_id": "SEC-I002.resolution",
+      "requirements": [
+        "GN04"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Use a fixed route mode, reject normalized, encoded, trailing, default, and forwarded-header path variants, and keep health and metadata routes separate."
+    },
+    {
+      "case_id": "SEC-I003.resolution",
+      "requirements": [
+        "GN04"
+      ],
+      "tasks": [
+        "B6-T04",
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Use no-store for bootstrap, answers, and pages; sanitize errors; require the correct bearer resource and scope; and do not place secrets in query strings."
+    },
+    {
+      "case_id": "FM-001.resolution",
+      "requirements": [
+        "G027"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "40-topic plan retained, no fixed32 cap; actual context/budget/deadline yields ordered explicit left-outs."
+    },
+    {
+      "case_id": "FM-002.resolution",
+      "requirements": [
+        "G059"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "bad_relation is in sole RemovedFinding.reason enum and relational validator return."
+    },
+    {
+      "case_id": "FM-003.resolution",
+      "requirements": [
+        "G047"
+      ],
+      "tasks": [
+        "B1-T02",
+        "B1-T03",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Telemetry.event returns AuditAck; sink outage gives503 no completion/Answer; valid ack supplied through frozen seam.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "b9f92e8b82a4e95edc03720673ae18cd7a72c2fb2ae7e608db3d5d25cc97ca5b"
+        ],
+        "negative": [
+          "b9f92e8b82a4e95edc03720673ae18cd7a72c2fb2ae7e608db3d5d25cc97ca5b"
+        ],
+        "boundary": [
+          "b9f92e8b82a4e95edc03720673ae18cd7a72c2fb2ae7e608db3d5d25cc97ca5b"
+        ],
+        "failure": [
+          "b9f92e8b82a4e95edc03720673ae18cd7a72c2fb2ae7e608db3d5d25cc97ca5b"
+        ]
+      }
+    },
+    {
+      "case_id": "B1-G040.coverage",
+      "requirements": [
+        "G040"
+      ],
+      "tasks": [
+        "B1-T04",
+        "B1-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The coverage registry joins the complete frozen acceptance inventory to unique traceability IDs and registered cases, rejects missing or dangling mappings, and preserves runtime result states. Terminology and domain meaning require human review. This case does not certify consumer runtime or the full system.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "68946f3f1d7d0650d789f25eaf22cca929b92b2cf564e5fab9d53eacd3e897bc"
+        ],
+        "negative": [
+          "68946f3f1d7d0650d789f25eaf22cca929b92b2cf564e5fab9d53eacd3e897bc"
+        ],
+        "boundary": [
+          "68946f3f1d7d0650d789f25eaf22cca929b92b2cf564e5fab9d53eacd3e897bc"
+        ],
+        "failure": [
+          "68946f3f1d7d0650d789f25eaf22cca929b92b2cf564e5fab9d53eacd3e897bc"
+        ]
+      }
+    },
+    {
+      "case_id": "QA-016.resolution",
+      "requirements": [
+        "G030"
+      ],
+      "tasks": [
+        "B5-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Synthetic topic coroutines finish in varied orders and are consumed with asyncio.as_completed. The production order_topic_answers helper restores TopicAnswer blocks to plan ordinal order, including ordinals 0 and 31, and model_unavailable remains partial. This component case proves the ordering invariant; browser presentation and full-system composition have separate checks.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "5976eb5f8b84fe347349e9e206577aa0ef50be5c93b46f158ea0639b61866a95"
+        ],
+        "negative": [
+          "5976eb5f8b84fe347349e9e206577aa0ef50be5c93b46f158ea0639b61866a95"
+        ],
+        "boundary": [
+          "5976eb5f8b84fe347349e9e206577aa0ef50be5c93b46f158ea0639b61866a95"
+        ],
+        "failure": [
+          "5976eb5f8b84fe347349e9e206577aa0ef50be5c93b46f158ea0639b61866a95"
+        ]
+      }
+    },
+    {
+      "case_id": "B1-T01.config-profile",
+      "requirements": [],
+      "tasks": [
+        "B1-T01",
+        "B1-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Fixture mode accepts a numbered non-placeholder guardrail; live mode rejects DRAFT and fixture signing settings; guardrail version 1 is accepted and 0 is rejected.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "373c73607ca0ae194fe0567d0741af9d08de0dc469103a137232ebeba3201cc9"
+        ],
+        "negative": [
+          "373c73607ca0ae194fe0567d0741af9d08de0dc469103a137232ebeba3201cc9"
+        ],
+        "boundary": [
+          "373c73607ca0ae194fe0567d0741af9d08de0dc469103a137232ebeba3201cc9"
+        ],
+        "failure": [
+          "373c73607ca0ae194fe0567d0741af9d08de0dc469103a137232ebeba3201cc9"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G008.content",
+      "requirements": [
+        "G008"
+      ],
+      "tasks": [
+        "B2-T02",
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Reviewed aliases resolve the canonical topic while the pointer retains its external origin; collisions fail validation; case and whitespace rules resolve only reviewed aliases; unsupported aliases refuse without fetch, model, or document calls.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "af3fc7f9bc6b98199640548d0039b84f9592987a3235c9566ff83e490e6d1ea8"
+        ],
+        "negative": [
+          "af3fc7f9bc6b98199640548d0039b84f9592987a3235c9566ff83e490e6d1ea8"
+        ],
+        "boundary": [
+          "af3fc7f9bc6b98199640548d0039b84f9592987a3235c9566ff83e490e6d1ea8"
+        ],
+        "failure": [
+          "af3fc7f9bc6b98199640548d0039b84f9592987a3235c9566ff83e490e6d1ea8"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G014.pointer",
+      "requirements": [
+        "G014"
+      ],
+      "tasks": [
+        "B2-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Catalog pointers preserve the authoritative source path, original heading, and immutable commit URL; missing language pointers cannot substitute another source; encoded path and heading preserve their exact source values; invalid commit SHA or unsafe published path fails validation.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "3eda571bece14f8e802b547a7a6903d8a2a1c2c61bc411413f0de9e5a4367e07"
+        ],
+        "negative": [
+          "3eda571bece14f8e802b547a7a6903d8a2a1c2c61bc411413f0de9e5a4367e07"
+        ],
+        "boundary": [
+          "3eda571bece14f8e802b547a7a6903d8a2a1c2c61bc411413f0de9e5a4367e07"
+        ],
+        "failure": [
+          "3eda571bece14f8e802b547a7a6903d8a2a1c2c61bc411413f0de9e5a4367e07"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G015.immutable",
+      "requirements": [
+        "G015"
+      ],
+      "tasks": [
+        "B2-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Question and follow-up transformations do not change reviewed aliases, playbooks, or pack hash; unapproved runtime mutation is rejected; no-op sequences retain byte-identical pack hash; post-build source or pack mutation fails before catalog load.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "2ff52d0c3073a115f77b1c0a7e2c2d88a7ca99e0281a5025a625eb38f00b75ba"
+        ],
+        "negative": [
+          "2ff52d0c3073a115f77b1c0a7e2c2d88a7ca99e0281a5025a625eb38f00b75ba"
+        ],
+        "boundary": [
+          "2ff52d0c3073a115f77b1c0a7e2c2d88a7ca99e0281a5025a625eb38f00b75ba"
+        ],
+        "failure": [
+          "2ff52d0c3073a115f77b1c0a7e2c2d88a7ca99e0281a5025a625eb38f00b75ba"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G017.disclosure",
+      "requirements": [
+        "G017"
+      ],
+      "tasks": [
+        "B2-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Public context exposes analyst checks and approved pointers while excluding internal playbook instructions; public documentation remains exact alongside private internal playbook metadata; malformed classification or private document paths fail pack build.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "ac45ab988e17983144997a3699253537105409964b262d093ffb7c72b321b82b"
+        ],
+        "negative": [
+          "ac45ab988e17983144997a3699253537105409964b262d093ffb7c72b321b82b"
+        ],
+        "boundary": [
+          "ac45ab988e17983144997a3699253537105409964b262d093ffb7c72b321b82b"
+        ],
+        "failure": [
+          "ac45ab988e17983144997a3699253537105409964b262d093ffb7c72b321b82b"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G023.refusal",
+      "requirements": [
+        "G023"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Unmatched input returns typed refusal with no blocks or fetch/model/document calls; aliases cannot coerce an unreviewed topic; whitespace and punctuation only remain unmatched; malformed query still refuses without side effects.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "b5a47d4c2b7990929000ceba7d51005c166f1c028824df4c50197ee9b4d83e6a"
+        ],
+        "negative": [
+          "b5a47d4c2b7990929000ceba7d51005c166f1c028824df4c50197ee9b4d83e6a"
+        ],
+        "boundary": [
+          "b5a47d4c2b7990929000ceba7d51005c166f1c028824df4c50197ee9b4d83e6a"
+        ],
+        "failure": [
+          "b5a47d4c2b7990929000ceba7d51005c166f1c028824df4c50197ee9b4d83e6a"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G026.aliases",
+      "requirements": [
+        "G026"
+      ],
+      "tasks": [
+        "B2-T01",
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Only the static reviewed EN/ES alias inventory drives parsing; unreviewed synonyms and model-suggested cues have no effect; reviewed overlap follows the specified longest-match and ambiguity rules; cross-topic collisions fail content validation.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "03f81bf34507a8fdcdc619c73ce442272f2e2a5283d1b4578db87ec361bcdb4a"
+        ],
+        "negative": [
+          "03f81bf34507a8fdcdc619c73ce442272f2e2a5283d1b4578db87ec361bcdb4a"
+        ],
+        "boundary": [
+          "03f81bf34507a8fdcdc619c73ce442272f2e2a5283d1b4578db87ec361bcdb4a"
+        ],
+        "failure": [
+          "03f81bf34507a8fdcdc619c73ce442272f2e2a5283d1b4578db87ec361bcdb4a"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G032.authority",
+      "requirements": [
+        "G032"
+      ],
+      "tasks": [
+        "B2-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Returned pointer path and heading identify the authoritative external document and loaded context comes from the verified pack; alternate runtime document sources are ignored or rejected; exact heading anchors and content-SHA URLs survive encoding; source mismatch or modified pack fails before context is returned.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "7f865fb692f9efea5c26375de1fa4419bcac6e30876021178bee51f1f509b31a"
+        ],
+        "negative": [
+          "7f865fb692f9efea5c26375de1fa4419bcac6e30876021178bee51f1f509b31a"
+        ],
+        "boundary": [
+          "7f865fb692f9efea5c26375de1fa4419bcac6e30876021178bee51f1f509b31a"
+        ],
+        "failure": [
+          "7f865fb692f9efea5c26375de1fa4419bcac6e30876021178bee51f1f509b31a"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G036.static-cues",
+      "requirements": [
+        "G036"
+      ],
+      "tasks": [
+        "B2-T01",
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Reviewed immutable cue bytes drive parser output; cues supplied outside the pack have no effect; matching cue version and hash pass while changed bytes with an old hash fail; malformed or duplicate cues fail pack validation before parser use.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "b8c44df3e2cf93afcf109ba51eba8f357be9d9755148ee3ed59d06601a9b3b69"
+        ],
+        "negative": [
+          "b8c44df3e2cf93afcf109ba51eba8f357be9d9755148ee3ed59d06601a9b3b69"
+        ],
+        "boundary": [
+          "b8c44df3e2cf93afcf109ba51eba8f357be9d9755148ee3ed59d06601a9b3b69"
+        ],
+        "failure": [
+          "b8c44df3e2cf93afcf109ba51eba8f357be9d9755148ee3ed59d06601a9b3b69"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G041.parser",
+      "requirements": [
+        "G041"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Failure without judgment and judgment with independent topics compile distinct plans; multi-topic parsing adds no tool call or merged evidence; 32- and 40-topic ordering oracles preserve source order without inventing a fixed topic-count ceiling; ambiguity, missing slots, and resource admission failures clarify or refuse without guessed fetches.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "d8c5be921d193837ee105e6b72c9da977836076d26f2572d54422419247e03f5"
+        ],
+        "negative": [
+          "d8c5be921d193837ee105e6b72c9da977836076d26f2572d54422419247e03f5"
+        ],
+        "boundary": [
+          "2c0b9a2c93e9ed8b92c49f41a450fc24b190d79175e5205fcaf9bd9169fd3a58"
+        ],
+        "failure": [
+          "d8c5be921d193837ee105e6b72c9da977836076d26f2572d54422419247e03f5"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G048.content-release",
+      "requirements": [
+        "G048"
+      ],
+      "tasks": [
+        "B2-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Repeat a build from the same approved commit and require byte-identical pack files; reject a changed immutable docs asset; accept a changed approved document only with changed content, pack and docs-manifest identities; reject pairing the original pack with provenance for the revised commit.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "3d4979ef4362d2636e03490b5962fecb67bc1bed38f39343e0ac856130bc792a"
+        ],
+        "negative": [
+          "3d4979ef4362d2636e03490b5962fecb67bc1bed38f39343e0ac856130bc792a"
+        ],
+        "boundary": [
+          "3d4979ef4362d2636e03490b5962fecb67bc1bed38f39343e0ac856130bc792a"
+        ],
+        "failure": [
+          "3d4979ef4362d2636e03490b5962fecb67bc1bed38f39343e0ac856130bc792a"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G054.approval-release",
+      "requirements": [
+        "G054"
+      ],
+      "tasks": [
+        "B2-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Build from the approved detached Git source; exclude an untracked topic from the pack; reject approval for a different committed tree without output; reject a dirty tracked source tree without output.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "1adc2a9a42959cbc7d4a08bb880e92d0eeb7cabda8f4e5b06ed6216ddd23d509"
+        ],
+        "negative": [
+          "1adc2a9a42959cbc7d4a08bb880e92d0eeb7cabda8f4e5b06ed6216ddd23d509"
+        ],
+        "boundary": [
+          "1adc2a9a42959cbc7d4a08bb880e92d0eeb7cabda8f4e5b06ed6216ddd23d509"
+        ],
+        "failure": [
+          "1adc2a9a42959cbc7d4a08bb880e92d0eeb7cabda8f4e5b06ed6216ddd23d509"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G055.docs-promotion",
+      "requirements": [
+        "G055"
+      ],
+      "tasks": [
+        "B2-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Verify the exact public document pointer and docs-manifest digest; reject an invalid declared document digest; bind a revised approved document to changed document and docs-manifest identity and pointer; reject a tampered published artifact.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "f0d90b1c065f9f352c9a91053641a875da69b059e3ba99e0dc1a9b63ca9057c2"
+        ],
+        "negative": [
+          "f0d90b1c065f9f352c9a91053641a875da69b059e3ba99e0dc1a9b63ca9057c2"
+        ],
+        "boundary": [
+          "f0d90b1c065f9f352c9a91053641a875da69b059e3ba99e0dc1a9b63ca9057c2"
+        ],
+        "failure": [
+          "f0d90b1c065f9f352c9a91053641a875da69b059e3ba99e0dc1a9b63ca9057c2"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G061.anonymized-seed",
+      "requirements": [
+        "G061"
+      ],
+      "tasks": [
+        "B2-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Synthetic solved-case seeds import only with human and anonymization attestation; missing or invalid attestations fail; approved synthetic inputs at configured resource bounds pass without customer identifiers; customer identifiers or secret sentinels fail before pack emission.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "eef4e3d1fcf5e86db98264b644b2e7ed2374209aa444b5a42beb18b7a4067bc9"
+        ],
+        "negative": [
+          "eef4e3d1fcf5e86db98264b644b2e7ed2374209aa444b5a42beb18b7a4067bc9"
+        ],
+        "boundary": [
+          "eef4e3d1fcf5e86db98264b644b2e7ed2374209aa444b5a42beb18b7a4067bc9"
+        ],
+        "failure": [
+          "eef4e3d1fcf5e86db98264b644b2e7ed2374209aa444b5a42beb18b7a4067bc9"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-G057.private-route",
+      "requirements": [
+        "G057"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Site selection uses only the configured private indexer origin and private-network reference; unknown sites never construct a client; alpha and beta route configuration remains disjoint; missing private route configuration refuses without a standing reader fallback. This offline case does not prove deployed routing.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "a480b9f8dd937ebbfe3d384f0aa19f40de62bbd64bfea9f50d38d8afd00ebaf6"
+        ],
+        "negative": [
+          "a480b9f8dd937ebbfe3d384f0aa19f40de62bbd64bfea9f50d38d8afd00ebaf6"
+        ],
+        "boundary": [
+          "a480b9f8dd937ebbfe3d384f0aa19f40de62bbd64bfea9f50d38d8afd00ebaf6"
+        ],
+        "failure": [
+          "a480b9f8dd937ebbfe3d384f0aa19f40de62bbd64bfea9f50d38d8afd00ebaf6"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-GP4.ca-trust",
+      "requirements": [
+        "GP4"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The client fetches exactly the configured CA secret version and uses hostname-verifying pinned TLS; wrong digest and hostname mismatch fail; version mismatch and redirects are rejected; missing or invalid CA material returns typed untrusted/unreachable without fallback. Generated private keys are not committed.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e0c5667a08f7e66b4e703a8c6f3381dc251a37d3aa71f3dead45524a849f0c16"
+        ],
+        "negative": [
+          "e0c5667a08f7e66b4e703a8c6f3381dc251a37d3aa71f3dead45524a849f0c16"
+        ],
+        "boundary": [
+          "e0c5667a08f7e66b4e703a8c6f3381dc251a37d3aa71f3dead45524a849f0c16"
+        ],
+        "failure": [
+          "e0c5667a08f7e66b4e703a8c6f3381dc251a37d3aa71f3dead45524a849f0c16"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-READ-001.resolution",
+      "requirements": [
+        "GP1"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Component-only fresh-read behavior: repeated owner/site reads perform new credential and physical transport attempts; alpha-to-beta calls use the beta origin and sentinel; exhausted alpha site permits fail before transport without cached rows while beta remains isolated. Full ask/page/MCP/feedback/audit site isolation requires composed evidence.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "3f96f3077835d5cabc4b0655a09da974d5db44c5487b49f156607631e606fb01"
+        ],
+        "negative": [
+          "3f96f3077835d5cabc4b0655a09da974d5db44c5487b49f156607631e606fb01"
+        ],
+        "boundary": [
+          "3f96f3077835d5cabc4b0655a09da974d5db44c5487b49f156607631e606fb01"
+        ],
+        "failure": [
+          "3f96f3077835d5cabc4b0655a09da974d5db44c5487b49f156607631e606fb01"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G058.embedding-admission.private",
+      "requirements": [
+        "G058"
+      ],
+      "tasks": [
+        "B4-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Question-scoped embedding admission occurs before provider work; typed capacity rejection abstains with zero provider and ledger attempts; an admitted call claims once and releases its exact grant; cancellation retains the fence for bounded recovery; unexpected provider errors propagate without capacity relabeling.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "6c44a1d88403292d355bd857ee3e082d502a4a7fcc58888f374b7cda98dbd178"
+        ],
+        "negative": [
+          "6c44a1d88403292d355bd857ee3e082d502a4a7fcc58888f374b7cda98dbd178"
+        ],
+        "boundary": [
+          "6c44a1d88403292d355bd857ee3e082d502a4a7fcc58888f374b7cda98dbd178"
+        ],
+        "failure": [
+          "6c44a1d88403292d355bd857ee3e082d502a4a7fcc58888f374b7cda98dbd178"
+        ]
+      }
+    },
+    {
+      "case_id": "QA-015.resolution",
+      "requirements": [
+        "G006"
+      ],
+      "tasks": [
+        "B5-T02",
+        "B5-T04",
+        "B5-T05",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The composed UI renders each fetched topic table and count before its judgment; judgment-unavailable partial responses retain the table without fabricated findings; multiple tables preserve topic ordinal and count ordering; model failure after successful fetch retains tables and exposes retryable judgment state.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "2b0c300b7bc5ebbcbaaea4c7305f353ff3b4d2f5bd6476d1ff914c6f6f79447a"
+        ],
+        "negative": [
+          "2b0c300b7bc5ebbcbaaea4c7305f353ff3b4d2f5bd6476d1ff914c6f6f79447a"
+        ],
+        "boundary": [
+          "2b0c300b7bc5ebbcbaaea4c7305f353ff3b4d2f5bd6476d1ff914c6f6f79447a"
+        ],
+        "failure": [
+          "2b0c300b7bc5ebbcbaaea4c7305f353ff3b4d2f5bd6476d1ff914c6f6f79447a"
+        ]
+      }
+    },
+    {
+      "case_id": "B6-G045.private",
+      "requirements": [
+        "G045"
+      ],
+      "tasks": [
+        "B6-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Offline IAM policy fixture constrains the configured model, exact guardrail identity/version, and private runtime endpoint; missing or wrong guardrail and non-allowlisted models are denied; unrelated service actions and public inference routes are denied. Application runtime behavior and live IAM effectiveness require separate evidence.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e99f3cda37397d17697dd650e44fa349bd8a708d8e2007531bbfbc2af856d6d7"
+        ],
+        "negative": [
+          "e99f3cda37397d17697dd650e44fa349bd8a708d8e2007531bbfbc2af856d6d7"
+        ],
+        "boundary": [
+          "e99f3cda37397d17697dd650e44fa349bd8a708d8e2007531bbfbc2af856d6d7"
+        ],
+        "failure": [
+          "e99f3cda37397d17697dd650e44fa349bd8a708d8e2007531bbfbc2af856d6d7"
+        ]
+      }
+    },
+    {
+      "case_id": "B6-GN04.offline-runner.private",
+      "requirements": [
+        "GN04"
+      ],
+      "tasks": [
+        "B6-T02",
+        "B6-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Offline runner environment component: positive strips ambient access-key/secret/profile sentinels and pins private HOME/TMPDIR, region, fixture mode and anchor; negative strips web-identity/session sentinels and forces fixture mode; boundary pins timezone, locale, hash seed, region and metadata-service disablement; failure returns nonzero for a missing command. The four nodes do not claim full network-denial, tmpfs namespace, provider, or deployed-runner validation.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "196e7457ff7aea7424a272ac1ae6e7177eb852d2de075977fc9953f92ab3b55b"
+        ],
+        "negative": [
+          "196e7457ff7aea7424a272ac1ae6e7177eb852d2de075977fc9953f92ab3b55b"
+        ],
+        "boundary": [
+          "196e7457ff7aea7424a272ac1ae6e7177eb852d2de075977fc9953f92ab3b55b"
+        ],
+        "failure": [
+          "196e7457ff7aea7424a272ac1ae6e7177eb852d2de075977fc9953f92ab3b55b"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-API.ingress-component",
+      "requirements": [],
+      "tasks": [
+        "B5-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "REST route component only: typed question and idempotency request succeeds; wrong Origin and missing CSRF nonce fail before application work; the exact body-size limit passes and one byte over fails; malformed JSON returns sanitized BAD_REQUEST before application work. Does not satisfy browser or MCP acceptance.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "0510007be9c23d229cc78cb4898dbc967a26db0d2fa2a327e3391aa19772e331"
+        ],
+        "negative": [
+          "0510007be9c23d229cc78cb4898dbc967a26db0d2fa2a327e3391aa19772e331"
+        ],
+        "boundary": [
+          "0510007be9c23d229cc78cb4898dbc967a26db0d2fa2a327e3391aa19772e331"
+        ],
+        "failure": [
+          "0510007be9c23d229cc78cb4898dbc967a26db0d2fa2a327e3391aa19772e331"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-feedback.receipt-component",
+      "requirements": [],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Receipt component only: encrypted receipts open on a separate codec instance; invalid, foreign, and tampered bindings share the finite public error; the last instant before expiry passes and exact expiry fails; queue outage is sanitized, distinct, and attempted once. Does not satisfy full multisite composed behavior.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "5c8bffe2053b18d27ec88dc09e1bf7d329ede9d1e1f32d921a593935d0435e4b"
+        ],
+        "negative": [
+          "5c8bffe2053b18d27ec88dc09e1bf7d329ede9d1e1f32d921a593935d0435e4b"
+        ],
+        "boundary": [
+          "5c8bffe2053b18d27ec88dc09e1bf7d329ede9d1e1f32d921a593935d0435e4b"
+        ],
+        "failure": [
+          "5c8bffe2053b18d27ec88dc09e1bf7d329ede9d1e1f32d921a593935d0435e4b"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G002.model-selection.private",
+      "requirements": [
+        "G002"
+      ],
+      "tasks": [
+        "B4-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The explicitly selected model and effort pass unchanged to Converse; unsupported effort and missing required selection fail before provider work; a provider timeout produces finite model_unavailable after exactly one attempt without implicit model downgrade.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "8d7161a191477ac233097d12a8af8346afe229f1c87549089ba185d9c4560f41"
+        ],
+        "negative": [
+          "8d7161a191477ac233097d12a8af8346afe229f1c87549089ba185d9c4560f41"
+        ],
+        "boundary": [
+          "8d7161a191477ac233097d12a8af8346afe229f1c87549089ba185d9c4560f41"
+        ],
+        "failure": [
+          "8d7161a191477ac233097d12a8af8346afe229f1c87549089ba185d9c4560f41"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G016.prompt-safety",
+      "requirements": [
+        "G016"
+      ],
+      "tasks": [
+        "B4-T01",
+        "B4-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Judgment prompts are ordered with the standing-rule checkpoint before variable evidence and use no tools; non-judgment plans make zero provider calls; invalid guardrails stop before SDK work; a single Converse timeout produces finite model_unavailable. G049 dependency/static exclusion claims are not included in this case.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "3d205dc5d5bf565ea811ee8f94f1c544226da7feea2b53f8a6f7f9a78be03f37"
+        ],
+        "negative": [
+          "3d205dc5d5bf565ea811ee8f94f1c544226da7feea2b53f8a6f7f9a78be03f37"
+        ],
+        "boundary": [
+          "3d205dc5d5bf565ea811ee8f94f1c544226da7feea2b53f8a6f7f9a78be03f37"
+        ],
+        "failure": [
+          "3d205dc5d5bf565ea811ee8f94f1c544226da7feea2b53f8a6f7f9a78be03f37"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G022.topic-evidence-binding.private",
+      "requirements": [
+        "G022"
+      ],
+      "tasks": [
+        "B4-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "A finding is rendered only from evidence bound to its own topic and cited value; foreign-topic evidence and context fail closed; when local and foreign candidates coexist only the locally cited candidate is rendered and the foreign evidence identifier is absent from output.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "cdb44b13890083da1e0e1da39f83882dbde3cac90a414450b0f26f67866cb14f"
+        ],
+        "negative": [
+          "cdb44b13890083da1e0e1da39f83882dbde3cac90a414450b0f26f67866cb14f"
+        ],
+        "boundary": [
+          "cdb44b13890083da1e0e1da39f83882dbde3cac90a414450b0f26f67866cb14f"
+        ],
+        "failure": [
+          "cdb44b13890083da1e0e1da39f83882dbde3cac90a414450b0f26f67866cb14f"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G042.composition.private",
+      "requirements": [
+        "G042"
+      ],
+      "tasks": [
+        "B5-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Live composition selects explicitly configured DynamoDB follow-up state across separate replica roots; missing live state/client/table fails closed; distinct replica adapters bind to the exact configured durable table; a strong follow-up read failure propagates without memory fallback. This component case does not establish private ALB or deployed multi-replica/network behavior.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "8c7697bbe02355c06136abe5fd8bc1e614575eeddb68ab7e8e175a8a7431b911"
+        ],
+        "negative": [
+          "8c7697bbe02355c06136abe5fd8bc1e614575eeddb68ab7e8e175a8a7431b911"
+        ],
+        "boundary": [
+          "8c7697bbe02355c06136abe5fd8bc1e614575eeddb68ab7e8e175a8a7431b911"
+        ],
+        "failure": [
+          "8c7697bbe02355c06136abe5fd8bc1e614575eeddb68ab7e8e175a8a7431b911"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G012.parser",
+      "requirements": [
+        "G012"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The deterministic planner clarifies English and Spanish bare judgment requests without inventing topics, refuses a quoted judgment cue, honors the requested language at a bilingual tie, and rejects an over-limit UTF-8 request before planner execution. This is planner-boundary evidence only.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ],
+        "negative": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ],
+        "boundary": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ],
+        "failure": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G013.parser",
+      "requirements": [
+        "G013"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The deterministic planner binds LDAP failure, judgment, playbook, and fetch operands to the LDAP topic; keeps a DNS setup topic separate and document-only; preserves equivalent English and Spanish LDAP jobs; and clarifies an invalid IP filter without a partial evidence plan. This does not claim provider or service composition.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ],
+        "negative": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ],
+        "boundary": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ],
+        "failure": [
+          "7c649d4b125472a48c7b77e045e1781476031cf53659090748f8d9719a422c07"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-G003.compiler",
+      "requirements": [
+        "G003"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The finite query compiler accepts the approved template and half-open time window, treats filter values literally, and rejects an unapproved site/template mapping or index. This is compiler-component evidence; parser, REST, provider, and deployed query composition remain separate.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "8ed7069e4826fb38c3965b88110a8b3d1223b3499e29d5232d65702723e6b1c4"
+        ],
+        "negative": [
+          "8ed7069e4826fb38c3965b88110a8b3d1223b3499e29d5232d65702723e6b1c4"
+        ],
+        "boundary": [
+          "8ed7069e4826fb38c3965b88110a8b3d1223b3499e29d5232d65702723e6b1c4"
+        ],
+        "failure": [
+          "8ed7069e4826fb38c3965b88110a8b3d1223b3499e29d5232d65702723e6b1c4"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-G010.expectation",
+      "requirements": [
+        "G010"
+      ],
+      "tasks": [
+        "B3-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Typed site expectation configuration controls the finite empty-result and unavailable outcomes at the expectation component boundary. It does not claim REST, browser, or full application composition.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "23ddae4fd5b066383e0565eb4168bc8ea76e44f86bc6d6b989ec0a2320a463fa"
+        ],
+        "negative": [
+          "23ddae4fd5b066383e0565eb4168bc8ea76e44f86bc6d6b989ec0a2320a463fa"
+        ],
+        "boundary": [
+          "23ddae4fd5b066383e0565eb4168bc8ea76e44f86bc6d6b989ec0a2320a463fa"
+        ],
+        "failure": [
+          "23ddae4fd5b066383e0565eb4168bc8ea76e44f86bc6d6b989ec0a2320a463fa"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G029.context-budget.private",
+      "requirements": [
+        "G029"
+      ],
+      "tasks": [
+        "B4-T02",
+        "B4-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Counted input plus selected output reserve and the 256-token margin are accepted at the exact context boundary and rejected one token over with a retryable context-exceeded outcome; evidence bytes remain unchanged and count-provider failure maps to its finite outcome.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "cabb94b49b2d8832565d576a24eb570edce3c0d0eeac5d6b045c3ca6edf9f3cb"
+        ],
+        "negative": [
+          "cabb94b49b2d8832565d576a24eb570edce3c0d0eeac5d6b045c3ca6edf9f3cb"
+        ],
+        "boundary": [
+          "cabb94b49b2d8832565d576a24eb570edce3c0d0eeac5d6b045c3ca6edf9f3cb"
+        ],
+        "failure": [
+          "cabb94b49b2d8832565d576a24eb570edce3c0d0eeac5d6b045c3ca6edf9f3cb"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G049.tool-free-converse.private",
+      "requirements": [
+        "G049"
+      ],
+      "tasks": [
+        "B4-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The local adapter makes one captured CountTokens and one buffered Converse attempt with the exact counted payload and guardrail arguments, without tools or output configuration. Resolved dependencies and provider AST exclude frameworks, streaming, and tool loops; malformed source fails closed.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "f148ff0bd3465180c7917f11928e3da4ac91187e2c9cade0e795f2897842f5a8"
+        ],
+        "negative": [
+          "f148ff0bd3465180c7917f11928e3da4ac91187e2c9cade0e795f2897842f5a8"
+        ],
+        "boundary": [
+          "f148ff0bd3465180c7917f11928e3da4ac91187e2c9cade0e795f2897842f5a8"
+        ],
+        "failure": [
+          "f148ff0bd3465180c7917f11928e3da4ac91187e2c9cade0e795f2897842f5a8"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G060.prompt-checkpoints.private",
+      "requirements": [
+        "G060"
+      ],
+      "tasks": [
+        "B4-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Immutable checkpoints follow standing rules and approved topic context; untrusted question and evidence remain after checkpoints; counted input equals the exact Converse input; unsupported caching preserves evidence without checkpoints and count failure remains finite.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "9bc201b2d995aed852032f2fd60d52d38893cbefd205570870cbb619f371b921"
+        ],
+        "negative": [
+          "9bc201b2d995aed852032f2fd60d52d38893cbefd205570870cbb619f371b921"
+        ],
+        "boundary": [
+          "9bc201b2d995aed852032f2fd60d52d38893cbefd205570870cbb619f371b921"
+        ],
+        "failure": [
+          "9bc201b2d995aed852032f2fd60d52d38893cbefd205570870cbb619f371b921"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G035.ui-route-component",
+      "requirements": [],
+      "tasks": [
+        "B5-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The browser route renders a denied topic without findings while retaining allowed VPN evidence across positive, negative, and boundary cases; failure also renders a separate unavailable TLS topic as unfinished. This synthetic UI route-render scope does not prove API authorization, provider composition, or deployed routing.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "2a046a646610fb851bd79637457a5c9c10afe25860cacd2ec3073dfe733c93e9"
+        ],
+        "negative": [
+          "2a046a646610fb851bd79637457a5c9c10afe25860cacd2ec3073dfe733c93e9"
+        ],
+        "boundary": [
+          "2a046a646610fb851bd79637457a5c9c10afe25860cacd2ec3073dfe733c93e9"
+        ],
+        "failure": [
+          "2a046a646610fb851bd79637457a5c9c10afe25860cacd2ec3073dfe733c93e9"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G035.application-component",
+      "requirements": [],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Four synthetic ApplicationService.ask variants: positive, boundary, and failure prove denied authentication fetch does not suppress allowed VPN fetch/table evidence; negative isolates the denied-only result; denied blocks have no findings; failure keeps unavailable TLS unfinished with a retryable fetch left-out. Judgment is disabled, so this component case does not establish G035 acceptance.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "a9ff747925a879103b32f042abe1c2eed4fb05e91d8325a36342f1fc760a6de4"
+        ],
+        "negative": [
+          "a9ff747925a879103b32f042abe1c2eed4fb05e91d8325a36342f1fc760a6de4"
+        ],
+        "boundary": [
+          "a9ff747925a879103b32f042abe1c2eed4fb05e91d8325a36342f1fc760a6de4"
+        ],
+        "failure": [
+          "a9ff747925a879103b32f042abe1c2eed4fb05e91d8325a36342f1fc760a6de4"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G035.application-judgment",
+      "requirements": [
+        "G035"
+      ],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "ApplicationService mixed-access scope: positive, boundary, and failure variants keep denied authentication empty while a VPN row yields a validated rendered finding bound only to VPN evidence; boundary uses ordinal 31; failure preserves the VPN judgment while unavailable TLS is left out for retry. The denial-only negative proves zero CountTokens/Converse attempts but has no allowed topic, so it is not G035 evidence and has no binding in this case. API/UI, authorization/compiler, judgment-engine, and full-system behavior have separate checks.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ],
+        "boundary": [
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ],
+        "failure": [
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ],
+        "negative": [
+          "2bbcce182dd41d4f93e968842e48e4016869f7ee90e64cbc9411752d2efd7129"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-GUI.browser-surface",
+      "requirements": [
+        "GUI"
+      ],
+      "tasks": [
+        "B5-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Browser fixture selects a site and capable model effort by keyboard and clears the previous continuation on site change; Spanish mobile denial shows no denied evidence at 320px; exact 16384 UTF-8 bytes pass and 16386 bytes do not dispatch; typed failure renders its safe message and hides the provider sentinel. This is fixture browser surface evidence only, not an integrated live API result.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "1e0966568fafe977ed4928fffb562653e268999875edee4b9e408850879c9bca"
+        ],
+        "negative": [
+          "1e0966568fafe977ed4928fffb562653e268999875edee4b9e408850879c9bca"
+        ],
+        "boundary": [
+          "1e0966568fafe977ed4928fffb562653e268999875edee4b9e408850879c9bca"
+        ],
+        "failure": [
+          "1e0966568fafe977ed4928fffb562653e268999875edee4b9e408850879c9bca"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-GMCP.protocol-surface",
+      "requirements": [
+        "GMCP"
+      ],
+      "tasks": [
+        "B5-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "local_protocol",
+      "assertions": "Official MCP client initializes and invokes the fixed ask/page/feedback tools with isolated verified owners; unsupported client version negotiates the supported version; invalid bearer and disallowed Origin fail before application dispatch; exact 65536-byte body is accepted and 65537 bytes rejected; typed provider failure omits raw provider text. No identity audience/scope matrix or live provider claim is made.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "ef4539658672e3f3ad7dfc54d67d92aeea054300c37e873a24831c365727467b"
+        ],
+        "negative": [
+          "ef4539658672e3f3ad7dfc54d67d92aeea054300c37e873a24831c365727467b"
+        ],
+        "boundary": [
+          "ef4539658672e3f3ad7dfc54d67d92aeea054300c37e873a24831c365727467b"
+        ],
+        "failure": [
+          "ef4539658672e3f3ad7dfc54d67d92aeea054300c37e873a24831c365727467b"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-GN03.cursor-binding-component",
+      "requirements": [
+        "GN03"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The cursor component binds the cursor to its owner and context, accepts an authorized previous key during rotation, rejects foreign owners and expiry, and detects tampering. This component scope does not establish ARCH-004 byte resource bounds or durable admission.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "707cb5a283cc947aa0cacc73d8ec48a6ab3e596faa809598d161ac17e2067d8a"
+        ],
+        "negative": [
+          "707cb5a283cc947aa0cacc73d8ec48a6ab3e596faa809598d161ac17e2067d8a"
+        ],
+        "boundary": [
+          "707cb5a283cc947aa0cacc73d8ec48a6ab3e596faa809598d161ac17e2067d8a"
+        ],
+        "failure": [
+          "707cb5a283cc947aa0cacc73d8ec48a6ab3e596faa809598d161ac17e2067d8a"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-G027.query-resource-component",
+      "requirements": [
+        "G027"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "local_protocol",
+      "assertions": "WazuhIndexer component with loopback HTTP and DynamoDB Local read-admission store: invoke 40 topics in source order and observe 80 physical HTTP attempts with ordered results; accept an exact 2097152-byte response; classify a response declaring Content-Length 2097153 as typed EVIDENCE_LIMIT without retry; on validation HTTP 503, return typed INDEXER_UNAVAILABLE after the single validation request without issuing search. This component scope does not establish full parser/planner output, model-context budgeting, deployed DLS, or live Wazuh behavior.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "f7c790610c4267872ac109458a2bea1660306ab306c5baf3ad2876483bb9ef9f"
+        ],
+        "negative": [
+          "f7c790610c4267872ac109458a2bea1660306ab306c5baf3ad2876483bb9ef9f"
+        ],
+        "boundary": [
+          "f7c790610c4267872ac109458a2bea1660306ab306c5baf3ad2876483bb9ef9f"
+        ],
+        "failure": [
+          "f7c790610c4267872ac109458a2bea1660306ab306c5baf3ad2876483bb9ef9f"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-GN04.reviewed-synthetic-release",
+      "requirements": [
+        "GN04"
+      ],
+      "tasks": [
+        "B2-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Four synthetic solved-case release variants require detached human review and anonymization attestation; missing review and secret sentinels fail, leap-day attestation is accepted, and missing detached approval is refused. The fake-s3 path is a filesystem mutation stand-in and does not establish an S3 or deployment promotion API.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "acd7d3b778aa58b6dc12da47cb763851c235f3bf08289687706d80000509d858"
+        ],
+        "negative": [
+          "acd7d3b778aa58b6dc12da47cb763851c235f3bf08289687706d80000509d858"
+        ],
+        "boundary": [
+          "acd7d3b778aa58b6dc12da47cb763851c235f3bf08289687706d80000509d858"
+        ],
+        "failure": [
+          "acd7d3b778aa58b6dc12da47cb763851c235f3bf08289687706d80000509d858"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G005.empty-fetch-eligibility.private",
+      "requirements": [
+        "G005"
+      ],
+      "tasks": [
+        "B4-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Only a qualified coherent empty proof remains judgment-eligible; unknown visibility is unconfirmed; exact zero with a confirmed nonempty window/filter probe remains eligible; an invented finding without evidence is removed.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "2950e320a710573551fd9d983d1136018e94ac01728a92365cda9b4bb4d86d15"
+        ],
+        "negative": [
+          "2950e320a710573551fd9d983d1136018e94ac01728a92365cda9b4bb4d86d15"
+        ],
+        "boundary": [
+          "2950e320a710573551fd9d983d1136018e94ac01728a92365cda9b4bb4d86d15"
+        ],
+        "failure": [
+          "2950e320a710573551fd9d983d1136018e94ac01728a92365cda9b4bb4d86d15"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G007.effort-capability.private",
+      "requirements": [
+        "G007"
+      ],
+      "tasks": [
+        "B4-T01"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Selected model effort is forwarded unchanged when supported; unsupported effort fails before CountTokens, Converse or ledger claim; unsupported capability omits effort; timeout remains one attempt without model downgrade.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "da86dfd631b783fc09c3c347079c1dc099a86ae21ad71e247872c4ab65a96e4e"
+        ],
+        "negative": [
+          "da86dfd631b783fc09c3c347079c1dc099a86ae21ad71e247872c4ab65a96e4e"
+        ],
+        "boundary": [
+          "da86dfd631b783fc09c3c347079c1dc099a86ae21ad71e247872c4ab65a96e4e"
+        ],
+        "failure": [
+          "da86dfd631b783fc09c3c347079c1dc099a86ae21ad71e247872c4ab65a96e4e"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G018.topic-isolation.private",
+      "requirements": [
+        "G018"
+      ],
+      "tasks": [
+        "B4-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Per-topic preparation retains only its own evidence; foreign-topic evidence fails; denied and unavailable siblings retain independent outcomes while an eligible topic remains Ready.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "a6c353241bbc96de702505da1da4baa77167cfa68e35393f2a49f82fb8c462f5"
+        ],
+        "negative": [
+          "a6c353241bbc96de702505da1da4baa77167cfa68e35393f2a49f82fb8c462f5"
+        ],
+        "boundary": [
+          "a6c353241bbc96de702505da1da4baa77167cfa68e35393f2a49f82fb8c462f5"
+        ],
+        "failure": [
+          "a6c353241bbc96de702505da1da4baa77167cfa68e35393f2a49f82fb8c462f5"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G021.approved-template-boundary.private",
+      "requirements": [
+        "G021"
+      ],
+      "tasks": [
+        "B4-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "FindingValidator renders cited values only through approved local templates; model-supplied template text and missing required bindings are rejected; malformed JSON yields invalid_output with no prose. Pointer identity and final answer presentation remain outside this component.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "977e2fff7cf67f93ec4e67f699a59f75c1902cb7f4316372d3e3d83e8bf5e2d1"
+        ],
+        "negative": [
+          "977e2fff7cf67f93ec4e67f699a59f75c1902cb7f4316372d3e3d83e8bf5e2d1"
+        ],
+        "boundary": [
+          "977e2fff7cf67f93ec4e67f699a59f75c1902cb7f4316372d3e3d83e8bf5e2d1"
+        ],
+        "failure": [
+          "977e2fff7cf67f93ec4e67f699a59f75c1902cb7f4316372d3e3d83e8bf5e2d1"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G024.denial-precedence.private",
+      "requirements": [
+        "G024"
+      ],
+      "tasks": [
+        "B4-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Typed denial takes precedence over a missing fetch, qualified exact-zero result, and unqualified empty proof; no denied topic becomes Ready or retryable left-out. API mapping/table rendering are outside this component.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "ba835f3f7930fc6e3187be0128c3b7d04e4cab291d34869f744db20f972ced0f"
+        ],
+        "negative": [
+          "ba835f3f7930fc6e3187be0128c3b7d04e4cab291d34869f744db20f972ced0f"
+        ],
+        "boundary": [
+          "ba835f3f7930fc6e3187be0128c3b7d04e4cab291d34869f744db20f972ced0f"
+        ],
+        "failure": [
+          "ba835f3f7930fc6e3187be0128c3b7d04e4cab291d34869f744db20f972ced0f"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G025.denied-evidence-boundary.private",
+      "requirements": [
+        "G025"
+      ],
+      "tasks": [
+        "B4-T03",
+        "B4-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Denied check evidence renders only an approved denial sentence; passed-evidence templates reject denied checks; mixed topics preserve independently validated passed evidence without all-clear text; malformed output produces no sentences.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e784e6407ec5f4b9c844797a3e5be55350fc54f1aab386dda77c24ac1d80b4ff"
+        ],
+        "negative": [
+          "e784e6407ec5f4b9c844797a3e5be55350fc54f1aab386dda77c24ac1d80b4ff"
+        ],
+        "boundary": [
+          "e784e6407ec5f4b9c844797a3e5be55350fc54f1aab386dda77c24ac1d80b4ff"
+        ],
+        "failure": [
+          "e784e6407ec5f4b9c844797a3e5be55350fc54f1aab386dda77c24ac1d80b4ff"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G039.spanish-renderer.private",
+      "requirements": [
+        "G039"
+      ],
+      "tasks": [
+        "B4-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Spanish renderer uses approved localized template text and bound cited values, brackets hostile agent and package names as escaped literal data, rejects absent templates/model prose, and emits no sentence for malformed JSON. Pointer headings remain outside this component.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "3c73de22ba68a0227e6d744daee736beb8de30501b50bb2a838444e69d77e4a3"
+        ],
+        "negative": [
+          "3c73de22ba68a0227e6d744daee736beb8de30501b50bb2a838444e69d77e4a3"
+        ],
+        "boundary": [
+          "3c73de22ba68a0227e6d744daee736beb8de30501b50bb2a838444e69d77e4a3"
+        ],
+        "failure": [
+          "3c73de22ba68a0227e6d744daee736beb8de30501b50bb2a838444e69d77e4a3"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G046.numbered-guardrail.private",
+      "requirements": [
+        "G046"
+      ],
+      "tasks": [
+        "B4-T01",
+        "B4-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "A numbered guardrail reaches captured Converse inputs; DRAFT is rejected before SDK or ledger calls; unsupported model-invented templates are removed; guardrail intervention is finite and provider text is not rendered.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "13979c5a948dff59bcf03263e7ebaefadcdffca69f8ee522c4add9c4720b41ad"
+        ],
+        "negative": [
+          "13979c5a948dff59bcf03263e7ebaefadcdffca69f8ee522c4add9c4720b41ad"
+        ],
+        "boundary": [
+          "13979c5a948dff59bcf03263e7ebaefadcdffca69f8ee522c4add9c4720b41ad"
+        ],
+        "failure": [
+          "13979c5a948dff59bcf03263e7ebaefadcdffca69f8ee522c4add9c4720b41ad"
+        ]
+      }
+    },
+    {
+      "case_id": "B4-G050.empty-scope-proof.private",
+      "requirements": [
+        "G050"
+      ],
+      "tasks": [
+        "B4-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Requested judgment accepts only coherent proof with confirmed index existence, nonempty window, full visibility, exact matching-scope zero, zero filter probe and combination-zero confirmation; missing or uncertain proof yields ingestion_unconfirmed.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "1361bfc56a5a01ad4f86c7d175063dc0abd2dfc88a5eb6cbdf166ea855716f08"
+        ],
+        "negative": [
+          "1361bfc56a5a01ad4f86c7d175063dc0abd2dfc88a5eb6cbdf166ea855716f08"
+        ],
+        "boundary": [
+          "1361bfc56a5a01ad4f86c7d175063dc0abd2dfc88a5eb6cbdf166ea855716f08"
+        ],
+        "failure": [
+          "1361bfc56a5a01ad4f86c7d175063dc0abd2dfc88a5eb6cbdf166ea855716f08"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G033.followup-application.private",
+      "requirements": [
+        "G033"
+      ],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Real ApplicationService follow-up refreshes all prior fetches under one new anchor; stale revisions are refused before fetch; ordinals 0 and 31 remain ordered at the boundary; unavailable topics remain left out while available results survive. Planner transformation and full-system composition have separate checks.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ],
+        "negative": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ],
+        "boundary": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ],
+        "failure": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G034.continuation-application.private",
+      "requirements": [
+        "G034"
+      ],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Real ApplicationService continuation invokes only planner-selected prior left-out topics; answered topics are refused before fetch; ordinal 31 is selectable at the limit; unavailable selected fetch stays retryable left-out. Planner transformation is covered separately.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ],
+        "negative": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ],
+        "boundary": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ],
+        "failure": [
+          "4bff6231cac258c03415d74d0bfab077e13fce3a5170ffa90a35092df16b3131"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G052.application-budget.private",
+      "requirements": [
+        "G052"
+      ],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Real ApplicationService count budgeting accepts below-limit and exact-fit requests, rejects one token over without Converse or reservation, maps CountTokens failure to its finite outcome, settles reservations exactly, and preserves identical evidence in request and answer. Model-side contribution and full-system evidence have separate checks.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "4bc6167e332a445f2cc6615bfd2b4fc1d77fbe6276cd700e865a429d6b3e0b47"
+        ],
+        "negative": [
+          "4bc6167e332a445f2cc6615bfd2b4fc1d77fbe6276cd700e865a429d6b3e0b47"
+        ],
+        "boundary": [
+          "4bc6167e332a445f2cc6615bfd2b4fc1d77fbe6276cd700e865a429d6b3e0b47"
+        ],
+        "failure": [
+          "4bc6167e332a445f2cc6615bfd2b4fc1d77fbe6276cd700e865a429d6b3e0b47"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-GP2.feedback-lifecycle.private",
+      "requirements": [
+        "GP2"
+      ],
+      "tasks": [
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "An answer-issued receipt is owner-bound; foreign-owner submissions fail before SQS; email/IP values are redacted before queue serialization; expiry boundary and one-attempt sanitized queue failure are asserted through the application service and bounded local SQS adapter. No live queue behavior is inferred.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "3714a45e552cca66d4712f78b75c869b018ed352e898b6ef251bdd87743a8cf6"
+        ],
+        "negative": [
+          "3714a45e552cca66d4712f78b75c869b018ed352e898b6ef251bdd87743a8cf6"
+        ],
+        "boundary": [
+          "3714a45e552cca66d4712f78b75c869b018ed352e898b6ef251bdd87743a8cf6"
+        ],
+        "failure": [
+          "3714a45e552cca66d4712f78b75c869b018ed352e898b6ef251bdd87743a8cf6"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G001.planning-component",
+      "requirements": [
+        "G001"
+      ],
+      "tasks": [
+        "B2-T03",
+        "B5-T02"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Planning/application component fixture: preserve language, per-topic fetch and judgment outcome, actual table counts, and unavailable/invalid provider outcomes across four variants. Uses deterministic planner and test adapters; no independent JUnit acceptance metadata is present on these nodes.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "negative": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "boundary": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "failure": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G009.planning-component",
+      "requirements": [
+        "G009"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Planning component fixture: cue-only, generic fetch, combined cue/fetch, and refusal behavior. Uses deterministic planner; no independent JUnit acceptance metadata is present on these nodes.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "negative": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "boundary": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "failure": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G020.planning-component",
+      "requirements": [
+        "G020"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Planning component fixture: paired EN/ES plans, relative and absolute Europe/Madrid windows, DST boundary, refusal, and failure. No independent JUnit acceptance metadata is present on these nodes.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "negative": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "boundary": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "failure": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ]
+      }
+    },
+    {
+      "case_id": "B2-G031.planning-component",
+      "requirements": [
+        "G031"
+      ],
+      "tasks": [
+        "B2-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Planning component fixture: bilingual failure/setup clauses preserve topic order and do not add judgment solely because of failure. No independent JUnit acceptance metadata is present on these nodes.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "negative": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "boundary": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ],
+        "failure": [
+          "e9da52d482eae7d3e01bd64cc7a8c20bb5de661f7c96e4b7addacb887f5cf73f"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-GMCP.composed-identity.private",
+      "requirements": [
+        "GMCP"
+      ],
+      "tasks": [
+        "B5-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Composed MCP identity component: exact resource audience/scope/origin accepted; wrong audience, missing scope, and denied origin fail before dispatch; 128 groups accepted; key resolver failure is sanitized. The tests initialize the MCP endpoint only and do not call a tool. Candidate nodes lack per-node acceptance/case/variant JUnit metadata.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "e021d6d8b6b48e6e40cd23037cad966bd340cec0ba00a5e813aea2d2faa697b5"
+        ],
+        "negative": [
+          "e021d6d8b6b48e6e40cd23037cad966bd340cec0ba00a5e813aea2d2faa697b5"
+        ],
+        "boundary": [
+          "e021d6d8b6b48e6e40cd23037cad966bd340cec0ba00a5e813aea2d2faa697b5"
+        ],
+        "failure": [
+          "e021d6d8b6b48e6e40cd23037cad966bd340cec0ba00a5e813aea2d2faa697b5"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G053.provider-token-application",
+      "requirements": [
+        "G053"
+      ],
+      "tasks": [
+        "B5-T02",
+        "B6-T05"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "ApplicationService variants use the actual ApplicationService and strict finding validation/template rendering: an approved sentence is rendered, hostile first-token text is suppressed, the exact 65,536-byte boundary with an unapproved field is rejected, and timeout detail is suppressed while a table is retained. Browser-route and official MCP/REST end-to-end checks use the same registered fixture hash and variants. They exercise the fixture-composed application through REST and MCP, assert sensitive output is absent, check the expected VPN judgment state, and compare semantic output after removing request-scoped identifiers. Fixture identity is used; this does not establish live identity, cross-analyst authorization parity, or deployed behavior. Separate REST/FastMCP serializer unit checks are not included in the annotated nodes.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "21598a271610d1986d7a575aad0ebf96289e19c9bbb57dc5b7a46c518a386e19",
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ],
+        "negative": [
+          "21598a271610d1986d7a575aad0ebf96289e19c9bbb57dc5b7a46c518a386e19",
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ],
+        "boundary": [
+          "21598a271610d1986d7a575aad0ebf96289e19c9bbb57dc5b7a46c518a386e19",
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ],
+        "failure": [
+          "21598a271610d1986d7a575aad0ebf96289e19c9bbb57dc5b7a46c518a386e19",
+          "2f2cd95f44fff63bc2b75273ea77970676b1059fa092ce038c6dda4ebf203bda"
+        ]
+      }
+    },
+    {
+      "case_id": "B6-G043.private",
+      "requirements": [
+        "G043"
+      ],
+      "tasks": [
+        "B6-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Static Terraform source policy fixture checks private Bedrock runtime endpoint conditions, model and embedding allowlists, required guardrail, and rejection of public endpoint, wildcard, and streaming paths. No Terraform provider validation, AWS policy evaluation, or deployed network evidence.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "a363fe4af19cd0212339451c4874efb06a504397fcfbf0249fbd543a03dae070"
+        ],
+        "negative": [
+          "a363fe4af19cd0212339451c4874efb06a504397fcfbf0249fbd543a03dae070"
+        ],
+        "boundary": [
+          "a363fe4af19cd0212339451c4874efb06a504397fcfbf0249fbd543a03dae070"
+        ],
+        "failure": [
+          "a363fe4af19cd0212339451c4874efb06a504397fcfbf0249fbd543a03dae070"
+        ]
+      }
+    },
+    {
+      "case_id": "B6-QA014.nightly-evaluator",
+      "requirements": [
+        "GP3"
+      ],
+      "tasks": [
+        "B6-T06"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "Offline nightly evaluator component: exact bilingual required-case denominator, misrouting, missing cases, empty cohorts, and candidate-drop alarm threshold/minimum behavior. It does not supply held-out semantic model-selection evidence or weekly feedback review, so this fixture scope is limited to GP3 evaluator behavior. Candidate metadata also labels G058 and GP2; those broader labels are not adopted here.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "a2db7f3cbef12249e3ffd65ffb4048b1016ace11f6c379b61fe7ff9c17500ce3"
+        ],
+        "negative": [
+          "a2db7f3cbef12249e3ffd65ffb4048b1016ace11f6c379b61fe7ff9c17500ce3"
+        ],
+        "boundary": [
+          "a2db7f3cbef12249e3ffd65ffb4048b1016ace11f6c379b61fe7ff9c17500ce3"
+        ],
+        "failure": [
+          "a2db7f3cbef12249e3ffd65ffb4048b1016ace11f6c379b61fe7ff9c17500ce3"
+        ]
+      }
+    },
+    {
+      "case_id": "B5-G053.ui-sanitized-envelope",
+      "requirements": [
+        "G053"
+      ],
+      "tasks": [
+        "B5-T04"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "UI component renders positive, negative, boundary, and failure sanitized API envelopes without the hostile provider sentinel. The browser test stubs /v1/questions with a constructed safe Answer, so it does not prove actual REST or MCP output. Candidate test nodes lack acceptance/case/variant annotations.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "143330300aa660cee4062e07d18226eecc1790f0896bf710a2ee40919afbd30c"
+        ],
+        "negative": [
+          "143330300aa660cee4062e07d18226eecc1790f0896bf710a2ee40919afbd30c"
+        ],
+        "boundary": [
+          "143330300aa660cee4062e07d18226eecc1790f0896bf710a2ee40919afbd30c"
+        ],
+        "failure": [
+          "143330300aa660cee4062e07d18226eecc1790f0896bf710a2ee40919afbd30c"
+        ]
+      }
+    },
+    {
+      "case_id": "B3-GN01.query-no-result-reuse.local-protocol",
+      "requirements": [
+        "GN01"
+      ],
+      "tasks": [
+        "B3-T03"
+      ],
+      "variants": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ],
+      "evidence_class": "offline",
+      "assertions": "The local indexer/site-policy component reuses one question UUID and FetchSpec across analyst and policy steps. Positive Alice/Bob/Alice reads fresh authorized rows with six observed loopback requests and distinct per-analyst records; revoked Bob is denied before broker/transport and cannot inherit Alice rows; a policy/DLS attestation change yields a changed effective hash and fresh requests; backend 403 denies Bob without returning Alice rows. This uses WazuhIndexer, MappedSitePolicy, loopback HTTP, and local DynamoDB admission. The component checks do not establish deployed DLS, real JWT/KMS, full application flow, live Wazuh behavior, or mutant sensitivity.",
+      "fixture_sha256_by_variant": {
+        "positive": [
+          "21718df15af9bad38c8a6c3fa555c423a02d8c134a61370490403a4cd30f4527"
+        ],
+        "negative": [
+          "21718df15af9bad38c8a6c3fa555c423a02d8c134a61370490403a4cd30f4527"
+        ],
+        "boundary": [
+          "21718df15af9bad38c8a6c3fa555c423a02d8c134a61370490403a4cd30f4527"
+        ],
+        "failure": [
+          "21718df15af9bad38c8a6c3fa555c423a02d8c134a61370490403a4cd30f4527"
+        ]
+      }
+    }
+  ]
+}

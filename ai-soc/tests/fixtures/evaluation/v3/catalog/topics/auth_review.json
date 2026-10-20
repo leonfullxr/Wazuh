@@ -1,0 +1,45 @@
+{
+  "aliases": [
+    {
+      "alias_id": "auth_review_en",
+      "boundary": "phrase",
+      "language": "en",
+      "normalized": "authentication review",
+      "text": "authentication review",
+      "topic_id": "auth_review"
+    },
+    {
+      "alias_id": "auth_review_es",
+      "boundary": "phrase",
+      "language": "es",
+      "normalized": "revision de autenticacion",
+      "text": "revision de autenticacion",
+      "topic_id": "auth_review"
+    }
+  ],
+  "fetch_bindings": [],
+  "finding_template_ids": [
+    "auth_count",
+    "auth_sample",
+    "auth_volume_review",
+    "auth_priority_observed",
+    "auth_source_gap",
+    "auth_recency_gap"
+  ],
+  "name": {
+    "en": "Authentication review",
+    "es": "Revision de autenticacion"
+  },
+  "playbook_id": "auth_review_playbook",
+  "public_document": {
+    "anchor": "authentication-failure-review",
+    "document_id": "auth_review_guide",
+    "heading": "Authentication failure review",
+    "language": "en",
+    "published_path": "en/auth-review.html",
+    "sha256": "fe27839ac11ff3286eb6d6e82cf21d372f63c3962f6efb70acb026810380832d",
+    "source_path": "public-docs/en/auth_review.md"
+  },
+  "schema_version": "1",
+  "topic_id": "auth_review"
+}

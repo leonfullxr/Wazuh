@@ -1,0 +1,29 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G060.prompt-checkpoints.private",
+  "variants": {
+    "positive": {
+      "cache_point_positions": [false, true, false, true],
+      "rules_prefix": "RULES-CHECKPOINT",
+      "topic_prefix": "APPROVED TOPIC CONTEXT",
+      "topic_block_label": "APPROVED TOPIC CONTEXT (data): ",
+      "catalog_field": "finding_templates"
+    },
+    "negative": {
+      "checkpoint_count": 2,
+      "untrusted_prefix": "UNTRUSTED",
+      "evidence_prefix": "UNTRUSTED TOPIC EVIDENCE DATA:",
+      "question_prefix": "UNTRUSTED ORIGINAL QUESTION DATA:"
+    },
+    "boundary": {
+      "system_blocks": 2,
+      "cache_points": 0,
+      "evidence_is_immutable": true
+    },
+    "failure": {
+      "error": "fixture CountTokens timeout",
+      "expected_state": "token_count_unavailable",
+      "attempts": 1
+    }
+  }
+}

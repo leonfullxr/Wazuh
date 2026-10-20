@@ -1,0 +1,44 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Independent G030 oracle for plan ordinal ordering under out-of-order topic completion.",
+  "cases": {
+    "positive": {
+      "completion_order": ["ldap", "tls"],
+      "topics": [
+        {"topic_id": "ldap", "ordinal": 0, "completion_delay_ms": 0, "judgment_state": "no_findings"},
+        {"topic_id": "tls", "ordinal": 1, "completion_delay_ms": 2, "judgment_state": "validated"}
+      ],
+      "expected_order": ["ldap", "tls"],
+      "expected_status": "answered"
+    },
+    "negative": {
+      "completion_order": ["tls", "ldap"],
+      "topics": [
+        {"topic_id": "ldap", "ordinal": 0, "completion_delay_ms": 2, "judgment_state": "no_findings"},
+        {"topic_id": "tls", "ordinal": 1, "completion_delay_ms": 0, "judgment_state": "validated"}
+      ],
+      "expected_order": ["ldap", "tls"],
+      "expected_status": "answered"
+    },
+    "boundary": {
+      "completion_order": ["tail", "head"],
+      "topics": [
+        {"topic_id": "head", "ordinal": 0, "completion_delay_ms": 2, "judgment_state": "no_findings"},
+        {"topic_id": "tail", "ordinal": 31, "completion_delay_ms": 0, "judgment_state": "validated"}
+      ],
+      "expected_order": ["head", "tail"],
+      "expected_status": "answered"
+    },
+    "failure": {
+      "completion_order": ["tls", "ldap"],
+      "topics": [
+        {"topic_id": "ldap", "ordinal": 0, "completion_delay_ms": 2, "judgment_state": "model_unavailable"},
+        {"topic_id": "tls", "ordinal": 1, "completion_delay_ms": 0, "judgment_state": "validated"}
+      ],
+      "expected_order": ["ldap", "tls"],
+      "expected_status": "partial"
+    }
+  }
+}

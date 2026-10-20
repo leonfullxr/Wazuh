@@ -1,0 +1,18 @@
+{
+  "mode": "fixture",
+  "oracle_author": "contract fixture author; independently derived from contracts.md §§3, 5, 7",
+  "cases": [
+    {
+      "id": "current-authorized-policy-positive",
+      "current_policy_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prior_plan_policy_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": "plan-uses-current-authorized-policy"
+    },
+    {
+      "id": "foreign-or-stale-policy-rejected",
+      "current_policy_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "prior_plan_policy_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": "reject-before-planning"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "allowed_evidence_kinds": [
+    "aggregate"
+  ],
+  "kind": "observation",
+  "relations": [],
+  "required_bindings": {
+    "n": [
+      "count"
+    ]
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "vuln_nonzero",
+      "outcome": "passed"
+    }
+  ],
+  "template_id": "vuln_count",
+  "texts": {
+    "en": "Matching visible records in this read: {n}; visibility may be restricted.",
+    "es": "Registros visibles coincidentes en esta lectura: {n}; la visibilidad puede estar restringida."
+  },
+  "topic_id": "vuln_review"
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": "1",
+  "case_id": "QA-014.resolution",
+  "requirements": [
+    "G058",
+    "GP2",
+    "GP3"
+  ],
+  "variants": [
+    {
+      "variant": "positive",
+      "required_case_ids": [
+        "alpha-en",
+        "alpha-es"
+      ],
+      "baseline_rate": 0.1,
+      "results": [
+        {
+          "case_id": "alpha-en",
+          "language": "en",
+          "route_matches": true,
+          "outcome": "completed",
+          "valid_candidates": 12,
+          "dropped_candidates": 1
+        },
+        {
+          "case_id": "alpha-es",
+          "language": "es",
+          "route_matches": true,
+          "outcome": "completed",
+          "valid_candidates": 10,
+          "dropped_candidates": 1
+        }
+      ],
+      "expected": {
+        "status": "PASS",
+        "routed_correctly": 2,
+        "empty_cohort": false,
+        "drop_alarm": false,
+        "missing_cases": []
+      }
+    },
+    {
+      "variant": "negative",
+      "required_case_ids": [
+        "alpha-en",
+        "alpha-es"
+      ],
+      "baseline_rate": 0.1,
+      "results": [
+        {
+          "case_id": "alpha-en",
+          "language": "en",
+          "route_matches": true,
+          "outcome": "completed",
+          "valid_candidates": 10,
+          "dropped_candidates": 0
+        },
+        {
+          "case_id": "alpha-es",
+          "language": "es",
+          "route_matches": false,
+          "outcome": "completed",
+          "valid_candidates": 10,
+          "dropped_candidates": 0
+        }
+      ],
+      "expected": {
+        "status": "FAIL",
+        "routed_correctly": 1,
+        "empty_cohort": false,
+        "drop_alarm": false,
+        "missing_cases": []
+      }
+    },
+    {
+      "variant": "boundary",
+      "required_case_ids": [
+        "alpha-en"
+      ],
+      "baseline_rate": 0.1,
+      "results": [
+        {
+          "case_id": "alpha-en",
+          "language": "en",
+          "route_matches": true,
+          "outcome": "completed",
+          "valid_candidates": 20,
+          "dropped_candidates": 3
+        }
+      ],
+      "expected": {
+        "status": "PASS",
+        "routed_correctly": 1,
+        "empty_cohort": false,
+        "drop_alarm": false,
+        "missing_cases": []
+      }
+    },
+    {
+      "variant": "failure",
+      "required_case_ids": [
+        "alpha-en",
+        "alpha-es"
+      ],
+      "baseline_rate": 0.1,
+      "results": [
+        {
+          "case_id": "alpha-en",
+          "language": "en",
+          "route_matches": true,
+          "outcome": "no_findings",
+          "valid_candidates": 0,
+          "dropped_candidates": 0
+        }
+      ],
+      "expected": {
+        "status": "FAIL",
+        "routed_correctly": 1,
+        "empty_cohort": true,
+        "drop_alarm": false,
+        "missing_cases": [
+          "alpha-es"
+        ]
+      }
+    }
+  ]
+}

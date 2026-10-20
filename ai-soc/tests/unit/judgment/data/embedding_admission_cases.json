@@ -1,0 +1,22 @@
+{
+  "fixture_version": 1,
+  "contract": "embedding-permit-before-provider",
+  "cases": [
+    {
+      "variant": "positive",
+      "assertions": ["one embedding grant", "one provider ledger claim", "exact grant release after completion"]
+    },
+    {
+      "variant": "negative",
+      "assertions": ["typed capacity rejection returns no suggestion", "provider and ledger remain untouched"]
+    },
+    {
+      "variant": "boundary",
+      "assertions": ["cancelled SDK waiter retains the fenced embedding grant through physical call completion"]
+    },
+    {
+      "variant": "failure",
+      "assertions": ["unexpected provider failure propagates", "completed failed call releases its exact grant"]
+    }
+  ]
+}

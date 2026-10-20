@@ -1,0 +1,140 @@
+{
+  "as_of": "2026-10-17T12:00:00.000000Z",
+  "case_id": "source_first_page_fresh",
+  "principal": {
+    "assertion_hash": "980eef86f2ba911a7ffa06379409303cb9ed4afe751ce2a79501e79932a2371c",
+    "authenticated_at": "2026-10-17T11:00:00.000000Z",
+    "edge": "fixture",
+    "expires_at": "2026-10-17T13:00:00.000000Z",
+    "groups": [
+      "soc-analysts"
+    ],
+    "issuer": "https://issuer.example.test",
+    "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+    "sub": "synthetic-analyst-28"
+  },
+  "question": "Investigate authentication review.",
+  "responses": [
+    {
+      "body_sha256": "0b14ab8ec5e3d3f15ffbc485b69cba87ad2a5e63582721f65771a3f71077f7c4",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_validate/query",
+      "response": {
+        "valid": true
+      },
+      "status": 200
+    },
+    {
+      "body_sha256": "58e8dfe50d0903b6efefac9c79e96677c5e6a11740af06383c2591944fe2991b",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_search",
+      "response": {
+        "hits": {
+          "hits": [
+            {
+              "_id": "source_auth_10-0",
+              "_index": "wazuh-alerts-2026.10.17",
+              "_source": {
+                "@timestamp": "2026-10-17T11:59:30.000Z",
+                "agent": {
+                  "id": "302"
+                },
+                "data": {
+                  "srcip": "192.0.2.41"
+                },
+                "rule": {
+                  "groups": [
+                    "authentication_failed"
+                  ],
+                  "id": "5710",
+                  "level": 5
+                }
+              },
+              "sort": [
+                1792238370000,
+                "wazuh-alerts-2026.10.17",
+                "source_auth_10-0"
+              ]
+            },
+            {
+              "_id": "source_auth_10-1",
+              "_index": "wazuh-alerts-2026.10.17",
+              "_source": {
+                "@timestamp": "2026-10-17T10:53:20.000Z",
+                "agent": {
+                  "id": "302"
+                },
+                "data": {
+                  "srcip": "192.0.2.41"
+                },
+                "rule": {
+                  "groups": [
+                    "authentication_failed"
+                  ],
+                  "id": "5710",
+                  "level": 5
+                }
+              },
+              "sort": [
+                1792234400000,
+                "wazuh-alerts-2026.10.17",
+                "source_auth_10-1"
+              ]
+            }
+          ],
+          "total": {
+            "relation": "eq",
+            "value": 10
+          }
+        },
+        "timed_out": false,
+        "took": 2
+      },
+      "status": 200
+    }
+  ],
+  "site": {
+    "allowed_index_patterns": {
+      "alerts": [
+        "wazuh-alerts-*"
+      ],
+      "vulnerabilities": [
+        "wazuh-states-vulnerabilities-*",
+        "wazuh-vulnerabilities-*"
+      ]
+    },
+    "allowed_templates": [
+      "alerts_rows_v1",
+      "alerts_count_v1",
+      "vulnerabilities_rows_v1",
+      "vulnerabilities_count_v1"
+    ],
+    "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+    "ca_secret_version": "1",
+    "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+    "composite_role_visibility": {
+      "analyst": "full"
+    },
+    "dls_attestation_version": "1",
+    "enabled": true,
+    "environment_id": "soc-eval",
+    "expectations": [],
+    "group_role_map": {
+      "soc-analysts": [
+        "analyst"
+      ]
+    },
+    "indexer_origin": "https://indexer.example.test",
+    "jwt_audience": "soc-eval-api",
+    "jwt_issuer": "https://issuer.example.test",
+    "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+    "label": "Synthetic evaluation site",
+    "mapping_profile": "wazuh-v4-fixture",
+    "pit_supported": false,
+    "policy_version": "1",
+    "private_network_ref": "synthetic-private-network",
+    "role_visibility": {
+      "analyst": "full"
+    }
+  }
+}

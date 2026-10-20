@@ -1,0 +1,1164 @@
+{
+  "schema_version": "1",
+  "label_status": "synthetic: runner validation only",
+  "method": "Hand-computed from labels.json and scripts.json using the replay outcome classes and metric definitions. Rates are rounded to 4 decimals.",
+  "wilson": {
+    "z": 1.959964,
+    "interval": "95% Wilson score, (p + z^2/2n +- z*sqrt(p(1-p)/n + z^2/4n^2)) / (1 + z^2/n)",
+    "independence_assumption": "Each case is treated as an independent Bernoulli trial. Variant cases of one incident share a dedup_key and are counted separately, so the intervals are optimistic."
+  },
+  "not_run": {
+    "live": "NOT_RUN: no live model, Bedrock or live Wazuh calls in this corpus",
+    "context_ablation": "NOT_RUN: no context input exists at the pinned code revision",
+    "correlation_ablation": "NOT_RUN: no correlation input exists at the pinned code revision"
+  },
+  "pack": {
+    "per_case": {
+      "pack_attack_en": {
+        "D": "decided:escalate",
+        "M": "decided:escalate",
+        "D+M": "decided:escalate"
+      },
+      "pack_attack_es": {
+        "D": "decided:escalate",
+        "M": "decided:no_escalate",
+        "D+M": "decided:no_escalate"
+      },
+      "pack_attack_injection": {
+        "D": "decided:escalate",
+        "M": "decided:no_escalate",
+        "D+M": "abstain:all_removed"
+      },
+      "pack_attack_truncated": {
+        "D": "decided:escalate",
+        "M": "failed:invalid_output",
+        "D+M": "failed:invalid_output"
+      },
+      "pack_attack_guardrail": {
+        "D": "decided:escalate",
+        "M": "failed:invalid_output",
+        "D+M": "failed:guardrail_blocked"
+      },
+      "pack_benign_en": {
+        "D": "decided:escalate",
+        "M": "decided:escalate",
+        "D+M": "abstain:all_removed"
+      },
+      "pack_benign_es": {
+        "D": "decided:escalate",
+        "M": "decided:no_escalate",
+        "D+M": "decided:no_escalate"
+      },
+      "pack_false_detection": {
+        "D": "decided:no_escalate",
+        "M": "failed:invalid_output",
+        "D+M": "failed:invalid_output"
+      },
+      "pack_contradiction": {
+        "D": "decided:no_escalate",
+        "M": "decided:no_escalate",
+        "D+M": "decided:no_escalate"
+      },
+      "pack_first_page": {
+        "D": "decided:no_escalate",
+        "M": "failed:model_unavailable",
+        "D+M": "failed:model_unavailable"
+      },
+      "pack_filtered_zero": {
+        "D": "abstain:ingestion_unconfirmed",
+        "M": "decided:no_escalate",
+        "D+M": "abstain:ingestion_unconfirmed"
+      },
+      "pack_unknown_visibility": {
+        "D": "abstain:ingestion_unconfirmed",
+        "M": "failed:invalid_output",
+        "D+M": "abstain:ingestion_unconfirmed"
+      },
+      "pack_missing_index": {
+        "D": "abstain:evidence_unavailable",
+        "M": "failed:invalid_output",
+        "D+M": "abstain:evidence_unavailable"
+      },
+      "pack_stale_context": {
+        "D": "decided:escalate",
+        "M": "decided:escalate",
+        "D+M": "decided:escalate"
+      },
+      "pack_denied_fetch": {
+        "D": "abstain:denial",
+        "M": "decided:no_escalate",
+        "D+M": "abstain:denial"
+      },
+      "pack_unresolved": {
+        "D": "decided:escalate",
+        "M": "decided:no_escalate",
+        "D+M": "decided:no_escalate"
+      }
+    },
+    "en": {
+      "cases": {
+        "attack": 4,
+        "benign": 2,
+        "insufficient_evidence": 7,
+        "unresolved": 1
+      },
+      "counts": {
+        "D": {
+          "tp": 4,
+          "fp": 1,
+          "fn": 0,
+          "fn_miss": 0,
+          "fn_abstain": 0,
+          "fn_failed": 0,
+          "fn_missing": 0,
+          "tn": 1,
+          "decided": 10,
+          "abstain": 4,
+          "failed": 0,
+          "missing": 0,
+          "escalate_on_insufficient": 1,
+          "decided_non_unresolved": 9,
+          "insufficient_abstain": 4
+        },
+        "M": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 3,
+          "fn_miss": 1,
+          "fn_abstain": 0,
+          "fn_failed": 2,
+          "fn_missing": 0,
+          "tn": 0,
+          "decided": 8,
+          "abstain": 0,
+          "failed": 6,
+          "missing": 0,
+          "escalate_on_insufficient": 1,
+          "decided_non_unresolved": 7,
+          "insufficient_abstain": 0
+        },
+        "D+M": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 3,
+          "fn_miss": 0,
+          "fn_abstain": 1,
+          "fn_failed": 2,
+          "fn_missing": 0,
+          "tn": 0,
+          "decided": 4,
+          "abstain": 6,
+          "failed": 4,
+          "missing": 0,
+          "escalate_on_insufficient": 1,
+          "decided_non_unresolved": 3,
+          "insufficient_abstain": 4
+        }
+      },
+      "metrics": {
+        "D": {
+          "precision": {
+            "numerator": 4,
+            "denominator": 5,
+            "rate": 0.8,
+            "wilson95": [
+              0.3755,
+              0.9638
+            ]
+          },
+          "recall": {
+            "numerator": 4,
+            "denominator": 4,
+            "rate": 1.0,
+            "wilson95": [
+              0.5101,
+              1.0
+            ]
+          },
+          "fnr": {
+            "numerator": 0,
+            "denominator": 4,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.4899
+            ]
+          },
+          "fpr": {
+            "numerator": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "wilson95": [
+              0.0945,
+              0.9055
+            ]
+          },
+          "benign_non_decision": {
+            "numerator": 0,
+            "denominator": 2,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.6576
+            ]
+          },
+          "attack_abstention": {
+            "numerator": 0,
+            "denominator": 4,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.4899
+            ]
+          },
+          "attack_failure": {
+            "numerator": 0,
+            "denominator": 4,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.4899
+            ]
+          },
+          "decision_coverage": {
+            "overall": {
+              "numerator": 9,
+              "denominator": 13,
+              "rate": 0.6923,
+              "wilson95": [
+                0.4237,
+                0.8732
+              ]
+            },
+            "per_label": {
+              "confirmed_attack": {
+                "numerator": 4,
+                "denominator": 4,
+                "rate": 1.0,
+                "wilson95": [
+                  0.5101,
+                  1.0
+                ]
+              },
+              "authorized_benign": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "false_detection": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "insufficient_evidence": {
+                "numerator": 3,
+                "denominator": 7,
+                "rate": 0.4286,
+                "wilson95": [
+                  0.1582,
+                  0.7495
+                ]
+              }
+            }
+          },
+          "insufficient_correct_abstention": {
+            "numerator": 4,
+            "denominator": 7,
+            "rate": 0.5714,
+            "wilson95": [
+              0.2505,
+              0.8418
+            ]
+          },
+          "escalation_on_insufficient": {
+            "count": 1,
+            "denominator": 7
+          }
+        },
+        "M": {
+          "precision": {
+            "numerator": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "wilson95": [
+              0.0945,
+              0.9055
+            ]
+          },
+          "recall": {
+            "numerator": 1,
+            "denominator": 4,
+            "rate": 0.25,
+            "wilson95": [
+              0.0456,
+              0.6994
+            ]
+          },
+          "fnr": {
+            "numerator": 3,
+            "denominator": 4,
+            "rate": 0.75,
+            "wilson95": [
+              0.3006,
+              0.9544
+            ]
+          },
+          "fpr": {
+            "numerator": 1,
+            "denominator": 1,
+            "rate": 1.0,
+            "wilson95": [
+              0.2065,
+              1.0
+            ]
+          },
+          "benign_non_decision": {
+            "numerator": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "wilson95": [
+              0.0945,
+              0.9055
+            ]
+          },
+          "attack_abstention": {
+            "numerator": 0,
+            "denominator": 4,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.4899
+            ]
+          },
+          "attack_failure": {
+            "numerator": 2,
+            "denominator": 4,
+            "rate": 0.5,
+            "wilson95": [
+              0.15,
+              0.85
+            ]
+          },
+          "decision_coverage": {
+            "overall": {
+              "numerator": 7,
+              "denominator": 13,
+              "rate": 0.5385,
+              "wilson95": [
+                0.2914,
+                0.7679
+              ]
+            },
+            "per_label": {
+              "confirmed_attack": {
+                "numerator": 2,
+                "denominator": 4,
+                "rate": 0.5,
+                "wilson95": [
+                  0.15,
+                  0.85
+                ]
+              },
+              "authorized_benign": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "false_detection": {
+                "numerator": 0,
+                "denominator": 1,
+                "rate": 0.0,
+                "wilson95": [
+                  0.0,
+                  0.7935
+                ]
+              },
+              "insufficient_evidence": {
+                "numerator": 4,
+                "denominator": 7,
+                "rate": 0.5714,
+                "wilson95": [
+                  0.2505,
+                  0.8418
+                ]
+              }
+            }
+          },
+          "insufficient_correct_abstention": {
+            "numerator": 0,
+            "denominator": 7,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.3543
+            ]
+          },
+          "escalation_on_insufficient": {
+            "count": 1,
+            "denominator": 7
+          },
+          "unsupported_claims": {
+            "numerator": 5,
+            "denominator": 7,
+            "rate": 0.7143,
+            "wilson95": [
+              0.3589,
+              0.9178
+            ]
+          },
+          "omitted_required_findings": {
+            "numerator": 4,
+            "denominator": 5,
+            "rate": 0.8,
+            "wilson95": [
+              0.3755,
+              0.9638
+            ]
+          }
+        },
+        "D+M": {
+          "precision": {
+            "numerator": 1,
+            "denominator": 1,
+            "rate": 1.0,
+            "wilson95": [
+              0.2065,
+              1.0
+            ]
+          },
+          "recall": {
+            "numerator": 1,
+            "denominator": 4,
+            "rate": 0.25,
+            "wilson95": [
+              0.0456,
+              0.6994
+            ]
+          },
+          "fnr": {
+            "numerator": 3,
+            "denominator": 4,
+            "rate": 0.75,
+            "wilson95": [
+              0.3006,
+              0.9544
+            ]
+          },
+          "fpr": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "status": "empty_cohort"
+          },
+          "benign_non_decision": {
+            "numerator": 2,
+            "denominator": 2,
+            "rate": 1.0,
+            "wilson95": [
+              0.3424,
+              1.0
+            ]
+          },
+          "attack_abstention": {
+            "numerator": 1,
+            "denominator": 4,
+            "rate": 0.25,
+            "wilson95": [
+              0.0456,
+              0.6994
+            ]
+          },
+          "attack_failure": {
+            "numerator": 2,
+            "denominator": 4,
+            "rate": 0.5,
+            "wilson95": [
+              0.15,
+              0.85
+            ]
+          },
+          "decision_coverage": {
+            "overall": {
+              "numerator": 3,
+              "denominator": 13,
+              "rate": 0.2308,
+              "wilson95": [
+                0.0818,
+                0.5026
+              ]
+            },
+            "per_label": {
+              "confirmed_attack": {
+                "numerator": 1,
+                "denominator": 4,
+                "rate": 0.25,
+                "wilson95": [
+                  0.0456,
+                  0.6994
+                ]
+              },
+              "authorized_benign": {
+                "numerator": 0,
+                "denominator": 1,
+                "rate": 0.0,
+                "wilson95": [
+                  0.0,
+                  0.7935
+                ]
+              },
+              "false_detection": {
+                "numerator": 0,
+                "denominator": 1,
+                "rate": 0.0,
+                "wilson95": [
+                  0.0,
+                  0.7935
+                ]
+              },
+              "insufficient_evidence": {
+                "numerator": 2,
+                "denominator": 7,
+                "rate": 0.2857,
+                "wilson95": [
+                  0.0822,
+                  0.6411
+                ]
+              }
+            }
+          },
+          "insufficient_correct_abstention": {
+            "numerator": 4,
+            "denominator": 7,
+            "rate": 0.5714,
+            "wilson95": [
+              0.2505,
+              0.8418
+            ]
+          },
+          "escalation_on_insufficient": {
+            "count": 1,
+            "denominator": 7
+          },
+          "candidate_removal": {
+            "numerator": 2,
+            "denominator": 7,
+            "rate": 0.2857,
+            "wilson95": [
+              0.0822,
+              0.6411
+            ],
+            "by_reason": {
+              "failed_prerequisite": 2,
+              "unknown_evidence": 0,
+              "cross_topic": 0,
+              "bad_binding": 0,
+              "unsupported_value": 0,
+              "unknown_template": 0,
+              "invalid_schema": 0,
+              "bad_relation": 0,
+              "duplicate_id": 0
+            }
+          },
+          "unsupported_claims": {
+            "numerator": 3,
+            "denominator": 5,
+            "rate": 0.6,
+            "wilson95": [
+              0.2307,
+              0.8824
+            ]
+          },
+          "omitted_required_findings": {
+            "numerator": 4,
+            "denominator": 5,
+            "rate": 0.8,
+            "wilson95": [
+              0.3755,
+              0.9638
+            ]
+          }
+        }
+      }
+    },
+    "es": {
+      "cases": {
+        "attack": 1,
+        "benign": 1,
+        "insufficient_evidence": 0,
+        "unresolved": 0
+      },
+      "counts": {
+        "D": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "fn_miss": 0,
+          "fn_abstain": 0,
+          "fn_failed": 0,
+          "fn_missing": 0,
+          "tn": 0,
+          "decided": 2,
+          "abstain": 0,
+          "failed": 0,
+          "missing": 0,
+          "escalate_on_insufficient": 0,
+          "decided_non_unresolved": 2,
+          "insufficient_abstain": 0
+        },
+        "M": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "fn_miss": 1,
+          "fn_abstain": 0,
+          "fn_failed": 0,
+          "fn_missing": 0,
+          "tn": 1,
+          "decided": 2,
+          "abstain": 0,
+          "failed": 0,
+          "missing": 0,
+          "escalate_on_insufficient": 0,
+          "decided_non_unresolved": 2,
+          "insufficient_abstain": 0
+        },
+        "D+M": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "fn_miss": 1,
+          "fn_abstain": 0,
+          "fn_failed": 0,
+          "fn_missing": 0,
+          "tn": 1,
+          "decided": 2,
+          "abstain": 0,
+          "failed": 0,
+          "missing": 0,
+          "escalate_on_insufficient": 0,
+          "decided_non_unresolved": 2,
+          "insufficient_abstain": 0
+        }
+      },
+      "metrics": {
+        "D": {
+          "precision": {
+            "numerator": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "wilson95": [
+              0.0945,
+              0.9055
+            ]
+          },
+          "recall": {
+            "numerator": 1,
+            "denominator": 1,
+            "rate": 1.0,
+            "wilson95": [
+              0.2065,
+              1.0
+            ]
+          },
+          "fnr": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "fpr": {
+            "numerator": 1,
+            "denominator": 1,
+            "rate": 1.0,
+            "wilson95": [
+              0.2065,
+              1.0
+            ]
+          },
+          "benign_non_decision": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "attack_abstention": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "attack_failure": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "decision_coverage": {
+            "overall": {
+              "numerator": 2,
+              "denominator": 2,
+              "rate": 1.0,
+              "wilson95": [
+                0.3424,
+                1.0
+              ]
+            },
+            "per_label": {
+              "confirmed_attack": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "authorized_benign": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "false_detection": {
+                "numerator": 0,
+                "denominator": 0,
+                "rate": null,
+                "status": "empty_cohort"
+              },
+              "insufficient_evidence": {
+                "numerator": 0,
+                "denominator": 0,
+                "rate": null,
+                "status": "empty_cohort"
+              }
+            }
+          },
+          "insufficient_correct_abstention": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "status": "empty_cohort"
+          },
+          "escalation_on_insufficient": {
+            "count": 0,
+            "denominator": 0
+          }
+        },
+        "M": {
+          "precision": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "status": "empty_cohort"
+          },
+          "recall": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "fnr": {
+            "numerator": 1,
+            "denominator": 1,
+            "rate": 1.0,
+            "wilson95": [
+              0.2065,
+              1.0
+            ]
+          },
+          "fpr": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "benign_non_decision": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "attack_abstention": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "attack_failure": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "decision_coverage": {
+            "overall": {
+              "numerator": 2,
+              "denominator": 2,
+              "rate": 1.0,
+              "wilson95": [
+                0.3424,
+                1.0
+              ]
+            },
+            "per_label": {
+              "confirmed_attack": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "authorized_benign": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "false_detection": {
+                "numerator": 0,
+                "denominator": 0,
+                "rate": null,
+                "status": "empty_cohort"
+              },
+              "insufficient_evidence": {
+                "numerator": 0,
+                "denominator": 0,
+                "rate": null,
+                "status": "empty_cohort"
+              }
+            }
+          },
+          "insufficient_correct_abstention": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "status": "empty_cohort"
+          },
+          "escalation_on_insufficient": {
+            "count": 0,
+            "denominator": 0
+          },
+          "unsupported_claims": {
+            "numerator": 0,
+            "denominator": 2,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.6576
+            ]
+          },
+          "omitted_required_findings": {
+            "numerator": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "wilson95": [
+              0.0945,
+              0.9055
+            ]
+          }
+        },
+        "D+M": {
+          "precision": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "status": "empty_cohort"
+          },
+          "recall": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "fnr": {
+            "numerator": 1,
+            "denominator": 1,
+            "rate": 1.0,
+            "wilson95": [
+              0.2065,
+              1.0
+            ]
+          },
+          "fpr": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "benign_non_decision": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "attack_abstention": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "attack_failure": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.7935
+            ]
+          },
+          "decision_coverage": {
+            "overall": {
+              "numerator": 2,
+              "denominator": 2,
+              "rate": 1.0,
+              "wilson95": [
+                0.3424,
+                1.0
+              ]
+            },
+            "per_label": {
+              "confirmed_attack": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "authorized_benign": {
+                "numerator": 1,
+                "denominator": 1,
+                "rate": 1.0,
+                "wilson95": [
+                  0.2065,
+                  1.0
+                ]
+              },
+              "false_detection": {
+                "numerator": 0,
+                "denominator": 0,
+                "rate": null,
+                "status": "empty_cohort"
+              },
+              "insufficient_evidence": {
+                "numerator": 0,
+                "denominator": 0,
+                "rate": null,
+                "status": "empty_cohort"
+              }
+            }
+          },
+          "insufficient_correct_abstention": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "status": "empty_cohort"
+          },
+          "escalation_on_insufficient": {
+            "count": 0,
+            "denominator": 0
+          },
+          "candidate_removal": {
+            "numerator": 0,
+            "denominator": 2,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.6576
+            ],
+            "by_reason": {
+              "failed_prerequisite": 0
+            }
+          },
+          "unsupported_claims": {
+            "numerator": 0,
+            "denominator": 2,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.6576
+            ]
+          },
+          "omitted_required_findings": {
+            "numerator": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "wilson95": [
+              0.0945,
+              0.9055
+            ]
+          }
+        }
+      }
+    }
+  },
+  "source": {
+    "scoring": "Observation accuracy only. Source cases carry the unresolved outcome label and are excluded from every binary metric (TP, FP, FN, TN, precision, recall, FPR and the rest). Pack-stage metrics do not read source cases.",
+    "unresolved_outcome_labels": {
+      "count": 5,
+      "case_ids": [
+        "source_reused_id",
+        "source_approximate_total",
+        "source_missing_index",
+        "source_filtered_role",
+        "source_mixed_language"
+      ]
+    },
+    "binary_metric_membership": "none",
+    "per_case": {
+      "source_reused_id": "2 rows, count eq 2, fetch rows, visibility full, no duplicate_source check",
+      "source_approximate_total": "3 rows, count gte 10000 approximate, fetch rows, visibility full",
+      "source_missing_index": "fetch unavailable, count unknown, abstain",
+      "source_filtered_role": "fetch filtered, visibility filtered, 1 row, count eq 1",
+      "source_mixed_language": "language en, fetch rows, 1 row, count eq 1"
+    },
+    "en": {
+      "observation_accuracy": {
+        "numerator": 41,
+        "denominator": 41,
+        "rate": 1.0,
+        "wilson95": [
+          0.9143,
+          1.0
+        ]
+      },
+      "unknown_cohort": {
+        "count": 1,
+        "description": "source_missing_index count expected unknown"
+      },
+      "per_field": {
+        "fetch_state": {
+          "numerator": 5,
+          "denominator": 5,
+          "rate": 1.0,
+          "wilson95": [
+            0.5655,
+            1.0
+          ]
+        },
+        "visibility": {
+          "numerator": 5,
+          "denominator": 5,
+          "rate": 1.0,
+          "wilson95": [
+            0.5655,
+            1.0
+          ]
+        },
+        "count": {
+          "numerator": 4,
+          "denominator": 4,
+          "rate": 1.0,
+          "wilson95": [
+            0.5101,
+            1.0
+          ]
+        },
+        "rows": {
+          "numerator": 21,
+          "denominator": 21,
+          "rate": 1.0,
+          "wilson95": [
+            0.8454,
+            1.0
+          ]
+        },
+        "checks": {
+          "numerator": 4,
+          "denominator": 4,
+          "rate": 1.0,
+          "wilson95": [
+            0.5101,
+            1.0
+          ]
+        },
+        "language": {
+          "numerator": 1,
+          "denominator": 1,
+          "rate": 1.0,
+          "wilson95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "abstention": {
+          "numerator": 1,
+          "denominator": 1,
+          "rate": 1.0,
+          "wilson95": [
+            0.2065,
+            1.0
+          ]
+        }
+      }
+    },
+    "es": {
+      "observation_accuracy": {
+        "numerator": 0,
+        "denominator": 0,
+        "rate": null,
+        "status": "empty_cohort"
+      }
+    }
+  }
+}

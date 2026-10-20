@@ -1,0 +1,15 @@
+{
+  "template_id": "ssh_failed_login_count",
+  "topic_id": "ssh_auth",
+  "kind": "observation",
+  "required_bindings": {
+    "count": ["count"]
+  },
+  "texts": {
+    "en": "Failed SSH logins in the window: {count}.",
+    "es": "Inicios de sesion SSH fallidos en la ventana: {count}."
+  },
+  "required_check_outcomes": [],
+  "allowed_evidence_kinds": ["aggregate"],
+  "relations": []
+}

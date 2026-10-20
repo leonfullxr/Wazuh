@@ -1,0 +1,255 @@
+{
+  "checks": [
+    {
+      "check_id": "vuln_nonzero",
+      "evidence_ids": [
+        "ev1_d1f58a78ff422f9659930688e2493dc883b261efd95968ab2a0a14ad7bc02301"
+      ],
+      "expectation_id": null,
+      "label": "vuln_nonzero",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "failed",
+      "topic_id": "vuln_review"
+    },
+    {
+      "check_id": "vuln_versions",
+      "evidence_ids": [
+        "ev1_59a9769a57ab79a745320bf2db558a2df17de70c1d148543d02fdc909d1edc1c"
+      ],
+      "expectation_id": null,
+      "label": "vuln_versions",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "unknown",
+      "topic_id": "vuln_review"
+    },
+    {
+      "check_id": "vuln_priority",
+      "evidence_ids": [
+        "ev1_8a08cf553e3e415ffe84f10bc62cb08e3d770e31378adc93fda4776d66f278fd"
+      ],
+      "expectation_id": "vuln_priority",
+      "label": "vuln_priority",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "unknown",
+      "topic_id": "vuln_review"
+    }
+  ],
+  "content_sha": "2e47a19e70cbb5af804987a12375358422f0d200",
+  "environment_id": "soc-eval",
+  "fetches": [
+    {
+      "bucket_completeness": "complete",
+      "buckets": [],
+      "checks": [],
+      "columns": [],
+      "count": {
+        "approximate": false,
+        "computed_by": "indexer",
+        "relation": "eq",
+        "scope": "matching_visible_records",
+        "value": 0
+      },
+      "empty_proof": null,
+      "error": null,
+      "fetch_id": "vuln_rows",
+      "items": [
+        {
+          "check_id": null,
+          "evidence_id": "ev1_8fa42bbfa14bce4721163fc0a7d3c61262f1de0805eab9a91e12f8a13376c60b",
+          "fetch_id": "vuln_rows",
+          "kind": "aggregate",
+          "scope_hash": "272c2bb29732edd29bd55cd54e71e6127da1d7707dff7d87ff4ed46b8e1790e6",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "a9615bec3cc305ee48202e08a3aea408e1e393d453be6120d0bc86f473702ef7",
+            "kind": "pit"
+          },
+          "source": {
+            "filters": [
+              {
+                "field": "vulnerability.severity",
+                "op": "in",
+                "value": [
+                  "High",
+                  "Critical"
+                ]
+              }
+            ],
+            "scope": "matching_visible_records",
+            "template_id": "vulnerabilities_rows_v1",
+            "window": {
+              "anchor_at": "2026-10-17T12:00:00.000000Z",
+              "end": "2026-10-17T12:00:00.000000Z",
+              "semantics": "rolling",
+              "source_text": "rolling:24:hours",
+              "start": "2026-10-16T12:00:00.000000Z",
+              "timezone": "UTC"
+            }
+          },
+          "topic_id": "vuln_review",
+          "values": {
+            "approximate": false,
+            "count": 0,
+            "relation": "eq"
+          },
+          "visibility": "full"
+        }
+      ],
+      "message": null,
+      "next_cursor": null,
+      "rows": [],
+      "scope": {
+        "displayed_rows": 0,
+        "environment_id": "soc-eval",
+        "filters": [
+          {
+            "field": "vulnerability.severity",
+            "op": "in",
+            "value": [
+              "High",
+              "Critical"
+            ]
+          }
+        ],
+        "index_family": "vulnerabilities",
+        "policy_hash": "50c2f36416b3ca30d728a7bcf3d2357ea8739627376c34af0f033ab7f46788c1",
+        "snapshot": "pit",
+        "template_id": "vulnerabilities_rows_v1",
+        "visibility": "full"
+      },
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "a9615bec3cc305ee48202e08a3aea408e1e393d453be6120d0bc86f473702ef7",
+        "kind": "pit"
+      },
+      "snapshot_at": "2026-10-17T11:59:00.000000Z",
+      "state": "empty",
+      "topic_id": "vuln_review",
+      "window": {
+        "anchor_at": "2026-10-17T12:00:00.000000Z",
+        "end": "2026-10-17T12:00:00.000000Z",
+        "semantics": "rolling",
+        "source_text": "rolling:24:hours",
+        "start": "2026-10-16T12:00:00.000000Z",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "items": [
+    {
+      "check_id": null,
+      "evidence_id": "ev1_8fa42bbfa14bce4721163fc0a7d3c61262f1de0805eab9a91e12f8a13376c60b",
+      "fetch_id": "vuln_rows",
+      "kind": "aggregate",
+      "scope_hash": "272c2bb29732edd29bd55cd54e71e6127da1d7707dff7d87ff4ed46b8e1790e6",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "a9615bec3cc305ee48202e08a3aea408e1e393d453be6120d0bc86f473702ef7",
+        "kind": "pit"
+      },
+      "source": {
+        "filters": [
+          {
+            "field": "vulnerability.severity",
+            "op": "in",
+            "value": [
+              "High",
+              "Critical"
+            ]
+          }
+        ],
+        "scope": "matching_visible_records",
+        "template_id": "vulnerabilities_rows_v1",
+        "window": {
+          "anchor_at": "2026-10-17T12:00:00.000000Z",
+          "end": "2026-10-17T12:00:00.000000Z",
+          "semantics": "rolling",
+          "source_text": "rolling:24:hours",
+          "start": "2026-10-16T12:00:00.000000Z",
+          "timezone": "UTC"
+        }
+      },
+      "topic_id": "vuln_review",
+      "values": {
+        "approximate": false,
+        "count": 0,
+        "relation": "eq"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "vuln_nonzero",
+      "evidence_id": "ev1_d1f58a78ff422f9659930688e2493dc883b261efd95968ab2a0a14ad7bc02301",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "272c2bb29732edd29bd55cd54e71e6127da1d7707dff7d87ff4ed46b8e1790e6",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "a9615bec3cc305ee48202e08a3aea408e1e393d453be6120d0bc86f473702ef7",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "vuln_nonzero_step"
+      },
+      "topic_id": "vuln_review",
+      "values": {
+        "outcome": "failed"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "vuln_versions",
+      "evidence_id": "ev1_59a9769a57ab79a745320bf2db558a2df17de70c1d148543d02fdc909d1edc1c",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "272c2bb29732edd29bd55cd54e71e6127da1d7707dff7d87ff4ed46b8e1790e6",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "a9615bec3cc305ee48202e08a3aea408e1e393d453be6120d0bc86f473702ef7",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "vuln_versions_step"
+      },
+      "topic_id": "vuln_review",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "vuln_priority",
+      "evidence_id": "ev1_8a08cf553e3e415ffe84f10bc62cb08e3d770e31378adc93fda4776d66f278fd",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "272c2bb29732edd29bd55cd54e71e6127da1d7707dff7d87ff4ed46b8e1790e6",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "a9615bec3cc305ee48202e08a3aea408e1e393d453be6120d0bc86f473702ef7",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "vuln_priority_step"
+      },
+      "topic_id": "vuln_review",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    }
+  ],
+  "policy_hash": "50c2f36416b3ca30d728a7bcf3d2357ea8739627376c34af0f033ab7f46788c1",
+  "question_id": "d96b9f2b-f5c8-597d-aeef-bad10c2b5740",
+  "schema_version": "1",
+  "sha256": "e1f6c32ecf076e48e90f96a5077e95aab755ed98e8fbb6961a8135cb85a27f33",
+  "topic_id": "vuln_review"
+}

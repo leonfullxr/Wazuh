@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "topic_id": "ssh_auth",
+  "name": {
+    "en": "SSH authentication",
+    "es": "Autenticacion SSH"
+  },
+  "aliases": [
+    {
+      "alias_id": "ssh_auth_alias_en",
+      "language": "en",
+      "text": "SSH",
+      "normalized": "ssh",
+      "boundary": "word",
+      "topic_id": "ssh_auth"
+    },
+    {
+      "alias_id": "ssh_auth_alias_es",
+      "language": "es",
+      "text": "SSH",
+      "normalized": "ssh",
+      "boundary": "word",
+      "topic_id": "ssh_auth"
+    }
+  ],
+  "public_document": null,
+  "playbook_id": "ssh_auth_playbook",
+  "finding_template_ids": [
+    "ssh_failed_login_count",
+    "ssh_attack_hypothesis",
+    "ssh_benign_explanation"
+  ],
+  "fetch_bindings": [
+    {
+      "template_id": "alerts_rows_v1",
+      "filters": [
+        {
+          "field": "rule.id",
+          "op": "in",
+          "value": ["5710", "5716"]
+        }
+      ]
+    }
+  ]
+}

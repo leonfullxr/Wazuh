@@ -1,0 +1,12 @@
+{
+  "content_sha": "2e47a19e70cbb5af804987a12375358422f0d200",
+  "document_section": null,
+  "internal_context": "Use only supplied evidence. Counts are visible records, and recommendations refer to manual review.",
+  "language": "en",
+  "missing": [
+    "public_document"
+  ],
+  "schema_version": "1",
+  "sha256": "dc2b88215d38e1c0dc804a47cc247414b4f03a43ad6debcabfe491d3a13260ac",
+  "topic_id": "vuln_review"
+}

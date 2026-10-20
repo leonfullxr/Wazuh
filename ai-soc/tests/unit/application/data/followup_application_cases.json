@@ -1,0 +1,17 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "g033_window": {
+    "positive": {"topics": ["ldap", "vpn"], "fetch_states": ["rows", "rows"], "expected_calls": ["ldap", "vpn"]},
+    "negative": {"topics": ["ldap", "vpn"], "revision": 2, "expected_error": "FOLLOWUP_CONFLICT", "expected_calls": []},
+    "boundary": {"topics": ["t00", "t31"], "ordinals": [0, 31], "fetch_states": ["rows", "rows"], "expected_calls": ["t00", "t31"]},
+    "failure": {"topics": ["ldap", "vpn"], "fetch_states": ["rows", "unavailable"], "expected_calls": ["ldap", "vpn"], "expected_left_out": ["vpn"]}
+  },
+  "g034_continue": {
+    "positive": {"topics": ["ldap", "vpn"], "answered": ["ldap"], "left_out": ["vpn"], "selected": ["vpn"], "expected_calls": ["vpn"]},
+    "negative": {"topics": ["ldap", "vpn"], "answered": ["ldap"], "left_out": ["vpn"], "selected": ["ldap"], "expected_calls": [], "expected_status": "refused"},
+    "boundary": {"topics": ["t00", "t31"], "answered": ["t00"], "left_out": ["t31"], "ordinals": [0, 31], "selected": ["t31"], "expected_calls": ["t31"]},
+    "failure": {"topics": ["ldap", "vpn"], "answered": ["ldap"], "left_out": ["vpn"], "selected": ["vpn"], "fetch_states": ["unavailable"], "expected_calls": ["vpn"], "expected_left_out": ["vpn"]}
+  }
+}

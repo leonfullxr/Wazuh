@@ -1,0 +1,46 @@
+{
+  "schema_version": "1",
+  "case_id": "B6-G043.private",
+  "requirement": "G043",
+  "task": "B6-T03",
+  "cases": [
+    {
+      "variant": "positive",
+      "expected": [
+        "\"bedrock-runtime\"",
+        "service_name        = \"com.amazonaws.${var.aws_region}.${each.value}\"",
+        "\"aws:SourceVpce\"              = aws_vpc_endpoint.interface[\"bedrock-runtime\"].id"
+      ],
+      "forbidden": ["\"bedrock:InvokeModelWithResponseStream\""]
+    },
+    {
+      "variant": "negative",
+      "expected": [
+        "Sid      = \"DenyMissingGuardrail\"",
+        "Action   = [\"bedrock:InvokeModel\"]",
+        "\"bedrock:GuardrailIdentifier\" = \"true\""
+      ],
+      "forbidden": ["Sid      = \"AllowPublicBedrock\""]
+    },
+    {
+      "variant": "boundary",
+      "expected": [
+        "var.bedrock_model_arns",
+        "var.embedding_model_arns",
+        "var.guardrail.identifier",
+        "var.guardrail.version",
+        "aws_vpc_endpoint.interface[\"bedrock-runtime\"].id"
+      ],
+      "forbidden": ["service_name      = \"com.amazonaws.${var.aws_region}.bedrock\""]
+    },
+    {
+      "variant": "failure",
+      "expected": [
+        "Sid      = \"GuardrailedBedrockInvokeModel\"",
+        "Sid      = \"DenyMissingGuardrail\"",
+        "\"aws:SourceVpce\"              = aws_vpc_endpoint.interface[\"bedrock-runtime\"].id"
+      ],
+      "forbidden": ["\"bedrock:InvokeModelWithResponseStream\"", "0.0.0.0/0"]
+    }
+  ]
+}

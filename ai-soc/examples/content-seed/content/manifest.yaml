@@ -1,0 +1,24 @@
+schema_version: '1'
+repository: https://example.test/synthetic-ai-soc-content
+license: CC-BY-4.0
+default_language: en
+topics:
+- ldap
+- auth_review
+- vuln_review
+cue_files:
+  en: content/cues/routing.yaml
+  es: content/cues/routing.yaml
+docs_origin: https://docs.example.test
+embedding:
+  model_id: fixture-only-vector-do-not-deploy
+  region: us-east-1
+  dimensions: 2
+  purpose: topic_cards
+  normalization: l2
+  corpus_sha256: 94ba727e609fd203d938ebeb905ff915d6e9de58f19c6f90461e28c062a5b4e4
+  vector_sha256: 44934cce5c3c62e05659ef58b4ce5cfee29db08dd7df6487a99a66808613a69f
+  golden_sha256: bac0fbb81718db1de0543abb90b0b41db0df232a6bd207c3b8b45cae6923a540
+  threshold: 0.8
+  minimum_margin: 0.1
+  selection_report_path: reports/fixture-only-no-quality-claim.json

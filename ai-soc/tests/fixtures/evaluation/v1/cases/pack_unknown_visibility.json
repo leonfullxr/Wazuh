@@ -1,0 +1,288 @@
+{
+  "checks": [
+    {
+      "check_id": "burst_threshold",
+      "evidence_ids": [
+        "ev1_3237f80c1d7fd61d722bbd249cf92682d73ecf78475e64b21bbe397a3f7653a0"
+      ],
+      "expectation_id": null,
+      "label": "Failed login burst threshold",
+      "message": "Burst threshold recorded from the frozen fetch.",
+      "outcome": "unknown",
+      "topic_id": "ssh_auth"
+    },
+    {
+      "check_id": "authorized_window",
+      "evidence_ids": [
+        "ev1_f70a2823eb9e86e7ff2674e2ede7a0a9def66ea240092a7f7935d4f295679941"
+      ],
+      "expectation_id": "authorized_scan_window",
+      "label": "Approved scan window",
+      "message": "Approved scan window recorded from the frozen fetch.",
+      "outcome": "unknown",
+      "topic_id": "ssh_auth"
+    }
+  ],
+  "content_sha": "9de81733c834bc86610d234e27c2d31d1c5f44d9",
+  "environment_id": "soc-eval",
+  "fetches": [
+    {
+      "bucket_completeness": "complete",
+      "buckets": [],
+      "checks": [
+        {
+          "code": "policy_ok",
+          "name": "policy",
+          "outcome": "passed"
+        }
+      ],
+      "columns": [],
+      "count": {
+        "approximate": false,
+        "computed_by": "indexer",
+        "relation": "eq",
+        "scope": "matching_visible_records",
+        "value": 0
+      },
+      "empty_proof": {
+        "combination_zero": true,
+        "consistency": "coherent",
+        "filter_probes": [
+          {
+            "count": {
+              "approximate": false,
+              "computed_by": "indexer",
+              "relation": "eq",
+              "scope": "matching_visible_records",
+              "value": 0
+            },
+            "filter": {
+              "field": "rule.id",
+              "op": "in",
+              "value": [
+                "5710",
+                "5716"
+              ]
+            },
+            "outcome": "passed"
+          }
+        ],
+        "index_exists": "confirmed",
+        "items": [],
+        "matched_nothing": [],
+        "snapshot": {
+          "at": "2026-10-17T11:59:00.000000Z",
+          "expires_at": "2026-10-17T12:04:00.000000Z",
+          "key": "4d6709e45b4a8d8113b4527d0a6e964172cd4dc7a5310be04e04a948cbbc2629",
+          "kind": "pit"
+        },
+        "visibility": "unknown",
+        "window_count": {
+          "approximate": false,
+          "computed_by": "indexer",
+          "relation": "eq",
+          "scope": "matching_visible_records",
+          "value": 25
+        },
+        "window_has_data": "confirmed"
+      },
+      "error": null,
+      "fetch_id": "failed_logins",
+      "items": [
+        {
+          "check_id": null,
+          "evidence_id": "ev1_620a093cf0921dc156fc1761c64e468f2baedb8a8b10d9ac3f43d499b67aef66",
+          "fetch_id": "failed_logins",
+          "kind": "aggregate",
+          "scope_hash": "91497c33e364b33a1e13a4eb2b4d1a2b1846a3c2b9d344636837bbf6082add39",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "4d6709e45b4a8d8113b4527d0a6e964172cd4dc7a5310be04e04a948cbbc2629",
+            "kind": "pit"
+          },
+          "source": {
+            "filters": [
+              {
+                "field": "rule.id",
+                "op": "in",
+                "value": [
+                  "5710",
+                  "5716"
+                ]
+              },
+              {
+                "field": "agent.id",
+                "op": "eq",
+                "value": "108"
+              }
+            ],
+            "scope": "matching_visible_records",
+            "template_id": "alerts_rows_v1",
+            "window": {
+              "anchor_at": "2026-10-17T12:00:00.000000Z",
+              "end": "2026-10-17T12:00:00.000000Z",
+              "semantics": "rolling",
+              "source_text": "rolling:24:hours",
+              "start": "2026-10-16T12:00:00.000000Z",
+              "timezone": "UTC"
+            }
+          },
+          "topic_id": "ssh_auth",
+          "values": {
+            "approximate": false,
+            "count": 0,
+            "relation": "eq"
+          },
+          "visibility": "unknown"
+        }
+      ],
+      "message": null,
+      "next_cursor": null,
+      "rows": [],
+      "scope": {
+        "displayed_rows": 0,
+        "environment_id": "soc-eval",
+        "filters": [
+          {
+            "field": "rule.id",
+            "op": "in",
+            "value": [
+              "5710",
+              "5716"
+            ]
+          },
+          {
+            "field": "agent.id",
+            "op": "eq",
+            "value": "108"
+          }
+        ],
+        "index_family": "alerts",
+        "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+        "snapshot": "pit",
+        "template_id": "alerts_rows_v1",
+        "visibility": "unknown"
+      },
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "4d6709e45b4a8d8113b4527d0a6e964172cd4dc7a5310be04e04a948cbbc2629",
+        "kind": "pit"
+      },
+      "snapshot_at": "2026-10-17T11:59:00.000000Z",
+      "state": "empty",
+      "topic_id": "ssh_auth",
+      "window": {
+        "anchor_at": "2026-10-17T12:00:00.000000Z",
+        "end": "2026-10-17T12:00:00.000000Z",
+        "semantics": "rolling",
+        "source_text": "rolling:24:hours",
+        "start": "2026-10-16T12:00:00.000000Z",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "items": [
+    {
+      "check_id": null,
+      "evidence_id": "ev1_620a093cf0921dc156fc1761c64e468f2baedb8a8b10d9ac3f43d499b67aef66",
+      "fetch_id": "failed_logins",
+      "kind": "aggregate",
+      "scope_hash": "91497c33e364b33a1e13a4eb2b4d1a2b1846a3c2b9d344636837bbf6082add39",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "4d6709e45b4a8d8113b4527d0a6e964172cd4dc7a5310be04e04a948cbbc2629",
+        "kind": "pit"
+      },
+      "source": {
+        "filters": [
+          {
+            "field": "rule.id",
+            "op": "in",
+            "value": [
+              "5710",
+              "5716"
+            ]
+          },
+          {
+            "field": "agent.id",
+            "op": "eq",
+            "value": "108"
+          }
+        ],
+        "scope": "matching_visible_records",
+        "template_id": "alerts_rows_v1",
+        "window": {
+          "anchor_at": "2026-10-17T12:00:00.000000Z",
+          "end": "2026-10-17T12:00:00.000000Z",
+          "semantics": "rolling",
+          "source_text": "rolling:24:hours",
+          "start": "2026-10-16T12:00:00.000000Z",
+          "timezone": "UTC"
+        }
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "approximate": false,
+        "count": 0,
+        "relation": "eq"
+      },
+      "visibility": "unknown"
+    },
+    {
+      "check_id": "burst_threshold",
+      "evidence_id": "ev1_3237f80c1d7fd61d722bbd249cf92682d73ecf78475e64b21bbe397a3f7653a0",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "91497c33e364b33a1e13a4eb2b4d1a2b1846a3c2b9d344636837bbf6082add39",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "4d6709e45b4a8d8113b4527d0a6e964172cd4dc7a5310be04e04a948cbbc2629",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [
+          "ev1_620a093cf0921dc156fc1761c64e468f2baedb8a8b10d9ac3f43d499b67aef66"
+        ],
+        "step_id": "compare_burst"
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "unknown"
+    },
+    {
+      "check_id": "authorized_window",
+      "evidence_id": "ev1_f70a2823eb9e86e7ff2674e2ede7a0a9def66ea240092a7f7935d4f295679941",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "91497c33e364b33a1e13a4eb2b4d1a2b1846a3c2b9d344636837bbf6082add39",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "4d6709e45b4a8d8113b4527d0a6e964172cd4dc7a5310be04e04a948cbbc2629",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "match_authorized"
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "expectation_id": "authorized_scan_window",
+        "expectation_version": "1",
+        "outcome": "unknown"
+      },
+      "visibility": "unknown"
+    }
+  ],
+  "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+  "question_id": "b7500d5d-084b-53ea-a604-0473f3f5a07f",
+  "schema_version": "1",
+  "sha256": "995b7f832b12a21afa2686266ce73ba6ce9f8ea46b16a5e4df3660ddc09b4583",
+  "topic_id": "ssh_auth"
+}

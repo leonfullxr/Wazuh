@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "description": "Synthetic scripted responses for frozen pack cases. Selectors name evidence by fetch/check, kind and value field. Source cases make no model calls.",
+  "count_tokens": 500,
+  "scripts": {
+    "correct_auth_referral": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": [{"finding_id": "r1", "kind": "recommendation", "template_id": "auth_volume_review", "bindings": {"n": {"select": {"fetch_id": "auth_rows", "kind": "aggregate", "field": "count"}}}}]},
+    "correct_vuln_referral": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": [{"finding_id": "r1", "kind": "recommendation", "template_id": "vuln_priority_review", "bindings": {"o": {"select": {"check_id": "vuln_priority", "kind": "check", "field": "outcome"}}}}]},
+    "false_referral": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": [{"finding_id": "r1", "kind": "recommendation", "template_id": "auth_volume_review", "bindings": {"n": {"select": {"fetch_id": "auth_rows", "kind": "aggregate", "field": "count"}}}}]},
+    "miss": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": []},
+    "unsupported_claim": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": [{"finding_id": "u1", "kind": "recommendation", "template_id": "auth_volume_review", "bindings": {"n": {"select": {"fetch_id": "auth_rows", "kind": "aggregate", "field": "count"}}}}]},
+    "omission": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": []},
+    "invalid_json": {"kind": "raw", "text": "{\"schema_version\":\"1\",\"findings\":[", "stop_reason": "end_turn", "guardrail_intervened": false},
+    "max_tokens_stop": {"kind": "raw", "text": "{\"schema_version\":\"1\",\"findings\":[{\"finding_id\":", "stop_reason": "max_tokens", "guardrail_intervened": false},
+    "raised_exception": {"kind": "raise", "exception": "RuntimeError", "message": "scripted synthetic provider failure"},
+    "guardrail_intervention": {"kind": "raw", "text": "", "stop_reason": "guardrail_intervened", "guardrail_intervened": true},
+    "empty_findings": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": []},
+    "wrong_check_outcome": {"kind": "findings", "stop_reason": "end_turn", "guardrail_intervened": false, "findings": [{"finding_id": "w1", "kind": "recommendation", "template_id": "vuln_priority_review", "bindings": {"o": {"select": {"check_id": "vuln_versions", "kind": "check", "field": "outcome"}}}}]}
+  },
+  "cases": {
+    "auth_guess_11": "correct_auth_referral",
+    "auth_authorized_11": "false_referral",
+    "auth_guess_9": "max_tokens_stop",
+    "auth_level10": "correct_auth_referral",
+    "auth_level9": "guardrail_intervention",
+    "auth_missing_srcip": "correct_auth_referral",
+    "auth_approximate": "omission",
+    "auth_denied": "invalid_json",
+    "auth_zero": "empty_findings",
+    "auth_guess_11_es": "invalid_json",
+    "auth_script_unsupported": "unsupported_claim",
+    "auth_script_omission": "omission",
+    "vuln_critical_exploited": "correct_vuln_referral",
+    "vuln_critical_not_exploited": "correct_vuln_referral",
+    "vuln_high_only": "empty_findings",
+    "vuln_missing_version": "wrong_check_outcome",
+    "vuln_zero": "empty_findings",
+    "vuln_page_miss": "raised_exception",
+    "vuln_critical_es": "correct_vuln_referral"
+  }
+}

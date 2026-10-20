@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G021.approved-template-boundary.private",
+  "requirements": ["G021"],
+  "variants": {
+    "positive": {"approved_template": "tls_ok", "expected_state": "validated", "expected_text": "Verificación TLS: passed"},
+    "negative": {"missing_item": "approved_template", "model_supplied_template": "tls_ok", "expected_state": "all_removed"},
+    "boundary": {"missing_binding": "result", "expected_state": "all_removed"},
+    "failure": {"raw_text": "{invalid-json", "expected_state": "invalid_output"}
+  }
+}

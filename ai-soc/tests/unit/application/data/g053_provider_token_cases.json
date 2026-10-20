@@ -1,0 +1,32 @@
+{
+  "purpose": "Unbound provider-token variants: actual ApplicationService plus strict validator/template renderer never publish raw provider output.",
+  "hostile_first_token": "HOSTILE-FIRST-PROVIDER-TOKEN-DO-NOT-RENDER",
+  "cases": {
+    "positive": {
+      "provider_path": "valid_structured_candidate",
+      "expected_judgment_state": "validated",
+      "expected_safe_text": "Allowed VPN evidence: Synthetic vpn alert",
+      "expected_provider_attempts": 1
+    },
+    "negative": {
+      "provider_path": "raw_hostile_first_token",
+      "expected_judgment_state": "invalid_output",
+      "expected_public_sentences": 0,
+      "expected_provider_attempts": 1
+    },
+    "boundary": {
+      "provider_path": "exact_output_byte_limit_with_unapproved_field",
+      "output_bytes": 65536,
+      "expected_judgment_state": "invalid_output",
+      "expected_public_sentences": 0,
+      "expected_provider_attempts": 1
+    },
+    "failure": {
+      "provider_path": "timeout_with_hostile_transport_detail",
+      "transport_error_prefix": "PRIVATE-CONVERSE-TIMEOUT:",
+      "expected_judgment_state": "model_unavailable",
+      "expected_public_sentences": 0,
+      "expected_provider_attempts": 1
+    }
+  }
+}

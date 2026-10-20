@@ -1,0 +1,99 @@
+{
+  "internal_context": "Review visible authentication failure records in a rolling 24-hour window. Counts are matching visible records only. The recency limit of 3600 s is synthetic; real limits are deployment inputs.",
+  "playbook_id": "auth_review_playbook",
+  "schema_version": "1",
+  "steps": [
+    {
+      "fetch_id": "auth_rows",
+      "filters": [
+        {
+          "field": "rule.groups",
+          "op": "eq",
+          "value": "authentication_failed"
+        }
+      ],
+      "kind": "fetch",
+      "label": {
+        "en": "Authentication failure records",
+        "es": "Registros de fallos de autenticacion"
+      },
+      "step_id": "auth_rows_step",
+      "template_id": "alerts_rows_v1",
+      "window_default": {
+        "amount": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "check_id": "auth_nonzero",
+      "kind": "compare_count",
+      "label": {
+        "en": "At least one matching record",
+        "es": "Al menos un registro coincidente"
+      },
+      "left_fetch_id": "auth_rows",
+      "op": "gte",
+      "right": {
+        "kind": "literal",
+        "value": 1
+      },
+      "step_id": "auth_nonzero_step"
+    },
+    {
+      "check_id": "auth_volume",
+      "kind": "compare_count",
+      "label": {
+        "en": "Review volume threshold",
+        "es": "Umbral de volumen para revision"
+      },
+      "left_fetch_id": "auth_rows",
+      "op": "gte",
+      "right": {
+        "kind": "literal",
+        "value": 10
+      },
+      "step_id": "auth_volume_step"
+    },
+    {
+      "check_id": "auth_sources",
+      "fetch_id": "auth_rows",
+      "field": "data.srcip",
+      "kind": "field_present",
+      "label": {
+        "en": "Source address field coverage",
+        "es": "Cobertura del campo de direccion de origen"
+      },
+      "quantifier": "all",
+      "step_id": "auth_sources_step"
+    },
+    {
+      "check_id": "auth_priority",
+      "expectation_id": "auth_priority",
+      "fetch_id": "auth_rows",
+      "field": "rule.level",
+      "kind": "expectation_match",
+      "label": {
+        "en": "Higher severity rule observed",
+        "es": "Regla de nivel superior observada"
+      },
+      "quantifier": "any",
+      "step_id": "auth_priority_step"
+    },
+    {
+      "check_id": "auth_recency",
+      "fetch_id": "auth_rows",
+      "kind": "record_age",
+      "label": {
+        "en": "Newest returned record within synthetic limit",
+        "es": "Registro devuelto reciente dentro del umbral sint\u00e9tico"
+      },
+      "max_age_seconds": 3600,
+      "step_id": "auth_recency_step"
+    }
+  ],
+  "title": {
+    "en": "Authentication failure review",
+    "es": "Revision de fallos de autenticacion"
+  },
+  "topic_id": "auth_review"
+}

@@ -1,0 +1,38 @@
+{
+  "allowed_evidence_kinds": [
+    "row"
+  ],
+  "kind": "observation",
+  "relations": [
+    {
+      "bindings": [
+        "agent",
+        "rule",
+        "source",
+        "time"
+      ],
+      "kind": "same_record"
+    }
+  ],
+  "required_bindings": {
+    "agent": [
+      "agent.id"
+    ],
+    "rule": [
+      "rule.id"
+    ],
+    "source": [
+      "data.srcip"
+    ],
+    "time": [
+      "timestamp"
+    ]
+  },
+  "required_check_outcomes": [],
+  "template_id": "auth_sample",
+  "texts": {
+    "en": "One returned record has agent {agent}, rule {rule}, source address {source}, and timestamp {time}.",
+    "es": "Un registro devuelto tiene el agente {agent}, la regla {rule}, la direccion de origen {source} y la fecha {time}."
+  },
+  "topic_id": "auth_review"
+}

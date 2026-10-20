@@ -1,0 +1,12 @@
+{
+  "mode": "live",
+  "positive": { "table_name": "soc-live-shared-state-fixture" },
+  "negative": { "client_present": false, "table_present": false },
+  "boundary": { "replicas": 2, "table_name": "soc-live-shared-state-fixture" },
+  "failure": {
+    "table_name": "soc-live-failure-state-fixture",
+    "error_message": "fixture DynamoDB unavailable"
+  },
+  "followup_backend": "dynamodb",
+  "memory_fallback_allowed": false
+}

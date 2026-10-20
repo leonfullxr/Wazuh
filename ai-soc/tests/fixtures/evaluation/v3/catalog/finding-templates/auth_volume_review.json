@@ -1,0 +1,24 @@
+{
+  "allowed_evidence_kinds": [
+    "aggregate"
+  ],
+  "kind": "recommendation",
+  "relations": [],
+  "required_bindings": {
+    "n": [
+      "count"
+    ]
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "auth_volume",
+      "outcome": "passed"
+    }
+  ],
+  "template_id": "auth_volume_review",
+  "texts": {
+    "en": "This read contains {n} matching visible records. Visibility may be restricted. Refer the volume for manual review; the threshold is not an attack verdict.",
+    "es": "Esta lectura contiene {n} registros visibles coincidentes. La visibilidad puede estar restringida. Remita el volumen a revision manual; el umbral no determina que sea un ataque."
+  },
+  "topic_id": "auth_review"
+}

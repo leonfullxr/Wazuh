@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-soc:golden-case:1",
+  "title": "GoldenCase",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "requirements",
+    "tasks",
+    "layer",
+    "variant",
+    "evidence_class",
+    "fixture_sha256",
+    "content_sha",
+    "input",
+    "expected",
+    "calls",
+    "timeout_seconds"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^(G[0-9]{3}|GP[1-4]|GUI|GMCP|GN0[1-4])$"
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^B[1-6]-T[0-9]{2}$"
+      }
+    },
+    "layer": {
+      "enum": [
+        "contract",
+        "unit",
+        "security",
+        "golden",
+        "integration",
+        "e2e",
+        "infra",
+        "reproducibility",
+        "live"
+      ]
+    },
+    "variant": {
+      "enum": [
+        "positive",
+        "negative",
+        "boundary",
+        "failure"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "offline",
+        "local_protocol",
+        "live"
+      ]
+    },
+    "fixture_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "content_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1800
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "payload"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "request",
+            "plan",
+            "evidence",
+            "content",
+            "state",
+            "infra",
+            "browser"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "maxProperties": 128
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "payload"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "domain_exact",
+            "invariants",
+            "artifact_hashes",
+            "policy"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "maxProperties": 128
+        }
+      }
+    },
+    "calls": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation",
+          "principal",
+          "site",
+          "count"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "principal": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "site": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "request_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

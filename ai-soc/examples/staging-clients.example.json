@@ -1,0 +1,18 @@
+{
+  "source_profile": "synthetic-source",
+  "role_arn": "arn:aws:iam::000000000000:role/synthetic-qualification",
+  "account_id": "000000000000",
+  "region": "eu-central-1",
+  "cluster": "ai-soc-qualification",
+  "service_name": "ai-soc-qualification",
+  "app_container_name": "ai-soc",
+  "adapters": [],
+  "nightly": {
+    "factory": "qualification.collectors:build_nightly_client",
+    "options": {}
+  },
+  "network": {
+    "factory": "qualification.collectors:build_network_client",
+    "options": {}
+  }
+}

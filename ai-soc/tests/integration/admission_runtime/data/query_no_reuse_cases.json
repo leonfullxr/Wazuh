@@ -1,0 +1,77 @@
+{
+  "schema_version": "1",
+  "purpose": "local WazuhIndexer same-question cross-analyst no-result-reuse protocol cases; no deployed DLS claim",
+  "request": {
+    "fetch_id": "fetch-00",
+    "template_id": "alerts_rows_v1",
+    "topic_id": "ldap",
+    "question_scope": "one generated question UUID and the same FetchSpec reused for every step"
+  },
+  "principals": {
+    "alice": {"subject": "alice", "groups": ["soc-alpha"]},
+    "bob": {"subject": "bob", "groups": ["soc-alpha"]},
+    "bob_revoked": {"subject": "bob", "groups": ["soc-revoked"]}
+  },
+  "backend": {
+    "validation": {"valid": true},
+    "row_id_pattern": "{subject}-{policy_version}-private-row",
+    "failure_variant_denied_search_subject": "bob"
+  },
+  "variants": {
+    "positive": {
+      "steps": [
+        {"principal": "alice", "authorization": "allow", "policy_version": "policy-v1"},
+        {"principal": "bob", "authorization": "allow", "policy_version": "policy-v1"},
+        {"principal": "alice", "authorization": "allow", "policy_version": "policy-v1"}
+      ],
+      "expected_outcomes": ["rows", "rows", "rows"],
+      "expected_record_ids": [
+        "alice-policy-v1-private-row",
+        "bob-policy-v1-private-row",
+        "alice-policy-v1-private-row"
+      ],
+      "expected_broker_principals": ["alice", "bob", "alice"],
+      "expected_http_attempts": 6,
+      "expected_error_codes": [null, null, null],
+      "expected_physical_requests": [
+        "alice.validate", "alice.search", "bob.validate", "bob.search", "alice.validate", "alice.search"
+      ]
+    },
+    "negative": {
+      "steps": [
+        {"principal": "alice", "authorization": "allow", "policy_version": "policy-v1"},
+        {"principal": "bob_revoked", "authorization": "deny", "policy_version": "policy-v1"}
+      ],
+      "expected_outcomes": ["rows", "site_denied"],
+      "expected_record_ids": ["alice-policy-v1-private-row"],
+      "expected_broker_principals": ["alice"],
+      "expected_http_attempts": 2,
+      "expected_error_codes": [null, "SITE_DENIED"],
+      "expected_physical_requests": ["alice.validate", "alice.search"]
+    },
+    "boundary": {
+      "steps": [
+        {"principal": "alice", "authorization": "allow", "policy_version": "policy-v1"},
+        {"principal": "alice", "authorization": "allow", "policy_version": "policy-v2"}
+      ],
+      "expected_outcomes": ["rows", "rows"],
+      "expected_record_ids": ["alice-policy-v1-private-row", "alice-policy-v2-private-row"],
+      "expected_broker_principals": ["alice", "alice"],
+      "expected_http_attempts": 4,
+      "expected_error_codes": [null, null],
+      "expected_physical_requests": ["alice.validate", "alice.search", "alice.validate", "alice.search"]
+    },
+    "failure": {
+      "steps": [
+        {"principal": "alice", "authorization": "allow", "policy_version": "policy-v1"},
+        {"principal": "bob", "authorization": "allow", "policy_version": "policy-v1"}
+      ],
+      "expected_outcomes": ["rows", "denied"],
+      "expected_record_ids": ["alice-policy-v1-private-row"],
+      "expected_broker_principals": ["alice", "bob"],
+      "expected_http_attempts": 4,
+      "expected_error_codes": [null, "INDEXER_DENIED"],
+      "expected_physical_requests": ["alice.validate", "alice.search", "bob.validate", "bob.search"]
+    }
+  }
+}

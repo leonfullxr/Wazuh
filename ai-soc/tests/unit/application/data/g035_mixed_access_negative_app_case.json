@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Negative mixed-access order case: denied authentication follows an allowed VPN topic whose judgment must survive.",
+  "case": {
+    "topics": [
+      {"topic_id": "vpn", "ordinal": 0, "fetch_state": "rows", "judgment": true},
+      {"topic_id": "authentication", "ordinal": 31, "fetch_state": "denied"}
+    ],
+    "expected_calls": ["vpn", "authentication"],
+    "expected_left_out": [],
+    "expected_judgment_attempts": 1,
+    "expected_allowed_findings": ["Allowed VPN evidence: Synthetic vpn alert"]
+  }
+}

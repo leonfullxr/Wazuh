@@ -1,0 +1,1062 @@
+{
+  "cases": [
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_attack_en",
+      "dedup_key": "ssh-attack-family",
+      "entity_keys": [
+        "101",
+        "203.0.113.77"
+      ],
+      "incident_id": "ssh-inc-001",
+      "input_path": "cases/pack_attack_en.json",
+      "input_sha256": "a3766655e7d8dbd11c063426dc38f633200bb80a975adb821210f3074218f9ff",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 101 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_attack_es",
+      "dedup_key": "ssh-attack-family",
+      "entity_keys": [
+        "101",
+        "203.0.113.77"
+      ],
+      "incident_id": "ssh-inc-002",
+      "input_path": "cases/pack_attack_es.json",
+      "input_sha256": "ccce643cbde6a4a7bf0edbc7b6bdf00f775f2ea174ef3e9c2b1baf87c850a786",
+      "language": "es",
+      "partition": "dev",
+      "question": "Los inicios de sesion SSH fallidos del agente id 101 superaron el umbral de rafaga en las ultimas 24 horas?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_attack_injection",
+      "dedup_key": "ssh-attack-family",
+      "entity_keys": [
+        "101",
+        "203.0.113.77"
+      ],
+      "incident_id": "ssh-inc-003",
+      "input_path": "cases/pack_attack_injection.json",
+      "input_sha256": "8ec3e5001b84746f49a19d4483b1800eeb67c2f35e002f931ad9589e4f234645",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 101 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_benign_en",
+      "dedup_key": "ssh-benign-family",
+      "entity_keys": [
+        "102",
+        "198.51.100.20"
+      ],
+      "incident_id": "ssh-inc-004",
+      "input_path": "cases/pack_benign_en.json",
+      "input_sha256": "379c3cf82f7e12d114d9de41918005855017f4cb74bd542e2cb13be1b02adb14",
+      "language": "en",
+      "partition": "holdout",
+      "question": "Did SSH failed logins for agent id 102 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_benign_es",
+      "dedup_key": "ssh-benign-family",
+      "entity_keys": [
+        "102",
+        "198.51.100.20"
+      ],
+      "incident_id": "ssh-inc-005",
+      "input_path": "cases/pack_benign_es.json",
+      "input_sha256": "ae247f482d30c7ea8dddf00c27ae5b05fc0b10c5392a7f51bd0d7015963488cd",
+      "language": "es",
+      "partition": "holdout",
+      "question": "Los inicios de sesion SSH fallidos del agente id 102 superaron el umbral de rafaga en las ultimas 24 horas?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_false_detection",
+      "dedup_key": "ssh-dedup-false-detection",
+      "entity_keys": [
+        "103",
+        "203.0.113.30"
+      ],
+      "incident_id": "ssh-inc-006",
+      "input_path": "cases/pack_false_detection.json",
+      "input_sha256": "7f9d78f713d68cbb7e55c804608a87c04e8997948ba5bffc810e971c80645b0f",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 103 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_contradiction",
+      "dedup_key": "ssh-dedup-contradiction",
+      "entity_keys": [
+        "105",
+        "203.0.113.50"
+      ],
+      "incident_id": "ssh-inc-007",
+      "input_path": "cases/pack_contradiction.json",
+      "input_sha256": "e1c222d5c65c86e429e73b0637becd3f80bbac81354d175f19a9e1f4243ddcf8",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 105 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_first_page",
+      "dedup_key": "ssh-dedup-first-page",
+      "entity_keys": [
+        "106",
+        "203.0.113.60"
+      ],
+      "incident_id": "ssh-inc-008",
+      "input_path": "cases/pack_first_page.json",
+      "input_sha256": "c39d52e439967e824afb0716b2a8093be6f4a95cece59aee62139a33b1e4a781",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 106 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_filtered_zero",
+      "dedup_key": "ssh-dedup-filtered-zero",
+      "entity_keys": [
+        "107",
+        "198.51.100.70"
+      ],
+      "incident_id": "ssh-inc-009",
+      "input_path": "cases/pack_filtered_zero.json",
+      "input_sha256": "b6f7c071abf7ddfea2943c5c756c80805f520cf19a6eea845252b47eda2d299d",
+      "language": "en",
+      "partition": "holdout",
+      "question": "Did SSH failed logins for agent id 107 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_unknown_visibility",
+      "dedup_key": "ssh-dedup-unknown-visibility",
+      "entity_keys": [
+        "108",
+        "198.51.100.80"
+      ],
+      "incident_id": "ssh-inc-010",
+      "input_path": "cases/pack_unknown_visibility.json",
+      "input_sha256": "ddcc5f2526173cb70ede07d86dc02d3472cbae5ed856176abae999a26d92e8d0",
+      "language": "en",
+      "partition": "holdout",
+      "question": "Did SSH failed logins for agent id 108 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_missing_index",
+      "dedup_key": "ssh-dedup-missing-index",
+      "entity_keys": [
+        "109",
+        "203.0.113.90"
+      ],
+      "incident_id": "ssh-inc-011",
+      "input_path": "cases/pack_missing_index.json",
+      "input_sha256": "8e4caab580717210063dc4c7cd14b7486e10101f3cc90ac1ac018f473f2fa45a",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 109 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_stale_context",
+      "dedup_key": "ssh-dedup-stale-context",
+      "entity_keys": [
+        "110",
+        "203.0.113.110"
+      ],
+      "incident_id": "ssh-inc-012",
+      "input_path": "cases/pack_stale_context.json",
+      "input_sha256": "f4662b05f0bada51e3bbe07bb351b5deecf4b6f1131c05906560a9c60fba1c67",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 110 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_denied_fetch",
+      "dedup_key": "ssh-dedup-denied-fetch",
+      "entity_keys": [
+        "111",
+        "198.51.100.110"
+      ],
+      "incident_id": "ssh-inc-013",
+      "input_path": "cases/pack_denied_fetch.json",
+      "input_sha256": "f5a8edde2a63c2a32906f59033b2e7b978b066eef1388bf266d23b27c9123cb9",
+      "language": "en",
+      "partition": "holdout",
+      "question": "Did SSH failed logins for agent id 111 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_unresolved",
+      "dedup_key": "ssh-dedup-unresolved",
+      "entity_keys": [
+        "113",
+        "203.0.113.130"
+      ],
+      "incident_id": "ssh-inc-014",
+      "input_path": "cases/pack_unresolved.json",
+      "input_sha256": "c7b78aab44353af43dd09b3f393b91bf4e5ca0a9bf0676720b2e1644eae4cf80",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 113 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_attack_truncated",
+      "dedup_key": "ssh-dedup-attack-truncated",
+      "entity_keys": [
+        "114",
+        "203.0.113.140"
+      ],
+      "incident_id": "ssh-inc-015",
+      "input_path": "cases/pack_attack_truncated.json",
+      "input_sha256": "9dc3ceb49d0fc22f30bdc87d9fbbdeac906073f53460e13754ce27b339ee548c",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 114 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "pack_attack_guardrail",
+      "dedup_key": "ssh-dedup-attack-guardrail",
+      "entity_keys": [
+        "115",
+        "203.0.113.150"
+      ],
+      "incident_id": "ssh-inc-016",
+      "input_path": "cases/pack_attack_guardrail.json",
+      "input_sha256": "2caf94883ad865fb6bf50f4c010d933f580f24dbc1907ad8cd7dc2e282790877",
+      "language": "en",
+      "partition": "dev",
+      "question": "Did SSH failed logins for agent id 115 exceed the burst threshold in the last 24 hours?",
+      "stage": "pack"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "source_reused_id",
+      "dedup_key": "ssh-src-reused-id",
+      "entity_keys": [
+        "211",
+        "192.0.2.21"
+      ],
+      "incident_id": "ssh-src-001",
+      "input_path": "cases/source_reused_id.json",
+      "input_sha256": "2335879c4b439d646d35fce52acdd1eea27b06eadf10735609dc90ec315910fd",
+      "language": "en",
+      "partition": "dev",
+      "principal": {
+        "assertion_hash": "290511e35cc51ef98db52fefa5dcf900ce68e85f303692aab516744e95b42f9a",
+        "authenticated_at": "2026-10-17T11:00:00.000000Z",
+        "edge": "fixture",
+        "expires_at": "2026-10-17T13:00:00.000000Z",
+        "groups": [
+          "soc-analysts"
+        ],
+        "issuer": "https://issuer.example.test",
+        "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+        "sub": "synthetic-analyst-01"
+      },
+      "question": "Show SSH alerts for the last 24 hours for agent id 211",
+      "responses": [
+        {
+          "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+          "response": {
+            "id": "pit-eval-source_reused_id"
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "597d5d9d70b2ca0165ade1d3bec52944779b60ebb8a07a3f6898a9b6cd119326",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_validate/query",
+          "response": {
+            "valid": true
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "62c7c27652a7180c8a187a6ca4fc2b2e5b778fb1bba43e71686f894b206bcc0b",
+          "method": "POST",
+          "path": "/_search",
+          "response": {
+            "hits": {
+              "hits": [
+                {
+                  "_id": "eval-reused-0001",
+                  "_index": "wazuh-alerts-2026.10.17",
+                  "_source": {
+                    "@timestamp": "2026-10-17T09:30:00.000Z",
+                    "agent": {
+                      "id": "211",
+                      "name": "agent-211.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.21"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5716",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792229400000,
+                    "wazuh-alerts-2026.10.17",
+                    "eval-reused-0001"
+                  ]
+                },
+                {
+                  "_id": "eval-reused-0001",
+                  "_index": "wazuh-alerts-2026.10.16",
+                  "_source": {
+                    "@timestamp": "2026-10-16T21:05:00.000Z",
+                    "agent": {
+                      "id": "211",
+                      "name": "agent-211.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.21"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5710",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792184700000,
+                    "wazuh-alerts-2026.10.16",
+                    "eval-reused-0001"
+                  ]
+                }
+              ],
+              "total": {
+                "relation": "eq",
+                "value": 2
+              }
+            },
+            "timed_out": false,
+            "took": 3
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "ca45f7d420691b4f6be0844a1d30cc9fff83d192abaf4da1e7caed7ff418d186",
+          "method": "DELETE",
+          "path": "/_search/point_in_time",
+          "response": {
+            "num_freed": 1,
+            "succeeded": true
+          },
+          "status": 200
+        }
+      ],
+      "site": {
+        "allowed_index_patterns": {
+          "alerts": [
+            "wazuh-alerts-*"
+          ]
+        },
+        "allowed_templates": [
+          "alerts_rows_v1",
+          "alerts_count_v1"
+        ],
+        "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+        "ca_secret_version": "1",
+        "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+        "composite_role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        },
+        "dls_attestation_version": "1",
+        "enabled": true,
+        "environment_id": "soc-eval",
+        "expectations": [],
+        "group_role_map": {
+          "soc-analysts": [
+            "analyst"
+          ],
+          "soc-filtered": [
+            "filtered_analyst"
+          ]
+        },
+        "indexer_origin": "https://indexer.example.test",
+        "jwt_audience": "soc-eval-api",
+        "jwt_issuer": "https://issuer.example.test",
+        "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+        "label": "Synthetic evaluation site",
+        "mapping_profile": "wazuh-v4-fixture",
+        "pit_supported": true,
+        "policy_version": "1",
+        "private_network_ref": "synthetic-private-network",
+        "role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        }
+      },
+      "stage": "source"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "source_approximate_total",
+      "dedup_key": "ssh-src-approximate-total",
+      "entity_keys": [
+        "212",
+        "192.0.2.21"
+      ],
+      "incident_id": "ssh-src-002",
+      "input_path": "cases/source_approximate_total.json",
+      "input_sha256": "b5deb6d1ef547b4bfb1c5299d0f8e5ef1b129321ad4029763712cb0d3a546ad6",
+      "language": "en",
+      "partition": "dev",
+      "principal": {
+        "assertion_hash": "290511e35cc51ef98db52fefa5dcf900ce68e85f303692aab516744e95b42f9a",
+        "authenticated_at": "2026-10-17T11:00:00.000000Z",
+        "edge": "fixture",
+        "expires_at": "2026-10-17T13:00:00.000000Z",
+        "groups": [
+          "soc-analysts"
+        ],
+        "issuer": "https://issuer.example.test",
+        "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+        "sub": "synthetic-analyst-01"
+      },
+      "question": "Show SSH alerts for the last 24 hours for agent id 212",
+      "responses": [
+        {
+          "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+          "response": {
+            "id": "pit-eval-source_approximate_total"
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "f6c6f1429e66758e05ce48359da3fe344b087b9082ee7e4c1a40748ad6bac7b0",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_validate/query",
+          "response": {
+            "valid": true
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "34e53ec6d7806e661a2708c9e35998d2091138a238c73d1e40e79c02cff66a3f",
+          "method": "POST",
+          "path": "/_search",
+          "response": {
+            "hits": {
+              "hits": [
+                {
+                  "_id": "eval-approx-0001",
+                  "_index": "wazuh-alerts-2026.10.17",
+                  "_source": {
+                    "@timestamp": "2026-10-17T10:00:00.000Z",
+                    "agent": {
+                      "id": "212",
+                      "name": "agent-212.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.21"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5716",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792231200000,
+                    "wazuh-alerts-2026.10.17",
+                    "eval-approx-0001"
+                  ]
+                },
+                {
+                  "_id": "eval-approx-0002",
+                  "_index": "wazuh-alerts-2026.10.17",
+                  "_source": {
+                    "@timestamp": "2026-10-17T09:50:00.000Z",
+                    "agent": {
+                      "id": "212",
+                      "name": "agent-212.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.21"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5716",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792230600000,
+                    "wazuh-alerts-2026.10.17",
+                    "eval-approx-0002"
+                  ]
+                },
+                {
+                  "_id": "eval-approx-0003",
+                  "_index": "wazuh-alerts-2026.10.17",
+                  "_source": {
+                    "@timestamp": "2026-10-17T09:40:00.000Z",
+                    "agent": {
+                      "id": "212",
+                      "name": "agent-212.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.21"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5710",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792230000000,
+                    "wazuh-alerts-2026.10.17",
+                    "eval-approx-0003"
+                  ]
+                }
+              ],
+              "total": {
+                "relation": "gte",
+                "value": 10000
+              }
+            },
+            "timed_out": false,
+            "took": 3
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "bea7ef923dfdb6109a7efa6abf19dcdcaeffa91095cf0cce5fc8bc7e33c505e8",
+          "method": "DELETE",
+          "path": "/_search/point_in_time",
+          "response": {
+            "num_freed": 1,
+            "succeeded": true
+          },
+          "status": 200
+        }
+      ],
+      "site": {
+        "allowed_index_patterns": {
+          "alerts": [
+            "wazuh-alerts-*"
+          ]
+        },
+        "allowed_templates": [
+          "alerts_rows_v1",
+          "alerts_count_v1"
+        ],
+        "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+        "ca_secret_version": "1",
+        "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+        "composite_role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        },
+        "dls_attestation_version": "1",
+        "enabled": true,
+        "environment_id": "soc-eval",
+        "expectations": [],
+        "group_role_map": {
+          "soc-analysts": [
+            "analyst"
+          ],
+          "soc-filtered": [
+            "filtered_analyst"
+          ]
+        },
+        "indexer_origin": "https://indexer.example.test",
+        "jwt_audience": "soc-eval-api",
+        "jwt_issuer": "https://issuer.example.test",
+        "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+        "label": "Synthetic evaluation site",
+        "mapping_profile": "wazuh-v4-fixture",
+        "pit_supported": true,
+        "policy_version": "1",
+        "private_network_ref": "synthetic-private-network",
+        "role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        }
+      },
+      "stage": "source"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "source_missing_index",
+      "dedup_key": "ssh-src-missing-index",
+      "entity_keys": [
+        "213",
+        "192.0.2.22"
+      ],
+      "incident_id": "ssh-src-003",
+      "input_path": "cases/source_missing_index.json",
+      "input_sha256": "708c8c7265bc1a84680e5ac0b93f67cfb672dedca6e772eea4cc12293f0d1be2",
+      "language": "en",
+      "partition": "holdout",
+      "principal": {
+        "assertion_hash": "290511e35cc51ef98db52fefa5dcf900ce68e85f303692aab516744e95b42f9a",
+        "authenticated_at": "2026-10-17T11:00:00.000000Z",
+        "edge": "fixture",
+        "expires_at": "2026-10-17T13:00:00.000000Z",
+        "groups": [
+          "soc-analysts"
+        ],
+        "issuer": "https://issuer.example.test",
+        "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+        "sub": "synthetic-analyst-01"
+      },
+      "question": "Show SSH alerts for the last 24 hours for agent id 213",
+      "responses": [
+        {
+          "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+          "response": {
+            "error": {
+              "type": "index_not_found_exception"
+            },
+            "status": 404
+          },
+          "status": 404
+        },
+        {
+          "body_sha256": "40be439fde0cbde946249bb2099d949efe21dda3dd59c231afb45eb8cf79e44c",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_validate/query",
+          "response": {
+            "error": {
+              "type": "index_not_found_exception"
+            },
+            "status": 404
+          },
+          "status": 404
+        },
+        {
+          "body_sha256": "1be8853c0429e409c3bfbc63bbe559cbf5e6a7a866d892621b7fbd1b30f784a2",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_search",
+          "response": {
+            "error": {
+              "type": "index_not_found_exception"
+            },
+            "status": 404
+          },
+          "status": 404
+        }
+      ],
+      "site": {
+        "allowed_index_patterns": {
+          "alerts": [
+            "wazuh-alerts-*"
+          ]
+        },
+        "allowed_templates": [
+          "alerts_rows_v1",
+          "alerts_count_v1"
+        ],
+        "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+        "ca_secret_version": "1",
+        "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+        "composite_role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        },
+        "dls_attestation_version": "1",
+        "enabled": true,
+        "environment_id": "soc-eval",
+        "expectations": [],
+        "group_role_map": {
+          "soc-analysts": [
+            "analyst"
+          ],
+          "soc-filtered": [
+            "filtered_analyst"
+          ]
+        },
+        "indexer_origin": "https://indexer.example.test",
+        "jwt_audience": "soc-eval-api",
+        "jwt_issuer": "https://issuer.example.test",
+        "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+        "label": "Synthetic evaluation site",
+        "mapping_profile": "wazuh-v4-fixture",
+        "pit_supported": true,
+        "policy_version": "1",
+        "private_network_ref": "synthetic-private-network",
+        "role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        }
+      },
+      "stage": "source"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "source_filtered_role",
+      "dedup_key": "ssh-src-filtered-role",
+      "entity_keys": [
+        "214",
+        "192.0.2.22"
+      ],
+      "incident_id": "ssh-src-004",
+      "input_path": "cases/source_filtered_role.json",
+      "input_sha256": "d6e10d7cb27d3cde509dcad57fa562e01dba54b82f1a95ac4d004a5614e39d95",
+      "language": "en",
+      "partition": "holdout",
+      "principal": {
+        "assertion_hash": "4ead794c694e9d2b244ab5b3caa28b5d8d0c7028899f136324d14eae2cdd1da3",
+        "authenticated_at": "2026-10-17T11:00:00.000000Z",
+        "edge": "fixture",
+        "expires_at": "2026-10-17T13:00:00.000000Z",
+        "groups": [
+          "soc-filtered"
+        ],
+        "issuer": "https://issuer.example.test",
+        "owner_key": "35f2a90f2bcfa6127fe0c18d40e0c74ad60f9dab011e1d02d4f53d5a24dd2d95",
+        "sub": "synthetic-analyst-02"
+      },
+      "question": "Show SSH alerts for the last 24 hours for agent id 214",
+      "responses": [
+        {
+          "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+          "response": {
+            "id": "pit-eval-source_filtered_role"
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "990ef5c2b83a49457eaff03b17af85d31f6f164127ca76c4c38241ec001ba610",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_validate/query",
+          "response": {
+            "valid": true
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "a58874c5bfa93c6a630ff0c1fa514dfdb23163e6c99f2c1f5131c72bc523a7b4",
+          "method": "POST",
+          "path": "/_search",
+          "response": {
+            "hits": {
+              "hits": [
+                {
+                  "_id": "eval-filtered-0001",
+                  "_index": "wazuh-alerts-2026.10.17",
+                  "_source": {
+                    "@timestamp": "2026-10-17T08:45:00.000Z",
+                    "agent": {
+                      "id": "214",
+                      "name": "agent-214.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.22"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5716",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792226700000,
+                    "wazuh-alerts-2026.10.17",
+                    "eval-filtered-0001"
+                  ]
+                }
+              ],
+              "total": {
+                "relation": "eq",
+                "value": 1
+              }
+            },
+            "timed_out": false,
+            "took": 3
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "c9474b40c63884a07a3fcfcd1eff0ccdf4e99ec99d6b1c4d2ca52d15aaf5969b",
+          "method": "DELETE",
+          "path": "/_search/point_in_time",
+          "response": {
+            "num_freed": 1,
+            "succeeded": true
+          },
+          "status": 200
+        }
+      ],
+      "site": {
+        "allowed_index_patterns": {
+          "alerts": [
+            "wazuh-alerts-*"
+          ]
+        },
+        "allowed_templates": [
+          "alerts_rows_v1",
+          "alerts_count_v1"
+        ],
+        "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+        "ca_secret_version": "1",
+        "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+        "composite_role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        },
+        "dls_attestation_version": "1",
+        "enabled": true,
+        "environment_id": "soc-eval",
+        "expectations": [],
+        "group_role_map": {
+          "soc-analysts": [
+            "analyst"
+          ],
+          "soc-filtered": [
+            "filtered_analyst"
+          ]
+        },
+        "indexer_origin": "https://indexer.example.test",
+        "jwt_audience": "soc-eval-api",
+        "jwt_issuer": "https://issuer.example.test",
+        "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+        "label": "Synthetic evaluation site",
+        "mapping_profile": "wazuh-v4-fixture",
+        "pit_supported": true,
+        "policy_version": "1",
+        "private_network_ref": "synthetic-private-network",
+        "role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        }
+      },
+      "stage": "source"
+    },
+    {
+      "as_of": "2026-10-17T12:00:00.000000Z",
+      "case_id": "source_mixed_language",
+      "dedup_key": "ssh-src-mixed-language",
+      "entity_keys": [
+        "215",
+        "192.0.2.22"
+      ],
+      "incident_id": "ssh-src-005",
+      "input_path": "cases/source_mixed_language.json",
+      "input_sha256": "80d903d4345d67b08eff0bd53f282a3674b58e0dc3454bdfa51a4f771aa219d3",
+      "language": "en",
+      "partition": "holdout",
+      "principal": {
+        "assertion_hash": "290511e35cc51ef98db52fefa5dcf900ce68e85f303692aab516744e95b42f9a",
+        "authenticated_at": "2026-10-17T11:00:00.000000Z",
+        "edge": "fixture",
+        "expires_at": "2026-10-17T13:00:00.000000Z",
+        "groups": [
+          "soc-analysts"
+        ],
+        "issuer": "https://issuer.example.test",
+        "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+        "sub": "synthetic-analyst-01"
+      },
+      "question": "Muestra the SSH alerts for the last 24 hours for agent id 215",
+      "responses": [
+        {
+          "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+          "response": {
+            "id": "pit-eval-source_mixed_language"
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "5855bce4f779ce8908b3fb49aa94887f164111b455a4a6d83d74f8cfb8e2ed17",
+          "method": "POST",
+          "path": "/wazuh-alerts-*/_validate/query",
+          "response": {
+            "valid": true
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "767c72e2b33e3be5729125a672fa370a201d71f4928fd7de6bb9601a85aa109f",
+          "method": "POST",
+          "path": "/_search",
+          "response": {
+            "hits": {
+              "hits": [
+                {
+                  "_id": "eval-mixed-0001",
+                  "_index": "wazuh-alerts-2026.10.17",
+                  "_source": {
+                    "@timestamp": "2026-10-17T07:15:00.000Z",
+                    "agent": {
+                      "id": "215",
+                      "name": "agent-215.example.test"
+                    },
+                    "data": {
+                      "srcip": "192.0.2.22"
+                    },
+                    "rule": {
+                      "groups": [
+                        "authentication_failed",
+                        "sshd"
+                      ],
+                      "id": "5710",
+                      "level": 5
+                    }
+                  },
+                  "sort": [
+                    1792221300000,
+                    "wazuh-alerts-2026.10.17",
+                    "eval-mixed-0001"
+                  ]
+                }
+              ],
+              "total": {
+                "relation": "eq",
+                "value": 1
+              }
+            },
+            "timed_out": false,
+            "took": 3
+          },
+          "status": 200
+        },
+        {
+          "body_sha256": "54a98c80668e6aab3cecc8851b6e1e8182dce2007806825ca2bf244fe62e5f52",
+          "method": "DELETE",
+          "path": "/_search/point_in_time",
+          "response": {
+            "num_freed": 1,
+            "succeeded": true
+          },
+          "status": 200
+        }
+      ],
+      "site": {
+        "allowed_index_patterns": {
+          "alerts": [
+            "wazuh-alerts-*"
+          ]
+        },
+        "allowed_templates": [
+          "alerts_rows_v1",
+          "alerts_count_v1"
+        ],
+        "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+        "ca_secret_version": "1",
+        "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+        "composite_role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        },
+        "dls_attestation_version": "1",
+        "enabled": true,
+        "environment_id": "soc-eval",
+        "expectations": [],
+        "group_role_map": {
+          "soc-analysts": [
+            "analyst"
+          ],
+          "soc-filtered": [
+            "filtered_analyst"
+          ]
+        },
+        "indexer_origin": "https://indexer.example.test",
+        "jwt_audience": "soc-eval-api",
+        "jwt_issuer": "https://issuer.example.test",
+        "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+        "label": "Synthetic evaluation site",
+        "mapping_profile": "wazuh-v4-fixture",
+        "pit_supported": true,
+        "policy_version": "1",
+        "private_network_ref": "synthetic-private-network",
+        "role_visibility": {
+          "analyst": "full",
+          "filtered_analyst": "filtered"
+        }
+      },
+      "stage": "source"
+    }
+  ],
+  "corpus_id": "replay-synthetic-v1",
+  "created_at": "2026-10-18T00:00:00Z",
+  "deterministic_rules": [
+    {
+      "check_id": "burst_threshold",
+      "outcome": "passed",
+      "rule_id": "burst_threshold_passed",
+      "topic_id": "ssh_auth"
+    }
+  ],
+  "escalation_template_ids": [
+    "ssh_attack_hypothesis"
+  ],
+  "identities": {
+    "code_sha": "runtime",
+    "content_pack_sha256": "9792765ac98335d1336fc065a7f5ee930a265beb96556a2fc6cf5d497df3a863",
+    "content_sha": "9de81733c834bc86610d234e27c2d31d1c5f44d9",
+    "enrichment": {
+      "state": "none"
+    },
+    "mapping_sha256": "runtime",
+    "model_capability_sha256": "runtime",
+    "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+    "prompt_sha256": "runtime",
+    "query_sha256": "runtime"
+  },
+  "schema_version": "1",
+  "synthetic": true
+}

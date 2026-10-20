@@ -1,0 +1,208 @@
+{
+  "schema_version": "1",
+  "description": "Scripted converse responses for the pack stage. Evidence is never named by evidence ID: a binding selects the first pack item (in pack item order) whose fetch_id or check_id, kind and value field match, and the runner resolves it to an evidence ID at call time. A script that selects row or aggregate items is only used on packs that have them. Count-stage calls return count_tokens. Source-stage cases make no model calls.",
+  "count_tokens": 500,
+  "scripts": {
+    "correct_attack": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": [
+        {
+          "finding_id": "h1",
+          "kind": "hypothesis",
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "row",
+                "field": "agent.id"
+              }
+            },
+            "count": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "aggregate",
+                "field": "count"
+              }
+            }
+          }
+        },
+        {
+          "finding_id": "o1",
+          "kind": "observation",
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "aggregate",
+                "field": "count"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "correct_benign": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": [
+        {
+          "finding_id": "b1",
+          "kind": "hypothesis",
+          "template_id": "ssh_benign_explanation",
+          "bindings": {
+            "agent": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "row",
+                "field": "agent.id"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "omission_observation_only": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": [
+        {
+          "finding_id": "o1",
+          "kind": "observation",
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "aggregate",
+                "field": "count"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "miss_benign_explanation": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": [
+        {
+          "finding_id": "b1",
+          "kind": "hypothesis",
+          "template_id": "ssh_benign_explanation",
+          "bindings": {
+            "agent": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "row",
+                "field": "agent.id"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "false_escalation": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": [
+        {
+          "finding_id": "h1",
+          "kind": "hypothesis",
+          "template_id": "ssh_attack_hypothesis",
+          "bindings": {
+            "agent": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "row",
+                "field": "agent.id"
+              }
+            },
+            "count": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "aggregate",
+                "field": "count"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "empty_findings": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": []
+    },
+    "invalid_json": {
+      "kind": "raw",
+      "text": "{\"schema_version\": \"1\", \"findings\": [",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false
+    },
+    "max_tokens_truncated": {
+      "kind": "raw",
+      "text": "{\"schema_version\": \"1\", \"findings\": [{\"finding_id\": \"h1\", \"kind\": \"hyp",
+      "stop_reason": "max_tokens",
+      "guardrail_intervened": false
+    },
+    "guardrail_intervention": {
+      "kind": "raw",
+      "text": "",
+      "stop_reason": "guardrail_intervened",
+      "guardrail_intervened": true
+    },
+    "raise_exception": {
+      "kind": "raise",
+      "exception": "RuntimeError",
+      "message": "scripted converse failure"
+    },
+    "unsupported_claim": {
+      "kind": "findings",
+      "stop_reason": "end_turn",
+      "guardrail_intervened": false,
+      "findings": [
+        {
+          "finding_id": "o1",
+          "kind": "observation",
+          "template_id": "ssh_failed_login_count",
+          "bindings": {
+            "count": {
+              "select": {
+                "fetch_id": "failed_logins",
+                "kind": "aggregate",
+                "field": "count"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "cases": {
+    "pack_attack_en": "correct_attack",
+    "pack_attack_es": "omission_observation_only",
+    "pack_attack_injection": "miss_benign_explanation",
+    "pack_attack_truncated": "max_tokens_truncated",
+    "pack_attack_guardrail": "guardrail_intervention",
+    "pack_benign_en": "false_escalation",
+    "pack_benign_es": "correct_benign",
+    "pack_false_detection": "invalid_json",
+    "pack_contradiction": "unsupported_claim",
+    "pack_first_page": "raise_exception",
+    "pack_filtered_zero": "empty_findings",
+    "pack_unknown_visibility": "invalid_json",
+    "pack_missing_index": "invalid_json",
+    "pack_stale_context": "correct_attack",
+    "pack_denied_fetch": "empty_findings",
+    "pack_unresolved": "empty_findings"
+  }
+}

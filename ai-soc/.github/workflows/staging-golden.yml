@@ -1,0 +1,55 @@
+name: synthetic-staging-golden
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synthetic-staging-golden
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: github.ref == 'refs/heads/main' && github.repository == github.event.repository.full_name
+    runs-on: ubuntu-24.04
+    environment: synthetic-staging
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout protected source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: 3.12.13
+          cache: false
+      - name: Install locked runner
+        run: |
+          python -m pip install --disable-pip-version-check 'uv==0.11.28'
+          uv sync --locked --all-groups
+      - name: Obtain short-lived staging role
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
+        with:
+          role-to-assume: ${{ vars.SYNTHETIC_STAGING_ROLE_ARN }}
+          aws-region: ${{ vars.SYNTHETIC_STAGING_REGION }}
+          role-session-name: ai-soc-nightly-${{ github.run_id }}
+      - name: Run pinned synthetic staging cases
+        env:
+          SOC_STAGING_MANIFEST: config/staging-validation.json
+        run: make staging-golden
+      - name: Upload live evidence
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: ai-soc-staging-evidence-${{ github.run_id }}
+          path: build/evidence/live/
+          if-no-files-found: warn
+          retention-days: 90

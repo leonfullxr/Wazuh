@@ -1,0 +1,31 @@
+{
+  "positive": {
+    "source_path": "public-docs/en/ldap.md",
+    "published_path": "en/ldap.html",
+    "heading": "Synthetic LDAP setup",
+    "anchor": "synthetic-ldap-setup",
+    "markdown": "# Synthetic LDAP setup\n\nFictional reviewed fixture guidance.\n",
+    "expected_section": "# Synthetic LDAP setup\n\nFictional reviewed fixture guidance.\n"
+  },
+  "negative": {
+    "source_language": "en",
+    "requested_language": "es",
+    "content_sha": "2222222222222222222222222222222222222222",
+    "docs_origin": "https://docs.example.test"
+  },
+  "boundary": {
+    "source_path": "public-docs/en/LDAP setup & checklist.md",
+    "published_path": "en/LDAP setup & checklist.html",
+    "heading": "LDAP setup & checklist",
+    "anchor": "ldap-setup & checks",
+    "content_sha": "2222222222222222222222222222222222222222",
+    "docs_origin": "https://docs.example.test",
+    "expected_url": "https://docs.example.test/commits/2222222222222222222222222222222222222222/en/LDAP%20setup%20%26%20checklist.html#ldap-setup%20%26%20checks"
+  },
+  "failure": {
+    "invalid_content_sha": "not-a-git-sha",
+    "unsafe_published_path": "../private.html",
+    "content_sha": "2222222222222222222222222222222222222222",
+    "docs_origin": "https://docs.example.test"
+  }
+}

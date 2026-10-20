@@ -1,0 +1,72 @@
+{
+  "schema_version": "1",
+  "d12": {
+    "positive": [
+      {
+        "question": "What should I fix?",
+        "language_hint": "en",
+        "expected_language": "en",
+        "expected_question": "Which topic should I assess?"
+      },
+      {
+        "question": "¿Qué debería corregir?",
+        "language_hint": "es",
+        "expected_language": "es",
+        "expected_question": "¿Sobre qué tema?"
+      }
+    ],
+    "negative": {
+      "question": "\"What should I fix?\"",
+      "language_hint": "en",
+      "expected_kind": "refused"
+    },
+    "boundary": {
+      "question": "What should I fix?; ¿Qué debería corregir?",
+      "language_hint": "es",
+      "expected_language": "es",
+      "expected_question": "¿Sobre qué tema?"
+    },
+    "failure": {
+      "question_prefix": "What should I fix? ",
+      "repeat_count": 1000,
+      "expected_error": "question exceeds 16384 UTF-8 bytes"
+    }
+  },
+  "d13": {
+    "positive": {
+      "question": "LDAP is failing, what should I fix?",
+      "expected_topic_ids": ["ldap"],
+      "expected_failure": true,
+      "expected_judgment": true,
+      "expected_document": true,
+      "expected_playbook": "ldap_checks",
+      "expected_fetch_templates": []
+    },
+    "negative": {
+      "question": "LDAP is failing; how do I configure DNS?",
+      "expected_topic_ids": ["ldap", "dns"],
+      "expected_fetch_topics": [],
+      "expected_judgment_topics": [],
+      "expected_playbook_topics": ["ldap"]
+    },
+    "boundary": [
+      {
+        "question": "LDAP is failing, what should I fix?",
+        "language_hint": "en",
+        "expected_language": "en",
+        "expected_fetch_templates": []
+      },
+      {
+        "question": "LDAP falla, ¿qué debería corregir?",
+        "language_hint": "es",
+        "expected_language": "es",
+        "expected_fetch_templates": []
+      }
+    ],
+    "failure": {
+      "question": "LDAP is failing; show LDAP alerts for the last 24 hours source IP 999.1.1.1",
+      "expected_clarify_kind": "missing_slots",
+      "expected_slots": ["supported_filter"]
+    }
+  }
+}

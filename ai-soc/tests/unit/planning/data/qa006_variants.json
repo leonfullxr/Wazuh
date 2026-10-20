@@ -1,0 +1,25 @@
+{
+  "positive": {
+    "selected": ["dns"],
+    "expected_topics": ["dns"],
+    "expected_origin": "leftout_followup"
+  },
+  "negative": {
+    "left_out": ["ldap"],
+    "requested": ["dns"],
+    "prior_fetch_topic": "ldap",
+    "cross_topic_keep": "DNS, keep those alerts",
+    "expected_cross_topic": "clarified"
+  },
+  "boundary": {
+    "prior_window_hours": 24,
+    "requested_window_days": 7,
+    "expected_start": "2026-09-23T12:00:00+00:00",
+    "new_topic_question": "DNS is failing",
+    "expected_new_topics": ["dns"]
+  },
+  "failure": {
+    "prior_policy_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "current_policy_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

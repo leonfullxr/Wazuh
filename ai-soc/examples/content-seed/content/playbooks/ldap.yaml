@@ -1,0 +1,14 @@
+schema_version: '1'
+playbook_id: ldap_read_checks
+topic_id: ldap
+title: {en: LDAP read checks, es: Comprobaciones LDAP de solo lectura}
+internal_context: Use only the configured synthetic read check and report its visible-record count.
+steps:
+  - kind: fetch
+    step_id: ldap_alert_count_step
+    fetch_id: ldap_recent_alert_count
+    template_id: alerts_count_v1
+    window_default: {unit: hours, amount: 24}
+    filters:
+      - {field: rule.groups, op: eq, value: ldap}
+    label: {en: Recent LDAP alerts, es: Alertas LDAP recientes}

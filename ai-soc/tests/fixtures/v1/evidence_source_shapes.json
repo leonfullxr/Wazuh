@@ -1,0 +1,50 @@
+{
+  "mode": "fixture",
+  "synthetic": true,
+  "source_shapes": [
+    {
+      "model": "EvidenceSourceRow",
+      "source": {
+        "index_alias": "alerts",
+        "record_id": "alpha-page-001"
+      }
+    },
+    {
+      "model": "EvidenceSourceBucket",
+      "source": {
+        "group_field": "rule.id",
+        "key": "5710"
+      }
+    },
+    {
+      "model": "EvidenceSourceCount",
+      "source": {
+        "template_id": "alerts_count_v1",
+        "window": {
+          "start": "2026-09-29T12:00:00.000000Z",
+          "end": "2026-09-30T12:00:00.000000Z",
+          "semantics": "absolute",
+          "source_text": "last 24 hours",
+          "timezone": "UTC",
+          "anchor_at": "2026-09-30T12:00:00.000000Z"
+        },
+        "filters": [],
+        "scope": "matching_visible_records"
+      }
+    },
+    {
+      "model": "EvidenceSourceProbe",
+      "source": {
+        "probe_kind": "index_exists",
+        "filters": []
+      }
+    },
+    {
+      "model": "EvidenceSourceCheck",
+      "source": {
+        "step_id": "ldap_present",
+        "operand_ids": ["ev1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      }
+    }
+  ]
+}

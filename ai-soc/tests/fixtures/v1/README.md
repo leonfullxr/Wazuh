@@ -1,0 +1,7 @@
+# CF-1 fixtures
+
+Every fixture is synthetic, is marked `mode: fixture` or held under this fixture-only directory, and contains no customer-derived data or credential. `planning_oracles.json` was independently authored from the reviewed bilingual examples and fixed product semantics. Its expected plans are specifications, not results from a planner implementation.
+
+`evidence_vectors.json` contains reviewer-supplied initial vectors. Additional row-page, bucket, probe, and evidence-scope vectors in `canonical_vectors.json` were independently serialized with Python's standard `json` module and hashed with `hashlib`, without importing `ai_soc`; their source objects follow the exact section 5 shapes and have no nested discriminator. `canonical_source_discrepancy.json` preserves the superseded supplemental bytes and hashes that had an extra `source.kind`; those are evidence of the mismatch, not accepted vectors. `evidence_source_shapes.json` is the independent typed source-shape seam oracle used to ensure producers and consumers agree with section 5. `golden_examples.json` is a byte-for-byte copy of the reviewed formal example registry. Disposable identity/signing keys are not fixtures; tests create them per test only when a consumer needs them.
+
+`policy_binding_oracles.json` contains independent synthetic cases for a current authorized policy hash and a foreign/stale prior-plan hash. It is an input contract oracle; the PlanStore implementation still owns the runtime rejection behavior.

@@ -1,0 +1,76 @@
+{
+  "internal_context": "Review visible High and Critical vulnerability records in a rolling 24-hour window. Checks describe returned rows only.",
+  "playbook_id": "vuln_review_playbook",
+  "schema_version": "1",
+  "steps": [
+    {
+      "fetch_id": "vuln_rows",
+      "filters": [
+        {
+          "field": "vulnerability.severity",
+          "op": "in",
+          "value": [
+            "High",
+            "Critical"
+          ]
+        }
+      ],
+      "kind": "fetch",
+      "label": {
+        "en": "High and Critical vulnerability records",
+        "es": "Registros de vulnerabilidad High y Critical"
+      },
+      "step_id": "vuln_rows_step",
+      "template_id": "vulnerabilities_rows_v1",
+      "window_default": {
+        "amount": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "check_id": "vuln_nonzero",
+      "kind": "compare_count",
+      "label": {
+        "en": "At least one matching record",
+        "es": "Al menos un registro coincidente"
+      },
+      "left_fetch_id": "vuln_rows",
+      "op": "gte",
+      "right": {
+        "kind": "literal",
+        "value": 1
+      },
+      "step_id": "vuln_nonzero_step"
+    },
+    {
+      "check_id": "vuln_versions",
+      "fetch_id": "vuln_rows",
+      "field": "package.version",
+      "kind": "field_present",
+      "label": {
+        "en": "Package version field coverage",
+        "es": "Cobertura del campo de version del paquete"
+      },
+      "quantifier": "all",
+      "step_id": "vuln_versions_step"
+    },
+    {
+      "check_id": "vuln_priority",
+      "expectation_id": "vuln_priority",
+      "fetch_id": "vuln_rows",
+      "field": "vulnerability.severity",
+      "kind": "expectation_match",
+      "label": {
+        "en": "Critical severity observed",
+        "es": "Severidad Critical observada"
+      },
+      "quantifier": "any",
+      "step_id": "vuln_priority_step"
+    }
+  ],
+  "title": {
+    "en": "Vulnerability record review",
+    "es": "Revision de registros de vulnerabilidades"
+  },
+  "topic_id": "vuln_review"
+}

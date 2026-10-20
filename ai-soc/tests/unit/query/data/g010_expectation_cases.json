@@ -1,0 +1,24 @@
+{
+  "cases": {
+    "positive": {
+      "expectation": {"field": "rule.level", "op": "gte", "value": 5, "version": "site-v1"},
+      "observed": 7,
+      "expected": "passed"
+    },
+    "negative": {
+      "expectation": {"field": "rule.level", "op": "gte", "value": 5, "version": "site-v1"},
+      "observed": 4,
+      "expected": "failed"
+    },
+    "boundary": {
+      "expectation": {"field": "rule.level", "op": "gte", "value": 5, "version": "site-v1"},
+      "observed": 5,
+      "expected": "passed"
+    },
+    "failure": {
+      "expectation": null,
+      "observed": 5,
+      "expected": "not_configured"
+    }
+  }
+}

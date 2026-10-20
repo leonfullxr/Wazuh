@@ -1,0 +1,26 @@
+{
+  "cases": {
+    "positive": {
+      "groups": ["soc-alpha"],
+      "exp_offset_seconds": 300,
+      "role": "analyst_read",
+      "visibility": "full"
+    },
+    "negative": {
+      "groups": ["soc-unmapped"],
+      "exp_offset_seconds": 300,
+      "error": "SITE_DENIED"
+    },
+    "boundary": {
+      "groups": ["soc-beta"],
+      "exp_offset_seconds": 300,
+      "role": "beta_read",
+      "visibility": "filtered"
+    },
+    "failure": {
+      "groups": ["soc-alpha"],
+      "exp_offset_seconds": -1,
+      "error": "AUTH_EXPIRED"
+    }
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "cases": {
+    "auth_approximate": "omission",
+    "auth_authorized_11": "false_referral",
+    "auth_denied": "invalid_json",
+    "auth_guess_11": "correct_auth_referral",
+    "auth_guess_11_es": "invalid_json",
+    "auth_guess_9": "max_tokens_stop",
+    "auth_level10": "correct_auth_referral",
+    "auth_level9": "guardrail_intervention",
+    "auth_missing_srcip": "correct_auth_referral",
+    "auth_script_omission": "omission",
+    "auth_script_unsupported": "unsupported_claim",
+    "auth_zero": "empty_findings",
+    "pack_authorized_fresh": "propose_auth_recency_gap",
+    "pack_authorized_stale": "propose_auth_recency_gap",
+    "pack_guess_fresh": "propose_auth_recency_gap",
+    "pack_guess_stale": "propose_auth_recency_gap",
+    "pack_guess_stale_es": "propose_auth_recency_gap",
+    "pack_recency_bad_binding": "propose_auth_recency_gap_bad_binding",
+    "pack_recency_denied": "propose_auth_recency_gap",
+    "pack_recency_unknown": "propose_auth_recency_gap",
+    "pack_vuln_gap_wrong_topic": "propose_vuln_and_auth_recency_gap",
+    "vuln_critical_es": "correct_vuln_referral",
+    "vuln_critical_exploited": "correct_vuln_referral",
+    "vuln_critical_not_exploited": "correct_vuln_referral",
+    "vuln_high_only": "empty_findings",
+    "vuln_missing_version": "wrong_check_outcome",
+    "vuln_page_miss": "raised_exception",
+    "vuln_zero": "empty_findings"
+  },
+  "count_tokens": 500,
+  "description": "Synthetic scripted responses for frozen pack cases. Selectors name evidence by fetch/check, kind and value field. Source cases make no model calls.",
+  "schema_version": "1",
+  "scripts": {
+    "correct_auth_referral": {
+      "findings": [
+        {
+          "bindings": {
+            "n": {
+              "select": {
+                "fetch_id": "auth_rows",
+                "field": "count",
+                "kind": "aggregate"
+              }
+            }
+          },
+          "finding_id": "r1",
+          "kind": "recommendation",
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "correct_vuln_referral": {
+      "findings": [
+        {
+          "bindings": {
+            "o": {
+              "select": {
+                "check_id": "vuln_priority",
+                "field": "outcome",
+                "kind": "check"
+              }
+            }
+          },
+          "finding_id": "r1",
+          "kind": "recommendation",
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "empty_findings": {
+      "findings": [],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "false_referral": {
+      "findings": [
+        {
+          "bindings": {
+            "n": {
+              "select": {
+                "fetch_id": "auth_rows",
+                "field": "count",
+                "kind": "aggregate"
+              }
+            }
+          },
+          "finding_id": "r1",
+          "kind": "recommendation",
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "guardrail_intervention": {
+      "guardrail_intervened": true,
+      "kind": "raw",
+      "stop_reason": "guardrail_intervened",
+      "text": ""
+    },
+    "invalid_json": {
+      "guardrail_intervened": false,
+      "kind": "raw",
+      "stop_reason": "end_turn",
+      "text": "{\"schema_version\":\"1\",\"findings\":["
+    },
+    "max_tokens_stop": {
+      "guardrail_intervened": false,
+      "kind": "raw",
+      "stop_reason": "max_tokens",
+      "text": "{\"schema_version\":\"1\",\"findings\":[{\"finding_id\":"
+    },
+    "miss": {
+      "findings": [],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "omission": {
+      "findings": [],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "propose_auth_recency_gap": {
+      "findings": [
+        {
+          "bindings": {
+            "n": {
+              "select": {
+                "fetch_id": "auth_rows",
+                "field": "count",
+                "kind": "aggregate"
+              }
+            }
+          },
+          "finding_id": "referral",
+          "kind": "recommendation",
+          "template_id": "auth_volume_review"
+        },
+        {
+          "bindings": {
+            "o": {
+              "select": {
+                "check_id": "auth_recency",
+                "field": "outcome",
+                "kind": "check"
+              }
+            }
+          },
+          "finding_id": "gap1",
+          "kind": "observation",
+          "template_id": "auth_recency_gap"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "propose_auth_recency_gap_bad_binding": {
+      "findings": [
+        {
+          "bindings": {
+            "n": {
+              "select": {
+                "fetch_id": "auth_rows",
+                "field": "count",
+                "kind": "aggregate"
+              }
+            }
+          },
+          "finding_id": "referral",
+          "kind": "recommendation",
+          "template_id": "auth_volume_review"
+        },
+        {
+          "bindings": {
+            "o": {
+              "select": {
+                "fetch_id": "auth_rows",
+                "field": "count",
+                "kind": "aggregate"
+              }
+            }
+          },
+          "finding_id": "gap1",
+          "kind": "observation",
+          "template_id": "auth_recency_gap"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "propose_vuln_and_auth_recency_gap": {
+      "findings": [
+        {
+          "bindings": {
+            "o": {
+              "select": {
+                "check_id": "vuln_priority",
+                "field": "outcome",
+                "kind": "check"
+              }
+            }
+          },
+          "finding_id": "referral",
+          "kind": "recommendation",
+          "template_id": "vuln_priority_review"
+        },
+        {
+          "bindings": {
+            "o": {
+              "select": {
+                "check_id": "vuln_priority",
+                "field": "outcome",
+                "kind": "check"
+              }
+            }
+          },
+          "finding_id": "gap1",
+          "kind": "observation",
+          "template_id": "auth_recency_gap"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "raised_exception": {
+      "exception": "RuntimeError",
+      "kind": "raise",
+      "message": "scripted synthetic provider failure"
+    },
+    "unsupported_claim": {
+      "findings": [
+        {
+          "bindings": {
+            "n": {
+              "select": {
+                "fetch_id": "auth_rows",
+                "field": "count",
+                "kind": "aggregate"
+              }
+            }
+          },
+          "finding_id": "u1",
+          "kind": "recommendation",
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    },
+    "wrong_check_outcome": {
+      "findings": [
+        {
+          "bindings": {
+            "o": {
+              "select": {
+                "check_id": "vuln_versions",
+                "field": "outcome",
+                "kind": "check"
+              }
+            }
+          },
+          "finding_id": "w1",
+          "kind": "recommendation",
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "guardrail_intervened": false,
+      "kind": "findings",
+      "stop_reason": "end_turn"
+    }
+  }
+}

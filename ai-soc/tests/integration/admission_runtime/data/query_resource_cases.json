@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "purpose": "query-adapter-only resource and topic-count evidence; no planner or model-context claim",
+  "cases": {
+    "positive": {
+      "topic_ids": [
+        "topic-00", "topic-01", "topic-02", "topic-03", "topic-04", "topic-05", "topic-06", "topic-07", "topic-08", "topic-09",
+        "topic-10", "topic-11", "topic-12", "topic-13", "topic-14", "topic-15", "topic-16", "topic-17", "topic-18", "topic-19",
+        "topic-20", "topic-21", "topic-22", "topic-23", "topic-24", "topic-25", "topic-26", "topic-27", "topic-28", "topic-29",
+        "topic-30", "topic-31", "topic-32", "topic-33", "topic-34", "topic-35", "topic-36", "topic-37", "topic-38", "topic-39"
+      ],
+      "response_mode": "row",
+      "response_bytes": 2097152,
+      "expected_http_attempts": 80,
+      "expected_state": "rows"
+    },
+    "boundary": {
+      "topic_ids": ["topic-boundary"],
+      "response_mode": "exact_empty",
+      "response_bytes": 2097152,
+      "expected_http_attempts": 2,
+      "expected_state": "empty",
+      "expected_response_bytes": 2097152
+    },
+    "negative": {
+      "topic_ids": ["topic-oversize"],
+      "response_mode": "oversize_empty",
+      "response_bytes": 2097152,
+      "expected_http_attempts": 2,
+      "expected_state": "unavailable",
+      "expected_error": "EVIDENCE_LIMIT",
+      "expected_response_bytes": 2097153
+    },
+    "failure": {
+      "topic_ids": ["topic-validation-failure"],
+      "response_mode": "validation_503",
+      "response_bytes": 2097152,
+      "expected_http_attempts": 1,
+      "expected_state": "unavailable",
+      "expected_error": "INDEXER_UNAVAILABLE"
+    }
+  }
+}

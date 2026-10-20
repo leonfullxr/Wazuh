@@ -1,0 +1,111 @@
+{
+  "mode": "fixture",
+  "synthetic": true,
+  "discrepancy": "The prior supplemental canonical_vectors.json included a nested source.kind discriminator in row, bucket, and probe source objects. Authoritative docs/contracts.md §5 defines exact source shapes without that field. EvidenceItem.kind remains a separate top-level discriminator. The original evidence_vectors.json row already matched §5.",
+  "resolution": "The canonical_vectors.json oracle now uses the exact §5 source shape and independently recalculated canonical bytes and SHA-256 IDs. The prior inputs, bytes, and IDs are retained verbatim here as discrepancy evidence; they are not accepted v1 vectors.",
+  "prior_supplemental_vectors": [
+    {
+      "name": "probe",
+      "canonical_input": {
+        "check_id": null,
+        "environment_id": "alpha",
+        "fetch_id": "ldap_rows",
+        "kind": "aggregate",
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "source": {
+          "filters": [
+            {
+              "field": "agent.id",
+              "op": "eq",
+              "value": "007"
+            }
+          ],
+          "kind": "probe",
+          "probe_kind": "filter"
+        },
+        "topic_id": "ldap",
+        "v": 1,
+        "values": {
+          "count": 0,
+          "outcome": "passed"
+        }
+      },
+      "canonical_utf8": "{\"check_id\":null,\"environment_id\":\"alpha\",\"fetch_id\":\"ldap_rows\",\"kind\":\"aggregate\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"filters\":[{\"field\":\"agent.id\",\"op\":\"eq\",\"value\":\"007\"}],\"kind\":\"probe\",\"probe_kind\":\"filter\"},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"count\":0,\"outcome\":\"passed\"}}",
+      "expected_evidence_id": "ev1_030b2fbf70472f9e902d3385f437e4ac03481d0b80f510f0c7f60a34e74058fd"
+    },
+    {
+      "name": "bucket",
+      "canonical_input": {
+        "check_id": null,
+        "environment_id": "alpha",
+        "fetch_id": "ldap_rows",
+        "kind": "aggregate",
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "source": {
+          "group_field": "rule.id",
+          "key": "5710",
+          "kind": "bucket"
+        },
+        "topic_id": "ldap",
+        "v": 1,
+        "values": {
+          "approximate": false,
+          "count": 2,
+          "relation": "eq"
+        }
+      },
+      "canonical_utf8": "{\"check_id\":null,\"environment_id\":\"alpha\",\"fetch_id\":\"ldap_rows\",\"kind\":\"aggregate\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"group_field\":\"rule.id\",\"key\":\"5710\",\"kind\":\"bucket\"},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"approximate\":false,\"count\":2,\"relation\":\"eq\"}}",
+      "expected_evidence_id": "ev1_a82a291843ee488eb07aebb8838ce231b659fb7525f21add789038b002c327c4"
+    },
+    {
+      "name": "page-one",
+      "canonical_input": {
+        "check_id": null,
+        "environment_id": "alpha",
+        "fetch_id": "ldap_rows",
+        "kind": "row",
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "source": {
+          "index_alias": "alerts",
+          "kind": "row",
+          "record_id": "alpha-page-001"
+        },
+        "topic_id": "ldap",
+        "v": 1,
+        "values": {
+          "agent.id": "007",
+          "rule.id": "5710"
+        }
+      },
+      "canonical_utf8": "{\"check_id\":null,\"environment_id\":\"alpha\",\"fetch_id\":\"ldap_rows\",\"kind\":\"row\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"index_alias\":\"alerts\",\"kind\":\"row\",\"record_id\":\"alpha-page-001\"},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"agent.id\":\"007\",\"rule.id\":\"5710\"}}",
+      "expected_evidence_id": "ev1_30f12a4941a457106db5c5463043ff53e7ce6b7298ad4fe6242d82d48b504505"
+    },
+    {
+      "name": "page-two",
+      "canonical_input": {
+        "check_id": null,
+        "environment_id": "alpha",
+        "fetch_id": "ldap_rows",
+        "kind": "row",
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "source": {
+          "index_alias": "alerts",
+          "kind": "row",
+          "record_id": "alpha-page-002"
+        },
+        "topic_id": "ldap",
+        "v": 1,
+        "values": {
+          "agent.id": "008",
+          "rule.id": "5710"
+        }
+      },
+      "canonical_utf8": "{\"check_id\":null,\"environment_id\":\"alpha\",\"fetch_id\":\"ldap_rows\",\"kind\":\"row\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"index_alias\":\"alerts\",\"kind\":\"row\",\"record_id\":\"alpha-page-002\"},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"agent.id\":\"008\",\"rule.id\":\"5710\"}}",
+      "expected_evidence_id": "ev1_c1a9b183320016b33ba0c467519294e8948b97e04db785203549dda9e01384b0"
+    }
+  ]
+}

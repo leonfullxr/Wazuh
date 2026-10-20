@@ -1,0 +1,20 @@
+{
+  "template_id": "ssh_benign_explanation",
+  "topic_id": "ssh_auth",
+  "kind": "hypothesis",
+  "required_bindings": {
+    "agent": ["agent.id"]
+  },
+  "texts": {
+    "en": "Approved scan window matches the activity of {agent}.",
+    "es": "La ventana de escaneo aprobada coincide con la actividad de {agent}."
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "authorized_window",
+      "outcome": "passed"
+    }
+  ],
+  "allowed_evidence_kinds": ["row"],
+  "relations": []
+}

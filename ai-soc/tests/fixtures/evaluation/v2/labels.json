@@ -1,0 +1,1065 @@
+{
+  "corpus_id": "replay-synthetic-v2",
+  "labels": [
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_guess_11",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "passed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 11
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              11
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "rationale": "password guessing at 11 failures; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              11
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_authorized_11",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "passed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 11
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "authorized_benign",
+      "permitted_findings": [],
+      "rationale": "authorized test with same records; the evidence is indistinguishable from its paired scenario, so this label follows scenario truth.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": false
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_guess_9",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 9
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              9
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "rationale": "real guessing at 9 failures; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              9
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_level10",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "passed",
+          "auth_sources": "passed",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "level 10 priority boundary; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_level9",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "level 9 below priority boundary; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_missing_srcip",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "failed",
+          "auth_volume": "passed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 11
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "one row lacks data.srcip; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_approximate",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "unknown",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "unknown"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": true,
+            "relation": "gte",
+            "value": 11
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "approximate total; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_denied",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "denied",
+          "auth_priority": "denied",
+          "auth_sources": "denied",
+          "auth_volume": "denied"
+        },
+        "count": {
+          "auth_rows": {
+            "state": "unknown"
+          }
+        },
+        "fetch": {
+          "auth_rows": "denied"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "denied read; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_zero",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "failed",
+          "auth_priority": "unknown",
+          "auth_sources": "unknown",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 0
+          }
+        },
+        "fetch": {
+          "auth_rows": "empty"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "zero total; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_guess_11_es",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "passed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 11
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              11
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "rationale": "Spanish twin of password guessing; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              11
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_script_unsupported",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 3
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "scripted unsupported claim; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "auth_script_omission",
+      "expected_observations": {
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "passed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 11
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              11
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "rationale": "scripted omission; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "n": [
+              "count",
+              11
+            ]
+          },
+          "template_id": "auth_volume_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_critical_exploited",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "passed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "o": [
+              "outcome",
+              "passed"
+            ]
+          },
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "rationale": "Critical row with known exploitation; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "o": [
+              "outcome",
+              "passed"
+            ]
+          },
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_critical_not_exploited",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "passed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        }
+      },
+      "outcome": "authorized_benign",
+      "permitted_findings": [],
+      "rationale": "same inventory without exploitation; the evidence is indistinguishable from its paired scenario, so this label follows scenario truth.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": false
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_high_only",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "failed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 2
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "High severity only; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_missing_version",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "passed",
+          "vuln_versions": "failed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "row lacks package.version; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_zero",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "failed",
+          "vuln_priority": "unknown",
+          "vuln_versions": "unknown"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 0
+          }
+        },
+        "fetch": {
+          "vuln_rows": "empty"
+        }
+      },
+      "outcome": "insufficient_evidence",
+      "permitted_findings": [],
+      "rationale": "zero vulnerability records; the deterministic check has no signal for this scenario.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_page_miss",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "failed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 21
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "o": [
+              "outcome",
+              "passed"
+            ]
+          },
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "rationale": "Critical record beyond displayed page; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "o": [
+              "outcome",
+              "passed"
+            ]
+          },
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "vuln_critical_es",
+      "expected_observations": {
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "passed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        }
+      },
+      "outcome": "confirmed_attack",
+      "permitted_findings": [
+        {
+          "bindings": {
+            "o": [
+              "outcome",
+              "passed"
+            ]
+          },
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "rationale": "Spanish twin of exploited Critical row; manual referral warranted by scenario truth.",
+      "required_findings": [
+        {
+          "bindings": {
+            "o": [
+              "outcome",
+              "passed"
+            ]
+          },
+          "template_id": "vuln_priority_review"
+        }
+      ],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": true
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_auth_9",
+      "expected_observations": {
+        "abstention": {
+          "auth_rows": false
+        },
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 9
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "auth_rows": 2
+        },
+        "rows": {
+          "auth_rows": [
+            {
+              "agent.id": "301",
+              "data.srcip": "192.0.2.41",
+              "rule.id": "5710",
+              "rule.level": 5,
+              "timestamp": "2026-10-17T08:10:00.000Z"
+            },
+            {
+              "agent.id": "301",
+              "data.srcip": "192.0.2.41",
+              "rule.id": "5710",
+              "rule.level": 5,
+              "timestamp": "2026-10-17T08:11:00.000Z"
+            }
+          ]
+        },
+        "visibility": {
+          "auth_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_auth_10",
+      "expected_observations": {
+        "abstention": {
+          "auth_rows": false
+        },
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "passed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 10
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "auth_rows": 2
+        },
+        "rows": {
+          "auth_rows": [
+            {
+              "agent.id": "302",
+              "data.srcip": "192.0.2.41",
+              "rule.id": "5710",
+              "rule.level": 5,
+              "timestamp": "2026-10-17T08:10:00.000Z"
+            },
+            {
+              "agent.id": "302",
+              "data.srcip": "192.0.2.41",
+              "rule.id": "5710",
+              "rule.level": 5,
+              "timestamp": "2026-10-17T08:11:00.000Z"
+            }
+          ]
+        },
+        "visibility": {
+          "auth_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_vuln_high",
+      "expected_observations": {
+        "abstention": {
+          "vuln_rows": false
+        },
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "failed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "vuln_rows": 1
+        },
+        "rows": {
+          "vuln_rows": [
+            {
+              "agent.id": "303",
+              "package.name": "synthetic-agent",
+              "package.version": "1.0.0",
+              "vulnerability.detected_at": "2026-10-17T08:10:00.000Z",
+              "vulnerability.id": "CVE-2099-0001",
+              "vulnerability.severity": "High"
+            }
+          ]
+        },
+        "visibility": {
+          "vuln_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_vuln_critical",
+      "expected_observations": {
+        "abstention": {
+          "vuln_rows": false
+        },
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "passed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "vuln_rows": 1
+        },
+        "rows": {
+          "vuln_rows": [
+            {
+              "agent.id": "304",
+              "package.name": "synthetic-agent",
+              "package.version": "1.0.0",
+              "vulnerability.detected_at": "2026-10-17T08:10:00.000Z",
+              "vulnerability.id": "CVE-2099-0001",
+              "vulnerability.severity": "Critical"
+            }
+          ]
+        },
+        "visibility": {
+          "vuln_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_missing_field",
+      "expected_observations": {
+        "abstention": {
+          "auth_rows": false
+        },
+        "checks": {
+          "auth_nonzero": "passed",
+          "auth_priority": "failed",
+          "auth_sources": "failed",
+          "auth_volume": "failed"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "auth_rows": 1
+        },
+        "rows": {
+          "auth_rows": [
+            {
+              "agent.id": "305",
+              "data.srcip": null,
+              "rule.id": "5710",
+              "rule.level": 5,
+              "timestamp": "2026-10-17T08:10:00.000Z"
+            }
+          ]
+        },
+        "visibility": {
+          "auth_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_denied",
+      "expected_observations": {
+        "abstention": {
+          "auth_rows": true
+        },
+        "checks": {
+          "auth_nonzero": "denied",
+          "auth_priority": "denied",
+          "auth_sources": "denied",
+          "auth_volume": "denied"
+        },
+        "count": {
+          "auth_rows": {
+            "state": "unknown"
+          }
+        },
+        "fetch": {
+          "auth_rows": "denied"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "auth_rows": 0
+        },
+        "rows": {
+          "auth_rows": []
+        },
+        "visibility": {
+          "auth_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_approximate",
+      "expected_observations": {
+        "abstention": {
+          "auth_rows": false
+        },
+        "checks": {
+          "auth_nonzero": "unknown",
+          "auth_priority": "failed",
+          "auth_sources": "passed",
+          "auth_volume": "unknown"
+        },
+        "count": {
+          "auth_rows": {
+            "approximate": true,
+            "relation": "gte",
+            "value": 10000
+          }
+        },
+        "fetch": {
+          "auth_rows": "rows"
+        },
+        "language": "en",
+        "row_cardinality": {
+          "auth_rows": 1
+        },
+        "rows": {
+          "auth_rows": [
+            {
+              "agent.id": "307",
+              "data.srcip": "192.0.2.41",
+              "rule.id": "5710",
+              "rule.level": 5,
+              "timestamp": "2026-10-17T08:10:00.000Z"
+            }
+          ]
+        },
+        "visibility": {
+          "auth_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    },
+    {
+      "authored_at": "2026-10-19",
+      "case_id": "source_spanish",
+      "expected_observations": {
+        "abstention": {
+          "vuln_rows": false
+        },
+        "checks": {
+          "vuln_nonzero": "passed",
+          "vuln_priority": "passed",
+          "vuln_versions": "passed"
+        },
+        "count": {
+          "vuln_rows": {
+            "approximate": false,
+            "relation": "eq",
+            "value": 1
+          }
+        },
+        "fetch": {
+          "vuln_rows": "rows"
+        },
+        "language": "es",
+        "row_cardinality": {
+          "vuln_rows": 1
+        },
+        "rows": {
+          "vuln_rows": [
+            {
+              "agent.id": "308",
+              "package.name": "synthetic-agent",
+              "package.version": "1.0.0",
+              "vulnerability.detected_at": "2026-10-17T08:10:00.000Z",
+              "vulnerability.id": "CVE-2099-0001",
+              "vulnerability.severity": "Critical"
+            }
+          ]
+        },
+        "visibility": {
+          "vuln_rows": "full"
+        }
+      },
+      "outcome": "unresolved",
+      "permitted_findings": [],
+      "rationale": "Source case measures frozen observation replay only; no attack outcome is scored.",
+      "required_findings": [],
+      "reviewer": "synthetic-label-author",
+      "sensor_detected": "unknown"
+    }
+  ],
+  "schema_version": "1"
+}

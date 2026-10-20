@@ -1,0 +1,10 @@
+template_id: auth_count
+topic_id: auth_review
+kind: observation
+required_bindings: {n: [count]}
+texts:
+  en: "Matching visible records in this read: {n}; visibility may be restricted."
+  es: "Registros visibles coincidentes en esta lectura: {n}; la visibilidad puede estar restringida."
+required_check_outcomes: [{check_id: auth_nonzero, outcome: passed}]
+allowed_evidence_kinds: [aggregate]
+relations: []

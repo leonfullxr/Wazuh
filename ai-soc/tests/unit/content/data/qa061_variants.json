@@ -1,0 +1,23 @@
+{
+  "positive": {
+    "description": "A fictional LDAP check shows two synthetic alerts.",
+    "reviewer_id": "synthetic-template-owner",
+    "date": "2026-10-03"
+  },
+  "negative": {
+    "description": "A fictional LDAP check shows two synthetic alerts.",
+    "reviewer_id": "  ",
+    "date": "2026-10-03"
+  },
+  "boundary": {
+    "description": "Boundary fixture uses a synthetic LDAP case.",
+    "reviewer_id": "r",
+    "date": "2024-02-29",
+    "invalid_date": "2025-02-29"
+  },
+  "failure": {
+    "description": "aws_secret_access_key=fixture-secret",
+    "reviewer_id": "synthetic-template-owner",
+    "date": "2026-10-03"
+  }
+}

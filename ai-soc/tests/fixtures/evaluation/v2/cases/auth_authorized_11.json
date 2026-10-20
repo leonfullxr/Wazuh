@@ -1,0 +1,529 @@
+{
+  "checks": [
+    {
+      "check_id": "auth_nonzero",
+      "evidence_ids": [
+        "ev1_93030fa92b2bec7f0809ba689b9ac618f875a1e2d059d6831cf2fddc3e3761b9"
+      ],
+      "expectation_id": null,
+      "label": "auth_nonzero",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "passed",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_volume",
+      "evidence_ids": [
+        "ev1_c6177addcb93479975d580d5f421f13e91b06db476b6766b9969a90e67f05198"
+      ],
+      "expectation_id": null,
+      "label": "auth_volume",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "passed",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_sources",
+      "evidence_ids": [
+        "ev1_7a7e2233cfd5db4e22287dd2b0aa2f5cc6d52c43e6b0931fd17550a7f76b2657"
+      ],
+      "expectation_id": null,
+      "label": "auth_sources",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "passed",
+      "topic_id": "auth_review"
+    },
+    {
+      "check_id": "auth_priority",
+      "evidence_ids": [
+        "ev1_d32beca36c1714cc2555bbc3e21cd40b1de7f11ac49a36d81f5927fb47a1c210"
+      ],
+      "expectation_id": "auth_priority",
+      "label": "auth_priority",
+      "message": "Outcome from frozen rows and count.",
+      "outcome": "failed",
+      "topic_id": "auth_review"
+    }
+  ],
+  "content_sha": "22a9713338f78fb44508eae4aedfa1a3cfbb2e26",
+  "environment_id": "soc-eval",
+  "fetches": [
+    {
+      "bucket_completeness": "complete",
+      "buckets": [],
+      "checks": [],
+      "columns": [],
+      "count": {
+        "approximate": false,
+        "computed_by": "indexer",
+        "relation": "eq",
+        "scope": "matching_visible_records",
+        "value": 11
+      },
+      "empty_proof": null,
+      "error": null,
+      "fetch_id": "auth_rows",
+      "items": [
+        {
+          "check_id": null,
+          "evidence_id": "ev1_8b67479924f9a637a67877fdbdc78e31b271a45fa9d05f337fa87947c9625008",
+          "fetch_id": "auth_rows",
+          "kind": "row",
+          "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+            "kind": "pit"
+          },
+          "source": {
+            "index_alias": "wazuh-eval-2026.10.17",
+            "record_id": "auth-twin-family-00"
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "agent.id": "102",
+            "data.dstip": null,
+            "data.srcip": "192.0.2.32",
+            "rule.groups": [
+              "authentication_failed",
+              "sshd"
+            ],
+            "rule.id": "5710",
+            "rule.level": 5,
+            "timestamp": "2026-10-17T08:10:00.000000Z"
+          },
+          "visibility": "full"
+        },
+        {
+          "check_id": null,
+          "evidence_id": "ev1_124ed0f52727d2e65ee5b1bde7b6380f368d37fd119c05360a1e059852ac61c4",
+          "fetch_id": "auth_rows",
+          "kind": "row",
+          "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+            "kind": "pit"
+          },
+          "source": {
+            "index_alias": "wazuh-eval-2026.10.17",
+            "record_id": "auth-twin-family-01"
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "agent.id": "102",
+            "data.dstip": null,
+            "data.srcip": "192.0.2.32",
+            "rule.groups": [
+              "authentication_failed",
+              "sshd"
+            ],
+            "rule.id": "5710",
+            "rule.level": 5,
+            "timestamp": "2026-10-17T08:11:00.000000Z"
+          },
+          "visibility": "full"
+        },
+        {
+          "check_id": null,
+          "evidence_id": "ev1_dab4c2dce8cde1c6d46bd171ca3e41577848e94a79a4d65144c7090c05f3164d",
+          "fetch_id": "auth_rows",
+          "kind": "row",
+          "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+            "kind": "pit"
+          },
+          "source": {
+            "index_alias": "wazuh-eval-2026.10.17",
+            "record_id": "auth-twin-family-02"
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "agent.id": "102",
+            "data.dstip": null,
+            "data.srcip": "192.0.2.32",
+            "rule.groups": [
+              "authentication_failed",
+              "sshd"
+            ],
+            "rule.id": "5710",
+            "rule.level": 5,
+            "timestamp": "2026-10-17T08:12:00.000000Z"
+          },
+          "visibility": "full"
+        },
+        {
+          "check_id": null,
+          "evidence_id": "ev1_7ac738a360d06b342d8815ffb0027f3eb050dfcda8f2b25a34bcd9a2ad061ff2",
+          "fetch_id": "auth_rows",
+          "kind": "aggregate",
+          "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+          "snapshot": {
+            "at": "2026-10-17T11:59:00.000000Z",
+            "expires_at": "2026-10-17T12:04:00.000000Z",
+            "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+            "kind": "pit"
+          },
+          "source": {
+            "filters": [
+              {
+                "field": "rule.groups",
+                "op": "eq",
+                "value": "authentication_failed"
+              }
+            ],
+            "scope": "matching_visible_records",
+            "template_id": "alerts_rows_v1",
+            "window": {
+              "anchor_at": "2026-10-17T12:00:00.000000Z",
+              "end": "2026-10-17T12:00:00.000000Z",
+              "semantics": "rolling",
+              "source_text": "rolling:24:hours",
+              "start": "2026-10-16T12:00:00.000000Z",
+              "timezone": "UTC"
+            }
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "approximate": false,
+            "count": 11,
+            "relation": "eq"
+          },
+          "visibility": "full"
+        }
+      ],
+      "message": null,
+      "next_cursor": null,
+      "rows": [
+        {
+          "evidence_id": "ev1_8b67479924f9a637a67877fdbdc78e31b271a45fa9d05f337fa87947c9625008",
+          "fetch_id": "auth_rows",
+          "record_ref": {
+            "index_alias": "wazuh-eval-2026.10.17",
+            "record_id": "auth-twin-family-00"
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "agent.id": "102",
+            "data.dstip": null,
+            "data.srcip": "192.0.2.32",
+            "rule.groups": [
+              "authentication_failed",
+              "sshd"
+            ],
+            "rule.id": "5710",
+            "rule.level": 5,
+            "timestamp": "2026-10-17T08:10:00.000000Z"
+          }
+        },
+        {
+          "evidence_id": "ev1_124ed0f52727d2e65ee5b1bde7b6380f368d37fd119c05360a1e059852ac61c4",
+          "fetch_id": "auth_rows",
+          "record_ref": {
+            "index_alias": "wazuh-eval-2026.10.17",
+            "record_id": "auth-twin-family-01"
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "agent.id": "102",
+            "data.dstip": null,
+            "data.srcip": "192.0.2.32",
+            "rule.groups": [
+              "authentication_failed",
+              "sshd"
+            ],
+            "rule.id": "5710",
+            "rule.level": 5,
+            "timestamp": "2026-10-17T08:11:00.000000Z"
+          }
+        },
+        {
+          "evidence_id": "ev1_dab4c2dce8cde1c6d46bd171ca3e41577848e94a79a4d65144c7090c05f3164d",
+          "fetch_id": "auth_rows",
+          "record_ref": {
+            "index_alias": "wazuh-eval-2026.10.17",
+            "record_id": "auth-twin-family-02"
+          },
+          "topic_id": "auth_review",
+          "values": {
+            "agent.id": "102",
+            "data.dstip": null,
+            "data.srcip": "192.0.2.32",
+            "rule.groups": [
+              "authentication_failed",
+              "sshd"
+            ],
+            "rule.id": "5710",
+            "rule.level": 5,
+            "timestamp": "2026-10-17T08:12:00.000000Z"
+          }
+        }
+      ],
+      "scope": {
+        "displayed_rows": 3,
+        "environment_id": "soc-eval",
+        "filters": [
+          {
+            "field": "rule.groups",
+            "op": "eq",
+            "value": "authentication_failed"
+          }
+        ],
+        "index_family": "alerts",
+        "policy_hash": "50c2f36416b3ca30d728a7bcf3d2357ea8739627376c34af0f033ab7f46788c1",
+        "snapshot": "pit",
+        "template_id": "alerts_rows_v1",
+        "visibility": "full"
+      },
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "snapshot_at": "2026-10-17T11:59:00.000000Z",
+      "state": "rows",
+      "topic_id": "auth_review",
+      "window": {
+        "anchor_at": "2026-10-17T12:00:00.000000Z",
+        "end": "2026-10-17T12:00:00.000000Z",
+        "semantics": "rolling",
+        "source_text": "rolling:24:hours",
+        "start": "2026-10-16T12:00:00.000000Z",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "items": [
+    {
+      "check_id": null,
+      "evidence_id": "ev1_8b67479924f9a637a67877fdbdc78e31b271a45fa9d05f337fa87947c9625008",
+      "fetch_id": "auth_rows",
+      "kind": "row",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "index_alias": "wazuh-eval-2026.10.17",
+        "record_id": "auth-twin-family-00"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "agent.id": "102",
+        "data.dstip": null,
+        "data.srcip": "192.0.2.32",
+        "rule.groups": [
+          "authentication_failed",
+          "sshd"
+        ],
+        "rule.id": "5710",
+        "rule.level": 5,
+        "timestamp": "2026-10-17T08:10:00.000000Z"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": null,
+      "evidence_id": "ev1_124ed0f52727d2e65ee5b1bde7b6380f368d37fd119c05360a1e059852ac61c4",
+      "fetch_id": "auth_rows",
+      "kind": "row",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "index_alias": "wazuh-eval-2026.10.17",
+        "record_id": "auth-twin-family-01"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "agent.id": "102",
+        "data.dstip": null,
+        "data.srcip": "192.0.2.32",
+        "rule.groups": [
+          "authentication_failed",
+          "sshd"
+        ],
+        "rule.id": "5710",
+        "rule.level": 5,
+        "timestamp": "2026-10-17T08:11:00.000000Z"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": null,
+      "evidence_id": "ev1_dab4c2dce8cde1c6d46bd171ca3e41577848e94a79a4d65144c7090c05f3164d",
+      "fetch_id": "auth_rows",
+      "kind": "row",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "index_alias": "wazuh-eval-2026.10.17",
+        "record_id": "auth-twin-family-02"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "agent.id": "102",
+        "data.dstip": null,
+        "data.srcip": "192.0.2.32",
+        "rule.groups": [
+          "authentication_failed",
+          "sshd"
+        ],
+        "rule.id": "5710",
+        "rule.level": 5,
+        "timestamp": "2026-10-17T08:12:00.000000Z"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": null,
+      "evidence_id": "ev1_7ac738a360d06b342d8815ffb0027f3eb050dfcda8f2b25a34bcd9a2ad061ff2",
+      "fetch_id": "auth_rows",
+      "kind": "aggregate",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "filters": [
+          {
+            "field": "rule.groups",
+            "op": "eq",
+            "value": "authentication_failed"
+          }
+        ],
+        "scope": "matching_visible_records",
+        "template_id": "alerts_rows_v1",
+        "window": {
+          "anchor_at": "2026-10-17T12:00:00.000000Z",
+          "end": "2026-10-17T12:00:00.000000Z",
+          "semantics": "rolling",
+          "source_text": "rolling:24:hours",
+          "start": "2026-10-16T12:00:00.000000Z",
+          "timezone": "UTC"
+        }
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "approximate": false,
+        "count": 11,
+        "relation": "eq"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_nonzero",
+      "evidence_id": "ev1_93030fa92b2bec7f0809ba689b9ac618f875a1e2d059d6831cf2fddc3e3761b9",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_nonzero_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "passed"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_volume",
+      "evidence_id": "ev1_c6177addcb93479975d580d5f421f13e91b06db476b6766b9969a90e67f05198",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_volume_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "passed"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_sources",
+      "evidence_id": "ev1_7a7e2233cfd5db4e22287dd2b0aa2f5cc6d52c43e6b0931fd17550a7f76b2657",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_sources_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "passed"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "auth_priority",
+      "evidence_id": "ev1_d32beca36c1714cc2555bbc3e21cd40b1de7f11ac49a36d81f5927fb47a1c210",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "c67f399e5d3100ff4513347e0b497257162d645becdfc05f8aeb7851eda66035",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": "2026-10-17T12:04:00.000000Z",
+        "key": "697f30edee1ff89f6100ea84474398369d4b94071e6069a69886717e10d04249",
+        "kind": "pit"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "auth_priority_step"
+      },
+      "topic_id": "auth_review",
+      "values": {
+        "outcome": "failed"
+      },
+      "visibility": "full"
+    }
+  ],
+  "policy_hash": "50c2f36416b3ca30d728a7bcf3d2357ea8739627376c34af0f033ab7f46788c1",
+  "question_id": "6dc342d8-2586-5378-944d-bfad1091606f",
+  "schema_version": "1",
+  "sha256": "873b4d04c55b23ac7112394781dd899301e936b8f196b122e6fee379048baa33",
+  "topic_id": "auth_review"
+}

@@ -1,0 +1,30 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G018-G024-G025.topic-eligibility.private",
+  "variants": {
+    "positive": {
+      "topics": ["ldap", "dns"],
+      "expected_state": "ready",
+      "expected_preparations": 2
+    },
+    "negative": {
+      "topic": "ldap",
+      "foreign_topic": "dns",
+      "expected_state": "invalid_binding"
+    },
+    "boundary": {
+      "topic": "ldap",
+      "required_input": "fetch",
+      "also_denied": true,
+      "expected_state": "denial",
+      "expected_backend_calls": 0
+    },
+    "failure": {
+      "topic": "ldap",
+      "required_input": "fetch",
+      "expected_state": "evidence_unavailable",
+      "expected_reason": "evidence_unavailable",
+      "retryable": true
+    }
+  }
+}

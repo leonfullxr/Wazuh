@@ -1,0 +1,17 @@
+{
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Invented alpha/beta protocol data; no customer records or credentials.",
+  "anchor": "2026-09-30T12:00:00Z",
+  "timezones": ["UTC", "Europe/Madrid"],
+  "sites": ["alpha", "beta"],
+  "principals": [
+    {"name": "alice", "sub": "fixture-alice", "sites": ["alpha"], "owner_key": "48c1102aa0bbdef0016e779d0c590244b93d2f3c1b54b6a06bb824cc7673b15f"},
+    {"name": "bob", "sub": "fixture-bob", "sites": ["beta"], "owner_key": "006e3d3bd68d6dd1f8da708dd3ab29d4fdc1df862bfb73f0f330f8a599b6c13f"}
+  ],
+  "records": [
+    {"site": "alpha", "record_id": "alpha-ldap-001", "agent.id": "007", "rule.id": "5710", "data.srcip": "192.0.2.10", "timestamp": "2026-09-30T11:30:00Z"},
+    {"site": "beta", "record_id": "beta-ldap-001", "agent.id": "008", "rule.id": "5710", "data.srcip": "198.51.100.12", "timestamp": "2026-09-30T11:30:00Z"}
+  ],
+  "expected": {"alpha_visible_rows": 1, "beta_visible_rows": 1, "cross_site_rows": 0, "agent_007_is_string": true}
+}

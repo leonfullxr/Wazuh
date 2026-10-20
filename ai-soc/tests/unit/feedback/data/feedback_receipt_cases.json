@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "case_id": "SEC-001.resolution",
+  "requirements": ["GP1", "GP2"],
+  "positive": {
+    "outcomes": ["answered", "clarify", "refused"],
+    "replica_opens": true,
+    "followup_field_present": false
+  },
+  "negative": {
+    "bindings": ["owner", "site", "question", "expired", "tampered"],
+    "public_error": "FEEDBACK_INVALID"
+  },
+  "boundary": {
+    "lifetime_seconds": 1800,
+    "last_valid_offset_seconds": 1799,
+    "expiry_offset_seconds": 1800
+  },
+  "failure": {
+    "queue_error": "FEEDBACK_UNAVAILABLE",
+    "private_detail_exposed": false,
+    "attempts": 1
+  }
+}

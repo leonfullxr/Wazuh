@@ -1,0 +1,12 @@
+{
+  "content_sha": "22a9713338f78fb44508eae4aedfa1a3cfbb2e26",
+  "document_section": null,
+  "internal_context": "Use only supplied evidence. Counts are visible records, and recommendations refer to manual review.",
+  "language": "en",
+  "missing": [
+    "public_document"
+  ],
+  "schema_version": "1",
+  "sha256": "fb5749ac554ffe8b9cfba6cd81a1ac6b527ef12abcd65fb1f6a97f469966faf8",
+  "topic_id": "auth_review"
+}

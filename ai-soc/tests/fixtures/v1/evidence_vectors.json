@@ -1,0 +1,85 @@
+{
+  "schema_version": "1",
+  "purpose": "algorithm vectors only, placeholder operand not a complete EvidencePack; CF-1 adds full referenced row/probe/bucket/page fixtures",
+  "vectors": [
+    {
+      "canonical_input": {
+        "v": 1,
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "environment_id": "alpha",
+        "topic_id": "ldap",
+        "fetch_id": "ldap_rows",
+        "check_id": null,
+        "kind": "row",
+        "source": {
+          "index_alias": "alerts",
+          "record_id": "alpha-ldap-001"
+        },
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "values": {
+          "agent.id": "007",
+          "rule.id": "5710",
+          "data.srcip": "192.0.2.10"
+        }
+      },
+      "canonical_utf8": "{\"check_id\":null,\"environment_id\":\"alpha\",\"fetch_id\":\"ldap_rows\",\"kind\":\"row\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"index_alias\":\"alerts\",\"record_id\":\"alpha-ldap-001\"},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"agent.id\":\"007\",\"data.srcip\":\"192.0.2.10\",\"rule.id\":\"5710\"}}",
+      "expected_evidence_id": "ev1_f9ebaeca124728503e65d2bdb0bec734345aa92a2978a0f4b32af4726006a796"
+    },
+    {
+      "canonical_input": {
+        "v": 1,
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "environment_id": "alpha",
+        "topic_id": "ldap",
+        "fetch_id": "ldap_count",
+        "check_id": null,
+        "kind": "aggregate",
+        "source": {
+          "template_id": "alerts_count_v1",
+          "window": {
+            "start": "2026-09-29T12:00:00.000000Z",
+            "end": "2026-09-30T12:00:00.000000Z"
+          },
+          "filters": [],
+          "scope": "matching_visible_records"
+        },
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "values": {
+          "count": 2,
+          "relation": "eq",
+          "approximate": false
+        }
+      },
+      "canonical_utf8": "{\"check_id\":null,\"environment_id\":\"alpha\",\"fetch_id\":\"ldap_count\",\"kind\":\"aggregate\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"filters\":[],\"scope\":\"matching_visible_records\",\"template_id\":\"alerts_count_v1\",\"window\":{\"end\":\"2026-09-30T12:00:00.000000Z\",\"start\":\"2026-09-29T12:00:00.000000Z\"}},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"approximate\":false,\"count\":2,\"relation\":\"eq\"}}",
+      "expected_evidence_id": "ev1_9f9ffe241e8218ea90144a45cda4ebb8a5d317236d07b176f98ff45d60938fec"
+    },
+    {
+      "canonical_input": {
+        "v": 1,
+        "question_id": "00000000-0000-4000-8000-000000000001",
+        "environment_id": "alpha",
+        "topic_id": "ldap",
+        "fetch_id": null,
+        "check_id": "ldap_present",
+        "kind": "check",
+        "source": {
+          "step_id": "ldap_present",
+          "operand_ids": [
+            "fixture_operand"
+          ]
+        },
+        "snapshot_key": "1111111111111111111111111111111111111111111111111111111111111111",
+        "values": {
+          "outcome": "passed",
+          "expectation_id": null,
+          "expectation_version": null,
+          "operand_ids": [
+            "fixture_operand"
+          ]
+        }
+      },
+      "canonical_utf8": "{\"check_id\":\"ldap_present\",\"environment_id\":\"alpha\",\"fetch_id\":null,\"kind\":\"check\",\"question_id\":\"00000000-0000-4000-8000-000000000001\",\"snapshot_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"source\":{\"operand_ids\":[\"fixture_operand\"],\"step_id\":\"ldap_present\"},\"topic_id\":\"ldap\",\"v\":1,\"values\":{\"expectation_id\":null,\"expectation_version\":null,\"operand_ids\":[\"fixture_operand\"],\"outcome\":\"passed\"}}",
+      "expected_evidence_id": "ev1_5aadb10e0abcdb0fa8e697c4b667a67d0b5fb5b9bb6496bfa98200cb956769a5"
+    }
+  ]
+}

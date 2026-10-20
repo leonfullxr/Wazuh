@@ -1,0 +1,11 @@
+{
+  "schema_version": "1",
+  "case_id": "FM-003.resolution",
+  "requirement": "G047",
+  "variants": [
+    {"variant": "positive", "behavior": "ack"},
+    {"variant": "negative", "behavior": "ackless"},
+    {"variant": "boundary", "behavior": "redacted"},
+    {"variant": "failure", "behavior": "ambiguous"}
+  ]
+}

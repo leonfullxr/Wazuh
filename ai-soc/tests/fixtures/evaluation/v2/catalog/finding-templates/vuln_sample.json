@@ -1,0 +1,46 @@
+{
+  "allowed_evidence_kinds": [
+    "row"
+  ],
+  "kind": "observation",
+  "relations": [
+    {
+      "bindings": [
+        "agent",
+        "cve",
+        "package",
+        "version",
+        "severity",
+        "detected"
+      ],
+      "kind": "same_record"
+    }
+  ],
+  "required_bindings": {
+    "agent": [
+      "agent.id"
+    ],
+    "cve": [
+      "vulnerability.id"
+    ],
+    "detected": [
+      "vulnerability.detected_at"
+    ],
+    "package": [
+      "package.name"
+    ],
+    "severity": [
+      "vulnerability.severity"
+    ],
+    "version": [
+      "package.version"
+    ]
+  },
+  "required_check_outcomes": [],
+  "template_id": "vuln_sample",
+  "texts": {
+    "en": "One returned record identifies agent {agent}, vulnerability {cve}, package {package} version {version}, severity {severity}, and detection time {detected}.",
+    "es": "Un registro devuelto identifica el agente {agent}, la vulnerabilidad {cve}, el paquete {package} version {version}, severidad {severity} y fecha de deteccion {detected}."
+  },
+  "topic_id": "vuln_review"
+}

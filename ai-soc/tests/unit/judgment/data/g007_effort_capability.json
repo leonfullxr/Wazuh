@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G007.effort-capability.private",
+  "requirements": ["G007"],
+  "variants": {
+    "positive": {"effort": "high", "transport_fields": {"effort": "high"}, "attempts": 1},
+    "negative": {"effort": "xhigh", "error_fragment": "selected effort", "attempts": 0},
+    "boundary": {"effort": null, "transport_field_absent": "additionalModelRequestFields", "attempts": 1},
+    "failure": {"effort": "high", "transport_fields": {"effort": "high"}, "error": "TimeoutError", "public_state": "model_unavailable", "attempts": 1}
+  }
+}

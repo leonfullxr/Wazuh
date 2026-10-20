@@ -1,0 +1,24 @@
+{
+  "positive": {
+    "questions": [
+      "LDAPS is failing; what should I fix?",
+      "AD authentication is failing; what should I fix?",
+      "Port 636 is failing; what should I fix?"
+    ],
+    "expected_topic": "ldap",
+    "expected_failure": true
+  },
+  "negative": {
+    "question": "directory authentication is failing",
+    "expected": "refused"
+  },
+  "boundary": {
+    "question": "  lDaPs   is failing  ",
+    "expected_topic": "ldap",
+    "expected_failure": true
+  },
+  "failure": {
+    "question": "our novel identity system is failing",
+    "expected": "refused"
+  }
+}

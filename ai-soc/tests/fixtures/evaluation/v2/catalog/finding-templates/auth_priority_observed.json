@@ -1,0 +1,24 @@
+{
+  "allowed_evidence_kinds": [
+    "check"
+  ],
+  "kind": "observation",
+  "relations": [],
+  "required_bindings": {
+    "o": [
+      "outcome"
+    ]
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "auth_priority",
+      "outcome": "passed"
+    }
+  ],
+  "template_id": "auth_priority_observed",
+  "texts": {
+    "en": "A rule level threshold check passed for returned rows only; outcome {o}.",
+    "es": "La comprobacion del umbral de nivel de regla se cumplio solo para las filas devueltas; resultado {o}."
+  },
+  "topic_id": "auth_review"
+}

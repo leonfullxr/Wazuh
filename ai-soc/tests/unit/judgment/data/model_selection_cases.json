@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "model_id": "arn:aws:bedrock:us-east-1:123456789012:inference-profile/test-profile",
+  "selected_effort": "high",
+  "expected_effort_fields": {"effort": "high"},
+  "unsupported_effort": "xhigh",
+  "timeout_error": "synthetic selected-model timeout",
+  "timeout_public_state": "model_unavailable",
+  "expected_transport_attempts": 1,
+  "missing_selection_calls": 0
+}

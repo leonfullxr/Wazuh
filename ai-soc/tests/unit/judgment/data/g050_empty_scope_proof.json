@@ -1,0 +1,29 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G050.empty-scope-proof.private",
+  "requirements": ["G050"],
+  "variants": {
+    "positive": {
+      "proof_variant": "qualified",
+      "expected_state": "ready",
+      "index_exists": "confirmed",
+      "window_has_data": "confirmed",
+      "combination_zero": true
+    },
+    "negative": {
+      "proof_variant": "missing_index_confirmation",
+      "expected_state": "ingestion_unconfirmed",
+      "index_exists": "unknown"
+    },
+    "boundary": {
+      "proof_variant": "empty_window",
+      "expected_state": "ingestion_unconfirmed",
+      "window_count": 0
+    },
+    "failure": {
+      "proof_variant": "missing_filter_probe",
+      "expected_state": "ingestion_unconfirmed",
+      "combination_zero": false
+    }
+  }
+}

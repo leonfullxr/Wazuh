@@ -1,0 +1,12 @@
+{
+  "content_sha": "22a9713338f78fb44508eae4aedfa1a3cfbb2e26",
+  "document_section": null,
+  "internal_context": "Use solo la evidencia suministrada. Los recuentos son registros visibles y las recomendaciones solicitan revision manual.",
+  "language": "es",
+  "missing": [
+    "public_document"
+  ],
+  "schema_version": "1",
+  "sha256": "347268783df00bcf6013603d57c611d8a513a668645e0262cd2ee995eb17addb",
+  "topic_id": "vuln_review"
+}

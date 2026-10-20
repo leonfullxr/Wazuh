@@ -1,0 +1,28 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G005-G050.empty-outcomes.private",
+  "variants": {
+    "positive": {
+      "proof_variant": "qualified",
+      "expected_state": "ready",
+      "expected_left_out": false
+    },
+    "negative": {
+      "proof_variant": "unknown_visibility",
+      "expected_state": "ingestion_unconfirmed",
+      "expected_left_out": false
+    },
+    "boundary": {
+      "proof_variant": "qualified",
+      "expected_state": "ready",
+      "count": 0,
+      "window_count": 1,
+      "filter_probe_count": 0
+    },
+    "failure": {
+      "proof_variant": "missing_filter_probe",
+      "expected_state": "ingestion_unconfirmed",
+      "expected_left_out": false
+    }
+  }
+}

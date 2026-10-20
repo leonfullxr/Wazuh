@@ -1,0 +1,35 @@
+{
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Contract-only configuration sentinels; no key material or live credentials.",
+  "cases": {
+    "positive": {
+      "mode": "fixture",
+      "guardrail_identifier": "fixture-guardrail",
+      "guardrail_version": "1"
+    },
+    "negative": {
+      "mode": "live",
+      "guardrail_identifier": "DRAFT",
+      "guardrail_version": "0"
+    },
+    "boundary": {
+      "accepted": {
+        "mode": "fixture",
+        "guardrail_identifier": "fixture-guardrail",
+        "guardrail_version": "1"
+      },
+      "rejected": {
+        "mode": "fixture",
+        "guardrail_identifier": "fixture-guardrail",
+        "guardrail_version": "0"
+      }
+    },
+    "failure": {
+      "mode": "live",
+      "guardrail_identifier": "fixture-guardrail",
+      "guardrail_version": "1",
+      "fixture_signing_key": "synthetic-fixture-signing-sentinel"
+    }
+  }
+}

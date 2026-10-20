@@ -1,0 +1,39 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G007-G046.model-guardrail.private",
+  "variants": {
+    "positive": {
+      "effort_fields": {
+        "effort": "high"
+      },
+      "guardrail_config": {
+        "guardrailIdentifier": "gr-123456",
+        "guardrailVersion": "7"
+      },
+      "attempts": 1
+    },
+    "negative": {
+      "guardrail": {
+        "identifier": "DRAFT",
+        "version": "1"
+      },
+      "attempts": 0
+    },
+    "boundary": {
+      "capabilities": [],
+      "guardrail_config": {
+        "guardrailIdentifier": "gr-123456",
+        "guardrailVersion": "7"
+      },
+      "attempts": 1
+    },
+    "failure": {
+      "hostile_text": "GUARDRAIL-INTERVENTION-CONTENT",
+      "guardrail_config": {
+        "guardrailIdentifier": "gr-123456",
+        "guardrailVersion": "7"
+      },
+      "attempts": 1
+    }
+  }
+}

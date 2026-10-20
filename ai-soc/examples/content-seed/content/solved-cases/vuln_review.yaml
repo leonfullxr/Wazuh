@@ -1,0 +1,7 @@
+schema_version: '1'
+case_id: synthetic_vuln_review_case
+topic_id: vuln_review
+synthetic: true
+description: Fictional vulnerability records include a Critical severity row for manual review.
+promotion_status: candidate
+anonymization_attestation: {reviewer_id: synthetic-template-owner, date: '2026-10-19'}

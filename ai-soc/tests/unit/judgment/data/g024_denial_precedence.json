@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G024.denial-precedence.private",
+  "requirements": ["G024"],
+  "variants": {
+    "positive": {"precondition": "denied_check", "expected_state": "denial"},
+    "negative": {"precondition": "denied_check_and_missing_fetch", "expected_state": "denial"},
+    "boundary": {"precondition": "denied_check_and_qualified_empty", "expected_state": "denial"},
+    "failure": {"precondition": "denied_check_and_unqualified_empty", "expected_state": "denial"}
+  }
+}

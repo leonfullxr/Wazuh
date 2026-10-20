@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Independent controlled inputs for stale ask completion and delayed committed delivery.",
+  "cases": {
+    "positive": {
+      "paused_stage": "fetch",
+      "idempotency": "present",
+      "replacement_metadata_sha256": "b111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "negative": {
+      "paused_stage": "document",
+      "idempotency": "absent",
+      "replacement_metadata_sha256": "b222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "boundary": {
+      "paused_stage": "model",
+      "idempotency": "present",
+      "replacement_metadata_sha256": "b333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "failure": {
+      "paused_stage": "fetch",
+      "idempotency": "absent",
+      "replacement_metadata_sha256": "b444444444444444444444444444444444444444444444444444444444444444"
+    }
+  },
+  "expected": {
+    "stale_completion_error": "LEASE_LOST",
+    "stale_anchor_persisted": false,
+    "stale_answer_returned": false,
+    "same_operation_delayed_delivery": "same completion receipt",
+    "committed_answer_late_delivery": "allowed"
+  }
+}

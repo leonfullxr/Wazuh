@@ -1,0 +1,18 @@
+{
+  "positive": {
+    "question": "please troubleshoot our proprietary identity system",
+    "expected": "refused"
+  },
+  "negative": {
+    "question": "please troubleshoot directory authentication",
+    "expected": "refused"
+  },
+  "boundary": {
+    "question": "  ...?!  ",
+    "expected": "refused"
+  },
+  "failure": {
+    "question": "\u0000",
+    "expected": "refused"
+  }
+}

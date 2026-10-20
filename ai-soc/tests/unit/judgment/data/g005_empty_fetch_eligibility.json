@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G005.empty-fetch-eligibility.private",
+  "requirements": ["G005"],
+  "variants": {
+    "positive": {"proof_variant": "qualified", "expected_state": "ready"},
+    "negative": {"proof_variant": "unknown_visibility", "expected_state": "ingestion_unconfirmed"},
+    "boundary": {"proof_variant": "qualified", "expected_count": 0, "expected_window_count": 1, "expected_filter_count": 0, "expected_state": "ready"},
+    "failure": {"candidate": "invented_alert_finding", "expected_state": "all_removed", "expected_removed_reason": "unknown_evidence"}
+  }
+}

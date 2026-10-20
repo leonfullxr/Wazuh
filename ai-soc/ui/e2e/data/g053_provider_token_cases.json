@@ -1,0 +1,26 @@
+{
+  "purpose": "Unbound G053 UI boundary cases for rendering only validated/sanitized answers.",
+  "hostile_first_token": "HOSTILE-FIRST-PROVIDER-TOKEN-DO-NOT-RENDER",
+  "cases": {
+    "positive": {
+      "judgment_state": "validated",
+      "safe_answer_message": "Validated SOC findings are ready.",
+      "render_safe_finding": true
+    },
+    "negative": {
+      "judgment_state": "invalid_output",
+      "safe_answer_message": "Untrusted model output was discarded.",
+      "render_safe_finding": false
+    },
+    "boundary": {
+      "judgment_state": "invalid_output",
+      "safe_answer_message": "Untrusted model output was discarded.",
+      "render_safe_finding": false
+    },
+    "failure": {
+      "judgment_state": "model_unavailable",
+      "safe_answer_message": "The model response could not be validated.",
+      "render_safe_finding": false
+    }
+  }
+}

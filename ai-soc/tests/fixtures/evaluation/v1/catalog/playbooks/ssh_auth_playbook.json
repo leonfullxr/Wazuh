@@ -1,0 +1,61 @@
+{
+  "schema_version": "1",
+  "playbook_id": "ssh_auth_playbook",
+  "topic_id": "ssh_auth",
+  "title": {
+    "en": "SSH failed logins",
+    "es": "Inicios de sesion SSH fallidos"
+  },
+  "internal_context": "Compare failed SSH logins with the burst threshold and the approved scan window.",
+  "steps": [
+    {
+      "kind": "fetch",
+      "step_id": "fetch_failed_logins",
+      "label": {
+        "en": "Failed SSH logins",
+        "es": "Inicios de sesion SSH fallidos"
+      },
+      "fetch_id": "failed_logins",
+      "template_id": "alerts_rows_v1",
+      "window_default": {
+        "unit": "hours",
+        "amount": 24
+      },
+      "filters": [
+        {
+          "field": "rule.id",
+          "op": "in",
+          "value": ["5710", "5716"]
+        }
+      ]
+    },
+    {
+      "kind": "compare_count",
+      "step_id": "compare_burst",
+      "label": {
+        "en": "Burst threshold",
+        "es": "Umbral de rafaga"
+      },
+      "check_id": "burst_threshold",
+      "left_fetch_id": "failed_logins",
+      "op": "gte",
+      "right": {
+        "kind": "literal",
+        "value": 10
+      }
+    },
+    {
+      "kind": "expectation_match",
+      "step_id": "match_authorized",
+      "label": {
+        "en": "Approved scan window",
+        "es": "Ventana de escaneo aprobada"
+      },
+      "check_id": "authorized_window",
+      "fetch_id": "failed_logins",
+      "field": "agent.id",
+      "expectation_id": "authorized_scan_window",
+      "quantifier": "all"
+    }
+  ]
+}

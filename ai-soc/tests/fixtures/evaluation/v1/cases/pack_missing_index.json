@@ -1,0 +1,144 @@
+{
+  "checks": [
+    {
+      "check_id": "burst_threshold",
+      "evidence_ids": [
+        "ev1_2ad1e5f6ad8a70a24db7568ff152674a05146ca694f98ea54b23b544853a629b"
+      ],
+      "expectation_id": null,
+      "label": "Failed login burst threshold",
+      "message": "Burst threshold recorded from the frozen fetch.",
+      "outcome": "unknown",
+      "topic_id": "ssh_auth"
+    },
+    {
+      "check_id": "authorized_window",
+      "evidence_ids": [
+        "ev1_a7443a4c511dbef26bdbc20bdb1c4df2f07b97d2f953aeca06e04e83be5a36c2"
+      ],
+      "expectation_id": "authorized_scan_window",
+      "label": "Approved scan window",
+      "message": "Approved scan window recorded from the frozen fetch.",
+      "outcome": "unknown",
+      "topic_id": "ssh_auth"
+    }
+  ],
+  "content_sha": "9de81733c834bc86610d234e27c2d31d1c5f44d9",
+  "environment_id": "soc-eval",
+  "fetches": [
+    {
+      "bucket_completeness": "complete",
+      "buckets": [],
+      "checks": [],
+      "columns": [],
+      "count": null,
+      "empty_proof": null,
+      "error": {
+        "code": "MAPPING_UNSUPPORTED",
+        "details": {},
+        "message": "The site could not complete this read.",
+        "retryable": false,
+        "trace_id": "00000000000000000000000000000000"
+      },
+      "fetch_id": "failed_logins",
+      "items": [],
+      "message": null,
+      "next_cursor": null,
+      "rows": [],
+      "scope": {
+        "displayed_rows": 0,
+        "environment_id": "soc-eval",
+        "filters": [
+          {
+            "field": "rule.id",
+            "op": "in",
+            "value": [
+              "5710",
+              "5716"
+            ]
+          },
+          {
+            "field": "agent.id",
+            "op": "eq",
+            "value": "109"
+          }
+        ],
+        "index_family": "alerts",
+        "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+        "snapshot": "first_page_only",
+        "template_id": "alerts_rows_v1",
+        "visibility": "full"
+      },
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": null,
+        "key": "af516d62eab3fcfd34488b5b907c4c021463ad90a32e0356441ecae48b59e601",
+        "kind": "first_page_only"
+      },
+      "snapshot_at": "2026-10-17T11:59:00.000000Z",
+      "state": "unavailable",
+      "topic_id": "ssh_auth",
+      "window": {
+        "anchor_at": "2026-10-17T12:00:00.000000Z",
+        "end": "2026-10-17T12:00:00.000000Z",
+        "semantics": "rolling",
+        "source_text": "rolling:24:hours",
+        "start": "2026-10-16T12:00:00.000000Z",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "items": [
+    {
+      "check_id": "burst_threshold",
+      "evidence_id": "ev1_2ad1e5f6ad8a70a24db7568ff152674a05146ca694f98ea54b23b544853a629b",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "8e63ec02ee04d0a64bbb53ea42abb20b151081afd8bae3305e297c7b741a6d36",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": null,
+        "key": "af516d62eab3fcfd34488b5b907c4c021463ad90a32e0356441ecae48b59e601",
+        "kind": "first_page_only"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "compare_burst"
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    },
+    {
+      "check_id": "authorized_window",
+      "evidence_id": "ev1_a7443a4c511dbef26bdbc20bdb1c4df2f07b97d2f953aeca06e04e83be5a36c2",
+      "fetch_id": null,
+      "kind": "check",
+      "scope_hash": "8e63ec02ee04d0a64bbb53ea42abb20b151081afd8bae3305e297c7b741a6d36",
+      "snapshot": {
+        "at": "2026-10-17T11:59:00.000000Z",
+        "expires_at": null,
+        "key": "af516d62eab3fcfd34488b5b907c4c021463ad90a32e0356441ecae48b59e601",
+        "kind": "first_page_only"
+      },
+      "source": {
+        "operand_ids": [],
+        "step_id": "match_authorized"
+      },
+      "topic_id": "ssh_auth",
+      "values": {
+        "expectation_id": "authorized_scan_window",
+        "expectation_version": "1",
+        "outcome": "unknown"
+      },
+      "visibility": "full"
+    }
+  ],
+  "policy_hash": "a6dd71e5084775ed6ea5c513b6619038a1fa26bfa416f52966e6ceb579984405",
+  "question_id": "356f0208-34bd-5001-a438-5056f7e6ea36",
+  "schema_version": "1",
+  "sha256": "19ef0422c1dc725f260ac76be3f3b96ca4548aba8533b668a72171462e4a8036",
+  "topic_id": "ssh_auth"
+}

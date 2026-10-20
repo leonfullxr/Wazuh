@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>AI SOC</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" id="skip-to-question" href="#question">Skip to question</a>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AI SOC</p>
+          <h1 id="title">Security investigation</h1>
+        </div>
+        <label class="language-control" for="language">
+          <span id="language-label">Language</span>
+          <select id="language" aria-label="Language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </label>
+      </header>
+
+      <section class="card composer" aria-labelledby="question-heading">
+        <h2 id="question-heading">Ask a question</h2>
+        <form id="ask-form">
+          <div class="form-grid">
+            <label for="site"><span id="site-label">Site</span>
+              <select id="site" required></select>
+            </label>
+            <label for="model"><span id="model-label">Model</span>
+              <select id="model"><option value="">Default</option></select>
+            </label>
+            <label id="effort-wrap" for="effort"><span id="effort-label">Effort</span>
+              <select id="effort"><option value="">Choose</option></select>
+            </label>
+          </div>
+          <label for="question"><span id="question-label">Question</span>
+            <textarea id="question" name="question" required maxlength="16384" rows="4"></textarea>
+          </label>
+          <div class="actions">
+            <button id="ask-button" type="submit">Ask SOC</button>
+            <button id="cancel-button" class="secondary" type="button" disabled>Cancel</button>
+          </div>
+        </form>
+        <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </section>
+
+      <section id="answer-panel" class="card answer" aria-labelledby="answer-heading" hidden>
+        <h2 id="answer-heading">Answer</h2>
+        <p id="answer-status" class="answer-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <p id="answer-message"></p>
+        <div id="answer-blocks"></div>
+        <section id="continuation" class="continuation" hidden aria-labelledby="continuation-heading">
+          <h3 id="continuation-heading">Continue selected work</h3>
+          <fieldset id="continuation-options">
+            <legend id="continuation-legend">Select unfinished topics</legend>
+            <div id="continuation-list"></div>
+          </fieldset>
+          <button id="continue-button" class="secondary" type="button">Continue selected topics</button>
+        </section>
+        <section id="feedback" class="feedback" aria-labelledby="feedback-heading">
+          <h3 id="feedback-heading">Improve this answer</h3>
+          <label for="feedback-note"><span id="feedback-note-label">Optional note</span>
+            <textarea id="feedback-note" rows="2" maxlength="1000"></textarea>
+          </label>
+          <button id="feedback-button" class="secondary" type="button">This answer is wrong</button>
+          <p id="feedback-status" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "mode": "fixture",
+  "timezone_database": "tzdata 2025.3",
+  "zone": "Europe/Madrid",
+  "cases": [
+    {
+      "name": "spring-forward-2026-03-29",
+      "start": "2026-03-28T23:00:00Z",
+      "end": "2026-03-29T22:00:00Z",
+      "duration_hours": 23
+    },
+    {
+      "name": "fall-back-2026-10-25",
+      "start": "2026-10-24T22:00:00Z",
+      "end": "2026-10-25T23:00:00Z",
+      "duration_hours": 25
+    }
+  ]
+}

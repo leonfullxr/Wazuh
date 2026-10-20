@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "repository": "https://example.test/synthetic-content",
+  "source_path": "public-docs/en/ldap.md",
+  "published_path": "en/ldap.html",
+  "heading": "Synthetic LDAP setup example",
+  "anchor": "synthetic-ldap-setup-example",
+  "base_document": "# Synthetic LDAP setup example\n\nThis page is a synthetic fixture only. Replace it with reviewed, site-specific setup guidance before approval.\n",
+  "revised_document": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+  "revised_heading": "Synthetic LDAP setup example",
+  "revised_anchor": "synthetic-ldap-setup-example",
+  "revised_published_path": "en/ldap.html",
+  "invalid_declared_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "expected_document_hash_error": "document content hash mismatch",
+  "expected_tampered_pack_error": "manifest file hash mismatch",
+  "cases": {
+    "positive": {
+      "action": "verify_exact_document_pointer",
+      "expected_source_path": "public-docs/en/ldap.md",
+      "expected_heading": "Synthetic LDAP setup example",
+      "expected_anchor": "synthetic-ldap-setup-example",
+      "expected_url_prefix": "https://docs.example.test/commits/"
+    },
+    "negative": {
+      "action": "reject_source_document_digest_mismatch",
+      "expected_error": "document content hash mismatch"
+    },
+    "boundary": {
+      "action": "approved_document_revision_changes_identity",
+      "expected_document": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+      "expected_context": "# Synthetic LDAP setup example\n\nThis is the reviewed synthetic release two setup paragraph.\n",
+      "expected_path": "en/ldap.html"
+    },
+    "failure": {
+      "action": "reject_tampered_published_artifact",
+      "path": "docs/en/ldap.html",
+      "expected_error": "manifest file hash mismatch"
+    }
+  }
+}

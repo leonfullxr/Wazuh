@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "case_id": "B6-G045.private",
+  "requirement": "G045",
+  "task": "B6-T03",
+  "cases": [
+    {
+      "variant": "positive",
+      "expected": [
+        "Sid      = \"GuardrailedBedrockInvokeModel\"",
+        "Action   = [\"bedrock:InvokeModel\"]",
+        "Resource = local.bedrock_model_resources",
+        "\"bedrock:GuardrailIdentifier\" = local.guardrail_qualified_identifier",
+        "\"aws:SourceVpce\"              = aws_vpc_endpoint.interface[\"bedrock-runtime\"].id",
+        "Sid      = \"BedrockCountTokensWithoutGuardrail\"",
+        "Action   = [\"bedrock:CountTokens\"]"
+      ],
+      "forbidden": ["\"bedrock:Converse\"", "\"bedrock:InvokeModelWithResponseStream\""]
+    },
+    {
+      "variant": "negative",
+      "expected": [
+        "Sid      = \"DenyMissingGuardrail\"",
+        "Effect   = \"Deny\"",
+        "Action   = [\"bedrock:InvokeModel\"]",
+        "\"bedrock:GuardrailIdentifier\" = \"true\""
+      ],
+      "forbidden": ["Sid      = \"AllowUnguardedBedrock\"", "\"bedrock:Converse\""]
+    },
+    {
+      "variant": "boundary",
+      "expected": [
+        "local.bedrock_model_resources",
+        "local.bedrock_count_token_resources",
+        "local.guardrail_qualified_identifier",
+        "aws_vpc_endpoint.interface[\"bedrock-runtime\"].id",
+        "Sid         = \"DenyNonAllowlistedBedrockResources\""
+      ],
+      "forbidden": ["Resource = [\"*\"]", "\"bedrock:Converse\""]
+    },
+    {
+      "variant": "failure",
+      "expected": [
+        "Sid      = \"DenyMismatchedGuardrailIdentifier\"",
+        "\"bedrock:GuardrailIdentifier\" = local.guardrail_qualified_identifier",
+        "\"aws:SourceVpce\"              = aws_vpc_endpoint.interface[\"bedrock-runtime\"].id"
+      ],
+      "forbidden": ["\"bedrock:Converse\"", "\"bedrock:InvokeModelWithResponseStream\""]
+    }
+  ]
+}

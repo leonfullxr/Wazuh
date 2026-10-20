@@ -1,0 +1,21 @@
+{
+  "positive": {
+    "english_question": "LDAPS is failing",
+    "spanish_question": "LDAP falla",
+    "expected_topic": "ldap"
+  },
+  "negative": {
+    "question": "directory authentication is failing",
+    "expected": "refused"
+  },
+  "boundary": {
+    "question": "LDAP authentication is failing",
+    "long_alias_id": "ldap_authentication",
+    "short_alias_id": "ldap_en"
+  },
+  "failure": {
+    "shared_alias": "shared identity",
+    "first_alias_id": "ldap_shared_identity",
+    "second_alias_id": "dns_shared_identity"
+  }
+}

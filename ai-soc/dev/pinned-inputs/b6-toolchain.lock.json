@@ -1,0 +1,112 @@
+{
+  "schema_version": "1",
+  "platform": "linux/amd64",
+  "tools": [
+    {
+      "name": "terraform",
+      "version": "1.16.5",
+      "path": "build/tool-cache/terraform/terraform",
+      "version_args": [
+        "version"
+      ],
+      "archive_sha256": "2bc2fcfff033265c9e02ca0351f01794eb122f62a9b2a49a3294b9e49eaab5e4",
+      "archive_path": "build/tool-cache/terraform_1.16.5_linux_amd64.zip"
+    },
+    {
+      "name": "tflint",
+      "version": "0.64.0",
+      "path": "build/tool-cache/tflint/tflint",
+      "version_args": [
+        "--version"
+      ],
+      "archive_sha256": "cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537",
+      "archive_path": "build/tool-cache/tflint_linux_amd64.zip"
+    },
+    {
+      "name": "trivy",
+      "version": "0.74.0",
+      "path": "build/tool-cache/trivy/trivy",
+      "version_args": [
+        "--version"
+      ],
+      "archive_sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+      "archive_path": "build/tool-cache/trivy_0.74.0_Linux-64bit.tar.gz"
+    },
+    {
+      "name": "node",
+      "version": "v22.23.3",
+      "path": "build/tool-cache/node-v22.23.3/extracted/bin/node",
+      "version_args": [
+        "--version"
+      ],
+      "archive_sha256": "df450af89261115ef9f9e3830c3eeb2cc9213b63c720b1af623cb5dcbe2e02de",
+      "archive_path": "build/tool-cache/node-v22.23.3/node-v22.23.3-linux-x64.tar.xz"
+    },
+    {
+      "name": "docker-compose",
+      "version": "v5.5.1",
+      "path": "build/tool-cache/docker-compose-v5.5.1/docker-compose",
+      "version_args": [
+        "--version"
+      ],
+      "archive_sha256": "db1889184726840f75c4f9c001048430d4f25b3be3cb084d3ddd762bc0aed576",
+      "archive_path": "build/tool-cache/docker-compose-v5.5.1/docker-compose"
+    },
+    {
+      "name": "docker-buildx",
+      "version": "v0.37.1",
+      "path": "build/tool-cache/docker-buildx-v0.37.1/buildx",
+      "version_args": [
+        "version"
+      ],
+      "archive_sha256": "9447199cdb435f25880548343c128a4b6650e8891ee598905d8d29d39a8e359b",
+      "archive_path": "build/tool-cache/docker-buildx-v0.37.1/buildx"
+    }
+  ],
+  "images": [
+    {
+      "name": "python",
+      "reference": "python:3.12.13-slim@sha256:d657ab0ade19f404a6ccc883ab399540de667aff751748ce23c07330c5a89e64"
+    },
+    {
+      "name": "uv",
+      "reference": "ghcr.io/astral-sh/uv:0.11.28@sha256:5c3ab83183a73c5d319a77009eb425b60d5bb937f339fb7876788ebf567baf48"
+    },
+    {
+      "name": "dynamodb-local",
+      "reference": "amazon/dynamodb-local@sha256:744bf7138f0e893a6438de89bc3374501105b42bc7473cef6d561f30ff2dec6a"
+    },
+    {
+      "name": "adot-collector",
+      "reference": "public.ecr.aws/aws-observability/aws-otel-collector@sha256:bb72328152c72fb9662056759b275f7cc85e115db12bbb114fbea9f68dc4816c",
+      "platform_manifest_sha256": "bb72328152c72fb9662056759b275f7cc85e115db12bbb114fbea9f68dc4816c"
+    },
+    {
+      "name": "buildkit",
+      "reference": "docker.io/moby/buildkit:v0.33.1@sha256:98cc6a3fc46220d00f8224ae483f3274fc874e9be8d7dd1e2e2c5481209228b5",
+      "version": "v0.33.1",
+      "commit": "8c91502",
+      "index_digest": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+      "platform_manifest_sha256": "98cc6a3fc46220d00f8224ae483f3274fc874e9be8d7dd1e2e2c5481209228b5"
+    }
+  ],
+  "preparation": {
+    "terraform_source": "https://releases.hashicorp.com/terraform/1.16.5/",
+    "tflint_source": "https://github.com/terraform-linters/tflint/releases/tag/v0.64.0",
+    "trivy_source": "https://github.com/aquasecurity/trivy/releases/tag/v0.74.0",
+    "node_source": "https://nodejs.org/download/release/v22.23.3/",
+    "docker_compose_source": "https://github.com/docker/compose/releases/tag/v5.5.1",
+    "docker_buildx_source": "https://github.com/docker/buildx/releases/tag/v0.37.1",
+    "buildkit_source": "https://github.com/moby/buildkit/releases/tag/v0.33.1",
+    "buildkit_index_digest": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+    "buildkit_platform_manifest_sha256": "98cc6a3fc46220d00f8224ae483f3274fc874e9be8d7dd1e2e2c5481209228b5",
+    "buildkit_commit": "8c91502",
+    "scanner_database_repository": "ghcr.io/aquasecurity/trivy-db@sha256:f8989b7a9d2bcfa6ce221bf0bb37cbf97224d29bf1bebd54ca611358a04311c4",
+    "terraform_archive_sha256": "2bc2fcfff033265c9e02ca0351f01794eb122f62a9b2a49a3294b9e49eaab5e4",
+    "tflint_archive_sha256": "cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537",
+    "trivy_archive_sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+    "scanner_database_digest": "43bf9c31bd79ea3a98f7b467c1d4cfe87cdbc4f7939654fedc76a9350dcfceb4",
+    "provider_lock_sha256": "767d367bcc4c4ab614647735f7f3e074f59e08ba2632bebf061d4fac35cbb155",
+    "prepared": true
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "negative": [
+    {
+      "question": "\"LDAP is failing\"",
+      "expected": "refused"
+    },
+    {
+      "question": "LDAP is failing; do not recommend a fix",
+      "expected": "planned_failure_without_judgment"
+    }
+  ],
+  "boundary": {
+    "topic_ids": [
+      "topic_00", "topic_01", "topic_02", "topic_03", "topic_04",
+      "topic_05", "topic_06", "topic_07", "topic_08", "topic_09",
+      "topic_10", "topic_11", "topic_12", "topic_13", "topic_14",
+      "topic_15", "topic_16", "topic_17", "topic_18", "topic_19",
+      "topic_20", "topic_21", "topic_22", "topic_23", "topic_24",
+      "topic_25", "topic_26", "topic_27", "topic_28", "topic_29",
+      "topic_30", "topic_31", "topic_32", "topic_33", "topic_34",
+      "topic_35", "topic_36", "topic_37", "topic_38", "topic_39"
+    ],
+    "expected_status": "planned",
+    "expected_topic_count": 40
+  },
+  "failure": [
+    {
+      "question": "What should I fix?",
+      "expected": "clarified"
+    },
+    {
+      "question": "Show LDAP alerts for the last 24 hours source IP 999.1.1.1",
+      "expected": "clarified"
+    }
+  ]
+}

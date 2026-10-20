@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "positive": {
+    "question": "LDAP is failing; how do I configure DNS?",
+    "expected": {
+      "language": "en",
+      "topics": [
+        {"topic_id": "ldap", "ordinal": 0, "document": true, "failure": true, "judgment": false, "playbook_id": "ldap_checks", "fetch_templates": []},
+        {"topic_id": "dns", "ordinal": 1, "document": true, "failure": false, "judgment": false, "playbook_id": null, "fetch_templates": []}
+      ]
+    }
+  },
+  "negative": {
+    "question": "LDAP is failing; show DNS alerts for the last 24 hours",
+    "expected": {
+      "language": "en",
+      "topics": [
+        {"topic_id": "ldap", "ordinal": 0, "document": true, "failure": true, "judgment": false, "playbook_id": "ldap_checks", "fetch_templates": []},
+        {"topic_id": "dns", "ordinal": 1, "document": true, "failure": false, "judgment": false, "playbook_id": null, "fetch_templates": ["alerts_rows_v1"]}
+      ]
+    }
+  },
+  "failure": [
+    {
+      "question": "What should I fix?",
+      "expected": {"kind": "clarified", "clarify_kind": "missing_subject", "suggested_topic": null}
+    },
+    {
+      "question": "Show LDAP alerts for the last 24 hours source IP 999.1.1.1",
+      "expected": {"kind": "clarified", "clarify_kind": "missing_slots", "suggested_topic": null}
+    }
+  ]
+}

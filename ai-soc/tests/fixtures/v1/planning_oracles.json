@@ -1,0 +1,27 @@
+{
+  "mode": "fixture",
+  "oracle_author": "contract fixture author; authored from docs/golden_examples.json and specification semantics, not product code",
+  "anchor": "2026-09-30T12:00:00Z",
+  "cases": [
+    {
+      "id": "oracle-en-ldap-failure-judgment",
+      "input": {"question": "LDAP is failing; recommend", "environment_id": "fixture-shared", "language_hint": "en", "timezone": "UTC"},
+      "expected": {"language": "en", "topics": [{"topic_id": "ldap", "document": true, "failure": true, "judgment": true, "fetch_template": "alerts_count_v1", "fetch_count": 1}], "backend_calls": {"count": 1, "converse_max": 1}}
+    },
+    {
+      "id": "oracle-es-ldap-failure-judgment",
+      "input": {"question": "LDAP falla; recomienda", "environment_id": "fixture-shared", "language_hint": "es", "timezone": "UTC"},
+      "expected": {"language": "es", "topics": [{"topic_id": "ldap", "document": true, "failure": true, "judgment": true, "fetch_template": "alerts_count_v1", "fetch_count": 1}], "backend_calls": {"count": 1, "converse_max": 1}}
+    },
+    {
+      "id": "oracle-en-document-only",
+      "input": {"question": "How do I configure LDAP?", "environment_id": "alpha", "language_hint": "en", "timezone": "UTC"},
+      "expected": {"language": "en", "topics": [{"topic_id": "ldap", "document": true, "failure": false, "judgment": false, "fetch_count": 0}], "backend_calls": {"indexer": 0, "count": 0, "converse": 0}}
+    },
+    {
+      "id": "oracle-es-document-only",
+      "input": {"question": "¿Cómo configuro LDAP?", "environment_id": "alpha", "language_hint": "es", "timezone": "UTC"},
+      "expected": {"language": "es", "topics": [{"topic_id": "ldap", "document": true, "failure": false, "judgment": false, "fetch_count": 0}], "backend_calls": {"indexer": 0, "count": 0, "converse": 0}}
+    }
+  ]
+}

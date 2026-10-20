@@ -1,0 +1,24 @@
+{
+  "allowed_evidence_kinds": [
+    "check"
+  ],
+  "kind": "recommendation",
+  "relations": [],
+  "required_bindings": {
+    "o": [
+      "outcome"
+    ]
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "vuln_priority",
+      "outcome": "passed"
+    }
+  ],
+  "template_id": "vuln_priority_review",
+  "texts": {
+    "en": "The configured priority severity check passed for returned rows only; outcome {o}. Refer the record for manual review of affected status and inventory age.",
+    "es": "La comprobacion configurada de prioridad por severidad se cumplio solo para las filas devueltas; resultado {o}. Remita el registro a revision manual del estado de afectacion y la antiguedad del inventario."
+  },
+  "topic_id": "vuln_review"
+}

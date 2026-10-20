@@ -1,0 +1,29 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G029.context-budget.private",
+  "context_tokens": 4096,
+  "max_output_tokens": 512,
+  "safety_margin_tokens": 256,
+  "variants": {
+    "positive": {
+      "input_tokens": 3327,
+      "expected_gross_reserved": 4095,
+      "expected_state": "ready"
+    },
+    "negative": {
+      "input_tokens": 3329,
+      "expected_state": "context_exceeded",
+      "expected_reason": "context_exceeded"
+    },
+    "boundary": {
+      "input_tokens": 3328,
+      "expected_gross_reserved": 4096,
+      "expected_state": "ready"
+    },
+    "failure": {
+      "provider_state": "token_count_unavailable",
+      "expected_state": "token_count_unavailable",
+      "expected_reason": "token_count_unavailable"
+    }
+  }
+}

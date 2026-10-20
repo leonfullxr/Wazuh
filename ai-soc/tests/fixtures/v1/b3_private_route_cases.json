@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Private indexer route selection only; reserved .test origins and synthetic network references.",
+  "cases": {
+    "positive": {
+      "sites": [
+        {"environment_id": "alpha", "indexer_origin": "https://alpha.private.example.test", "private_network_ref": "vpn-alpha"}
+      ],
+      "requested_site": "alpha",
+      "route_mode": "private_only",
+      "public_indexer_ingress": false,
+      "expected": {"selected_origin": "https://alpha.private.example.test", "private_network_ref": "vpn-alpha", "client_created": true}
+    },
+    "negative": {
+      "sites": [
+        {"environment_id": "alpha", "indexer_origin": "https://alpha.private.example.test", "private_network_ref": "vpn-alpha"}
+      ],
+      "requested_site": "unknown",
+      "route_mode": "private_only",
+      "public_indexer_ingress": false,
+      "expected": {"refused": true, "client_created": false}
+    },
+    "boundary": {
+      "sites": [
+        {"environment_id": "alpha", "indexer_origin": "https://alpha.private.example.test", "private_network_ref": "vpn-alpha"},
+        {"environment_id": "beta", "indexer_origin": "https://beta.private.example.test", "private_network_ref": "vpn-beta"}
+      ],
+      "route_mode": "private_only",
+      "public_indexer_ingress": false,
+      "expected": {
+        "routes": [
+          {"requested_site": "alpha", "selected_origin": "https://alpha.private.example.test", "private_network_ref": "vpn-alpha"},
+          {"requested_site": "beta", "selected_origin": "https://beta.private.example.test", "private_network_ref": "vpn-beta"}
+        ]
+      }
+    },
+    "failure": {
+      "sites": [{"environment_id": "alpha", "indexer_origin": null, "private_network_ref": null}],
+      "requested_site": "alpha",
+      "route_mode": "private_only",
+      "public_indexer_ingress": false,
+      "expected": {"refused": true, "reason": "private_route_unconfigured", "standing_reader_fallback": false, "client_created": false}
+    }
+  }
+}

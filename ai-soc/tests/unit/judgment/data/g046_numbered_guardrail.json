@@ -1,0 +1,11 @@
+{
+  "fixture_version": 1,
+  "case_id": "B4-G046.numbered-guardrail.private",
+  "requirements": ["G046"],
+  "variants": {
+    "positive": {"guardrail": {"identifier": "gr-123456", "version": "7"}, "attempts": 1},
+    "negative": {"guardrail": {"identifier": "DRAFT", "version": "1"}, "attempts": 0},
+    "boundary": {"guardrail": {"identifier": "gr-123456", "version": "7"}, "unsupported_template": "model-invented", "expected_validation": "all_removed", "attempts": 1},
+    "failure": {"guardrail": {"identifier": "gr-123456", "version": "7"}, "stop_reason": "guardrail_intervened", "expected_validation": "guardrail_blocked", "attempts": 1}
+  }
+}

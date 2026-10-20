@@ -1,0 +1,36 @@
+{
+  "schema_version": "1",
+  "mode": "fixture",
+  "synthetic": true,
+  "description": "Application receipt ownership, expiry, redaction and queue delivery oracle.",
+  "cases": {
+    "positive": {
+      "owner_binding": "same_owner",
+      "note": "Review alice@example.test at 203.0.113.44",
+      "expected_redacted_note": "Review [redacted email] at [redacted address]",
+      "expected_error": null,
+      "expected_sqs_attempts": 1
+    },
+    "negative": {
+      "owner_binding": "foreign_owner",
+      "note": "This should never be queued",
+      "expected_error": "FEEDBACK_INVALID",
+      "expected_sqs_attempts": 0
+    },
+    "boundary": {
+      "owner_binding": "same_owner",
+      "last_valid_offset_seconds": 1799,
+      "expiry_offset_seconds": 1800,
+      "expected_error": "FEEDBACK_INVALID",
+      "expected_sqs_attempts": 1
+    },
+    "failure": {
+      "owner_binding": "same_owner",
+      "note": "Review alice@example.test",
+      "expected_redacted_note": "Review [redacted email]",
+      "queue_private_detail": "private feedback queue detail",
+      "expected_error": "FEEDBACK_UNAVAILABLE",
+      "expected_sqs_attempts": 1
+    }
+  }
+}

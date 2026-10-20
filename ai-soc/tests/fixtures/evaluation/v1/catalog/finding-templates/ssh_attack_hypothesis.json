@@ -1,0 +1,30 @@
+{
+  "template_id": "ssh_attack_hypothesis",
+  "topic_id": "ssh_auth",
+  "kind": "hypothesis",
+  "required_bindings": {
+    "agent": ["agent.id"],
+    "count": ["count"]
+  },
+  "texts": {
+    "en": "Possible password guessing against {agent}: {count} failed SSH logins in the window.",
+    "es": "Posible adivinacion de contrasenas contra {agent}: {count} inicios de sesion SSH fallidos en la ventana."
+  },
+  "required_check_outcomes": [
+    {
+      "check_id": "burst_threshold",
+      "outcome": "passed"
+    },
+    {
+      "check_id": "authorized_window",
+      "outcome": "failed"
+    }
+  ],
+  "allowed_evidence_kinds": ["row", "aggregate"],
+  "relations": [
+    {
+      "kind": "same_fetch",
+      "bindings": ["agent", "count"]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "as_of": "2026-10-17T12:00:00.000000Z",
+  "case_id": "source_denied",
+  "principal": {
+    "assertion_hash": "980eef86f2ba911a7ffa06379409303cb9ed4afe751ce2a79501e79932a2371c",
+    "authenticated_at": "2026-10-17T11:00:00.000000Z",
+    "edge": "fixture",
+    "expires_at": "2026-10-17T13:00:00.000000Z",
+    "groups": [
+      "soc-analysts"
+    ],
+    "issuer": "https://issuer.example.test",
+    "owner_key": "c60cbd37d51e51627d0a1148cd18ca0b6f43eae46dfe5264b6b2a0ae50d9f575",
+    "sub": "synthetic-analyst-01"
+  },
+  "question": "Investigate authentication review.",
+  "responses": [
+    {
+      "body_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_search/point_in_time?keep_alive=5m",
+      "response": {
+        "id": "pit-source_denied"
+      },
+      "status": 200
+    },
+    {
+      "body_sha256": "0b14ab8ec5e3d3f15ffbc485b69cba87ad2a5e63582721f65771a3f71077f7c4",
+      "method": "POST",
+      "path": "/wazuh-alerts-*/_validate/query",
+      "response": {
+        "valid": true
+      },
+      "status": 200
+    },
+    {
+      "body_sha256": "7ba8590d90d148929166f61a5f34a5be52bf292d678669ae1e370a93ee773973",
+      "method": "POST",
+      "path": "/_search",
+      "response": {
+        "error": {
+          "type": "security_exception"
+        },
+        "status": 403
+      },
+      "status": 403
+    },
+    {
+      "body_sha256": "c09dda3582b6e7da236ff01cee2851968e8952b1ff2a41d8e9878f018ff55b24",
+      "method": "DELETE",
+      "path": "/_search/point_in_time",
+      "response": {
+        "num_freed": 1,
+        "succeeded": true
+      },
+      "status": 200
+    }
+  ],
+  "site": {
+    "allowed_index_patterns": {
+      "alerts": [
+        "wazuh-alerts-*"
+      ],
+      "vulnerabilities": [
+        "wazuh-states-vulnerabilities-*",
+        "wazuh-vulnerabilities-*"
+      ]
+    },
+    "allowed_templates": [
+      "alerts_rows_v1",
+      "alerts_count_v1",
+      "vulnerabilities_rows_v1",
+      "vulnerabilities_count_v1"
+    ],
+    "ca_secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:synthetic-eval-ca",
+    "ca_secret_version": "1",
+    "ca_sha256": "8f28ef52f808100b87233930741da3d0942ac148bb3f9abf5bb30cbd794d5e91",
+    "composite_role_visibility": {
+      "analyst": "full"
+    },
+    "dls_attestation_version": "1",
+    "enabled": true,
+    "environment_id": "soc-eval",
+    "expectations": [],
+    "group_role_map": {
+      "soc-analysts": [
+        "analyst"
+      ]
+    },
+    "indexer_origin": "https://indexer.example.test",
+    "jwt_audience": "soc-eval-api",
+    "jwt_issuer": "https://issuer.example.test",
+    "kms_signing_key_arn": "arn:aws:kms:us-east-1:123456789012:key/synthetic-eval",
+    "label": "Synthetic evaluation site",
+    "mapping_profile": "wazuh-v4-fixture",
+    "pit_supported": true,
+    "policy_version": "1",
+    "private_network_ref": "synthetic-private-network",
+    "role_visibility": {
+      "analyst": "full"
+    }
+  }
+}
