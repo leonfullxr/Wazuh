@@ -8,6 +8,7 @@ integration guides.
 |---|---|
 | Normalize and collect Jira audit API exports | [Jira](jira/README.md) |
 | Normalize and collect Confluence audit API exports | [Confluence](confluence/README.md) |
+| Collect GitHub enterprise / GHE.com audit logs | [GitHub](../github/README.md) |
 | POST selected Wazuh alerts to an HTTPS endpoint | [Generic webhook](../webhook/README.md) |
 | Send selected alerts to Splunk SOAR | [Splunk SOAR](../splunk/README.md) |
 

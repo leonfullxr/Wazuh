@@ -89,5 +89,6 @@ and output record counts before relying on the pipeline.
 ## See also
 
 - [Jira audit exports](../jira/README.md)
+- [GitHub enterprise audit logs](../../github/README.md)
 - [Generic webhook delivery](../../webhook/README.md)
 - [Wazuh JSON log collection](https://documentation.wazuh.com/current/user-manual/capabilities/log-data-collection/log-data-configuration.html)

@@ -18,6 +18,7 @@ filter at a sustainable volume, and test both success and outage behavior.
 | Forward FortiGate logs and deploy its decoder | [Fortinet FortiGate](fortinet/README.md) |
 | Ingest Palo Alto / Prisma Cloud logs (syslog over TLS, OCSP cert) | [Palo Alto / Prisma Cloud](prisma-cloud/README.md) |
 | Load-balance agent TCP connections across manager workers | [NGINX stream load balancer](nginx/README.md) |
+| Collect GitHub enterprise / GHE.com audit logs (native module cannot) | [GitHub enterprise audit logs](github/README.md) |
 | Send selected alerts to an HTTPS endpoint | [Generic webhook](webhook/README.md) |
 | Monitor SQL Server login and audit events | [Microsoft SQL Server](mssql/README.md) |
 | Collect Oracle database audit events on Windows | [Oracle Database audit](oracle/README.md) |
@@ -45,6 +46,8 @@ alert, and measure false positives before attaching active response.
 
 - The [SaaS audit collection hub](alerts/README.md) links the Jira and
   Confluence normalization pipelines.
+- [GitHub enterprise audit logs](github/README.md) collects GHE.com and
+  enterprise-level audit logs into the stock GitHub ruleset.
 - The [generic webhook guide](webhook/README.md) is the baseline for outbound
   alert delivery, including endpoints implemented through Microsoft Teams
   Workflows or an internal integration gateway.
