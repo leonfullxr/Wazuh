@@ -133,12 +133,12 @@ seLinuxContext:
 fsGroup:
   type: MustRunAs
   ranges:
- - min: 101
+  - min: 101
     max: 101
 supplementalGroups:
   type: MustRunAs
   ranges:
- - min: 101
+  - min: 101
     max: 101
 users:
 - system:serviceaccount:wazuh:wazuh-manager-worker

@@ -36,6 +36,8 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "wazuh.component.serviceAccountName" (dict "context" . "component" "agent") }}
+      # The agent never calls the Kubernetes API. IRSA mounts its own token.
+      automountServiceAccountToken: false
       {{- include "wazuh.imagePullSecrets" . | nindent 6 }}
       terminationGracePeriodSeconds: {{ .Values.agent.terminationGracePeriodSeconds }}
       {{- with .Values.agent.priorityClassName }}
@@ -50,9 +52,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-        # First run: seed ossec tree from the image. Guard keeps the agent key
-        # on restart (avoids overwrite/re-enroll). Stale pid/lock files from an
-        # unclean stop block startup.
+        # First run: seed the ossec tree from the image. On an image upgrade,
+        # refresh the program files but keep etc (agent key), queue (FIM
+        # database), logs and var; seeding only once would leave every node on
+        # its first agent version. Stale pid/lock files from an unclean stop
+        # block startup.
         - name: seed-ossec-tree
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.agent.image) }}
           imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
@@ -63,6 +67,9 @@ spec:
               set -eu
               if [ ! -d /agent/bin ]; then
                 tar -C /var/ossec -cf - . | tar -C /agent -xpf -
+              elif [ "$(cat /var/ossec/VERSION.json)" != "$(cat /agent/VERSION.json 2>/dev/null)" ]; then
+                tar -C /var/ossec --exclude=./etc --exclude=./queue --exclude=./logs --exclude=./var -cf - . | tar -C /agent -xpf -
+                cp -p /var/ossec/etc/internal_options.conf /agent/etc/internal_options.conf
               fi
               rm -f /agent/var/run/*.pid /agent/var/run/*.lock 2>/dev/null || true
           securityContext:
@@ -75,11 +82,7 @@ spec:
           image: {{ include "wazuh.image" (dict "context" . "image" .Values.agent.image) }}
           imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
           securityContext:
-            runAsUser: 0
-            capabilities:
-              add:
-                - SETGID
-                - SETUID
+            {{- toYaml .Values.agent.securityContext | nindent 12 }}
           env:
             # Events (workers :1514) and enrollment (master :1515) are separate endpoints.
             - name: WAZUH_MANAGER
@@ -122,6 +125,9 @@ spec:
               mountPath: /host/var/log
               readOnly: true
             {{- end }}
+            {{- with .Values.agent.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: agent-data
           {{- if eq .Values.agent.dataVolume.type "hostPath" }}
@@ -136,5 +142,8 @@ spec:
           hostPath:
             path: {{ .Values.agent.hostLogs.path }}
             type: Directory
+        {{- end }}
+        {{- with .Values.agent.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
 {{- end }}

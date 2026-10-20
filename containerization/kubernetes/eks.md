@@ -85,11 +85,11 @@ affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
- - matchExpressions:
- - key: topology.kubernetes.io/zone
+        - matchExpressions:
+            - key: topology.kubernetes.io/zone
               operator: In
               values:
- - us-east-1a
+                - us-east-1a
 ```
 
 The stock Kustomize layout ships no affinity rules - add them as patches under

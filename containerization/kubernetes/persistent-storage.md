@@ -51,10 +51,10 @@ generator):
 
 ```yaml
 configMapGenerator:
- - name: dashboard-conf
+  - name: dashboard-conf
     files:
- - opensearch_dashboards.yml
- - wazuh.yml            # add your customized copy here
+      - opensearch_dashboards.yml
+      - wazuh.yml            # add your customized copy here
 ```
 
 **Step 2 - mount it in the deployment.** In the dashboard deployment
@@ -63,7 +63,7 @@ with `subPath` so only that file is replaced, not the whole directory:
 
 ```yaml
 volumeMounts:
- - name: config
+  - name: config
     mountPath: /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
     subPath: wazuh.yml
     readOnly: false

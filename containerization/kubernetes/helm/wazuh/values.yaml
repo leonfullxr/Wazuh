@@ -504,6 +504,27 @@ agent:
   extraEnv: []
   terminationGracePeriodSeconds: 20
 
+  # Merged key by key with these defaults; set a key to null to drop it.
+  # SELinux-enforcing nodes (Bottlerocket) may deny an unprivileged pod host
+  # paths beyond /var/log. Set privileged: true only after a security review.
+  securityContext:
+    runAsUser: 0
+    capabilities:
+      add:
+        - SETGID
+        - SETUID
+
+  # Extra host paths for FIM or log collection. Mount them read-only under
+  # /host so syscheck/localfile paths in the group agent.conf read /host/etc,
+  # /host/var/lib/kubelet, and so on.
+  extraVolumes: []
+  #  - name: host-etc
+  #    hostPath: { path: /etc, type: Directory }
+  extraVolumeMounts: []
+  #  - name: host-etc
+  #    mountPath: /host/etc
+  #    readOnly: true
+
 podDisruptionBudget:
   enabled: false
   minAvailable: 1

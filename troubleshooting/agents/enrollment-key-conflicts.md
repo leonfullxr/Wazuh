@@ -127,3 +127,4 @@ References:
 - [Disconnections](disconnections.md) - key conflicts and disconnections usually appear together; fix connectivity first
 - [Certificate troubleshooting](../../certificates/troubleshooting.md#agent-connectivity-on-15141515) - the `unexpected eof while reading` (server-side) and `SSL read` (agent-side) handshake signatures on 1515
 - [Flooding](flooding.md) - a key-mismatch loop can contribute to reconnection storms
+- [Containerized agent identity](../../containerization/kubernetes/agent-daemonset.md#agent-identity-on-nodes-that-come-and-go) - DaemonSet agents on replaced nodes, lost keys, and scoped cleanup of stale entries

@@ -78,20 +78,20 @@ spec:
         app: wazuh-manager-worker
     spec:
       containers:
- - name: wazuh
+      - name: wazuh
         image: wazuh/wazuh-manager:4.12.0
         volumeMounts:
- - name: aws-credentials
+        - name: aws-credentials
           mountPath: /var/ossec/etc/.aws-credentials  # Path referenced by the AWS wodle
           subPath: credentials                        # Must match the key in the Secret
- - name: config
+        - name: config
           mountPath: /root/.aws/config                # Standard AWS CLI config path
           subPath: awsprofileconfig                   # Must match the key in the ConfigMap
       volumes:
- - name: aws-credentials
+      - name: aws-credentials
         secret:
           secretName: awscredentials
- - name: config
+      - name: config
         configMap:
           name: configawsprofile
 ```

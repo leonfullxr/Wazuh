@@ -18,13 +18,14 @@ Patterns for running Wazuh as StatefulSets on Kubernetes, managing config throug
 |-------|-------------|
 | [Wazuh agent deployment - DaemonSet & Sidecar](./wazuh-agent-deployment.md) | Roll agents onto every cluster node as a DaemonSet, or attach one beside an app as a sidecar (official `wazuh/wazuh-agent` image) |
 | [Agent on a Kubernetes node](./agent-on-node.md) | Supported path: install the native agent on the node OS; watch pod logs via `hostPath` and Docker events |
-| [Containerized agent - custom image](./agent-daemonset.md) | Unsupported/custom path: home-built agent image as DaemonSet or docker-compose service, plus EKS Fargate logging to CloudWatch |
+| [Containerized agent - custom image](./agent-daemonset.md) | When a self-built image is justified, a lab-tested image that keeps only the agent key on the node, agent identity on replaced nodes, password versus API enrollment, a checklist for community agent images, and EKS Fargate logging to CloudWatch |
 
 ## Helm chart
 
 | Guide | Description |
 |-------|-------------|
 | [Wazuh Helm chart](./helm/wazuh/) | Community chart covering the full stack: manager master/worker StatefulSets, indexer, dashboard, optional agent DaemonSet. Three certificate modes, single-node and HA presets, EKS/OpenShift examples, operational fixes from the guides below baked in as defaults. No official Wazuh Helm chart exists. |
+| [Agent DaemonSet in the chart](./helm/wazuh/README.md#agent-daemonset) | Host paths under `/host`, what a containerized agent cannot report, SELinux on Bottlerocket, and a review of the community agent-only chart (its defaults crash at init) |
 
 ## Configuration & operations
 
