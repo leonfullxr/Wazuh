@@ -1,0 +1,8 @@
+schema_version: '1'
+expectation_id: auth_priority
+topic_id: auth_review
+field: rule.level
+op: gte
+value: 10
+source: content
+version: '1'

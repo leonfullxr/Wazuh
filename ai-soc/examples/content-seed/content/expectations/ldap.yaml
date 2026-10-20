@@ -1,0 +1,8 @@
+schema_version: '1'
+expectation_id: ldap_service_group
+topic_id: ldap
+field: rule.groups
+op: eq
+value: ldap
+source: content
+version: '1'

@@ -1,0 +1,10 @@
+template_id: auth_source_gap
+topic_id: auth_review
+kind: observation
+required_bindings: {o: [outcome]}
+texts:
+  en: A source address was absent from at least one returned row; outcome {o}. This check describes returned rows only.
+  es: Faltó una dirección de origen en al menos una fila devuelta; resultado {o}. Esta comprobación describe solo las filas devueltas.
+required_check_outcomes: [{check_id: auth_sources, outcome: failed}]
+allowed_evidence_kinds: [check]
+relations: []

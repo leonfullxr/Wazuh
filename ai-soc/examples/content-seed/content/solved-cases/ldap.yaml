@@ -1,0 +1,9 @@
+schema_version: '1'
+case_id: synthetic_ldap_case
+topic_id: ldap
+synthetic: true
+description: A fictional LDAP check shows two visible synthetic alerts.
+promotion_status: candidate
+anonymization_attestation:
+  reviewer_id: synthetic-template-owner
+  date: '2026-10-03'

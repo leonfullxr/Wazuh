@@ -1,0 +1,62 @@
+{
+  "schema_version": "1",
+  "case_id": "G010.en.doc",
+  "requirements": [
+    "G010"
+  ],
+  "tasks": [
+    "B1-T03",
+    "B2-T03",
+    "B6-T04"
+  ],
+  "layer": "golden",
+  "variant": "positive",
+  "evidence_class": "offline",
+  "fixture_sha256": "e6d52fe71a2af38a1ec7b6ff8365237e5ae1e9e0761c42fb0822afeaca661977",
+  "content_sha": "0000000000000000000000000000000000000000",
+  "input": {
+    "kind": "request",
+    "payload": {
+      "question": "How do I configure LDAP?",
+      "environment_id": "alpha",
+      "model_id": "fixture-claude-large",
+      "effort": "high",
+      "timezone": "UTC",
+      "language_hint": "en"
+    }
+  },
+  "expected": {
+    "kind": "invariants",
+    "payload": {
+      "language": "en",
+      "topic_plans": [
+        {
+          "topic_id": "ldap",
+          "document": true,
+          "failure": false,
+          "judgment": false,
+          "fetch_templates": []
+        }
+      ],
+      "planning_status": "planned",
+      "judgment_candidates": 0,
+      "converse_rule": "0 for parser; composed eligible topics<=1 each until actual budget/deadline, remainder ordered capacity left-outs; no count cap",
+      "clarify_kind": null
+    }
+  },
+  "calls": [
+    {
+      "operation": "embedding",
+      "principal": "alice",
+      "site": "alpha",
+      "count": 0
+    },
+    {
+      "operation": "parser_external_calls",
+      "principal": "alice",
+      "site": "alpha",
+      "count": 0
+    }
+  ],
+  "timeout_seconds": 30
+}

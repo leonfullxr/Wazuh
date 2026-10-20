@@ -1,0 +1,71 @@
+version: '1'
+sha256: 032c4bcbbf91a527cbc53a28e5aa87e1fb086317e4772fd6a99299b3d19cb3f3
+cues:
+- cue_id: fetch_alerts_en
+  language: en
+  text: alerts
+  normalized: alerts
+  kind: fetch
+  boundary: word
+  negation_rule: direct_negation
+- cue_id: fetch_alerts_es
+  language: es
+  text: alertas
+  normalized: alertas
+  kind: fetch
+  boundary: word
+  negation_rule: direct_negation
+- cue_id: judgment_recommend_en
+  language: en
+  text: recommend
+  normalized: recommend
+  kind: judgment
+  boundary: word
+  negation_rule: direct_negation
+- cue_id: judgment_recommend_es
+  language: es
+  text: recomienda
+  normalized: recomienda
+  kind: judgment
+  boundary: word
+  negation_rule: direct_negation
+- cue_id: failure_working_en
+  language: en
+  text: not working
+  normalized: not working
+  kind: failure
+  boundary: phrase
+- cue_id: failure_working_es
+  language: es
+  text: no funciona
+  normalized: no funciona
+  kind: failure
+  boundary: phrase
+- cue_id: failure_investigate_en
+  language: en
+  text: investigate
+  normalized: investigate
+  kind: failure
+  boundary: word
+- cue_id: failure_investiga_es
+  language: es
+  text: investiga
+  normalized: investiga
+  kind: failure
+  boundary: word
+- cue_id: judgment_assess_en
+  language: en
+  text: assess
+  normalized: assess
+  kind: judgment
+  boundary: word
+  negation_rule: direct_negation
+- cue_id: judgment_evalua_es
+  language: es
+  text: evalúa
+  normalized: evalua
+  kind: judgment
+  boundary: word
+  negation_rule: direct_negation
+aliases: []
+ambiguities: []
