@@ -5,7 +5,7 @@ export function Panel(props: HTMLAttributes<HTMLElement>) {
         <section
             {...props}
             className={cn(
-                "rounded-panel border border-[var(--stroke-subtle)] bg-white p-6 shadow-panel",
+                "rounded-panel border border-[var(--stroke-subtle)] bg-[var(--surface)] p-6 shadow-panel",
                 props.className,
             )}
         />

@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Panel } from "../../components/ui/panel";
 import { Sheet, SheetClose, SheetContent } from "../../components/ui/sheet";
+import { Tag } from "../../components/ui/tag";
+import { dispositionTags, statusTags } from "../../lib/semantic";
 import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates";
 import * as api from "../../api/workspace";
 import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/workspace";
+import "./queue-v2.css";
 
 type Translate = (key: string) => string;
 type QueueFilterPatch = Record<string, string | null | undefined>;
@@ -240,14 +243,14 @@ export function QueuePage({
     };
 
     return (
-        <div className="workspace-page">
-            <p className="page-description">
-                {t("queueDescription")}{" "}
-                <span className="score-note">
+        <div className="workspace-page queue-v2">
+            <div className="queue-v2-intro">
+                <p className="page-description">{t("queueDescription")}</p>
+                <Tag tone="amber">
                     {t("score")} · {t("uncalibrated")}
-                </span>
-            </p>
-            <Panel className="workspace-panel">
+                </Tag>
+            </div>
+            <Panel className="workspace-panel queue-v2-filters">
                 <div className="queue-filter-row">
                     <label>
                         {t("statusLabel")}
@@ -312,7 +315,7 @@ export function QueuePage({
                 </div>
             </Panel>
             {selectedCount > 0 && (
-                <Panel className="workspace-panel bulk-toolbar">
+                <Panel className="workspace-panel bulk-toolbar queue-v2-bulk">
                     <span>{t("selectedCount").replace("{count}", String(selectedCount))}</span>
                     <label>
                         {t("owner")}
@@ -423,7 +426,7 @@ export function QueuePage({
                     onRetry={() => void queueQuery.refetch()}
                 />
             ) : (
-                <Panel className="workspace-panel table-panel">
+                <Panel className="workspace-panel table-panel queue-v2-table-panel">
                     <div className="table-scroll">
                         <table className="workspace-table queue-table">
                             <thead>
@@ -468,21 +471,42 @@ export function QueuePage({
                                                 >
                                                     {group.title}
                                                 </button>
-                                                <span className="table-secondary">
-                                                    {group.primary_entity?.value ??
-                                                        group.rule_id ??
-                                                        "—"}
+                                                <span className="table-secondary queue-v2-entity">
+                                                    {group.primary_entity && (
+                                                        <span>{group.primary_entity.kind}</span>
+                                                    )}
+                                                    <code>
+                                                        {group.primary_entity?.value ??
+                                                            group.rule_id ??
+                                                            "—"}
+                                                    </code>
                                                 </span>
-                                                <span className="table-secondary">
-                                                    {reasons.join(" · ")}
-                                                </span>
+                                                {reasons.length > 0 && (
+                                                    <span className="table-secondary queue-v2-reasons">
+                                                        {reasons.join(" · ")}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td>
-                                                <strong>
-                                                    {group.score === null
-                                                        ? t("scorePending")
-                                                        : group.score.toFixed(1)}
-                                                </strong>
+                                                <div className="queue-v2-score">
+                                                    <strong>
+                                                        {group.score === null
+                                                            ? t("scorePending")
+                                                            : group.score.toFixed(1)}
+                                                    </strong>
+                                                    {group.score !== null && (
+                                                        <span
+                                                            className="queue-v2-score-track"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <span
+                                                                style={{
+                                                                    width: `${scorePercent(group.score)}%`,
+                                                                }}
+                                                            />
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span className="table-secondary">
                                                     {group.computation_version?.split(":")[0] ??
                                                         t("scorePending")}
@@ -491,11 +515,27 @@ export function QueuePage({
                                             <td>{group.alert_count.toLocaleString()}</td>
                                             <td>{formatTime(group.last_ts)}</td>
                                             <td>{workState.owner_key ?? t("unassigned")}</td>
-                                            <td>{t(statusKeys[workState.status])}</td>
                                             <td>
-                                                {group.disposition
-                                                    ? t(labelKey(group.disposition.label))
-                                                    : "—"}
+                                                <div>
+                                                    <Tag {...statusTags[workState.status]}>
+                                                        {t(statusKeys[workState.status])}
+                                                    </Tag>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {group.disposition ? (
+                                                    <div>
+                                                        <Tag
+                                                            {...dispositionTags[
+                                                                group.disposition.label
+                                                            ]}
+                                                        >
+                                                            {t(labelKey(group.disposition.label))}
+                                                        </Tag>
+                                                    </div>
+                                                ) : (
+                                                    "—"
+                                                )}
                                             </td>
                                         </tr>
                                     ),
@@ -533,7 +573,10 @@ export function QueuePage({
                 }}
             >
                 {selectedId && (
-                    <SheetContent title={detail?.title ?? t("group")}>
+                    <SheetContent
+                        title={detail?.title ?? t("group")}
+                        closeLabel={t("detailsClose")}
+                    >
                         {detailQuery.isLoading ? (
                             <WorkspaceLoading label={t("group")} />
                         ) : detailQuery.isError ? (
@@ -662,10 +705,20 @@ function GroupDrawer({
         });
     };
     return (
-        <div className="group-drawer-body">
-            <p className="page-description">
-                {t("score")} · {t("sortPriority")}
-            </p>
+        <div className="group-drawer-body queue-v2-drawer">
+            <div className="queue-v2-drawer-meta">
+                <code>{group.group_id}</code>
+                <div>
+                    <Tag {...statusTags[group.work_state.status]}>
+                        {t(statusKeys[group.work_state.status])}
+                    </Tag>
+                    {group.disposition && (
+                        <Tag {...dispositionTags[group.disposition.label]}>
+                            {t(labelKey(group.disposition.label))}
+                        </Tag>
+                    )}
+                </div>
+            </div>
             <div className="group-score-card">
                 <strong>{group.score === null ? t("scorePending") : group.score.toFixed(1)}</strong>
                 <span>{t("score")}</span>
@@ -674,8 +727,21 @@ function GroupDrawer({
                         ? `${t("uncalibratedShort")} · ${group.computation_version}`
                         : t("scorePendingDescription")}
                 </small>
+                {group.score !== null && (
+                    <span className="queue-v2-drawer-score" aria-hidden="true">
+                        <span style={{ width: `${scorePercent(group.score)}%` }} />
+                    </span>
+                )}
             </div>
             <dl className="alert-detail-list">
+                <dt>{t("group")}</dt>
+                <dd>
+                    <code>{group.group_id}</code>
+                </dd>
+                <dt>{t("m3MemberRevision")}</dt>
+                <dd>
+                    <code>{group.group_revision}</code>
+                </dd>
                 <dt>{t("groupCount")}</dt>
                 <dd>{group.alert_count}</dd>
                 <dt>{t("groupFirst")}</dt>
@@ -693,6 +759,14 @@ function GroupDrawer({
                     {t(statusKeys[group.work_state.status])} ·{" "}
                     {formatTime(group.work_state.updated_at)}
                 </dd>
+                {group.primary_entity && (
+                    <>
+                        <dt>{group.primary_entity.kind}</dt>
+                        <dd>
+                            <code>{group.primary_entity.value}</code>
+                        </dd>
+                    </>
+                )}
             </dl>
             <section className="drawer-section">
                 <h3>{t("scoreExplanation")}</h3>
@@ -899,6 +973,9 @@ function labelKey(label: DispositionLabel): string {
         case "undetermined":
             return "undetermined";
     }
+}
+function scorePercent(score: number): number {
+    return Math.min(100, Math.max(0, score));
 }
 function formatTime(value: string): string {
     return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(

@@ -30,7 +30,7 @@ image-cache:
 image-inputs-offline:
 	$(OFFLINE) $(UV) run --locked --offline python scripts/prepare_containers.py --offline-only
 
-image-reproducibility: image-inputs-offline ui-build
+image-reproducibility: image-inputs-offline web-build
 	$(UV) run --locked --offline python scripts/reproducible_image.py build --scratch-root /dev/shm
 
 infra-check:

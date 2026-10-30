@@ -1,66 +1,195 @@
 :root {
-    /* measured: UI and display typography metrics from the supplied reference. */
+    color-scheme: light;
+    /* Swap Inter for Manrope here when the font package is installed. */
     --font-ui: "Inter Variable", system-ui, sans-serif;
-    /* adapted: Inter variable opsz axis substitutes for the unavailable distinct Inter Display npm font file. */
-    --font-display: "Inter Variable", system-ui, sans-serif;
+    --font-display: var(--font-ui);
     --font-code: "JetBrains Mono", ui-monospace, monospace;
-    /* measured: neutral, border and status colors from the supplied reference. */
-    --bg: #ffffff;
-    --bg-secondary: #fafafb;
-    --surface-subtle: #f3f4f6;
-    --surface: #edeff3;
-    --text: #1c1d1f;
-    --text-secondary: #232529;
-    --text-tertiary: #505967;
-    /* adapted: darkened measured muted text to reach WCAG AA contrast on white and #fafafb. */
-    --text-muted: #667180;
-    --stroke-weak: #edeff3;
-    --stroke-subtle: #e4e7ec;
-    --stroke: #d3d8df;
-    --stroke-strong: #cad0d9;
-    /* adapted: form control boundaries need 3:1 against the canvas (WCAG 1.4.11); measured strokes are 1.4:1. */
-    --stroke-control: #7d8794;
-    --accent: #266df0;
-    --accent-soft: #e8f0ff;
-    --positive: #0fc27b;
-    --negative: #ff5b59;
-    --warning: #f5b900;
-    --focus-ring: #266df04d;
-    /* measured: 4px spacing foundation and supplied spacing steps. */
+    --canvas: #fafaf9;
+    --surface: #ffffff;
+    --surface-2: #f6f6f5;
+    --hover: #f3f3f1;
+    --selected: #eeeeec;
+    --border: #e8e8e6;
+    --border-row: #f0f0ee;
+    --border-strong: #dadad7;
+    --text: #1b1b1b;
+    --text-2: #686868;
+    --text-muted: #707070;
+    --accent: #256bd1;
+    --accent-hover: #1d58ae;
+    --accent-wash: #ebf2fb;
+    --row-selected: #f5f8fe;
+    --primary-button: #1b1b1b;
+    --primary-button-foreground: #ffffff;
+    --primary-button-hover: #333333;
+    --background: var(--canvas);
+    --foreground: var(--text);
+    --card: var(--surface);
+    --card-foreground: var(--text);
+    --popover: var(--surface);
+    --popover-foreground: var(--text);
+    --primary: var(--primary-button);
+    --primary-foreground: var(--primary-button-foreground);
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--text);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-muted);
+    --destructive: #b42318;
+    --destructive-foreground: #ffffff;
+    --input: var(--border-strong);
+    --ring: rgb(37 107 209 / 45%);
+    --tag-neutral-bg: #f4f4f2;
+    --tag-neutral-border: #e4e4e1;
+    --tag-neutral-text: #4b4b4b;
+    --tag-blue-bg: #eef4ff;
+    --tag-blue-border: #d3e2fb;
+    --tag-blue-text: #1d5bbf;
+    --tag-green-bg: #ecf8f0;
+    --tag-green-border: #cdebd7;
+    --tag-green-text: #1a7a3d;
+    --tag-amber-bg: #fff7e1;
+    --tag-amber-border: #f4e1ae;
+    --tag-amber-text: #8a5300;
+    --tag-orange-bg: #fff1e7;
+    --tag-orange-border: #f8d5be;
+    --tag-orange-text: #b2470a;
+    --tag-red-bg: #fef0ef;
+    --tag-red-border: #f7d2ce;
+    --tag-red-text: #b42318;
+    --tag-purple-bg: #f4f1ff;
+    --tag-purple-border: #e0d8fb;
+    --tag-purple-text: #5b3fc4;
+    --tag-teal-bg: #eaf7f6;
+    --tag-teal-border: #c9e9e6;
+    --tag-teal-text: #11706e;
+    --severity-critical: #b42318;
+    --severity-high: #ef6a1f;
+    --severity-medium: #f2b53a;
+    --severity-low: #c9ced6;
+    --series-blue: #3585f9;
+    --series-orange: #ed6700;
+    --series-teal: #27a0a6;
+    --series-purple: #48448e;
+    --series-other: #828282;
+    --heat-1: #f2f6fd;
+    --heat-2: #d6e6fe;
+    --heat-3: #abc4ff;
+    --heat-4: #6fa0f7;
+    --heat-5: #3585f9;
+    --heat-6: #1d5bbf;
+    --entity-ip: #48448e;
+    --entity-user: #27a0a6;
+    --entity-host: #3585f9;
+    --entity-file: #ed6700;
+    --graph-edge: #b5b5b2;
     --space-unit: 4px;
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
     --space-4: 16px;
+    --space-5: 20px;
     --space-6: 24px;
     --space-8: 32px;
-    /* measured: control and panel corner radii from the supplied reference. */
-    --radius-control: 10px;
-    --radius-card: 12px;
-    --radius-window: 16px;
-    /* measured: control easing and response durations from the supplied reference. */
-    --ease-controls: cubic-bezier(0.2, 0, 0, 1);
-    --time-hover: 50ms;
-    --time-control: 300ms;
-    /* measured: low-opacity panel and floating surface shadows from the supplied reference. */
-    --shadow-panel: 0 1px 3px #00000003, 0 2px 4px -1px #00000005, 0 4px 8px -2px #00000008;
-    --shadow-float: 0 1px 2px #0b0d1806, 0 8px 20px #0b0d180a;
+    --space-10: 40px;
+    --space-12: 48px;
+    --radius-tag: 4px;
+    --radius-control: 6px;
+    --radius-panel: 8px;
+    --radius-dialog: 12px;
+    --control-height: 32px;
+    --control-height-compact: 28px;
+    --table-row-height: 42px;
+    --header-height: 48px;
     --rail-width: 224px;
-    --header-height: 64px;
+    --shadow-active: 0 1px 2px rgb(0 0 0 / 8%);
+    --shadow-float: 0 4px 16px rgb(0 0 0 / 8%);
+    --time-hover: 120ms;
+    --time-control: 160ms;
+    --ease-controls: ease-out;
+    --focus-ring: rgb(37 107 209 / 45%);
+    --overlay: rgb(27 27 27 / 32%);
+    /* Compatibility aliases used by the current screens. */
+    --bg: var(--surface);
+    --bg-secondary: var(--canvas);
+    --surface-subtle: var(--surface-2);
+    --text-secondary: var(--text);
+    --text-tertiary: var(--text-2);
+    --stroke-weak: var(--border-row);
+    --stroke-subtle: var(--border);
+    --stroke: var(--border);
+    --stroke-strong: var(--border-strong);
+    --stroke-control: #767676;
+    --accent-soft: var(--accent-wash);
+    --accent-text: var(--accent-hover);
+    --positive: #1a7a3d;
+    --positive-soft: var(--tag-green-bg);
+    --positive-text: var(--tag-green-text);
+    --negative: #b42318;
+    --negative-soft: var(--tag-red-bg);
+    --negative-text: var(--tag-red-text);
+    --warning: #8a5300;
+    --warning-soft: var(--tag-amber-bg);
+    --warning-text: var(--tag-amber-text);
+    --radius-card: var(--radius-panel);
+    --radius-window: var(--radius-dialog);
+    --shadow-panel: none;
 }
-/* adapted: no dark theme until dashboard color semantics are approved. */
-/* adapted: application surfaces use compact 24px panel padding and a 224px rail for scan density. */
-:root {
-    /* Semantic dashboard colors. Muted text is adapted from #6f7988 to #667180 for AA. */
-    --positive-soft: #e4f6ed;
-    --positive-text: #11633b;
-    --negative-soft: #fff0ef;
-    --negative-text: #a82927;
-    --warning-soft: #fff5d7;
-    --warning-text: #745500;
-    --accent-text: #174cae;
-    --overlay: rgb(28 29 31 / 32%);
-    --time-hover: 50ms;
-    --time-control: 300ms;
-    --ease-controls: cubic-bezier(0.2, 0, 0, 1);
+
+.dark {
+    color-scheme: dark;
+    --canvas: #141415;
+    --surface: #1b1b1d;
+    --surface-2: #202023;
+    --hover: #232326;
+    --selected: #2a2a2d;
+    --border: #2c2c30;
+    --border-row: #262629;
+    --border-strong: #3a3a40;
+    --stroke-control: #8a8a89;
+    --text: #ededec;
+    --text-2: #a1a1a0;
+    --text-muted: #8a8a89;
+    --accent: #5b9bff;
+    --accent-hover: #78adff;
+    --accent-wash: rgb(91 155 255 / 14%);
+    --row-selected: rgb(91 155 255 / 9%);
+    --primary-button: #ededec;
+    --primary-button-foreground: #141415;
+    --primary-button-hover: #d6d6d4;
+    --destructive: #ff9f94;
+    --destructive-foreground: #141415;
+    --ring: rgb(91 155 255 / 55%);
+    --tag-neutral-bg: rgb(255 255 255 / 6%);
+    --tag-neutral-border: rgb(255 255 255 / 12%);
+    --tag-neutral-text: #d0d0cf;
+    --tag-blue-bg: rgb(66 133 244 / 14%);
+    --tag-blue-border: rgb(66 133 244 / 32%);
+    --tag-blue-text: #9ec1ff;
+    --tag-green-bg: rgb(52 168 83 / 14%);
+    --tag-green-border: rgb(52 168 83 / 32%);
+    --tag-green-text: #86d9a0;
+    --tag-amber-bg: rgb(242 181 34 / 13%);
+    --tag-amber-border: rgb(242 181 34 / 30%);
+    --tag-amber-text: #f4cd62;
+    --tag-orange-bg: rgb(245 115 22 / 14%);
+    --tag-orange-border: rgb(245 115 22 / 32%);
+    --tag-orange-text: #ffad70;
+    --tag-red-bg: rgb(235 80 64 / 15%);
+    --tag-red-border: rgb(235 80 64 / 34%);
+    --tag-red-text: #ff9f94;
+    --tag-purple-bg: rgb(139 108 245 / 16%);
+    --tag-purple-border: rgb(139 108 245 / 34%);
+    --tag-purple-text: #c5b6ff;
+    --tag-teal-bg: rgb(32 178 170 / 14%);
+    --tag-teal-border: rgb(32 178 170 / 32%);
+    --tag-teal-text: #74dad3;
+    --focus-ring: rgb(91 155 255 / 55%);
+    --overlay: rgb(0 0 0 / 55%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --time-hover: 0ms;
+        --time-control: 0ms;
+    }
 }

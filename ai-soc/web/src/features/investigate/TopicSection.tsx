@@ -5,7 +5,8 @@ import type {
     JudgmentState,
     TopicAnswer,
 } from "../../../../contracts/v1/generated/types.ts";
-import { StatusPill } from "../../components/ui/status-pill";
+import { Tag } from "../../components/ui/tag";
+import { judgmentStateTags } from "../../lib/semantic";
 import type { Locale } from "../../i18n";
 import {
     words,
@@ -76,7 +77,9 @@ export function TopicSection({
                     </h2>
                     {block.document?.heading && <code>{block.topic_id}</code>}
                 </div>
-                <StatusPill>{localeEnum(judgments, block.judgment.state, locale)}</StatusPill>
+                <Tag {...judgmentStateTags[block.judgment.state]}>
+                    {localeEnum(judgments, block.judgment.state, locale)}
+                </Tag>
                 {block.judgment.state !== "not_requested" && block.judgment.model_id && (
                     <span className="judgment-meta">
                         {t("model")}: {block.judgment.model_id}

@@ -1,0 +1,72 @@
+.command-dialog::backdrop {
+    background: var(--overlay);
+}
+.command-trigger {
+    min-width: 40px;
+    height: 32px;
+    border: 1px solid var(--stroke-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text-2);
+    cursor: pointer;
+}
+.command-dialog {
+    position: fixed;
+    z-index: 61;
+    top: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(560px, calc(100vw - 32px));
+    max-height: 70vh;
+    overflow: auto;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-window);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-float);
+}
+.command-dialog h2 {
+    margin: 0 40px 12px 0;
+    font-size: 16px;
+}
+.command-dialog input {
+    width: 100%;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--stroke-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+}
+.command-results {
+    display: grid;
+    gap: 4px;
+    margin-top: 12px;
+}
+.command-results button {
+    min-height: 32px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+.command-results button:hover,
+.command-results button[aria-selected="true"] {
+    background: var(--hover);
+}
+.command-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--stroke-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}

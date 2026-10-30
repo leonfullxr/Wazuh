@@ -7,6 +7,58 @@ const en = {
     alerts: "Alerts",
     queue: "Queue",
     metrics: "Metrics",
+    dashboards: "Dashboards",
+    ai_quality: "AI SOC quality",
+    soc_operations: "SOC operations",
+    aiQualityDescription:
+        "Answer quality and validation reporting. Panels remain empty until these measurements are reported.",
+    socOperationsDescription:
+        "Triage flow and analyst workload reporting. Panels remain empty until these measurements are reported.",
+    availableMetrics: "Available metrics",
+    availableMetricsDescription:
+        "Operational health and labelled-work statistics already reported by the service remain available on Metrics.",
+    openMetrics: "Open Metrics",
+    noDashboardData: "No data yet",
+    notReported: "Not reported",
+    aiQualitySummary: "Quality summary",
+    aiQualitySummaryEmpty:
+        "When reported, this panel will summarize questions, validated topic blocks, analyst feedback, and answer duration.",
+    answerOutcomes: "Answer outcomes per day",
+    answerOutcomesEmpty:
+        "When reported, this chart will show daily answered, partial, clarification, and refused outcomes for the selected site and time window.",
+    judgmentBreakdown: "Judgment state breakdown",
+    judgmentBreakdownEmpty:
+        "When reported, this panel will show how completed topic answers were validated, limited, blocked, or returned without findings.",
+    whereTimeGoes: "Where time goes",
+    whereTimeGoesEmpty:
+        "When reported, this chart will compare typical and slower timings across retrieval, checks, judgment, validation, and audit.",
+    validatorRemovals: "Validator removals",
+    validatorRemovalsEmpty:
+        "When reported, this panel will group removed findings by their recorded validation reason.",
+    topicQuality: "Quality by topic",
+    topicQualityEmpty:
+        "When reported, this table will compare questions, validation, evidence, removals, feedback, and common failures by topic.",
+    answersNeedReview: "Answers that need a look",
+    answersNeedReviewEmpty:
+        "When reported, this table will list answers flagged for review and the recorded reason each needs attention.",
+    socOperationsSummary: "Operations summary",
+    socOperationsSummaryEmpty:
+        "When reported, this panel will summarize work opened, closed, triaged, and assigned during the selected window.",
+    backlogFlow: "Backlog flow",
+    backlogFlowEmpty:
+        "When reported, this chart will compare work opened and closed over time and show the net backlog change.",
+    triageFunnel: "Triage funnel",
+    triageFunnelEmpty:
+        "When reported, this funnel will show how work moves through each recorded triage stage in the selected window.",
+    openWorkAge: "Open work by age",
+    openWorkAgeEmpty:
+        "When reported, this chart will group open work by age and split it by available severity information.",
+    analystLoad: "Analyst load",
+    analystLoadEmpty:
+        "When reported, this table will compare assignments, recorded actions, and open work by owner.",
+    tuningCandidates: "Tuning candidates",
+    tuningCandidatesEmpty:
+        "When reported, this table will show rules with repeated disposition patterns and any recorded tuning suggestion.",
     overviewDescription: "Alert activity and source health for the selected window.",
     alertsDescription: "Normalized Wazuh alerts with source details and mapping gaps.",
     queueDescription: "Grouped work ranked by the stored deterministic score.",
@@ -331,6 +383,58 @@ const es = {
     alerts: "Alertas",
     queue: "Cola",
     metrics: "Métricas",
+    dashboards: "Paneles",
+    ai_quality: "Calidad de AI SOC",
+    soc_operations: "Operaciones del SOC",
+    aiQualityDescription:
+        "Informes de calidad y validación de respuestas. Los paneles permanecen vacíos hasta que se comuniquen estas mediciones.",
+    socOperationsDescription:
+        "Informes del flujo de triaje y la carga de analistas. Los paneles permanecen vacíos hasta que se comuniquen estas mediciones.",
+    availableMetrics: "Métricas disponibles",
+    availableMetricsDescription:
+        "Las estadísticas de estado operativo y trabajo etiquetado que ya comunica el servicio siguen disponibles en Métricas.",
+    openMetrics: "Abrir Métricas",
+    noDashboardData: "Todavía no hay datos",
+    notReported: "No comunicado",
+    aiQualitySummary: "Resumen de calidad",
+    aiQualitySummaryEmpty:
+        "Cuando se comuniquen, este panel resumirá las preguntas, los bloques temáticos validados, los comentarios de analistas y la duración de las respuestas.",
+    answerOutcomes: "Resultados de respuestas por día",
+    answerOutcomesEmpty:
+        "Cuando se comuniquen, este gráfico mostrará por día las respuestas completas, parciales, que piden aclaración o que se han rechazado para el sitio y periodo seleccionados.",
+    judgmentBreakdown: "Desglose de estados de evaluación",
+    judgmentBreakdownEmpty:
+        "Cuando se comuniquen, este panel mostrará qué respuestas temáticas completadas se validaron, se limitaron, se bloquearon o no devolvieron hallazgos.",
+    whereTimeGoes: "Distribución del tiempo",
+    whereTimeGoesEmpty:
+        "Cuando se comuniquen, este gráfico comparará los tiempos habituales y más lentos de recuperación, comprobación, evaluación, validación y auditoría.",
+    validatorRemovals: "Eliminaciones del validador",
+    validatorRemovalsEmpty:
+        "Cuando se comuniquen, este panel agrupará los hallazgos eliminados por el motivo de validación registrado.",
+    topicQuality: "Calidad por tema",
+    topicQualityEmpty:
+        "Cuando se comuniquen, esta tabla comparará por tema las preguntas, validaciones, evidencias, eliminaciones, comentarios y fallos frecuentes.",
+    answersNeedReview: "Respuestas que requieren revisión",
+    answersNeedReviewEmpty:
+        "Cuando se comuniquen, esta tabla mostrará las respuestas marcadas para revisión y el motivo registrado por el que requieren atención.",
+    socOperationsSummary: "Resumen de operaciones",
+    socOperationsSummaryEmpty:
+        "Cuando se comuniquen, este panel resumirá el trabajo abierto, cerrado, clasificado y asignado durante el periodo seleccionado.",
+    backlogFlow: "Flujo de trabajo pendiente",
+    backlogFlowEmpty:
+        "Cuando se comuniquen, este gráfico comparará el trabajo abierto y cerrado a lo largo del tiempo y mostrará la variación neta de pendientes.",
+    triageFunnel: "Embudo de triaje",
+    triageFunnelEmpty:
+        "Cuando se comuniquen, este embudo mostrará cómo avanza el trabajo por cada etapa de triaje registrada en el periodo seleccionado.",
+    openWorkAge: "Trabajo abierto por antigüedad",
+    openWorkAgeEmpty:
+        "Cuando se comuniquen, este gráfico agrupará el trabajo abierto por antigüedad y lo dividirá según la información de severidad disponible.",
+    analystLoad: "Carga de analistas",
+    analystLoadEmpty:
+        "Cuando se comuniquen, esta tabla comparará las asignaciones, acciones registradas y trabajo abierto por responsable.",
+    tuningCandidates: "Candidatos de ajuste",
+    tuningCandidatesEmpty:
+        "Cuando se comuniquen, esta tabla mostrará las reglas con patrones de disposición repetidos y cualquier sugerencia de ajuste registrada.",
     overviewDescription: "Actividad de alertas y estado de la fuente en el periodo seleccionado.",
     alertsDescription: "Alertas Wazuh normalizadas, detalles de origen y campos sin mapear.",
     queueDescription: "Trabajo agrupado y ordenado por la puntuación determinista almacenada.",

@@ -4,6 +4,45 @@ Wazuh AI SOC is a read-only assistant for Wazuh analysts. It plans an analyst's 
 
 It runs as a private HTTPS service on AWS (ECS Fargate behind an internal ALB), uses Amazon Bedrock for judgment with a pinned guardrail, and serves both a browser UI and an MCP endpoint (`soc_ask`, `soc_page`, `soc_feedback`).
 
+## Console preview
+
+These screenshots show a local **synthetic design preview**. The populated threat activity and quality dashboards, alert explorer, and incident and chain graphs include illustrative overlays that are not included in the production build. Their figures and relationships do not represent live service data. See [the redesign plan](web/REDESIGN_PLAN.md) for the current implementation and API gaps.
+
+### Threat activity
+
+![Synthetic threat activity overview](docs/screenshots/overview.png)
+
+### Alerts and queue
+
+![Synthetic alert explorer design preview](docs/screenshots/alerts.png)
+
+![Queue with synthetic groups](docs/screenshots/queue.png)
+
+### Incident and chain investigation
+
+![Synthetic incident with an illustrative entity graph and timeline](docs/screenshots/incidents.png)
+
+![Synthetic chain candidate with an illustrative graph](docs/screenshots/chains.png)
+
+### Dashboards
+
+![Illustrative AI SOC quality dashboard](docs/screenshots/ai-quality.png)
+
+![Illustrative SOC operations dashboard](docs/screenshots/soc-operations.png)
+
+![Service metrics with synthetic data](docs/screenshots/metrics.png)
+
+<details>
+<summary>More console screens</summary>
+
+![Investigation composer](docs/screenshots/investigate.png)
+
+![Question history](docs/screenshots/history.png)
+
+![Service status](docs/screenshots/status.png)
+
+</details>
+
 ## How it works
 
 1. Routing cues map the question to reviewed topics. Questions that match no topic get a clarification or a refusal, never a guess.
@@ -18,7 +57,8 @@ See [Architecture](docs/architecture.md) for the full request flow and how false
 | Path | Contents |
 |---|---|
 | `src/ai_soc` | Service: API, MCP, planning, query, judgment, validation, state, telemetry |
-| `ui/` | Browser UI (TypeScript, built into the image) |
+| `web/` | Browser UI (React and TypeScript, built into the image) |
+| `ui/` | Legacy Playwright and axe runner dependencies retained during test-tool migration |
 | `contracts/v1` | Generated wire schema, OpenAPI document and TypeScript types |
 | `infra/` | Terraform for the AWS deployment, plus the reference egress proxy |
 | `scripts/` | Image build, platform preparation, live qualification and teardown checks |
@@ -39,7 +79,7 @@ See [Architecture](docs/architecture.md) for the full request flow and how false
 make bootstrap
 ```
 
-This installs the locked Python and UI dependencies and fetches the pinned Terraform, TFLint, Trivy, Node and base images listed in `dev/toolchain.lock.json`, verifying each digest. Everything after this step runs offline.
+This installs the locked Python and browser dependencies and fetches the pinned Terraform, TFLint, Trivy, Node and base images listed in `dev/toolchain.lock.json`, verifying each digest. Everything after this step runs offline. The production browser build comes from `web/`; the isolated Playwright preparation continues to use the legacy runner lock until browser test tooling has its own lockfile.
 
 ## 2. Build the content pack
 
@@ -53,7 +93,7 @@ The playbook limits in the seed (for example the one-hour recency limit) are syn
 make image-reproducibility
 ```
 
-This builds the UI, then makes clean linux/amd64 OCI builds with `--network=none` and `--no-cache`, and checks that two independent builds of the same commit produce identical config and layer digests. The content pack is a provenance input recorded in image labels, not baked into the image. Evidence and the OCI archives are written under `build/evidence/image-repro/`. Push the verified image to a private ECR repository and deploy it by digest.
+This builds `web/`, then makes clean linux/amd64 OCI builds with `--network=none` and `--no-cache`, and checks that two independent builds of the same commit produce identical config and layer digests. The generated files are copied into `/service/ui/dist` inside the image so the existing service mount remains stable. The content pack is a provenance input recorded in image labels, not baked into the image. Evidence and the OCI archives are written under `build/evidence/image-repro/`. Push the verified image to a private ECR repository and deploy it by digest.
 
 ## 4. Deploy on AWS
 
@@ -78,9 +118,9 @@ Offline checks do not prove a live site works. Before analysts rely on the servi
 
 ## Analyst workspace
 
-The workspace modules provide a PostgreSQL-backed analyst workflow and a separate browser application. Run `make bootstrap`, then run `make web-build` to build the browser application. The `make ws-*` targets manage the workspace database and processes. See the [workspace operations guide](docs/operations/workspace-m3.md) for setup.
+The workspace modules provide a PostgreSQL-backed analyst workflow used by the browser application. Run `make bootstrap`, then run `make web-build` to build it. The `make ws-*` targets manage the workspace database and processes. See the [workspace operations guide](docs/operations/workspace-m3.md) for setup.
 
-The workspace is an opt-in development feature. Its commands and content assets currently require a source checkout. The AWS service image and deployment described above continue to run the existing question service and UI; they do not configure or serve the workspace. Workspace packaging and production deployment have not been qualified.
+The workspace is an opt-in development feature. Its commands and content assets currently require a source checkout. The AWS service image serves the `web/` build, but it does not configure the workspace database or worker processes. Workspace backend packaging and production deployment have not been qualified.
 
 ## Try it locally
 

@@ -8,7 +8,8 @@ import type {
 } from "../../../contracts/v1/generated/types.ts";
 import { useBootstrap, useAsk } from "../api/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { listWorkspaceSites, rangeBounds } from "../api/workspace";
+import { listWorkspaceSites, WorkspaceRequestError } from "../api/workspace";
+import { resolveWindow } from "./state/time-window";
 import { byteCount, buildContinuationRequest } from "./state/answer-format";
 import {
     replayEnvironment,
@@ -39,15 +40,31 @@ import { words, fmt } from "../i18n/answer-copy";
 import { workspaceWords } from "../i18n/workspace-copy";
 export { errorCopy, judgments, outcomes, reasons, removed } from "../i18n/answer-enums";
 
-import { ContextHeader, NavigationRail, nav, routeFromHash, type Route } from "./Navigation";
+import {
+    ContextHeader,
+    dashboardNav,
+    NavigationRail,
+    nav,
+    routeFromHash,
+    type Route,
+} from "./Navigation";
 import { EmptyInvestigate, PageHeading } from "./PageHeading";
 import { errorText } from "./error-copy";
 import { OverviewPage, type AlertDrilldown } from "../features/overview/OverviewPage";
 import { AlertsPage, type AlertFilterPatch } from "../features/alerts/AlertsPage";
 import { QueuePage } from "../features/queue/QueuePage";
 import { MetricsPage } from "../features/metrics/MetricsPage";
+import { DashboardPage } from "../features/dashboards/DashboardPage";
 import { M3WorkspacePage } from "../features/incidents/M3WorkspacePage";
+import { ThemeProvider } from "../components/theme/theme-menu";
 export function App() {
+    return (
+        <ThemeProvider>
+            <AppContent />
+        </ThemeProvider>
+    );
+}
+function AppContent() {
     const [route, setRoute] = useState<Route>(() => routeFromHash() ?? "overview");
     const [locale, setLocale] = useState<Locale>(() => initialLocale());
     const [scenario, setScenario] = useState(
@@ -62,6 +79,7 @@ export function App() {
         const range = new URLSearchParams(location.search).get("range");
         return range === "7d" || range === "30d" ? range : "24h";
     });
+    const [rangeAnchor, setRangeAnchor] = useState(() => Date.now());
     const [urlRevision, setUrlRevision] = useState(0);
     const [model, setModel] = useState("");
     const [effort, setEffort] = useState("");
@@ -109,6 +127,16 @@ export function App() {
         addEventListener("hashchange", change);
         return () => removeEventListener("hashchange", change);
     }, []);
+    useEffect(() => {
+        if (
+            sitesQuery.error instanceof WorkspaceRequestError &&
+            sitesQuery.error.status === 404 &&
+            !window.location.hash
+        ) {
+            setRoute("investigate");
+            window.location.hash = "#investigate";
+        }
+    }, [sitesQuery.error]);
     useEffect(() => {
         document.documentElement.lang = locale;
         saveLocale(locale);
@@ -374,16 +402,21 @@ export function App() {
         setSelectedEvidence({ question_id: answer.question_id, item });
     }
     const mapped = useMemo(() => evidenceById(answer), [answer]);
-    const icon = nav.find((n) => n.id === route)?.icon ?? Search;
+    const icon = [...nav, ...dashboardNav].find((n) => n.id === route)?.icon ?? Search;
     const PageIcon = icon;
     const allTopics = useMemo(() => topicsFromHistory(history), [history]);
     const queryParams = new URLSearchParams(location.search);
     const requestedRange = queryParams.get("range");
     const activeRange: "24h" | "7d" | "30d" =
         requestedRange === "7d" || requestedRange === "30d" ? requestedRange : timeRange;
-    const defaults = rangeBounds(activeRange);
-    const from = queryParams.get("from") ?? defaults.from;
-    const to = queryParams.get("to") ?? defaults.to;
+    const requestedFrom = queryParams.get("from");
+    const requestedTo = queryParams.get("to");
+    const { from, to } = resolveWindow({
+        range: activeRange,
+        anchor: rangeAnchor,
+        from: requestedFrom,
+        to: requestedTo,
+    });
     const site =
         sitesQuery.data?.items.find((candidate) => candidate.site_id === selectedSite) ??
         (bootstrap?.sites.find((candidate) => candidate.id === selectedSite)
@@ -433,6 +466,8 @@ export function App() {
             <div className="app-main">
                 <ContextHeader
                     route={route}
+                    onNavigate={navigate}
+                    onSearch={openAlertDrilldown}
                     locale={locale}
                     setLocale={setLocale}
                     bootstrap={bootstrap}
@@ -441,9 +476,16 @@ export function App() {
                     selectedSite={selectedSite}
                     setSelectedSite={setSelectedSite}
                     timeRange={activeRange}
+                    customRange={queryParams.has("from") || queryParams.has("to")}
+                    windowFrom={from}
+                    windowTo={to}
+                    onCustomRange={(range) =>
+                        updateUrl({ from: range.from, to: range.to, cursor: null })
+                    }
                     setTimeRange={(range) => {
+                        setRangeAnchor(Date.now());
                         setTimeRange(range);
-                        updateUrl({ from: null, to: null });
+                        updateUrl({ range, from: null, to: null, cursor: null });
                     }}
                     isMock={isMock}
                     scenario={scenario}
@@ -490,6 +532,9 @@ export function App() {
                     )}
                     {route === "metrics" && (
                         <MetricsPage siteId={selectedSite} from={from} to={to} t={t} />
+                    )}
+                    {(route === "ai_quality" || route === "soc_operations") && (
+                        <DashboardPage kind={route} t={t} />
                     )}
                     {(route === "chains" || route === "incidents") && (
                         <M3WorkspacePage

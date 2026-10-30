@@ -8,12 +8,19 @@ import {
     GitBranch,
     LayoutDashboard,
     ListTodo,
+    Menu,
     Search,
     Shield,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { BootstrapResponse } from "../../../contracts/v1/generated/types.ts";
 import type { Locale } from "../i18n";
 import { StatusPill } from "../components/ui/status-pill";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../components/ui/sheet";
+import { ThemeMenu } from "../components/theme/theme-menu";
+import { CommandPalette } from "./CommandPalette";
+import { CustomRange } from "./CustomRange";
+import type { AlertDrilldown } from "../features/overview/OverviewPage";
 
 export const nav = [
     { id: "overview", icon: LayoutDashboard },
@@ -21,6 +28,10 @@ export const nav = [
     { id: "queue", icon: ListTodo },
     { id: "chains", icon: GitBranch },
     { id: "incidents", icon: BriefcaseBusiness },
+] as const;
+export const dashboardNav = [
+    { id: "ai_quality", icon: BarChart3 },
+    { id: "soc_operations", icon: BriefcaseBusiness },
     { id: "metrics", icon: BarChart3 },
 ] as const;
 const secondaryNav = [
@@ -29,12 +40,18 @@ const secondaryNav = [
     { id: "topics", icon: Files },
     { id: "status", icon: Activity },
 ] as const;
-export type Route = (typeof nav)[number]["id"] | (typeof secondaryNav)[number]["id"];
+export type Route =
+    | (typeof nav)[number]["id"]
+    | (typeof dashboardNav)[number]["id"]
+    | (typeof secondaryNav)[number]["id"];
+const commandRoutes: readonly Route[] = [...nav, ...dashboardNav, ...secondaryNav].map(
+    (item) => item.id,
+);
 export function routeFromHash(): Route | null {
     const hash = location.hash.replace(/^#\/?/, "");
     if (!hash) return "overview";
     if (hash.startsWith("topic-")) return "investigate";
-    return [...nav, ...secondaryNav].find((item) => item.id === hash)?.id ?? null;
+    return [...nav, ...dashboardNav, ...secondaryNav].find((item) => item.id === hash)?.id ?? null;
 }
 type Translate = (key: string) => string;
 
@@ -57,11 +74,25 @@ export function NavigationRail({
                     <span className="brand-mark">
                         <Shield size={16} />
                     </span>
-                    <span>AI SOC</span>
+                    <span>Wazuh AI SOC</span>
                 </div>
                 <div className="rail-caption">{t("workspaceCaption")}</div>
                 <nav aria-label={t("mainNavigation")}>
                     {nav.map((item) => (
+                        <a
+                            key={item.id}
+                            href={`#${item.id}`}
+                            aria-current={route === item.id ? "page" : undefined}
+                            onClick={() => setRoute(item.id)}
+                        >
+                            <item.icon size={17} />
+                            {t(item.id)}
+                        </a>
+                    ))}
+                </nav>
+                <div className="rail-caption secondary-caption">{t("dashboards")}</div>
+                <nav aria-label={t("dashboards")}>
+                    {dashboardNav.map((item) => (
                         <a
                             key={item.id}
                             href={`#${item.id}`}
@@ -105,10 +136,16 @@ export function ContextHeader({
     setSelectedSite,
     timeRange,
     setTimeRange,
+    customRange,
+    windowFrom,
+    windowTo,
+    onCustomRange,
     modeState,
     isMock,
     scenario,
     setScenario,
+    onNavigate,
+    onSearch,
     t,
 }: {
     route: Route;
@@ -121,18 +158,67 @@ export function ContextHeader({
     setSelectedSite: (site: string) => void;
     timeRange: "24h" | "7d" | "30d";
     setTimeRange: (range: "24h" | "7d" | "30d") => void;
+    customRange: boolean;
+    windowFrom: string;
+    windowTo: string;
+    onCustomRange: (range: { from: string; to: string }) => void;
     isMock: boolean;
     scenario: string;
     setScenario: (scenario: string) => void;
+    onNavigate: (route: Route) => void;
+    onSearch: (filters: AlertDrilldown) => void;
     t: Translate;
 }) {
     return (
         <header className="topbar">
+            <Sheet>
+                <SheetTrigger asChild>
+                    <button
+                        type="button"
+                        className="mobile-menu-trigger"
+                        aria-label={locale === "es" ? "Abrir navegación" : "Open navigation"}
+                    >
+                        <Menu size={18} aria-hidden="true" />
+                    </button>
+                </SheetTrigger>
+                <SheetContent
+                    title={locale === "es" ? "Navegación" : "Navigation"}
+                    closeLabel={locale === "es" ? "Cerrar navegación" : "Close navigation"}
+                >
+                    <nav className="mobile-rail" aria-label={t("mainNavigation")}>
+                        <MobileNavGroup
+                            label={t("mainNavigation")}
+                            items={nav}
+                            route={route}
+                            t={t}
+                        />
+                        <MobileNavGroup
+                            label={t("dashboards")}
+                            items={dashboardNav}
+                            route={route}
+                            t={t}
+                        />
+                        <MobileNavGroup
+                            label={t("secondaryTools")}
+                            items={secondaryNav}
+                            route={route}
+                            t={t}
+                        />
+                    </nav>
+                </SheetContent>
+            </Sheet>
             <div className="top-title">
                 <span>AI SOC / {t(route)}</span>
                 <h1>{t(route)}</h1>
             </div>
             <div className="top-controls">
+                <CommandPalette
+                    locale={locale}
+                    routes={commandRoutes}
+                    t={t}
+                    onNavigate={onNavigate}
+                    onSearch={onSearch}
+                />
                 <label>
                     {t("site")}
                     <select
@@ -153,22 +239,25 @@ export function ContextHeader({
                               ))}
                     </select>
                 </label>
-                <label>
-                    {t("range")}
-                    <select
-                        aria-label={t("range")}
-                        value={timeRange}
-                        onChange={(event) => {
-                            const value = event.target.value;
-                            if (value === "24h" || value === "7d" || value === "30d")
-                                setTimeRange(value);
-                        }}
-                    >
-                        <option value="24h">{t("last24h")}</option>
-                        <option value="7d">{t("last7d")}</option>
-                        <option value="30d">{t("last30d")}</option>
-                    </select>
-                </label>
+                <div className="range-segment" role="group" aria-label={t("range")}>
+                    {(["24h", "7d", "30d"] as const).map((range) => (
+                        <button
+                            key={range}
+                            type="button"
+                            aria-pressed={!customRange && timeRange === range}
+                            onClick={() => setTimeRange(range)}
+                        >
+                            {range}
+                        </button>
+                    ))}
+                </div>
+                <CustomRange
+                    from={windowFrom}
+                    to={windowTo}
+                    locale={locale}
+                    active={customRange}
+                    onApply={onCustomRange}
+                />
                 <label className="language-control">
                     <span className="sr-only">{t("language")}</span>
                     <select
@@ -180,6 +269,7 @@ export function ContextHeader({
                         <option value="es">ES</option>
                     </select>
                 </label>
+                <ThemeMenu locale={locale} />
                 <StatusPill tone="neutral">
                     {bootstrap
                         ? bootstrap.mode === "live"
@@ -226,30 +316,32 @@ export function ContextHeader({
                     </>
                 )}
             </div>
-            <nav className="mobile-nav" aria-label={t("mainNavigation")}>
-                {nav.map((item) => (
-                    <a
-                        key={item.id}
-                        href={`#${item.id}`}
-                        aria-current={route === item.id ? "page" : undefined}
-                    >
-                        <item.icon size={16} />
-                        {t(item.id)}
-                    </a>
-                ))}
-            </nav>
-            <nav className="mobile-nav secondary-mobile-nav" aria-label={t("secondaryTools")}>
-                {secondaryNav.map((item) => (
-                    <a
-                        key={item.id}
-                        href={`#${item.id}`}
-                        aria-current={route === item.id ? "page" : undefined}
-                    >
-                        <item.icon size={16} />
-                        {t(item.id)}
-                    </a>
-                ))}
-            </nav>
         </header>
+    );
+}
+
+function MobileNavGroup({
+    label,
+    items,
+    route,
+    t,
+}: {
+    label: string;
+    items: ReadonlyArray<{ id: Route; icon: LucideIcon }>;
+    route: Route;
+    t: Translate;
+}) {
+    return (
+        <div className="mobile-rail-section" aria-label={label} role="group">
+            <span className="mobile-rail-label">{label}</span>
+            {items.map((item) => (
+                <SheetClose asChild key={item.id}>
+                    <a href={`#${item.id}`} aria-current={route === item.id ? "page" : undefined}>
+                        <item.icon size={16} aria-hidden="true" />
+                        {t(item.id)}
+                    </a>
+                </SheetClose>
+            ))}
+        </div>
     );
 }

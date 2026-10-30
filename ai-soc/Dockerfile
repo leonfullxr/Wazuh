@@ -32,7 +32,7 @@ ENV PATH="/service/.venv/bin:$PATH" \
 WORKDIR /service
 COPY --from=build /tmp/ai-soc-wheel/ai_soc-0.1.0-py3-none-any.whl /tmp/ai_soc-0.1.0-py3-none-any.whl
 COPY --from=build --chown=10001:10001 /service/.venv /service/.venv
-COPY --chown=10001:10001 ui/dist /service/ui/dist
+COPY --chown=10001:10001 web/dist /service/ui/dist
 RUN /usr/local/bin/python -m pip --python /service/.venv/bin/python install \
         --no-deps --no-index --no-compile --no-cache-dir --no-warn-script-location \
         /tmp/ai_soc-0.1.0-py3-none-any.whl \

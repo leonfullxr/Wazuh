@@ -8,8 +8,10 @@ import hashlib
 import io
 import json
 import os
+import pwd
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -27,6 +29,10 @@ UV_CACHE = ROOT / "build/private/image-uv-cache"
 CACHE_MANIFEST = ROOT / "build/private/image-uv-cache.json"
 PREPARED_IMAGES = ROOT / "build/tool-cache/container-images.json"
 LOCK_FILE = ROOT / "dev/toolchain.lock.json"
+NODE = ROOT / "build/tool-cache/node-v22.23.3/extracted/bin/node"
+NPM = ROOT / "build/tool-cache/node-v22.23.3/extracted/bin/npm"
+NPM_CACHE = ROOT / "build/private/image-npm-cache"
+BWRAP = Path("/usr/bin/bwrap")
 HEX = re.compile(r"^[0-9a-f]{64}$")
 TMPFS_ROOT = Path("/dev/shm")
 TMPFS_REQUIRED_FREE_BYTES = 2 * 1024 * 1024 * 1024
@@ -125,8 +131,8 @@ def prepare_cache(uv_executable: str) -> None:
     ).stdout.strip()
     if "0.11.28" not in version:
         raise RuntimeError(f"unexpected uv version for the image cache: {version}")
-    record = {
-        "schema_version": "1",
+    record: dict[str, object] = {
+        "schema_version": "2",
         "registry": "https://pypi.org/simple",
         "uv_version": version,
         "uv_lock_sha256": lock_digest,
@@ -134,6 +140,8 @@ def prepare_cache(uv_executable: str) -> None:
         "cache_file_count": file_count,
         "cache_bytes": byte_count,
     }
+    npm_record = prepare_npm_cache()
+    record.update(npm_record)
     CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     CACHE_MANIFEST.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(f"prepared offline image cache: {file_count} files, {byte_count} bytes")
@@ -142,6 +150,8 @@ def prepare_cache(uv_executable: str) -> None:
 
 def _check_cache() -> dict[str, object]:
     record = _mapping(json.loads(CACHE_MANIFEST.read_text()), "image cache manifest")
+    if record.get("schema_version") != "2":
+        raise RuntimeError("prepared image cache manifest has an unsupported schema")
     digest, count, byte_count = _tree_digest(UV_CACHE)
     if record.get("uv_lock_sha256") != _sha((ROOT / "uv.lock").read_bytes()):
         raise RuntimeError("prepared image cache was made for a different uv.lock")
@@ -149,6 +159,22 @@ def _check_cache() -> dict[str, object]:
         raise RuntimeError("prepared image cache tree differs from its recorded digest")
     if record.get("cache_file_count") != count or record.get("cache_bytes") != byte_count:
         raise RuntimeError("prepared image cache size differs from its manifest")
+    archived_lock = subprocess.run(
+        ["git", "show", "HEAD:./web/package-lock.json"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    if record.get("web_package_lock_sha256") != _sha(archived_lock):
+        raise RuntimeError("prepared npm cache was made for a different web package lock")
+    npm_digest, npm_count, npm_bytes = _tree_digest(NPM_CACHE)
+    if record.get("npm_cache_tree_sha256") != npm_digest:
+        raise RuntimeError("prepared npm cache tree differs from its recorded digest")
+    if (
+        record.get("npm_cache_file_count") != npm_count
+        or record.get("npm_cache_bytes") != npm_bytes
+    ):
+        raise RuntimeError("prepared npm cache size differs from its manifest")
     return record
 
 
@@ -414,8 +440,15 @@ def inventory_tmpfs_scratch(root: Path) -> list[dict[str, object]]:
 
 def remove_tmpfs_scratch(root: Path) -> None:
     expected_parent = TMPFS_ROOT.resolve(strict=True)
+    if root.is_symlink():
+        raise ValueError("refusing to remove a symlinked tmpfs namespace")
+    if not re.fullmatch(r"soc-image-repro-[0-9]{8}T[0-9]{12}Z", root.name):
+        raise ValueError("refusing to remove a path outside the unique tmpfs namespace")
     resolved = root.resolve(strict=True)
-    if resolved.parent != expected_parent or not resolved.name.startswith("soc-image-repro-"):
+    if (
+        resolved != expected_parent / root.name
+        or root.parent.resolve(strict=True) != expected_parent
+    ):
         raise ValueError("refusing to remove a path outside the unique tmpfs namespace")
     shutil.rmtree(resolved)
     if resolved.exists():
@@ -541,17 +574,326 @@ def _git(*arguments: str) -> str:
     return result.stdout.strip()
 
 
-def _copy_context(destination: Path, timestamp: int, *, generated_assets_epoch: int) -> None:
+def _archived_web_file(name: str) -> bytes:
+    if name not in {"package.json", "package-lock.json"}:
+        raise ValueError("unsupported archived web package file")
+    return subprocess.run(
+        ["git", "show", f"HEAD:./web/{name}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def _remove_path_within(path: Path, owner: Path) -> None:
+    owner_resolved = owner.resolve(strict=True)
+    parent_resolved = path.parent.resolve(strict=True)
+    if path == owner or not parent_resolved.is_relative_to(owner_resolved):
+        raise RuntimeError("refusing to remove a path outside its owned directory")
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.exists():
+        shutil.rmtree(path)
+
+
+def _require_real_directory_within(path: Path, owner: Path, label: str) -> Path:
+    owner_resolved = owner.resolve(strict=True)
+    try:
+        relative = path.relative_to(owner_resolved)
+    except ValueError as error:
+        raise RuntimeError(f"{label} escaped its owned directory") from error
+    current = owner_resolved
+    for part in relative.parts:
+        current /= part
+        if current.is_symlink():
+            raise RuntimeError(f"{label} has a symlink ancestor")
+    if not current.is_dir():
+        raise RuntimeError(f"{label} is not a directory")
+    return current
+
+
+def _npm_environment(
+    source: dict[str, str],
+    *,
+    cache: Path,
+    user_config: Path,
+    global_config: Path,
+    offline: bool,
+) -> dict[str, str]:
+    environment = {key: source[key] for key in ("LANG", "LC_ALL", "TZ", "TERM") if key in source}
+    if not offline:
+        for key in (
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+            "ALL_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "no_proxy",
+            "all_proxy",
+        ):
+            if key in source:
+                environment[key] = source[key]
+    environment.update(
+        {
+            "PATH": f"{NODE.parent}:{os.defpath}",
+            "NPM_CONFIG_CACHE": str(cache),
+            "NPM_CONFIG_OFFLINE": "true" if offline else "false",
+            "NPM_CONFIG_AUDIT": "false",
+            "NPM_CONFIG_FUND": "false",
+            "NPM_CONFIG_GLOBALCONFIG": str(global_config),
+            "NPM_CONFIG_UPDATE_NOTIFIER": "false",
+            "NPM_CONFIG_USERCONFIG": str(user_config),
+            "CI": "true",
+        }
+    )
+    return environment
+
+
+def prepare_npm_cache() -> dict[str, object]:
+    if not NODE.is_file() or not NPM.is_file():
+        raise RuntimeError("run scripts/prepare-platform.sh before preparing the npm cache")
+    private_root = ROOT / "build/private"
+    private_root.mkdir(parents=True, exist_ok=True)
+    preparation = private_root / "image-npm-prepare"
+    _remove_path_within(preparation, private_root)
+    _remove_path_within(NPM_CACHE, private_root)
+    preparation.mkdir()
+    NPM_CACHE.mkdir()
+    package_files = {
+        name: _archived_web_file(name) for name in ("package.json", "package-lock.json")
+    }
+    for name, payload in package_files.items():
+        (preparation / name).write_bytes(payload)
+    user_config = preparation / "user.npmrc"
+    global_config = preparation / "global.npmrc"
+    user_config.write_text("", encoding="utf-8")
+    global_config.write_text("", encoding="utf-8")
+    environment = _npm_environment(
+        os.environ.copy(),
+        cache=NPM_CACHE,
+        user_config=user_config,
+        global_config=global_config,
+        offline=False,
+    )
+    environment["NPM_CONFIG_REGISTRY"] = "https://registry.npmjs.org/"
+    try:
+        subprocess.run(
+            [
+                str(NODE),
+                str(NPM),
+                "ci",
+                "--prefix",
+                str(preparation),
+                "--ignore-scripts",
+                "--no-audit",
+                "--no-fund",
+                "--registry",
+                "https://registry.npmjs.org/",
+            ],
+            cwd=ROOT,
+            env=environment,
+            check=True,
+        )
+    finally:
+        _remove_path_within(preparation, private_root)
+    for transient in (NPM_CACHE / "_logs", NPM_CACHE / "_update-notifier-last-checked"):
+        _remove_path_within(transient, NPM_CACHE)
+    cache_digest, file_count, byte_count = _tree_digest(NPM_CACHE)
+    return {
+        "web_package_lock_sha256": _sha(package_files["package-lock.json"]),
+        "npm_cache_tree_sha256": cache_digest,
+        "npm_cache_file_count": file_count,
+        "npm_cache_bytes": byte_count,
+    }
+
+
+def _copy_pristine_npm_cache(destination: Path, record: dict[str, object]) -> Path:
+    if destination.exists() or destination.is_symlink():
+        raise RuntimeError("scratch npm cache destination already exists")
+    shutil.copytree(NPM_CACHE, destination)
+    digest, count, byte_count = _tree_digest(destination)
+    if (
+        record.get("npm_cache_tree_sha256") != digest
+        or record.get("npm_cache_file_count") != count
+        or record.get("npm_cache_bytes") != byte_count
+    ):
+        raise RuntimeError("scratch npm cache copy differs from its prepared manifest")
+    return destination
+
+
+def _is_generated_web_path(relative: Path) -> bool:
+    return len(relative.parts) >= 2 and relative.parts[:2] in {
+        ("web", "dist"),
+        ("web", "node_modules"),
+    }
+
+
+def _source_byte_snapshot(root: Path) -> dict[str, tuple[str, str, int]]:
+    snapshot: dict[str, tuple[str, str, int]] = {}
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if _is_generated_web_path(relative):
+            continue
+        mode = stat.S_IMODE(path.lstat().st_mode)
+        if path.is_symlink():
+            snapshot[relative.as_posix()] = ("link", _sha(os.readlink(path).encode()), mode)
+        elif path.is_file():
+            snapshot[relative.as_posix()] = ("file", _sha(path.read_bytes()), mode)
+        elif path.is_dir():
+            snapshot[relative.as_posix()] = ("directory", _sha(b""), mode)
+        else:
+            raise RuntimeError("archived source contains an unsupported file kind")
+    return snapshot
+
+
+def _run_read_only_build(
+    arguments: list[str],
+    *,
+    scratch_root: Path,
+    environment: dict[str, str],
+) -> None:
+    if not BWRAP.is_file() or not os.access(BWRAP, os.X_OK):
+        raise RuntimeError("bubblewrap is required for the read-only archived web build")
+    developer_home = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve(strict=True)
+    repository = ROOT.resolve(strict=True)
+    if not repository.is_relative_to(developer_home):
+        raise RuntimeError("archived web build repository must be below the developer home")
+    sandbox_home = scratch_root / "sandbox-home"
+    (sandbox_home / repository.relative_to(developer_home)).mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            str(BWRAP),
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-net",
+            "--unshare-pid",
+            "--unshare-ipc",
+            "--ro-bind",
+            "/",
+            "/",
+            "--tmpfs",
+            "/tmp",
+            "--tmpfs",
+            "/run/user",
+            "--dev",
+            "/dev",
+            "--proc",
+            "/proc",
+            "--ro-bind",
+            str(sandbox_home),
+            str(developer_home),
+            "--ro-bind",
+            str(repository),
+            str(repository),
+            "--bind",
+            str(scratch_root),
+            str(scratch_root),
+            "--chdir",
+            str(ROOT),
+            *arguments,
+        ],
+        cwd=ROOT,
+        env=environment,
+        check=True,
+    )
+
+
+def _build_archived_web(
+    context: Path,
+    *,
+    npm_cache: Path,
+    generated_assets_epoch: int,
+    environment: dict[str, str],
+) -> None:
+    scratch_value = environment.get("SOC_B6_TMPFS_SCRATCH_ROOT")
+    if scratch_value is None:
+        raise RuntimeError("archived web build has no authorized tmpfs scratch")
+    scratch_root = Path(scratch_value).resolve(strict=True)
+    context = _require_real_directory_within(context, scratch_root, "archived web build")
+    npm_cache = _require_real_directory_within(npm_cache, scratch_root, "archived npm cache")
+    web = _require_real_directory_within(context / "web", context, "archived web source")
+    if not (web / "package.json").is_file() or not (web / "package-lock.json").is_file():
+        raise RuntimeError("archived image source is missing the locked web package inputs")
+    if not NODE.is_file() or not NPM.is_file():
+        raise RuntimeError("run make bootstrap to prepare the pinned Node and npm tools first")
+    if not (npm_cache / "_cacache").is_dir():
+        raise RuntimeError("scratch npm cache is not prepared")
+
+    node_modules = web / "node_modules"
+    dist = web / "dist"
+    _remove_path_within(node_modules, web)
+    _remove_path_within(dist, web)
+    source_before = _source_byte_snapshot(context)
+    config_root = npm_cache.parent / f"{npm_cache.name}-config"
+    config_root.mkdir()
+    user_config = config_root / "user.npmrc"
+    global_config = config_root / "global.npmrc"
+    temporary = config_root / "tmp"
+    user_config.write_text("", encoding="utf-8")
+    global_config.write_text("", encoding="utf-8")
+    temporary.mkdir()
+    build_environment = _npm_environment(
+        environment,
+        cache=npm_cache,
+        user_config=user_config,
+        global_config=global_config,
+        offline=True,
+    )
+    build_environment["SOURCE_DATE_EPOCH"] = str(generated_assets_epoch)
+    build_environment["TMPDIR"] = str(temporary)
+    npm_command = [str(NODE), str(NPM)]
+    try:
+        _run_read_only_build(
+            [
+                *npm_command,
+                "ci",
+                "--prefix",
+                str(web),
+                "--offline",
+                "--ignore-scripts",
+                "--no-audit",
+                "--no-fund",
+            ],
+            scratch_root=scratch_root,
+            environment=build_environment,
+        )
+        _run_read_only_build(
+            [*npm_command, "--prefix", str(web), "run", "build"],
+            scratch_root=scratch_root,
+            environment=build_environment,
+        )
+        if not dist.is_dir() or not (dist / "index.html").is_file():
+            raise RuntimeError("archived web build did not produce web/dist/index.html")
+    finally:
+        cleanup_web = _require_real_directory_within(
+            context / "web", context, "archived web cleanup source"
+        )
+        _remove_path_within(cleanup_web / "node_modules", cleanup_web)
+        if _source_byte_snapshot(context) != source_before:
+            raise RuntimeError("archived web build changed source bytes outside generated paths")
+
+
+def _copy_context(
+    destination: Path,
+    timestamp: int,
+    *,
+    generated_assets_epoch: int,
+    npm_cache: Path,
+    environment: dict[str, str],
+) -> None:
     archive_bytes = subprocess.run(
         ["git", "archive", "--format=tar", "HEAD"], cwd=ROOT, check=True, capture_output=True
     ).stdout
     destination.mkdir(parents=True)
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:") as source:
         source.extractall(destination, filter="data")
-    ui_dist = ROOT / "ui/dist"
-    if not ui_dist.is_dir():
-        raise RuntimeError("run make ui-build to build the pinned ui/dist input first")
-    shutil.copytree(ui_dist, destination / "ui/dist")
+    _build_archived_web(
+        destination,
+        npm_cache=npm_cache,
+        generated_assets_epoch=generated_assets_epoch,
+        environment=environment,
+    )
     for directory, subdirectories, files in os.walk(destination, topdown=False, followlinks=False):
         for name in files + subdirectories:
             path = Path(directory) / name
@@ -561,7 +903,7 @@ def _copy_context(destination: Path, timestamp: int, *, generated_assets_epoch: 
                 if not path.is_symlink():
                     raise
         os.utime(directory, (timestamp, timestamp))
-    normalize_generated_asset_timestamps(destination / "ui/dist", generated_assets_epoch)
+    normalize_generated_asset_timestamps(destination / "web/dist", generated_assets_epoch)
 
 
 def normalize_generated_asset_timestamps(assets: Path, source_epoch: int) -> None:
@@ -572,8 +914,8 @@ def normalize_generated_asset_timestamps(assets: Path, source_epoch: int) -> Non
     os.utime(assets, (source_epoch, source_epoch))
 
 
-def build_images(scratch_base: Path) -> Path:
-    _check_cache()
+def _build_images(scratch_base: Path, scratch_state: dict[str, Path]) -> Path:
+    cache_record = _check_cache()
     image_contexts = _prepared_image_check()
     if _git("status", "--porcelain", "--untracked-files=all", "--", "."):
         raise RuntimeError("commit source changes before producing image identity evidence")
@@ -626,6 +968,7 @@ def build_images(scratch_base: Path) -> Path:
     artifact_dir = ROOT / "build/evidence/image-repro" / f"{service_sha}-{run_id}"
     artifact_dir.mkdir(parents=True)
     scratch_root, scratch_free_bytes = create_tmpfs_scratch(scratch_base, run_id)
+    scratch_state.update(root=scratch_root, artifact_dir=artifact_dir)
     environment["SOC_B6_TMPFS_SCRATCH_ROOT"] = str(scratch_root)
     scratch_images = scratch_root / "oci"
     scratch_images.mkdir()
@@ -687,7 +1030,16 @@ def build_images(scratch_base: Path) -> Path:
     contexts = (context_root / "first", context_root / "second", context_root / "changed")
     timestamps = (source_epoch - 86400, source_epoch + 86400, source_epoch + 172800)
     for context, timestamp in zip(contexts, timestamps, strict=True):
-        _copy_context(context, timestamp, generated_assets_epoch=source_epoch)
+        npm_cache = _copy_pristine_npm_cache(
+            scratch_root / f"npm-cache-{context.name}", cache_record
+        )
+        _copy_context(
+            context,
+            timestamp,
+            generated_assets_epoch=source_epoch,
+            npm_cache=npm_cache,
+            environment=environment,
+        )
 
     identities: list[ImageIdentity] = []
     for number, (context, output) in enumerate(
@@ -802,13 +1154,75 @@ def build_images(scratch_base: Path) -> Path:
     scratch_record_path.write_text(
         json.dumps(scratch_record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    remove_tmpfs_scratch(scratch_root)
     print(f"reproducible OCI evidence: {evidence.relative_to(ROOT)}")
     print(
         f"SERVICE_SHA={service_sha} CONTENT_SHA={base_content_sha} "
         f"PACK_SHA256={base_pack_sha} SOURCE_DATE_EPOCH={source_epoch}"
     )
     return evidence
+
+
+def _write_failed_build_record(
+    artifact_dir: Path,
+    scratch_root: Path,
+    error: BaseException,
+    cleanup: str,
+) -> Path:
+    failure = artifact_dir / "failure.json"
+    failure.write_text(
+        json.dumps(
+            {
+                "schema_version": "1",
+                "state": "failed",
+                "error_type": type(error).__name__,
+                "scratch": str(scratch_root),
+                "scratch_cleanup": cleanup,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return failure
+
+
+def build_images(scratch_base: Path) -> Path:
+    scratch_state: dict[str, Path] = {}
+    failure: BaseException | None = None
+    try:
+        return _build_images(scratch_base, scratch_state)
+    except BaseException as error:
+        failure = error
+        raise
+    finally:
+        scratch_root = scratch_state.get("root")
+        artifact_dir = scratch_state.get("artifact_dir")
+        if scratch_root is not None:
+            if failure is not None and artifact_dir is not None:
+                try:
+                    _write_failed_build_record(artifact_dir, scratch_root, failure, "pending")
+                except OSError:
+                    pass
+            try:
+                remove_tmpfs_scratch(scratch_root)
+            except BaseException as cleanup_error:
+                if failure is not None and artifact_dir is not None:
+                    try:
+                        _write_failed_build_record(
+                            artifact_dir,
+                            scratch_root,
+                            failure,
+                            f"failed:{type(cleanup_error).__name__}",
+                        )
+                    except OSError:
+                        pass
+                raise
+            if failure is not None and artifact_dir is not None:
+                try:
+                    _write_failed_build_record(artifact_dir, scratch_root, failure, "complete")
+                except OSError:
+                    pass
 
 
 def main() -> int:
