@@ -47,7 +47,11 @@ import { AlertsPage, type AlertFilterPatch } from "../features/alerts/AlertsPage
 import { QueuePage } from "../features/queue/QueuePage";
 import { MetricsPage } from "../features/metrics/MetricsPage";
 import { M3WorkspacePage } from "../features/incidents/M3WorkspacePage";
+import { ThemeProvider } from "../components/theme/theme-menu";
 export function App() {
+    return <ThemeProvider><AppContent /></ThemeProvider>;
+}
+function AppContent() {
     const [route, setRoute] = useState<Route>(() => routeFromHash() ?? "overview");
     const [locale, setLocale] = useState<Locale>(() => initialLocale());
     const [scenario, setScenario] = useState(

@@ -17,7 +17,7 @@ export function SheetContent({
             <Dialog.Overlay className="fixed inset-0 z-40 bg-black/20" />
             <Dialog.Content
                 aria-describedby={undefined}
-                className="fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto border-l border-[var(--stroke-subtle)] bg-white p-6 shadow-float focus-visible:outline-none"
+                className="fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto border-l border-[var(--stroke-subtle)] bg-[var(--bg)] p-6 shadow-float"
                 onCloseAutoFocus={(event) => {
                     if (restoreFocus) {
                         event.preventDefault();

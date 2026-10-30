@@ -1,23 +1,41 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
 @theme inline {
-    --color-canvas: var(--bg);
-    --color-surface: var(--surface);
-    --color-surface-subtle: var(--surface-subtle);
-    --color-ink: var(--text);
-    --color-muted: var(--text-muted);
+    --font-sans: var(--font-ui);
+    --font-mono: var(--font-code);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
     --color-accent: var(--accent);
-    --radius-control: 10px;
-    --radius-panel: 12px;
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-canvas: var(--canvas);
+    --color-surface: var(--surface);
+    --color-surface-subtle: var(--surface-2);
+    --color-ink: var(--text);
+    --radius-control: 6px;
+    --radius-panel: 8px;
     --shadow-panel: var(--shadow-panel);
     --shadow-float: var(--shadow-float);
 }
 :root {
     font-family: var(--font-ui);
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 22px;
-    letter-spacing: -0.01em;
-    font-feature-settings: "ss03" on;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 21px;
+    font-feature-settings: "tnum" on;
     color: var(--text);
     background: var(--bg);
 }
@@ -28,6 +46,7 @@ body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
+    background: var(--canvas);
 }
 button,
 input,
@@ -36,8 +55,8 @@ textarea {
     font: inherit;
 }
 :focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 2px;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
 }
 ::selection {
     color: var(--text);
@@ -101,7 +120,7 @@ textarea {
     padding: 20px 20px 8px;
     font-size: 11px;
     letter-spacing: 0.08em;
-    color: var(--text-muted);
+    color: var(--text-2);
 }
 .rail nav {
     padding: 0 10px;
@@ -113,7 +132,7 @@ textarea {
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 40px;
+    height: 32px;
     padding: 0 11px;
     border-radius: var(--radius-control);
     color: var(--text-tertiary);
@@ -131,10 +150,10 @@ textarea {
 }
 .rail nav a[aria-current="page"],
 .mobile-nav a[aria-current="page"] {
-    background: var(--bg);
+    background: var(--selected);
     color: var(--text);
-    box-shadow: var(--shadow-panel);
-    font-weight: 650;
+    box-shadow: none;
+    font-weight: 500;
 }
 .rail-bottom {
     margin-top: auto;
@@ -154,7 +173,7 @@ textarea {
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    padding: 10px 28px;
+    padding: 8px 24px;
     border-bottom: 1px solid var(--stroke-subtle);
     background: var(--bg);
 }
@@ -165,9 +184,9 @@ textarea {
 }
 .top-title h1 {
     margin: 0;
-    font-size: 16px;
-    line-height: 22px;
-    font-weight: 650;
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
 }
 .top-controls {
     display: flex;
@@ -185,7 +204,7 @@ textarea {
     color: var(--text-muted);
 }
 select {
-    height: 36px;
+    height: var(--control-height);
     max-width: 190px;
     padding: 0 28px 0 10px;
     border: 1px solid var(--stroke-control);
@@ -201,7 +220,7 @@ select {
     width: 100%;
     max-width: 1440px;
     margin: 0 auto;
-    padding: 28px 32px 56px;
+    padding: 24px 24px 48px;
     outline: none;
 }
 .page-head {
@@ -218,7 +237,7 @@ select {
 }
 .page-head h2 {
     margin: 0;
-    font: 500 28px/34px var(--font-display);
+    font: 600 20px/28px var(--font-display);
     letter-spacing: -0.02em;
 }
 .muted {
@@ -226,12 +245,73 @@ select {
     font-size: 13px;
 }
 .panel {
-    background: var(--bg);
+    background: var(--surface);
     border: 1px solid var(--stroke-subtle);
     border-radius: var(--radius-card);
     padding: 20px;
     margin-bottom: 16px;
     min-width: 0;
+}
+.theme-menu {
+    display: flex;
+    gap: 2px;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--hover);
+}
+.theme-menu button {
+    min-width: 28px;
+    height: var(--control-height-compact);
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--radius-tag);
+    background: transparent;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        color var(--time-hover) var(--ease-controls),
+        background-color var(--time-hover) var(--ease-controls);
+}
+.theme-menu button:hover {
+    color: var(--text);
+}
+.theme-menu button[aria-pressed="true"] {
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: var(--shadow-active);
+}
+.mobile-menu-trigger,
+.mobile-rail {
+    display: none;
+}
+.range-segment {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--radius-control);
+    background: var(--hover);
+}
+.range-segment button {
+    height: var(--control-height-compact);
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--radius-tag);
+    background: transparent;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.range-segment button[aria-pressed="true"],
+.range-segment button[aria-selected="true"] {
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: var(--shadow-active);
 }
 .m3-page {
     min-width: 0;
@@ -459,6 +539,32 @@ select {
 .m3-detail td small {
     display: block;
     color: var(--text-muted);
+}
+@media (max-width: 1023px) {
+    .rail {
+        display: none;
+    }
+    .mobile-menu-trigger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--control-height);
+        height: var(--control-height);
+        padding: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+    }
+    .mobile-rail {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+        background: var(--canvas);
+    }
 }
 @media (max-width: 1000px) {
     .m3-grid {
@@ -1238,7 +1344,7 @@ tbody tr:hover {
 }
 .workspace-metric > span,
 .backlog-strip > div > span {
-    color: var(--text-muted);
+    color: var(--text-2);
     font-size: 12px;
 }
 .workspace-metric > strong,

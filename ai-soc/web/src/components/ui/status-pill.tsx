@@ -1,43 +1,26 @@
 import type { ReactNode } from "react";
-import { cn } from "./cn";
-import { AlertCircle, Check, Circle, X } from "lucide-react";
+import type { TagTone } from "../../lib/semantic";
+import { Tag } from "./tag";
+type StatusPillTone = "positive" | "negative" | "warning" | "neutral";
 export function Badge({ children, className }: { children: ReactNode; className?: string }) {
-    return (
-        <span
-            className={cn(
-                "inline-flex items-center rounded-full border border-[var(--stroke)] bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--text-tertiary)]",
-                className,
-            )}
-        >
-            {children}
-        </span>
-    );
+    return <Tag className={className}>{children}</Tag>;
 }
 export function StatusPill({
     children,
     tone = "neutral",
 }: {
     children: ReactNode;
-    tone?: "positive" | "negative" | "warning" | "neutral";
+    tone?: StatusPillTone;
 }) {
     const tones = {
-        positive: "status-pill-positive",
-        negative: "status-pill-negative",
-        warning: "status-pill-warning",
-        neutral: "status-pill-neutral",
-    };
-    const Icon =
-        tone === "positive"
-            ? Check
-            : tone === "negative"
-              ? X
-              : tone === "warning"
-                ? AlertCircle
-                : Circle;
+        positive: "green",
+        negative: "red",
+        warning: "amber",
+        neutral: "neutral",
+    } satisfies Record<StatusPillTone, TagTone>;
     return (
-        <span className={cn("status-pill", tones[tone])}>
-            <Icon aria-hidden="true" size={12} />
+        <Tag tone={tones[tone]} dot>
             {children}
-        </span>
+        </Tag>
     );
 }

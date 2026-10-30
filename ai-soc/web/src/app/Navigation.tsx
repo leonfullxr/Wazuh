@@ -8,12 +8,15 @@ import {
     GitBranch,
     LayoutDashboard,
     ListTodo,
+    Menu,
     Search,
     Shield,
 } from "lucide-react";
 import type { BootstrapResponse } from "../../../contracts/v1/generated/types.ts";
 import type { Locale } from "../i18n";
 import { StatusPill } from "../components/ui/status-pill";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../components/ui/sheet";
+import { ThemeMenu } from "../components/theme/theme-menu";
 
 export const nav = [
     { id: "overview", icon: LayoutDashboard },
@@ -57,7 +60,7 @@ export function NavigationRail({
                     <span className="brand-mark">
                         <Shield size={16} />
                     </span>
-                    <span>AI SOC</span>
+                    <span>Wazuh AI SOC</span>
                 </div>
                 <div className="rail-caption">{t("workspaceCaption")}</div>
                 <nav aria-label={t("mainNavigation")}>
@@ -128,6 +131,32 @@ export function ContextHeader({
 }) {
     return (
         <header className="topbar">
+            <Sheet>
+                <SheetTrigger asChild>
+                    <button
+                        type="button"
+                        className="mobile-menu-trigger"
+                        aria-label={locale === "es" ? "Abrir navegación" : "Open navigation"}
+                    >
+                        <Menu size={18} aria-hidden="true" />
+                    </button>
+                </SheetTrigger>
+                <SheetContent title={locale === "es" ? "Navegación" : "Navigation"}>
+                    <nav className="mobile-rail" aria-label={t("mainNavigation")}>
+                        {[...nav, ...secondaryNav].map((item) => (
+                            <SheetClose asChild key={item.id}>
+                                <a
+                                    href={`#${item.id}`}
+                                    aria-current={route === item.id ? "page" : undefined}
+                                >
+                                    <item.icon size={16} aria-hidden="true" />
+                                    {t(item.id)}
+                                </a>
+                            </SheetClose>
+                        ))}
+                    </nav>
+                </SheetContent>
+            </Sheet>
             <div className="top-title">
                 <span>AI SOC / {t(route)}</span>
                 <h1>{t(route)}</h1>
@@ -153,22 +182,18 @@ export function ContextHeader({
                               ))}
                     </select>
                 </label>
-                <label>
-                    {t("range")}
-                    <select
-                        aria-label={t("range")}
-                        value={timeRange}
-                        onChange={(event) => {
-                            const value = event.target.value;
-                            if (value === "24h" || value === "7d" || value === "30d")
-                                setTimeRange(value);
-                        }}
-                    >
-                        <option value="24h">{t("last24h")}</option>
-                        <option value="7d">{t("last7d")}</option>
-                        <option value="30d">{t("last30d")}</option>
-                    </select>
-                </label>
+                <div className="range-segment" role="group" aria-label={t("range")}>
+                    {(["24h", "7d", "30d"] as const).map((range) => (
+                        <button
+                            key={range}
+                            type="button"
+                            aria-pressed={timeRange === range}
+                            onClick={() => setTimeRange(range)}
+                        >
+                            {range}
+                        </button>
+                    ))}
+                </div>
                 <label className="language-control">
                     <span className="sr-only">{t("language")}</span>
                     <select
@@ -180,6 +205,7 @@ export function ContextHeader({
                         <option value="es">ES</option>
                     </select>
                 </label>
+                <ThemeMenu locale={locale} />
                 <StatusPill tone="neutral">
                     {bootstrap
                         ? bootstrap.mode === "live"
@@ -226,30 +252,6 @@ export function ContextHeader({
                     </>
                 )}
             </div>
-            <nav className="mobile-nav" aria-label={t("mainNavigation")}>
-                {nav.map((item) => (
-                    <a
-                        key={item.id}
-                        href={`#${item.id}`}
-                        aria-current={route === item.id ? "page" : undefined}
-                    >
-                        <item.icon size={16} />
-                        {t(item.id)}
-                    </a>
-                ))}
-            </nav>
-            <nav className="mobile-nav secondary-mobile-nav" aria-label={t("secondaryTools")}>
-                {secondaryNav.map((item) => (
-                    <a
-                        key={item.id}
-                        href={`#${item.id}`}
-                        aria-current={route === item.id ? "page" : undefined}
-                    >
-                        <item.icon size={16} />
-                        {t(item.id)}
-                    </a>
-                ))}
-            </nav>
         </header>
     );
 }

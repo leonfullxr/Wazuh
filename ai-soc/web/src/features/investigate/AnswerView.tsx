@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import type { Answer, EvidenceItem } from "../../../../contracts/v1/generated/types.ts";
-import { StatusPill } from "../../components/ui/status-pill";
+import { Tag } from "../../components/ui/tag";
+import { answerStatusTags, judgmentStateTags } from "../../lib/semantic";
 import { words, localeEnum, stateWord } from "../../i18n/answer-copy";
 import { judgments, reasons } from "../../i18n/answer-enums";
 import type { Locale } from "../../i18n";
@@ -56,17 +57,7 @@ export function AnswerView({
                           : words[locale].refusedHeading}
                 </h2>
                 <div className="answer-status">
-                    <StatusPill
-                        tone={
-                            answer.status === "answered"
-                                ? "positive"
-                                : answer.status === "partial"
-                                  ? "warning"
-                                  : "neutral"
-                        }
-                    >
-                        {t(answer.status)}
-                    </StatusPill>
+                    <Tag {...answerStatusTags[answer.status]}>{t(answer.status)}</Tag>
                     <span>
                         {answer.status === "refused"
                             ? `${answer.message ?? ""} ${t("unmappedQuestion")}`.trim()
@@ -179,9 +170,9 @@ export function AnswerView({
                                     {b.document?.heading ?? (
                                         <code className="mono">{b.topic_id}</code>
                                     )}
-                                    <StatusPill>
+                                    <Tag {...judgmentStateTags[b.judgment.state]}>
                                         {localeEnum(judgments, b.judgment.state, locale)}
-                                    </StatusPill>
+                                    </Tag>
                                 </a>
                             ))}
                     </nav>
