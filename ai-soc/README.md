@@ -6,7 +6,7 @@ It runs as a private HTTPS service on AWS (ECS Fargate behind an internal ALB), 
 
 ## Console preview
 
-These screenshots show a local **synthetic design preview**. The populated threat activity and quality dashboards, alert explorer, and incident and chain graphs include illustrative overlays that are not included in the production build. Their figures and relationships do not represent live service data. See [the redesign plan](web/REDESIGN_PLAN.md) for the current implementation and API gaps.
+These screenshots show a local **synthetic design preview**. The populated threat activity and quality dashboards, alert explorer, and incident and chain graphs include illustrative overlays that are not included in the production build. Their figures and relationships do not represent live service data.
 
 ### Threat activity
 
@@ -58,7 +58,6 @@ See [Architecture](docs/architecture.md) for the full request flow and how false
 |---|---|
 | `src/ai_soc` | Service: API, MCP, planning, query, judgment, validation, state, telemetry |
 | `web/` | Browser UI (React and TypeScript, built into the image) |
-| `ui/` | Legacy Playwright and axe runner dependencies retained during test-tool migration |
 | `contracts/v1` | Generated wire schema, OpenAPI document and TypeScript types |
 | `infra/` | Terraform for the AWS deployment, plus the reference egress proxy |
 | `scripts/` | Image build, platform preparation, live qualification and teardown checks |
@@ -79,7 +78,7 @@ See [Architecture](docs/architecture.md) for the full request flow and how false
 make bootstrap
 ```
 
-This installs the locked Python and browser dependencies and fetches the pinned Terraform, TFLint, Trivy, Node and base images listed in `dev/toolchain.lock.json`, verifying each digest. Everything after this step runs offline. The production browser build comes from `web/`; the isolated Playwright preparation continues to use the legacy runner lock until browser test tooling has its own lockfile.
+This installs the locked Python and browser dependencies and fetches the pinned Terraform, TFLint, Trivy, Node and base images listed in `dev/toolchain.lock.json`, verifying each digest. Everything after this step runs offline. The production browser application and its isolated test runner use separate pinned dependency inputs.
 
 ## 2. Build the content pack
 
@@ -88,6 +87,22 @@ Topics, routing cues, playbooks, finding templates and public reference pages li
 The playbook limits in the seed (for example the one-hour recency limit) are synthetic. Set real values from your site's ingestion behavior. [Source capabilities](docs/source-capabilities.md) lists what each Wazuh source can and cannot establish.
 
 ## 3. Build the service image
+
+To validate the browser application separately, run these commands from `web/`:
+
+```sh
+npm ci
+npm run typecheck
+npm run validators:check
+npm run workspace-types:check
+npm run workspace-validators:check
+npm test
+npm run build
+```
+
+The build writes the static application to `web/dist/`. The type and validator checks compare generated files with the service contracts. The browser tests use the Chromium installed by `make bootstrap` and synthetic mocked API responses; they do not qualify the deployed service.
+
+Run `npm run dev` from `web/` to start the Vite development server. Run `npm run preview` to serve the built files. Both commands use live APIs and provide no authentication or API proxy. Supply an authenticated, same-origin `/v1` integration before you use the browser application with a service.
 
 ```sh
 make image-reproducibility
@@ -118,7 +133,7 @@ Offline checks do not prove a live site works. Before analysts rely on the servi
 
 ## Analyst workspace
 
-The workspace modules provide a PostgreSQL-backed analyst workflow used by the browser application. Run `make bootstrap`, then run `make web-build` to build it. The `make ws-*` targets manage the workspace database and processes. See the [workspace operations guide](docs/operations/workspace-m3.md) for setup.
+The workspace modules provide a PostgreSQL-backed analyst workflow used by the browser application. Run `make bootstrap`, then run `make web-build` to build it. The `make ws-*` targets manage the workspace database and processes. See [Operate the analyst workspace](docs/operations/workspace.md) for setup and recovery procedures.
 
 The workspace is an opt-in development feature. Its commands and content assets currently require a source checkout. The AWS service image serves the `web/` build, but it does not configure the workspace database or worker processes. Workspace backend packaging and production deployment have not been qualified.
 

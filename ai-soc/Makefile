@@ -6,20 +6,16 @@ NPM ?= build/tool-cache/node-v22.23.3/extracted/bin/npm
 OFFLINE := scripts/run-offline.sh
 PORT ?= 8000
 
-.PHONY: bootstrap ui-build web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained fixture dev staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
+.PHONY: bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained fixture dev staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
 
 bootstrap:
 	$(UV) sync --locked --all-groups
 	UV_CACHE_DIR=$(CURDIR)/build/private/home/.cache/uv $(UV) build --wheel --out-dir build/private/bootstrap-wheel
 	scripts/prepare-platform.sh
-	$(NODE) $(NPM) ci --prefix ui --ignore-scripts --no-audit --no-fund
 	$(NODE) $(NPM) ci --prefix web --ignore-scripts --no-audit --no-fund
 	$(UV) run --locked --offline python scripts/prepare_containers.py
 	$(OFFLINE) $(UV) run --locked --offline python scripts/bootstrap.py
 	$(UV) run --locked --offline python scripts/reproducible_image.py prepare-cache --uv $(UV)
-
-ui-build:
-	$(OFFLINE) $(NPM) --prefix ui run build
 
 web-build:
 	$(OFFLINE) $(NPM) --prefix web run build

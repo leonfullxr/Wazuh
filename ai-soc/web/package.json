@@ -5,11 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode live",
+    "dev:verify": "vite --config verification/vite.config.ts --mode verification",
     "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:browser && npm run test:csp",
+    "test:unit": "vitest run --config verification/vitest.config.ts",
+    "test:browser": "playwright test --config verification/browser.config.ts",
+    "test:csp": "playwright test --config verification/csp.config.ts",
     "build": "npm run validators:generate && npm run workspace-types:generate && npm run workspace-validators:generate && vite build --mode live",
+    "build:verify": "vite build --config verification/vite.config.ts --mode verification",
     "validators:generate": "node scripts/generate-validators.mjs",
     "validators:check": "node scripts/generate-validators.mjs --check",
     "preview": "vite preview --mode live",
+    "preview:verify": "vite preview --config verification/vite.config.ts --mode verification",
     "workspace-types:generate": "node scripts/generate-workspace-types.mjs",
     "workspace-types:check": "node scripts/generate-workspace-types.mjs --check",
     "workspace-validators:generate": "node scripts/generate-workspace-validators.mjs",
@@ -37,17 +44,23 @@
     "tailwind-merge": "3.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
+    "@testing-library/react": "16.3.0",
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "6.0.1",
     "autoprefixer": "10.6.1",
+    "jsdom": "26.1.0",
+    "msw": "2.11.5",
     "openapi-typescript": "7.13.0",
     "postcss": "8.5.31",
     "prettier": "3.6.2",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "vitest": "4.1.11"
   }
 }
