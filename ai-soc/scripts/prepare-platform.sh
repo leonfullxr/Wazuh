@@ -54,9 +54,23 @@ mkdir -p "$cache/node-v22.23.3/extracted"
 tar -xJf "$node_archive" --strip-components=1 -C "$cache/node-v22.23.3/extracted"
 
 mkdir -p "$repo_root/build/tool-cache/b5-ui-sync" "$repo_root/build/tool-cache/playwright"
+# The production browser is built from web/, but its lockfile does not declare the
+# Playwright runner. Keep browser preparation on the pinned legacy runner lock until
+# that tooling has its own lockfile. The b5-ui paths are part of the frozen runner
+# manifest and are intentionally preserved here.
+browser_runner_lock="$repo_root/ui/package-lock.json"
+"$cache/node-v22.23.3/extracted/bin/node" - "$browser_runner_lock" <<'NODE'
+const fs = require("fs");
+
+const lock = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const root = lock.packages?.[""];
+if (root?.devDependencies?.["@playwright/test"] !== "1.63.0") {
+    throw new Error("browser runner lock must declare @playwright/test 1.63.0");
+}
+NODE
 cp "$repo_root/dev/pinned-inputs/b5-ui-package.json" "$repo_root/build/b5-ui-package.json"
-cp "$repo_root/ui/package-lock.json" "$repo_root/build/b5-ui-package-lock.json"
-cp "$repo_root/ui/package-lock.json" "$repo_root/build/tool-cache/b5-ui-sync/package-lock.json"
+cp "$browser_runner_lock" "$repo_root/build/b5-ui-package-lock.json"
+cp "$browser_runner_lock" "$repo_root/build/tool-cache/b5-ui-sync/package-lock.json"
 cp "$repo_root/dev/pinned-inputs/b5-ui-package.json" \
     "$repo_root/build/tool-cache/b5-ui-sync/package.json"
 cp "$repo_root/dev/pinned-inputs/b6-toolchain.lock.json" "$repo_root/build/toolchain.lock.json"

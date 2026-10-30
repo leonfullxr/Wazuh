@@ -97,21 +97,25 @@ is unavailable until incident and chain relationships have a typed, supported
 representation. Per-topic feedback likewise needs a topic-scoped API.
 
 The overview still needs previous-period rule comparisons, exact severity
-bands and levels, a day-and-hour heatmap, technique-level ATT&CK coverage,
+bands and levels, technique-level ATT&CK coverage,
 agent health histories, and first-seen entity data. Alert search still needs
 server-side query syntax, field distributions, totals, and histograms. Queue
 views need server-side category counts, group severity and ATT&CK metadata.
 The quality and operations dashboards show empty states for their unavailable
 answer-quality, backlog-flow, funnel, age, analyst-load, and tuning metrics.
-Metrics does not report p99 or component-wide health. Custom time ranges,
-report export, and graph-to-timeline highlighting are not implemented.
+Metrics does not report p99 or component-wide health. Report export and
+graph-to-timeline highlighting are not implemented. Custom time ranges use UTC;
+the heatmap displays only intervals confirmed by the ingestion checkpoint.
+When the workspace router is absent, a visit to the root opens Investigate;
+explicit workspace links remain available and report their normal errors.
 
 Local mock checks exercised all twelve routes in both themes and at phone
 width, plus a strict-CSP preview. The local test files and harness are ignored
 and are not a clean-checkout release suite. A production cutover still needs
 tracked, reproducible tests for the web image and its authenticated behavior.
 
-The image, reproducibility scripts, and existing browser fixture still use
-`ui/`. Keep it until the web build replaces those inputs and the image and
-authenticated flows have been verified. In particular, investigate expired
-CSRF handling for workspace writes before making `web/` the packaged frontend.
+The image build consumes `web/`, but the existing browser fixture and pinned
+browser tooling still use `ui/`. Keep that folder until those dependencies are
+migrated and verified. Workspace writes do not automatically retry expired
+CSRF sessions: replay cannot safely cross identities without a stable principal
+binding. Refresh the page after session expiry and repeat the action explicitly.
