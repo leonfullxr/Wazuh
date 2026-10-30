@@ -62,7 +62,12 @@ export function OverviewPage({
     const freshness = t(`freshness${freshnessKey(data.freshness.state)}`);
     const activeHour = chart.groups.some((group) => group.hour === selectedHour)
         ? selectedHour
-        : (chart.groups.at(-1)?.hour ?? "");
+        : (chart.groups
+              .slice()
+              .reverse()
+              .find((group) => group.total > 0)?.hour ??
+          chart.groups.at(-1)?.hour ??
+          "");
     const activeGroup = chart.groups.find((group) => group.hour === activeHour);
 
     return (

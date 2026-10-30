@@ -122,7 +122,6 @@ textarea {
 .rail-caption {
     padding: 20px 20px 8px;
     font-size: 11px;
-    letter-spacing: 0.08em;
     color: var(--text-2);
 }
 .rail nav {
