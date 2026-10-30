@@ -11,6 +11,7 @@ from ai_soc.contracts.canonical import canonical_bytes
 from ai_soc.contracts.models import (
     Answer,
     AnswerStatus,
+    AuditContextUse,
     AuditEvent,
     AuditFetchRecord,
     AuditRemovedFinding,
@@ -101,6 +102,7 @@ class AnswerAssembly:
         cue_ids: list[str],
         topic_ids: list[str],
         completion_id: UUID | None = None,
+        context_uses: list[AuditContextUse] | None = None,
     ) -> AuditEvent:
         return AuditEvent(
             event_id=uuid4(),
@@ -120,6 +122,7 @@ class AnswerAssembly:
                 block.judgment.usage for block in answer.blocks if block.judgment.usage is not None
             ],
             fetches=_audit_fetches(self.catalog, answer, plan) if plan is not None else [],
+            context_uses=context_uses or [],
             outcome=outcome,
             completion_id=completion_id,
             model_id=plan.model_id if plan is not None else None,

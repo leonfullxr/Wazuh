@@ -1,0 +1,10 @@
+version: workspace.score.v1
+base: 35
+asset: 15
+privilege: 10
+rarity: 10
+first_seen: 5
+exposure: 10
+chain_strength: 15
+known_noise: -15
+composite_overlap: -10

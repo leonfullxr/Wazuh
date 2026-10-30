@@ -75,3 +75,21 @@ first; review a DLQ event only through the approved encrypted audit path.
 The consumer's one-shot output contains only received, archived and failed counts.
 It never prints message bodies, event IDs or cloud SDK exception text. SQS retries
 are at least once; event ID and conditional object creation make archival idempotent.
+
+### KEV continuation page events
+
+Continuation pages use the existing `attempted` audit outcome. The typed page-return
+metadata contains SHA-256 hashes for the input cursor, the returned next cursor when
+present, and the canonical response. Context-use records contain source and pack
+provenance, time proof, coverage counts and an annotation hash; they do not contain
+joined CVEs or telemetry rows. The event means the service durably authorized a page
+release. It does not mean the client received the page.
+
+Roll out the archive consumer that accepts the expanded AuditEvent fields before
+deploying page-audit producers. Confirm that it still decodes a retained old event,
+archives a page-return event through `If-None-Match: *`, and handles redelivery of an
+already archived event before enabling producers. Keep that consumer deployed while
+new events can remain on the queue. To roll back, disable or revert producers first,
+then let the compatible consumer drain and archive retained messages. Do not roll
+back to an old consumer until no event with the page-return fields can be delivered.
+No queue, bucket, encryption or infrastructure change is required.

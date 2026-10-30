@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 
 from ai_soc.contracts.canonical import policy_hash as make_policy_hash
-from ai_soc.contracts.canonical import site_config_hash
+from ai_soc.contracts.canonical import sha256_hex, site_config_hash
 from ai_soc.contracts.models import (
     AuthorizedSite,
     ErrorCode,
@@ -24,17 +24,35 @@ class SiteAuthorizationError(PermissionError):
         super().__init__(code.value)
 
 
+def kev_policy_hash(base_policy_hash: str, pack_sha256: str | None) -> str:
+    """Bind site authorization to the exact KEV-bearing content pack when enabled."""
+    if pack_sha256 is None:
+        return base_policy_hash
+    return sha256_hex(
+        {
+            "domain": "soc.kev-policy.v1",
+            "base_policy_hash": base_policy_hash,
+            "pack_sha256": pack_sha256,
+        }
+    )
+
+
 class MappedSitePolicy:
     """Maps only verifier-supplied groups; callers cannot provide backend roles."""
 
     def __init__(
-        self, sites: Iterable[SiteConfig], *, now: Callable[[], datetime] | None = None
+        self,
+        sites: Iterable[SiteConfig],
+        *,
+        now: Callable[[], datetime] | None = None,
+        kev_pack_sha256: str | None = None,
     ) -> None:
         configs = tuple(sites)
         self._sites = {site.environment_id: site for site in configs}
         if len(self._sites) != len(configs):
             raise ValueError("duplicate site environment id")
         self._now = now
+        self._kev_pack_sha256 = kev_pack_sha256
         for site in configs:
             if site.enabled and (not site.group_role_map or not site.dls_attestation_version):
                 raise ValueError("enabled site requires group mapping and DLS attestation")
@@ -86,9 +104,10 @@ class MappedSitePolicy:
             }
         )
         config_digest = site_config_hash(canonical_site)
-        effective = make_policy_hash(
+        base = make_policy_hash(
             config_digest, roles, visibility.value, site.dls_attestation_version
         )
+        effective = kev_policy_hash(base, self._kev_pack_sha256)
         return AuthorizedSite(
             config=site,
             backend_roles=roles,

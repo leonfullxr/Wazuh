@@ -1,0 +1,66 @@
+:root {
+    /* measured: UI and display typography metrics from the supplied reference. */
+    --font-ui: "Inter Variable", system-ui, sans-serif;
+    /* adapted: Inter variable opsz axis substitutes for the unavailable distinct Inter Display npm font file. */
+    --font-display: "Inter Variable", system-ui, sans-serif;
+    --font-code: "JetBrains Mono", ui-monospace, monospace;
+    /* measured: neutral, border and status colors from the supplied reference. */
+    --bg: #ffffff;
+    --bg-secondary: #fafafb;
+    --surface-subtle: #f3f4f6;
+    --surface: #edeff3;
+    --text: #1c1d1f;
+    --text-secondary: #232529;
+    --text-tertiary: #505967;
+    /* adapted: darkened measured muted text to reach WCAG AA contrast on white and #fafafb. */
+    --text-muted: #667180;
+    --stroke-weak: #edeff3;
+    --stroke-subtle: #e4e7ec;
+    --stroke: #d3d8df;
+    --stroke-strong: #cad0d9;
+    /* adapted: form control boundaries need 3:1 against the canvas (WCAG 1.4.11); measured strokes are 1.4:1. */
+    --stroke-control: #7d8794;
+    --accent: #266df0;
+    --accent-soft: #e8f0ff;
+    --positive: #0fc27b;
+    --negative: #ff5b59;
+    --warning: #f5b900;
+    --focus-ring: #266df04d;
+    /* measured: 4px spacing foundation and supplied spacing steps. */
+    --space-unit: 4px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    /* measured: control and panel corner radii from the supplied reference. */
+    --radius-control: 10px;
+    --radius-card: 12px;
+    --radius-window: 16px;
+    /* measured: control easing and response durations from the supplied reference. */
+    --ease-controls: cubic-bezier(0.2, 0, 0, 1);
+    --time-hover: 50ms;
+    --time-control: 300ms;
+    /* measured: low-opacity panel and floating surface shadows from the supplied reference. */
+    --shadow-panel: 0 1px 3px #00000003, 0 2px 4px -1px #00000005, 0 4px 8px -2px #00000008;
+    --shadow-float: 0 1px 2px #0b0d1806, 0 8px 20px #0b0d180a;
+    --rail-width: 224px;
+    --header-height: 64px;
+}
+/* adapted: no dark theme until dashboard color semantics are approved. */
+/* adapted: application surfaces use compact 24px panel padding and a 224px rail for scan density. */
+:root {
+    /* Semantic dashboard colors. Muted text is adapted from #6f7988 to #667180 for AA. */
+    --positive-soft: #e4f6ed;
+    --positive-text: #11633b;
+    --negative-soft: #fff0ef;
+    --negative-text: #a82927;
+    --warning-soft: #fff5d7;
+    --warning-text: #745500;
+    --accent-text: #174cae;
+    --overlay: rgb(28 29 31 / 32%);
+    --time-hover: 50ms;
+    --time-control: 300ms;
+    --ease-controls: cubic-bezier(0.2, 0, 0, 1);
+}

@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16.10-alpine
+    environment:
+      POSTGRES_DB: ${WS_PG_DATABASE:-ai_soc_workspace}
+      POSTGRES_USER: ${WS_PG_ADMIN_USER:-workspace_owner}
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    secrets:
+      - pg_password
+    ports:
+      - target: 5432
+        host_ip: 127.0.0.1
+        published: "${WS_PG_PORT:-}"
+        protocol: tcp
+    volumes:
+      - workspace_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+secrets:
+  pg_password:
+    file: ${WS_PG_SECRET_FILE:?}
+
+volumes:
+  workspace_pg_data:

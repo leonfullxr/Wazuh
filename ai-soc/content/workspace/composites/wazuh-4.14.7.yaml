@@ -1,0 +1,9 @@
+schema_version: 1
+policy_id: wazuh-4.14.7-ssh-composite.v1
+wazuh_version: '4.14.7'
+source_path: ruleset/rules/0095-sshd_rules.xml
+source_sha256: 4c360a2693ded4dc272ff91d83e411a674bb185b52b7b6b480f81afe71b3b430
+pairs:
+  - base_rule_id: '5760'
+    composite_rule_id: '5763'
+    same_source_ip: true

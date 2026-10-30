@@ -1,4 +1,4 @@
-.venv/
+.venv
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -7,7 +7,65 @@ build/
 *.py[cod]
 *.egg-info/
 .DS_Store
-node_modules/
+node_modules
 
-# Internal planning and review records live in a separate private repository.
-/internal/
+# Private project material lives here locally and is excluded from Git.
+/internal
+/.review
+/.secrets
+/.credentials
+/.env.workspace
+/.env
+/AGENTS.md
+/CLAUDE.md
+/design-reference.zip
+/web/dist/
+/web/playwright-report/
+/web/test-results/
+
+# Local qualification and demo assets. Production builds use the live entry.
+/scripts/workspace/serve_lab.py
+/tests/fixtures/web/
+/web/src/main-mock.tsx
+/web/src/api/kev-preview.schema.json
+/web/src/mocks/
+/web/src/test-setup.ts
+/web/public/mockServiceWorker.js
+/web/e2e/
+/web/vite.live.config.ts
+/web/playwright*.config.ts
+/web/src/**/*.test.ts
+/web/src/**/*.test.tsx
+
+# Keep development verification local; the release contains runtime and operations.
+/tests
+/.github
+/dev
+/compose.yaml
+/ui/e2e
+/ui/playwright*.config.ts
+/scripts/evaluation
+/scripts/coverage.py
+/scripts/junit_capture.py
+/scripts/live_boot_check.py
+/scripts/live_boot_entrypoint_smoke.py
+/scripts/live_boot_identity_standin.py
+/scripts/live_boot_indexer_standin.py
+/scripts/live_boot_kms_standin.py
+/scripts/local_protocol_check.py
+/scripts/otlp-probe.py
+/scripts/qualification_wheel_check.py
+/contracts/v1/tooling
+/contracts/v1/freeze.json
+/src/ai_soc/contracts/freeze.py
+/src/ai_soc/contracts/coverage.py
+/src/ai_soc/workspace/lab_check.py
+/src/ai_soc/workspace/replay.py
+/src/ai_soc/workspace/evaluation.py
+/docs/case_catalog.json
+/docs/golden_case.schema.json
+/docs/golden_examples.json
+/docs/task_ids.json
+/docs/traceability.json
+/docs/operations/local-runners.md
+/.env.workspace.example

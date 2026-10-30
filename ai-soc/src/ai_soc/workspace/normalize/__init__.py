@@ -1,0 +1,1 @@
+"""Versioned Wazuh alert normalization."""

@@ -166,7 +166,12 @@ def _verify_site_ca_secrets(sites: tuple[SiteConfig, ...], reader: BoundSiteCaSe
         _parse_ca_pem(pem)
 
 
-def build_live_runtime(document: LiveSealedDocument) -> LiveRuntime:
+def build_live_runtime(
+    document: LiveSealedDocument,
+    *,
+    workspace_dsn_provider: Callable[[], str] | None = None,
+    workspace_cursor_secret: bytes | None = None,
+) -> LiveRuntime:
     document = merge_audit_urls(_materialize_ca_bundle(document))
     region = require_region()
     for model in document.service.models:
@@ -289,6 +294,8 @@ def build_live_runtime(document: LiveSealedDocument) -> LiveRuntime:
         standing_rules=document.standing_rules,
         mcp_issuer_url=document.mcp.issuer,
         mcp_resource_url=document.mcp.resource,
+        workspace_dsn_provider=workspace_dsn_provider,
+        workspace_cursor_secret=workspace_cursor_secret,
     )
     if runtime.application.semantic_suggester is None:
         _LOGGER.warning(

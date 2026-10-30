@@ -12,11 +12,13 @@ from ai_soc.content.finding_catalog import (
     validate_prompt_contexts,
     validate_references,
 )
+from ai_soc.content.kev import KevLookupIndex, verify_snapshot
 from ai_soc.contracts.models import (
     BuildProvenance,
     CueCatalog,
     ExpectationDefinition,
     FindingTemplate,
+    KevSnapshot,
     PackManifest,
     PlaybookDefinition,
     TopicDefinition,
@@ -35,6 +37,8 @@ class ContentCatalog:
     playbook_records: tuple[PlaybookDefinition, ...] = ()
     expectations: tuple[ExpectationDefinition, ...] = ()
     templates: tuple[FindingTemplate, ...] = ()
+    kev_snapshot: KevSnapshot | None = None
+    kev_index: KevLookupIndex | None = None
 
     def __post_init__(self) -> None:
         topic_ids = [topic.topic_id for topic in self.topic_records]
@@ -46,6 +50,12 @@ class ContentCatalog:
         definitions = validate_definitions(self.templates)
         validate_references(definitions, self.topic_records, self.playbook_records)
         validate_prompt_contexts(self.prompt_packs, definitions)
+        if self.kev_snapshot is None and self.kev_index is not None:
+            raise ValueError("KEV lookup index requires its verified snapshot")
+        if self.kev_snapshot is not None:
+            verify_snapshot(self.kev_snapshot)
+            if self.kev_index is None:
+                object.__setattr__(self, "kev_index", KevLookupIndex.create(self.kev_snapshot))
 
     def manifest(self) -> BuildProvenance:
         return self.provenance
@@ -124,8 +134,8 @@ def load_content_catalog(pack: Path, *, provenance: BuildProvenance) -> ContentC
     """Load an already verified immutable pack into the frozen ContentCatalog port."""
     from ai_soc.content.builder import verify_content_pack
 
-    verify_content_pack(pack)
-    manifest = PackManifest.model_validate_json((pack / "manifest.json").read_bytes())
+    verified_files = verify_content_pack(pack)
+    manifest = PackManifest.model_validate_json(verified_files["manifest.json"])
     if (
         manifest.content_sha != provenance.content_sha
         or manifest.pack_sha256 != provenance.pack_sha256
@@ -139,23 +149,41 @@ def load_content_catalog(pack: Path, *, provenance: BuildProvenance) -> ContentC
     playbooks: list[PlaybookDefinition] = []
     expectations: list[ExpectationDefinition] = []
     templates: list[FindingTemplate] = []
-    for path in sorted((pack / "pack").rglob("*.json")):
-        data = cast(object, json.loads(path.read_bytes()))
-        if path.parent.name == "topics":
+    kev_snapshot: KevSnapshot | None = None
+    kev_paths = [
+        item.path
+        for item in manifest.files
+        if "kev" in PurePosixPath(item.path).parts
+        or PurePosixPath(item.path).name == "cisa-kev.json"
+    ]
+    if len(kev_paths) > 1 or (kev_paths and kev_paths[0] != "pack/kev/cisa-kev.json"):
+        raise ValueError("content pack has multiple or invalid KEV record files")
+    for item in sorted(manifest.files, key=lambda record: record.path):
+        record_path = PurePosixPath(item.path)
+        if not item.path.startswith("pack/") or record_path.suffix != ".json":
+            continue
+        raw = verified_files[item.path]
+        if record_path.parent.name == "topics":
+            data = cast(object, json.loads(raw))
             if not isinstance(data, dict):
                 raise ValueError("topic pack record must be an object")
             topic_data = cast(dict[str, object], data)
             topic_records.append(TopicDefinition.model_validate_json(json.dumps(topic_data)))
-        elif path.parent.name == "cues":
-            cue_records.append(CueCatalog.model_validate_json(path.read_bytes()))
-        elif path.parent.name == "playbooks":
-            playbooks.append(PlaybookDefinition.model_validate_json(path.read_bytes()))
-        elif path.parent.name == "expectations":
-            expectations.append(ExpectationDefinition.model_validate_json(path.read_bytes()))
-        elif path.parent.name == "finding-templates":
-            templates.append(FindingTemplate.model_validate_json(path.read_bytes()))
-        elif path.parent.name == "context":
-            prompt_packs.append(TopicPromptPack.model_validate_json(path.read_bytes()))
+        elif record_path.parent.name == "cues":
+            cue_records.append(CueCatalog.model_validate_json(raw))
+        elif record_path.parent.name == "playbooks":
+            playbooks.append(PlaybookDefinition.model_validate_json(raw))
+        elif record_path.parent.name == "expectations":
+            expectations.append(ExpectationDefinition.model_validate_json(raw))
+        elif record_path.parent.name == "finding-templates":
+            templates.append(FindingTemplate.model_validate_json(raw))
+        elif record_path.parent.name == "context":
+            prompt_packs.append(TopicPromptPack.model_validate_json(raw))
+        elif item.path == "pack/kev/cisa-kev.json":
+            if kev_snapshot is not None:
+                raise ValueError("content pack has multiple or invalid KEV record files")
+            kev_snapshot = KevSnapshot.model_validate_json(raw)
+            verify_snapshot(kev_snapshot)
     cue_catalog = CueCatalog(
         version="1",
         sha256=manifest.cue_pack_sha,
@@ -171,4 +199,6 @@ def load_content_catalog(pack: Path, *, provenance: BuildProvenance) -> ContentC
         tuple(playbooks),
         tuple(expectations),
         tuple(templates),
+        kev_snapshot,
+        KevLookupIndex.create(kev_snapshot) if kev_snapshot is not None else None,
     )

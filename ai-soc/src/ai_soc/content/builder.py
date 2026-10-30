@@ -15,7 +15,7 @@ import tarfile
 import tempfile
 import unicodedata
 from collections.abc import Iterable, Mapping
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Literal, TypeVar, cast
@@ -32,6 +32,7 @@ from ai_soc.content.finding_catalog import (
     validate_prompt_contexts,
     validate_references,
 )
+from ai_soc.content.kev import import_kev_catalog, normalized_digest, policy_identity
 from ai_soc.contracts.canonical import canonical_bytes
 from ai_soc.contracts.models import (
     SHA256,
@@ -41,6 +42,9 @@ from ai_soc.contracts.models import (
     CueCatalog,
     DetachedApproval,
     EmbeddingManifest,
+    EvidenceItem,
+    EvidenceSourceContext,
+    EvidenceValues,
     ExpectationDefinition,
     ExpectationMatchStep,
     FetchStep,
@@ -48,15 +52,21 @@ from ai_soc.contracts.models import (
     FindingTemplate,
     FiniteFloat,
     GoldenCase,
+    KevCatalog,
+    KevSnapshot,
+    KevUseRef,
     PackManifest,
     PlaybookDefinition,
     RecordAgeStep,
     ReportConfigurationMissingStep,
+    SnapshotKind,
+    SnapshotRef,
     SolvedCase,
     SourceManifest,
     StrictModel,
     TopicDefinition,
     TopicPromptPack,
+    Visibility,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -93,6 +103,7 @@ _SECRET = re.compile(
 _MAX_FILE = ConfigBounds().content_file_bytes
 _MAX_TOTAL = ConfigBounds().content_total_bytes
 _MAX_FILES = ConfigBounds().content_files
+_MAX_KEV_RAW = 32 * 1024 * 1024
 
 
 class ContentBuildError(ValueError):
@@ -374,13 +385,31 @@ def _source_files(source: Path, commit: str) -> dict[str, bytes]:
             raise ContentBuildError(
                 f"content tree contains a symlink, executable, or submodule: {name}"
             )
-        raw = subprocess.run(
+        is_kev_raw = name == "content/kev/raw-cisa-kev.json"
+        limit = _MAX_KEV_RAW if is_kev_raw else _MAX_FILE
+        process = subprocess.Popen(
             ["git", "-C", str(source), "show", f"{commit}:{name}"],
-            check=True,
-            capture_output=True,
-            timeout=15,
-        ).stdout
-        if len(raw) > _MAX_FILE:
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        if process.stdout is None:
+            raise ContentBuildError("content source stream could not be opened")
+        chunks: list[bytes] = []
+        raw_size = 0
+        while True:
+            chunk = process.stdout.read(min(64 * 1024, limit - raw_size + 1))
+            if not chunk:
+                break
+            raw_size += len(chunk)
+            if raw_size > limit:
+                process.terminate()
+                process.wait(timeout=5)
+                raise ContentBuildError(f"content file exceeds its byte limit: {name}")
+            chunks.append(chunk)
+        if process.wait(timeout=15) != 0:
+            raise ContentBuildError(f"git could not read content source: {name}")
+        raw = b"".join(chunks)
+        if raw_size > limit:
             raise ContentBuildError(f"content file exceeds the byte limit: {name}")
         try:
             decoded = raw.decode("utf-8")
@@ -390,7 +419,8 @@ def _source_files(source: Path, commit: str) -> dict[str, bytes]:
             raise ContentBuildError(f"content file must use stable LF line endings: {name}")
         if _SECRET.search(decoded):
             raise ContentBuildError(f"secret-like value in content source: {name}")
-        total += len(raw)
+        if not is_kev_raw:
+            total += len(raw)
         if total > _MAX_TOTAL:
             raise ContentBuildError("content tree exceeds the total byte limit")
         files[name] = raw
@@ -453,6 +483,7 @@ def _load_records(
         "solved_cases",
         "golden",
         "topic-cards",
+        "kev",
     }
     topic_ids: set[str] = set()
     for path, raw in sorted(files.items()):
@@ -464,6 +495,10 @@ def _load_records(
         if len(parts) < 3 or parts[0] != "content" or path == manifest_path:
             continue
         group = parts[1]
+        if group == "kev":
+            if path not in {"content/kev/cisa-kev.json", "content/kev/raw-cisa-kev.json"}:
+                raise ContentBuildError(f"unsupported KEV source file: {path}")
+            continue
         if group not in supported_groups:
             raise ContentBuildError(f"unsupported content record group: {group}")
         suffix = PurePosixPath(path).suffix.lower()
@@ -526,6 +561,52 @@ def _load_records(
         topic_cards,
         solved_cases,
         golden,
+    )
+
+
+def _kev_snapshot(files: Mapping[str, bytes], approval: DetachedApproval) -> KevSnapshot | None:
+    source_path = "content/kev/cisa-kev.json"
+    raw_path = "content/kev/raw-cisa-kev.json"
+    selected = [name for name in files if name.startswith("content/kev/")]
+    if not selected:
+        return None
+    if set(selected) != {source_path, raw_path}:
+        raise ContentBuildError(
+            "KEV source requires one normalized catalog and its retained raw input"
+        )
+    try:
+        catalog = KevCatalog.model_validate_json(files[source_path])
+        if len(files[raw_path]) > 32 * 1024 * 1024:
+            raise ContentBuildError("retained KEV input exceeds 32 MiB")
+        rebuilt, _ = import_kev_catalog(
+            io.BytesIO(files[raw_path]),
+            retrieved_at=catalog.metadata.retrieved_at,
+            policy=catalog.metadata.policy,
+            notice=catalog.metadata.notice,
+            clock=datetime.now(UTC),
+        )
+    except (ValidationError, ValueError) as exc:
+        raise ContentBuildError("KEV source or retained raw input is invalid") from exc
+    if canonical_bytes(rebuilt) != canonical_bytes(catalog):
+        raise ContentBuildError("retained raw KEV input does not rebuild the source catalog")
+    if catalog.metadata.record_count != len(catalog.entries):
+        raise ContentBuildError("KEV record_count does not match entries")
+    if not catalog.metadata.notice.terms_review_record.strip():
+        raise ContentBuildError("KEV terms review record is required")
+    if catalog.metadata.retrieved_at > approval.approved_at:
+        raise ContentBuildError("KEV retrieval is after detached approval")
+    if approval.approved_at > datetime.now(UTC):
+        raise ContentBuildError("detached approval is after build time")
+    if (
+        catalog.metadata.record_count > 4096
+        or normalized_digest(catalog.entries) != catalog.metadata.normalized_sha256
+    ):
+        raise ContentBuildError("KEV normalized table or record count is invalid")
+    return KevSnapshot(
+        metadata=catalog.metadata,
+        approved_at=approval.approved_at,
+        approval_key_id=approval.key_id,
+        entries=catalog.entries,
     )
 
 
@@ -789,6 +870,7 @@ def validate_git_content(
             "detached approval repository, commit, or tree does not match source"
         )
     verify_detached_approval(approval, trust_roots, allow_fixture=allow_fixture)
+    _kev_snapshot(files, approval)
     _validate_cross_references(
         files, topics, cues, playbooks, expectations, templates, cases, goldens
     )
@@ -828,6 +910,7 @@ def build_content_pack(
         cases,
         goldens,
     ) = _load_records(files)
+    kev_snapshot = _kev_snapshot(files, approval)
     cue_sha = _sha256(canonical_bytes(sorted(catalog.sha256 for catalog in cue_catalogs)))
     public_docs: dict[str, bytes] = {}
     contexts: list[TopicPromptPack] = []
@@ -883,6 +966,12 @@ def build_content_pack(
         "solved-cases": cases,
         "golden": goldens,
     }
+    if kev_snapshot is not None:
+        kev_bytes = _canonical_model(kev_snapshot)
+        if len(kev_bytes) > 131072:
+            raise ContentBuildError("KEV group exceeds 131072 bytes")
+        _check_kev_page_summary(kev_snapshot, commit)
+        pack_items["pack/kev/cisa-kev.json"] = kev_bytes
     for group, records in groups.items():
         for record in records:
             if group == "finding-templates":
@@ -964,6 +1053,8 @@ def build_content_pack(
         "provenance.json": canonical_bytes(provenance),
         "manifest.json": _canonical_model(typed_manifest),
     }
+    if sum(len(data) for data in output_files.values()) > ConfigBounds().pack_bytes:
+        raise ContentBuildError("content pack exceeds its byte limit")
     source_epoch = int(_git(source, "show", "-s", "--format=%ct", commit))
     archive_buffer = io.BytesIO()
     with tarfile.open(fileobj=archive_buffer, mode="w", format=tarfile.USTAR_FORMAT) as archive:
@@ -991,31 +1082,195 @@ def build_content_pack(
             destination.write_bytes(data)
             os.chmod(destination, 0o444)
         os.replace(staging, resolved_out)
+    verify_content_pack(resolved_out)
     return typed_manifest
 
 
-def verify_content_pack(pack: Path, contract_version: str = "1") -> None:
+def _bounded_file_read(path: Path, limit: int) -> bytes:
+    if limit < 0 or path.stat().st_size > limit:
+        raise ContentBuildError(f"pack file exceeds its declared read limit: {path.name}")
+    with path.open("rb") as stream:
+        raw = stream.read(limit)
+    if len(raw) > limit:
+        raise ContentBuildError(f"pack file grew beyond its declared read limit: {path.name}")
+    return raw
+
+
+def preflight_ustar(archive_bytes: bytes, bounds: ConfigBounds) -> tuple[int, int]:
+    offset = 0
+    members = 0
+    extracted_bytes = 0
+    zero_blocks = 0
+    while offset + 512 <= len(archive_bytes):
+        header = archive_bytes[offset : offset + 512]
+        if header == bytes(512):
+            zero_blocks += 1
+            offset += 512
+            if zero_blocks == 2:
+                if any(archive_bytes[offset:]):
+                    raise ContentBuildError("content archive has data after its terminator")
+                break
+            continue
+        if zero_blocks or header[257:263] not in {b"ustar\x00", b"ustar "}:
+            raise ContentBuildError("content archive must use USTAR headers")
+        typeflag = header[156:157]
+        if typeflag not in {b"\x00", b"0", b"5"}:
+            raise ContentBuildError("content archive member type or extension is unsupported")
+        size_field = header[124:136].strip(b"\x00 ")
+        if size_field and any(byte not in b"01234567" for byte in size_field):
+            raise ContentBuildError("content archive member size is malformed")
+        try:
+            size = int(size_field or b"0", 8)
+        except ValueError as exc:
+            raise ContentBuildError("content archive member size is malformed") from exc
+        if typeflag == b"5" and size != 0:
+            raise ContentBuildError("content archive directory has a nonzero size")
+        if size > bounds.content_file_bytes:
+            raise ContentBuildError("content archive member exceeds its per-file limit")
+        members += 1
+        if members > bounds.content_files + 4:
+            raise ContentBuildError("content archive has too many members")
+        extracted_bytes += size
+        if len(archive_bytes) + extracted_bytes > bounds.pack_bytes:
+            raise ContentBuildError("archive extraction exceeds its cumulative byte limit")
+        name_bytes = header[0:100].split(b"\x00", 1)[0]
+        prefix_bytes = header[345:500].split(b"\x00", 1)[0]
+        try:
+            name = name_bytes.decode("utf-8")
+            prefix = prefix_bytes.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ContentBuildError("content archive path is not UTF-8") from exc
+        full_name = f"{prefix}/{name}" if prefix else name
+        if typeflag == b"5" and full_name.endswith("/"):
+            full_name = full_name[:-1]
+        relative = safe_relative_path(full_name)
+        if relative.as_posix() != full_name:
+            raise ContentBuildError("content archive has an unsafe member path")
+        blocks = (size + 511) // 512
+        offset += 512 + blocks * 512
+        if offset > len(archive_bytes):
+            raise ContentBuildError("content archive member is truncated")
+    if zero_blocks < 2:
+        raise ContentBuildError("content archive terminator is missing")
+    return members, extracted_bytes
+
+
+def _kev_page_summary_size(snapshot: KevSnapshot, content_sha: str) -> int:
+    # Longest legal page item: incomplete coverage with the longest reason and four-digit
+    # counts (at most 50 rows of 64 CVEs per page).
+    metadata = snapshot.metadata
+    kev_use = KevUseRef(
+        content_sha=content_sha,
+        pack_sha256="f" * 64,
+        metadata=metadata,
+        approved_at=snapshot.approved_at,
+        approval_key_id=snapshot.approval_key_id,
+        policy_sha256=policy_identity(metadata.policy),
+        evaluation_at=snapshot.approved_at,
+        valid_from=max(metadata.published_at, metadata.retrieved_at, snapshot.approved_at),
+        expires_at=metadata.published_at + timedelta(seconds=metadata.policy.max_age_seconds),
+    )
+    values = {
+        "kev_coverage": "incomplete",
+        "kev_reason": "not_yet_available",
+        "kev_row_n": 4096,
+        "kev_subject_n": 8192,
+        "kev_annotated_n": 4096,
+        "kev_omitted_n": 4096,
+        "kev_hit_n": 1024,
+        "kev_not_listed_n": 1024,
+        "kev_invalid_n": 1024,
+        "kev_unavailable_n": 1024,
+        "kev_fresh_n": 1024,
+        "kev_stale_n": 1024,
+        "kev_not_yet_valid_n": 1024,
+        "kev_unknown_n": 1024,
+    }
+    item = EvidenceItem(
+        evidence_id="ev1_" + "e" * 64,
+        topic_id="vuln_review",
+        fetch_id="vuln_rows",
+        kind="context",
+        source=EvidenceSourceContext(role="page", kev_use=kev_use),
+        snapshot=SnapshotRef(
+            kind=SnapshotKind.first_page_only,
+            key="d" * 64,
+            at=snapshot.approved_at,
+            expires_at=metadata.published_at + timedelta(seconds=metadata.policy.max_age_seconds),
+        ),
+        values=cast(EvidenceValues, values),
+        visibility=Visibility.filtered,
+        scope_hash="c" * 64,
+    )
+    return len(canonical_bytes(item))
+
+
+def _check_kev_page_summary(snapshot: KevSnapshot, content_sha: str) -> None:
+    if _kev_page_summary_size(snapshot, content_sha) > 16384:
+        raise ContentBuildError("worst-case KEV page provenance exceeds 16384 bytes")
+
+
+def verify_content_pack(pack: Path, contract_version: str = "1") -> dict[str, bytes]:
+    bounds = ConfigBounds()
     try:
-        manifest = PackManifest.model_validate_json((pack / "manifest.json").read_bytes())
+        manifest_bytes = _bounded_file_read(pack / "manifest.json", bounds.content_file_bytes)
+        manifest = PackManifest.model_validate_json(manifest_bytes)
     except (OSError, ValidationError) as exc:
         raise ContentBuildError("pack manifest is missing or invalid") from exc
     if manifest.service_contract_version != contract_version:
         raise ContentBuildError("pack contract version mismatch")
+    if len(manifest.files) > bounds.content_files:
+        raise ContentBuildError("pack manifest has too many files")
     if len({file.path for file in manifest.files}) != len(manifest.files):
         raise ContentBuildError("pack manifest contains duplicate paths")
+    declared_total = 0
+    for file in manifest.files:
+        try:
+            safe_relative_path(file.path)
+        except ValueError as exc:
+            raise ContentBuildError("pack manifest contains an unsafe path") from exc
+        if file.bytes > bounds.content_file_bytes:
+            raise ContentBuildError(f"manifest member exceeds per-file limit: {file.path}")
+        if "kev" in PurePosixPath(file.path).parts and file.bytes > 131072:
+            raise ContentBuildError("KEV group exceeds 131072 bytes")
+        declared_total += file.bytes
+    if declared_total > bounds.pack_bytes:
+        raise ContentBuildError("extracted pack files exceed their cumulative byte limit")
+    archive_size = (pack / "content.tar").stat().st_size
+    fixed_paths = ("docs-manifest.json", "provenance.json", "archive.sha256")
+    if any((pack / name).stat().st_size > bounds.content_file_bytes for name in fixed_paths):
+        raise ContentBuildError("fixed pack file exceeds its read limit")
+    fixed_size = sum((pack / name).stat().st_size for name in ("manifest.json", *fixed_paths))
+    if (
+        archive_size > bounds.pack_bytes
+        or declared_total + fixed_size + archive_size > bounds.pack_bytes
+    ):
+        raise ContentBuildError("content pack exceeds its byte limit")
+    archive_bytes = _bounded_file_read(pack / "content.tar", bounds.pack_bytes)
+    verified_data: dict[str, bytes] = {"manifest.json": manifest_bytes}
+    for name in ("docs-manifest.json", "provenance.json"):
+        verified_data[name] = _bounded_file_read(pack / name, bounds.content_file_bytes)
     for file in manifest.files:
         path = pack / file.path
         try:
             resolved = path.resolve(strict=True)
             resolved.relative_to(pack.resolve(strict=True))
-            raw = resolved.read_bytes()
         except (OSError, ValueError) as exc:
+            raise ContentBuildError(f"manifest file missing or escaping pack: {file.path}") from exc
+        if resolved.is_symlink() or not resolved.is_file():
+            raise ContentBuildError(f"manifest file missing or escaping pack: {file.path}")
+        if resolved.stat().st_size != file.bytes:
+            raise ContentBuildError(f"manifest file hash mismatch: {file.path}")
+        try:
+            raw = _bounded_file_read(resolved, file.bytes)
+        except OSError as exc:
             raise ContentBuildError(f"manifest file missing or escaping pack: {file.path}") from exc
         if len(raw) != file.bytes or _sha256(raw) != file.sha256:
             raise ContentBuildError(f"manifest file hash mismatch: {file.path}")
+        verified_data[file.path] = raw
     # The manifest hash excludes itself and is over canonical content records only.
     pack_records = {
-        item.path: _sha256((pack / item.path).read_bytes())
+        item.path: _sha256(verified_data[item.path])
         for item in manifest.files
         if item.path.startswith("pack/")
     }
@@ -1027,9 +1282,7 @@ def verify_content_pack(pack: Path, contract_version: str = "1") -> None:
         if item.path.startswith("docs/")
     }
     try:
-        docs_manifest = _DocsManifest.model_validate_json(
-            (pack / "docs-manifest.json").read_bytes()
-        )
+        docs_manifest = _DocsManifest.model_validate_json(verified_data["docs-manifest.json"])
         if docs_manifest.files != docs_files:
             raise ValueError
     except (OSError, ValidationError, ValueError) as exc:
@@ -1043,44 +1296,66 @@ def verify_content_pack(pack: Path, contract_version: str = "1") -> None:
         "content.tar",
         "archive.sha256",
     }
-    actual_paths = {
-        path.relative_to(pack).as_posix()
-        for path in pack.rglob("*")
-        if path.is_file() or path.is_symlink()
-    }
+    actual_paths: set[str] = set()
+    for path in pack.rglob("*"):
+        if path.is_file() or path.is_symlink():
+            actual_paths.add(path.relative_to(pack).as_posix())
+            if len(actual_paths) > bounds.content_files + 5:
+                raise ContentBuildError("pack contains too many files")
     if actual_paths != expected_files or any((pack / name).is_symlink() for name in expected_files):
         raise ContentBuildError("pack contains missing, extra, or linked files")
     total_size = sum((pack / name).stat().st_size for name in expected_files)
     if total_size > ConfigBounds().pack_bytes:
         raise ContentBuildError("content pack exceeds its byte limit")
-    archive_bytes = (pack / "content.tar").read_bytes()
     archive_hash = _sha256(archive_bytes)
-    if (pack / "archive.sha256").read_text(encoding="ascii") != f"{archive_hash}\n":
+    if _bounded_file_read(pack / "archive.sha256", 128).decode("ascii") != f"{archive_hash}\n":
         raise ContentBuildError("content archive digest mismatch")
     try:
+        preflight_ustar(archive_bytes, bounds)
         with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:") as archive:
-            archive_names = set(archive.getnames())
+            members = archive.getmembers()
+            if len(members) > bounds.content_files + 4:
+                raise ContentBuildError("content archive has too many members")
+            archive_names = {item.name for item in members if item.isfile()}
             expected_members = expected_files - {"content.tar", "archive.sha256"}
-            if archive_names != expected_members or len(archive_names) != len(archive.getnames()):
+            if archive_names != expected_members or len({item.name for item in members}) != len(
+                members
+            ):
                 raise ContentBuildError("content archive inventory is invalid")
+            member_total = 0
+            for member in members:
+                if (
+                    not (member.isfile() or member.isdir())
+                    or member.size > bounds.content_file_bytes
+                ):
+                    raise ContentBuildError("content archive member type or size is invalid")
+                member_total += member.size
+            if member_total + len(archive_bytes) > bounds.pack_bytes:
+                raise ContentBuildError("archive extraction exceeds the cumulative byte limit")
             for name in sorted(expected_members):
                 member = archive.extractfile(name)
-                if member is None or member.read() != (pack / name).read_bytes():
+                if member is None:
+                    raise ContentBuildError("content archive member is missing")
+                member_size = next(item.size for item in members if item.name == name)
+                member_bytes = member.read(member_size)
+                if len(member_bytes) != member_size or member_bytes != verified_data[name]:
                     raise ContentBuildError(f"content archive member mismatch: {name}")
     except (OSError, tarfile.TarError) as exc:
         raise ContentBuildError("content archive is invalid") from exc
+    return verified_data
 
 
 def load_topic_card_vectors(pack: Path) -> Mapping[str, tuple[float, ...]]:
     """Read immutable, manifest-bound topic vectors; disabled packs return an empty mapping."""
-    verify_content_pack(pack)
-    manifest = PackManifest.model_validate_json((pack / "manifest.json").read_bytes())
+    verified_files = verify_content_pack(pack)
+    manifest = PackManifest.model_validate_json(verified_files["manifest.json"])
     if manifest.embedding is None:
         return MappingProxyType({})
     vectors: dict[str, tuple[float, ...]] = {}
-    for path in sorted((pack / "pack/topic-cards").glob("*.json")):
-        card = _PackedTopicCard.model_validate_json(path.read_bytes())
-        if path.name != f"{card.topic_id}.json" or card.topic_id in vectors:
+    card_paths = sorted(path for path in verified_files if path.startswith("pack/topic-cards/"))
+    for card_path in card_paths:
+        card = _PackedTopicCard.model_validate_json(verified_files[card_path])
+        if PurePosixPath(card_path).name != f"{card.topic_id}.json" or card.topic_id in vectors:
             raise ContentBuildError("topic vector path or ID is invalid")
         if len(card.vector) != manifest.embedding.dimensions:
             raise ContentBuildError("topic vector dimension does not match pack manifest")
@@ -1091,8 +1366,9 @@ def load_topic_card_vectors(pack: Path) -> Mapping[str, tuple[float, ...]]:
     if not vectors:
         raise ContentBuildError("embedding manifest has no topic vectors")
     topic_ids = {
-        TopicDefinition.model_validate_json(path.read_bytes()).topic_id
-        for path in sorted((pack / "pack/topics").glob("*.json"))
+        TopicDefinition.model_validate_json(verified_files[path]).topic_id
+        for path in sorted(verified_files)
+        if path.startswith("pack/topics/") and path.endswith(".json")
     }
     if set(vectors) != topic_ids:
         raise ContentBuildError("embedding vectors do not match packed topics")

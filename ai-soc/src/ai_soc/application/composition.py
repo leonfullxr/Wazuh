@@ -75,6 +75,7 @@ from ai_soc.telemetry.events import TelemetryAdapter
 from ai_soc.telemetry.metrics import MetricExporter
 from ai_soc.telemetry.tracing import SpanExporter
 from ai_soc.validation.findings import FindingValidator
+from ai_soc.workspace.api.runtime import WorkspaceRuntime
 
 
 class TransportFactory(Protocol):
@@ -306,6 +307,8 @@ def compose_soc(
     semantic_suggester: SemanticSuggester | None = None,
     judgment_provider_factory: JudgmentProviderFactory | None = None,
     semantic_suggester_factory: SemanticSuggesterFactory | None = None,
+    workspace_dsn_provider: Callable[[], str] | None = None,
+    workspace_cursor_secret: bytes | None = None,
 ) -> SocRuntime:
     """Build all shared request adapters without ambient env, home or credential reads."""
     if not config.sites or not config.models:
@@ -317,6 +320,8 @@ def compose_soc(
         raise ValueError("supply exactly one judgment provider or factory")
     if semantic_suggester is not None and semantic_suggester_factory is not None:
         raise ValueError("supply a semantic suggester or factory, not both")
+    if (workspace_dsn_provider is None) != (workspace_cursor_secret is None):
+        raise ValueError("workspace API DSN provider and cursor secret must be supplied together")
     if config.mode == "live" and judgment_provider_factory is None:
         raise ValueError("live composition requires a model/count admission provider factory")
     if config.mode == "live" and semantic_suggester is not None:
@@ -345,7 +350,26 @@ def compose_soc(
             feedback_control_pool=feedback_control_pool,
         )
 
-        policy = MappedSitePolicy(config.sites, now=clock.now)
+        kev_pack_sha256 = (
+            catalog.manifest().pack_sha256
+            if getattr(catalog, "kev_snapshot", None) is not None
+            else None
+        )
+        policy = MappedSitePolicy(
+            config.sites,
+            now=clock.now,
+            kev_pack_sha256=kev_pack_sha256,
+        )
+        workspace_runtime = (
+            WorkspaceRuntime(
+                workspace_dsn_provider,
+                policy,
+                workspace_cursor_secret,
+                clock.now,
+            )
+            if workspace_dsn_provider is not None and workspace_cursor_secret is not None
+            else None
+        )
         identity = RouteIdentityVerifier(alb_verifier, mcp_verifier)
         token_broker = KmsIndexerTokenBroker(kms, key_ids=indexer_key_ids, now=clock.now)
         telemetry = TelemetryAdapter(
@@ -403,6 +427,8 @@ def compose_soc(
             guardrail_identifier=config.guardrail_identifier,
             guardrail_version=config.guardrail_version,
             semantic_suggester=semantic_suggester,
+            kev_activation_at=clock.now(),
+            cursor_cipher=cursor_cipher,
         )
         browser = create_app(
             application,
@@ -410,6 +436,7 @@ def compose_soc(
             CsrfTokens(csrf_secret, origin=browser_origin),
             clock,
             readiness,
+            workspace_runtime=workspace_runtime,
         )
         mcp = create_mcp_app(
             application,

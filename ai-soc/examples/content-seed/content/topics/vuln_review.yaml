@@ -10,7 +10,7 @@ public_document:
   source_path: public-docs/en/vuln_review.md
   heading: Vulnerability record review
   anchor: vulnerability-record-review
-  sha256: 54a1cf7a9434b758b68a53ab56eab0edeec971b406ba4e873b888d1c17ecd7a2
+  sha256: 37128d2130ff793ab4a316a26dc1d35cd0f1c28aa6821060b28e301dffc2f31b
   published_path: en/vulnerability-review.html
 playbook_id: vuln_review_playbook
 finding_template_ids: [vuln_count, vuln_sample, vuln_priority_review, vuln_version_gap]

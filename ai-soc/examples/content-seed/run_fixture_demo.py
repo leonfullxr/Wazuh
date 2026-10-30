@@ -140,6 +140,26 @@ def main() -> int:
         shutil.copy2(source_seed / name, source / name)
 
     env = {**_fixture_env(), "TMPDIR": str(work_dir)}
+    cli = shutil.which("ai-soc-content")
+    if cli is None:
+        raise RuntimeError("ai-soc-content is unavailable; run this script through locked uv")
+    _run(
+        [
+            cli,
+            "import-kev",
+            "--source",
+            str(source / "content/kev/raw-cisa-kev.json"),
+            "--retrieved-at",
+            "2026-10-02T10:00:00Z",
+            "--policy",
+            str(source_seed / "kev-policy.json"),
+            "--notice",
+            str(source_seed / "kev-notice.json"),
+            "--out-dir",
+            str(source / "content/kev"),
+        ],
+        env=env,
+    )
     _run(["git", "init", "--quiet", "--initial-branch=main"], cwd=source, env=env)
     _run(["git", "config", "user.name", "Synthetic Content Fixture"], cwd=source, env=env)
     _run(["git", "config", "user.email", "fixture@example.test"], cwd=source, env=env)
@@ -171,9 +191,6 @@ def main() -> int:
         raise RuntimeError("disposable source is not clean after its ordinary Git commit")
 
     approval, trust = _detached_approval(source, commit, tree, work_dir)
-    cli = shutil.which("ai-soc-content")
-    if cli is None:
-        raise RuntimeError("ai-soc-content is unavailable; run this script through locked uv")
     common = [
         cli,
         "--source",
@@ -231,6 +248,7 @@ def main() -> int:
         "pack/topics/ldap.json",
         "pack/topics/auth_review.json",
         "pack/topics/vuln_review.json",
+        "pack/kev/cisa-kev.json",
     }
     if not required_outputs <= files_a.keys():
         raise RuntimeError("built pack omits a required topic, doc, card, or playbook source")

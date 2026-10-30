@@ -454,6 +454,139 @@
       "title": "AuditAck",
       "type": "object"
     },
+    "AuditContextUse": {
+      "additionalProperties": false,
+      "properties": {
+        "activation_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UTCDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "annotated_subjects": {
+          "minimum": 0,
+          "title": "Annotated Subjects",
+          "type": "integer"
+        },
+        "annotation_sha256": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "availability_proof": {
+          "enum": [
+            "boot",
+            "cursor"
+          ],
+          "title": "Availability Proof",
+          "type": "string"
+        },
+        "coverage": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unavailable"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "fetch_id": {
+          "$ref": "#/$defs/ContentId"
+        },
+        "freshness_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "fresh",
+              "stale",
+              "not_yet_valid",
+              "unknown"
+            ]
+          },
+          "title": "Freshness Counts",
+          "type": "object"
+        },
+        "kev_use": {
+          "$ref": "#/$defs/KevUseRef"
+        },
+        "lookup_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "hit",
+              "not_listed",
+              "invalid_cve",
+              "unavailable"
+            ]
+          },
+          "title": "Lookup Counts",
+          "type": "object"
+        },
+        "omitted_subjects": {
+          "minimum": 0,
+          "title": "Omitted Subjects",
+          "type": "integer"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "not_configured",
+                "limit",
+                "lookup_error",
+                "not_yet_available"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "rows_returned": {
+          "minimum": 0,
+          "title": "Rows Returned",
+          "type": "integer"
+        },
+        "source_snapshot_key": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "subjects_total": {
+          "minimum": 0,
+          "title": "Subjects Total",
+          "type": "integer"
+        },
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        }
+      },
+      "required": [
+        "topic_id",
+        "fetch_id",
+        "source_snapshot_key",
+        "kev_use",
+        "activation_at",
+        "availability_proof",
+        "rows_returned",
+        "subjects_total",
+        "annotated_subjects",
+        "omitted_subjects",
+        "lookup_counts",
+        "freshness_counts",
+        "coverage",
+        "reason",
+        "annotation_sha256"
+      ],
+      "title": "AuditContextUse",
+      "type": "object"
+    },
     "AuditEvent": {
       "additionalProperties": false,
       "properties": {
@@ -495,6 +628,13 @@
         },
         "content_sha": {
           "$ref": "#/$defs/GitSHA40"
+        },
+        "context_uses": {
+          "items": {
+            "$ref": "#/$defs/AuditContextUse"
+          },
+          "title": "Context Uses",
+          "type": "array"
         },
         "created_at": {
           "$ref": "#/$defs/UTCDateTime"
@@ -590,6 +730,17 @@
         },
         "pack_sha256": {
           "$ref": "#/$defs/SHA256"
+        },
+        "page_return": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuditPageReturn"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "policy_hash": {
           "$ref": "#/$defs/PolicyHash"
@@ -718,6 +869,34 @@
         "result_classification"
       ],
       "title": "AuditFetchRecord",
+      "type": "object"
+    },
+    "AuditPageReturn": {
+      "additionalProperties": false,
+      "properties": {
+        "input_cursor_sha256": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "next_cursor_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SHA256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "response_sha256": {
+          "$ref": "#/$defs/SHA256"
+        }
+      },
+      "required": [
+        "input_cursor_sha256",
+        "next_cursor_sha256",
+        "response_sha256"
+      ],
+      "title": "AuditPageReturn",
       "type": "object"
     },
     "AuditRemovedFinding": {
@@ -2348,7 +2527,8 @@
           "enum": [
             "row",
             "aggregate",
-            "check"
+            "check",
+            "context"
           ],
           "title": "Kind",
           "type": "string"
@@ -2366,21 +2546,29 @@
           "$ref": "#/$defs/TopicId"
         },
         "values": {
+          "$ref": "#/$defs/EvidenceValues",
           "additionalProperties": {
             "anyOf": [
               {
-                "$ref": "#/$defs/EvidenceValue"
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
               },
               {
                 "items": {
-                  "$ref": "#/$defs/EvidenceId"
+                  "type": "string"
                 },
                 "type": "array"
               }
             ]
-          },
-          "title": "Values",
-          "type": "object"
+          }
         },
         "visibility": {
           "$ref": "#/$defs/Visibility"
@@ -2523,6 +2711,9 @@
         },
         {
           "$ref": "#/$defs/EvidenceSourceCheck"
+        },
+        {
+          "$ref": "#/$defs/EvidenceSourceContext"
         }
       ]
     },
@@ -2570,6 +2761,71 @@
         "operand_ids"
       ],
       "title": "EvidenceSourceCheck",
+      "type": "object"
+    },
+    "EvidenceSourceContext": {
+      "additionalProperties": false,
+      "properties": {
+        "kev_use": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KevUseRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "member_index": {
+          "anyOf": [
+            {
+              "maximum": 63,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Member Index"
+        },
+        "page_evidence_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent_evidence_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "role": {
+          "enum": [
+            "page",
+            "subject"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "title": "EvidenceSourceContext",
       "type": "object"
     },
     "EvidenceSourceCount": {
@@ -2671,6 +2927,56 @@
           "type": "null"
         }
       ]
+    },
+    "EvidenceValues": {
+      "additionalProperties": {
+        "$ref": "#/$defs/EvidenceValue"
+      },
+      "propertyNames": {
+        "enum": [
+          "timestamp",
+          "agent.id",
+          "agent.name",
+          "rule.id",
+          "rule.level",
+          "rule.groups",
+          "data.srcip",
+          "data.dstip",
+          "vulnerability.id",
+          "vulnerability.severity",
+          "vulnerability.detected_at",
+          "package.name",
+          "package.version",
+          "count",
+          "outcome",
+          "matched_nothing",
+          "relation",
+          "approximate",
+          "bucket_key",
+          "operand_ids",
+          "expectation_id",
+          "expectation_version",
+          "kev_cve",
+          "kev_lookup",
+          "kev_freshness",
+          "kev_added_on",
+          "kev_coverage",
+          "kev_reason",
+          "kev_row_n",
+          "kev_subject_n",
+          "kev_annotated_n",
+          "kev_omitted_n",
+          "kev_hit_n",
+          "kev_not_listed_n",
+          "kev_invalid_n",
+          "kev_unavailable_n",
+          "kev_fresh_n",
+          "kev_stale_n",
+          "kev_not_yet_valid_n",
+          "kev_unknown_n"
+        ]
+      },
+      "type": "object"
     },
     "ExpectationDefinition": {
       "additionalProperties": false,
@@ -4575,6 +4881,336 @@
       ],
       "title": "JudgmentState",
       "type": "string"
+    },
+    "KevCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/KevEntry"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array"
+        },
+        "metadata": {
+          "$ref": "#/$defs/KevMetadata"
+        }
+      },
+      "required": [
+        "metadata",
+        "entries"
+      ],
+      "title": "KevCatalog",
+      "type": "object"
+    },
+    "KevEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "added_on": {
+          "format": "date",
+          "title": "Added On",
+          "type": "string"
+        },
+        "cve": {
+          "maxLength": 32,
+          "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$",
+          "title": "Cve",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cve",
+        "added_on"
+      ],
+      "title": "KevEntry",
+      "type": "object"
+    },
+    "KevMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Catalog Version",
+          "type": "string"
+        },
+        "dataset_id": {
+          "const": "cisa-kev",
+          "default": "cisa-kev",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "normalized_sha256": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "normalizer_version": {
+          "const": "cisa-kev/1",
+          "default": "cisa-kev/1",
+          "title": "Normalizer Version",
+          "type": "string"
+        },
+        "notice": {
+          "$ref": "#/$defs/KevNotice"
+        },
+        "policy": {
+          "$ref": "#/$defs/KevPolicy"
+        },
+        "published_at": {
+          "$ref": "#/$defs/UTCDateTime"
+        },
+        "raw_sha256": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "record_count": {
+          "maximum": 4096,
+          "minimum": 1,
+          "title": "Record Count",
+          "type": "integer"
+        },
+        "retrieved_at": {
+          "$ref": "#/$defs/UTCDateTime"
+        }
+      },
+      "required": [
+        "catalog_version",
+        "record_count",
+        "published_at",
+        "retrieved_at",
+        "raw_sha256",
+        "normalized_sha256",
+        "policy",
+        "notice"
+      ],
+      "title": "KevMetadata",
+      "type": "object"
+    },
+    "KevNotice": {
+      "additionalProperties": false,
+      "properties": {
+        "attribution": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Attribution",
+          "type": "string"
+        },
+        "source_url": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "terms_review_record": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Terms Review Record",
+          "type": "string"
+        },
+        "terms_text": {
+          "minLength": 1,
+          "title": "Terms Text",
+          "type": "string"
+        },
+        "terms_url": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Terms Url",
+          "type": "string"
+        },
+        "transformations": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Transformations",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_url",
+        "terms_url",
+        "attribution",
+        "terms_text",
+        "transformations",
+        "terms_review_record"
+      ],
+      "title": "KevNotice",
+      "type": "object"
+    },
+    "KevPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "fetch_id": {
+          "const": "vuln_rows",
+          "default": "vuln_rows",
+          "title": "Fetch Id",
+          "type": "string"
+        },
+        "initial_context_bytes": {
+          "const": 98304,
+          "default": 98304,
+          "title": "Initial Context Bytes",
+          "type": "integer"
+        },
+        "initial_context_items": {
+          "const": 512,
+          "default": 512,
+          "title": "Initial Context Items",
+          "type": "integer"
+        },
+        "max_age_seconds": {
+          "const": 604800,
+          "default": 604800,
+          "title": "Max Age Seconds",
+          "type": "integer"
+        },
+        "page_context_bytes": {
+          "const": 49152,
+          "default": 49152,
+          "title": "Page Context Bytes",
+          "type": "integer"
+        },
+        "page_context_items": {
+          "const": 256,
+          "default": 256,
+          "title": "Page Context Items",
+          "type": "integer"
+        },
+        "page_summary_bytes": {
+          "const": 16384,
+          "default": 16384,
+          "title": "Page Summary Bytes",
+          "type": "integer"
+        },
+        "template_id": {
+          "const": "vulnerabilities_rows_v1",
+          "default": "vulnerabilities_rows_v1",
+          "title": "Template Id",
+          "type": "string"
+        },
+        "topic_id": {
+          "const": "vuln_review",
+          "default": "vuln_review",
+          "title": "Topic Id",
+          "type": "string"
+        }
+      },
+      "title": "KevPolicy",
+      "type": "object"
+    },
+    "KevSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_key_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Approval Key Id",
+          "type": "string"
+        },
+        "approved_at": {
+          "$ref": "#/$defs/UTCDateTime"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/KevEntry"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array"
+        },
+        "metadata": {
+          "$ref": "#/$defs/KevMetadata"
+        }
+      },
+      "required": [
+        "metadata",
+        "approved_at",
+        "approval_key_id",
+        "entries"
+      ],
+      "title": "KevSnapshot",
+      "type": "object"
+    },
+    "KevUseRef": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_key_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Approval Key Id"
+        },
+        "approved_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UTCDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content_sha": {
+          "$ref": "#/$defs/GitSHA40"
+        },
+        "evaluation_at": {
+          "$ref": "#/$defs/UTCDateTime"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UTCDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KevMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pack_sha256": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/SHA256"
+        },
+        "valid_from": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UTCDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "content_sha",
+        "pack_sha256",
+        "metadata",
+        "approved_at",
+        "approval_key_id",
+        "policy_sha256",
+        "evaluation_at",
+        "valid_from",
+        "expires_at"
+      ],
+      "title": "KevUseRef",
+      "type": "object"
     },
     "Lease": {
       "additionalProperties": false,
@@ -7550,6 +8186,6 @@
   },
   "$id": "https://ai-soc.invalid/contracts/v1/models.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "freeze_revision": "1.15",
+  "freeze_revision": "1.16",
   "title": "AI SOC v1 contract models"
 }
