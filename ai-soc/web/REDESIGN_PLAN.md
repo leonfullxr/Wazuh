@@ -49,6 +49,19 @@ state when the existing contract cannot supply a requested widget.
 - Explorer field cardinalities, top-value distributions, and arbitrary query
   syntax need explicit API support. Do not imply that client-side filtering of a
   page covers the full result set.
+- Queue tab totals and authentication or file-integrity classification need
+  server-side counts and predicates. Queue summaries lack severity and ATT&CK
+  fields. Fetching individual member alerts does not establish a complete,
+  stable group summary.
+- Per-topic Correct and Wrong feedback needs a topic identifier and positive
+  feedback in the contract. The current feedback request is question-wide and
+  supports only the existing wrong-answer flow.
+- The incident event contract has no typed actor, target, severity, or ATT&CK
+  progression. Incident summaries do not expose every requested header field,
+  and there is no report-export endpoint. Preserve the existing timeline and
+  actions without presenting inferred relationships as facts.
+- Service metrics expose p50, p90, p95, maximum, and sample count, but not p99.
+  Component-wide health beyond site and ingestion also needs a data source.
 
 ## Baseline (2026-10-30)
 
@@ -60,6 +73,11 @@ state when the existing contract cannot supply a requested widget.
   is not a valid passing baseline; restore a supported test configuration.
 - Direct `playwright test` failed before tests: its local configuration invokes
   the missing `dev:mock` script. Do not point it at the running lab service.
+- A limited local check with `vitest run src/app/state/answer-format.test.ts
+  src/features/investigate/EvidenceDataTable.test.ts --environment jsdom`
+  passed 15 tests across two files. Both tests and the local test dependencies
+  are ignored or extraneous artifacts, so this is not a reproducible release
+  suite.
 
 ## Sequence
 
