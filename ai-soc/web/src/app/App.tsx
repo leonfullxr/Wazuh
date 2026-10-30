@@ -8,7 +8,8 @@ import type {
 } from "../../../contracts/v1/generated/types.ts";
 import { useBootstrap, useAsk } from "../api/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { listWorkspaceSites, rangeBounds } from "../api/workspace";
+import { listWorkspaceSites, WorkspaceRequestError } from "../api/workspace";
+import { resolveWindow } from "./state/time-window";
 import { byteCount, buildContinuationRequest } from "./state/answer-format";
 import {
     replayEnvironment,
@@ -78,6 +79,7 @@ function AppContent() {
         const range = new URLSearchParams(location.search).get("range");
         return range === "7d" || range === "30d" ? range : "24h";
     });
+    const [rangeAnchor, setRangeAnchor] = useState(() => Date.now());
     const [urlRevision, setUrlRevision] = useState(0);
     const [model, setModel] = useState("");
     const [effort, setEffort] = useState("");
@@ -125,6 +127,16 @@ function AppContent() {
         addEventListener("hashchange", change);
         return () => removeEventListener("hashchange", change);
     }, []);
+    useEffect(() => {
+        if (
+            sitesQuery.error instanceof WorkspaceRequestError &&
+            sitesQuery.error.status === 404 &&
+            !window.location.hash
+        ) {
+            setRoute("investigate");
+            window.location.hash = "#investigate";
+        }
+    }, [sitesQuery.error]);
     useEffect(() => {
         document.documentElement.lang = locale;
         saveLocale(locale);
@@ -397,9 +409,14 @@ function AppContent() {
     const requestedRange = queryParams.get("range");
     const activeRange: "24h" | "7d" | "30d" =
         requestedRange === "7d" || requestedRange === "30d" ? requestedRange : timeRange;
-    const defaults = rangeBounds(activeRange);
-    const from = queryParams.get("from") ?? defaults.from;
-    const to = queryParams.get("to") ?? defaults.to;
+    const requestedFrom = queryParams.get("from");
+    const requestedTo = queryParams.get("to");
+    const { from, to } = resolveWindow({
+        range: activeRange,
+        anchor: rangeAnchor,
+        from: requestedFrom,
+        to: requestedTo,
+    });
     const site =
         sitesQuery.data?.items.find((candidate) => candidate.site_id === selectedSite) ??
         (bootstrap?.sites.find((candidate) => candidate.id === selectedSite)
@@ -459,9 +476,16 @@ function AppContent() {
                     selectedSite={selectedSite}
                     setSelectedSite={setSelectedSite}
                     timeRange={activeRange}
+                    customRange={queryParams.has("from") || queryParams.has("to")}
+                    windowFrom={from}
+                    windowTo={to}
+                    onCustomRange={(range) =>
+                        updateUrl({ from: range.from, to: range.to, cursor: null })
+                    }
                     setTimeRange={(range) => {
+                        setRangeAnchor(Date.now());
                         setTimeRange(range);
-                        updateUrl({ from: null, to: null });
+                        updateUrl({ range, from: null, to: null, cursor: null });
                     }}
                     isMock={isMock}
                     scenario={scenario}

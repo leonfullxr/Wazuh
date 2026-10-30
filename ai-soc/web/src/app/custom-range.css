@@ -1,0 +1,51 @@
+.custom-range {
+    position: relative;
+}
+.custom-range-trigger {
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--stroke-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+.custom-range-trigger[aria-pressed="true"] {
+    background: var(--selected);
+}
+.custom-range-panel {
+    position: absolute;
+    z-index: 45;
+    top: calc(100% + 8px);
+    right: 0;
+    display: grid;
+    gap: 12px;
+    width: min(320px, calc(100vw - 24px));
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-float);
+}
+.custom-range-panel p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-2);
+}
+.custom-range-panel label {
+    display: grid;
+    gap: 4px;
+    color: var(--text);
+}
+.custom-range-panel input {
+    width: 100%;
+    min-height: 32px;
+    padding: 4px;
+    border: 1px solid var(--stroke-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+}
+.custom-range-panel [role="alert"] {
+    color: var(--negative-text);
+}

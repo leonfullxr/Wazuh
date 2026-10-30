@@ -24,6 +24,27 @@ type HourlyBucket = OverviewResponse["hourly"][number];
 type HourGroup = { hour: string; buckets: HourlyBucket[]; total: number };
 type HourChartDatum = { hour: string; total: number } & Record<string, string | number>;
 type HourChartSeries = { band: string; dataKey: string };
+type HeatmapCell =
+    | {
+          kind: "covered";
+          day: number;
+          hour: number;
+          count: number;
+          coverageMs: number;
+          intensity: number;
+      }
+    | { kind: "uncovered"; day: number; hour: number };
+type HeatmapState =
+    | {
+          kind: "available";
+          cells: HeatmapCell[];
+          peak: HeatmapCell & { kind: "covered" };
+          confirmedThrough: number | null;
+      }
+    | { kind: "unavailable"; reason: "range" | "timezone" | "unconfirmed" };
+
+const HOUR_MS = 3_600_000;
+const HEATMAP_DAYS = [1, 2, 3, 4, 5, 6, 0];
 
 export function OverviewPage({
     site,
@@ -50,7 +71,12 @@ export function OverviewPage({
         enabled: site !== undefined,
     });
     const hourly = query.data?.hourly;
+    const checkpoint = query.data?.freshness.checkpoint_at ?? null;
     const chart = useMemo(() => buildChart(hourly ?? []), [hourly]);
+    const heatmap = useMemo(
+        () => buildHeatmap(hourly ?? [], from, to, timezone, checkpoint),
+        [checkpoint, from, hourly, timezone, to],
+    );
 
     if (query.isLoading) return <WorkspaceLoading label={t("loading")} />;
     if (query.isError || !query.data)
@@ -101,9 +127,14 @@ export function OverviewPage({
             </section>
 
             {empty ? (
-                <Panel className="workspace-panel overview-v2-quiet">
-                    <QuietSiteState t={t} />
-                </Panel>
+                <>
+                    {heatmap.kind === "available" && heatmap.confirmedThrough === null && (
+                        <Panel className="workspace-panel overview-v2-quiet">
+                            <QuietSiteState t={t} />
+                        </Panel>
+                    )}
+                    <AlertTimeHeatmap heatmap={heatmap} timezone={timezone} t={t} />
+                </>
             ) : (
                 <>
                     <Panel className="workspace-panel overview-v2-volume">
@@ -198,6 +229,8 @@ export function OverviewPage({
                             </>
                         )}
                     </Panel>
+
+                    <AlertTimeHeatmap heatmap={heatmap} timezone={timezone} t={t} />
 
                     <div className="overview-v2-lists">
                         <TopList
@@ -416,6 +449,149 @@ function EmptyPanel({ text }: { text: string }) {
     return <p className="overview-v2-empty">{text}</p>;
 }
 
+function AlertTimeHeatmap({
+    heatmap,
+    timezone,
+    t,
+}: {
+    heatmap: HeatmapState;
+    timezone: string;
+    t: Translate;
+}) {
+    const copy = heatmapCopy(t);
+    if (heatmap.kind === "unavailable") {
+        const unavailable = unavailableHeatmapCopy(heatmap.reason, copy);
+        return (
+            <Panel className="workspace-panel overview-v2-heatmap-panel">
+                <PanelHeading title={copy.title} description={unavailable.description} />
+                <EmptyPanel text={unavailable.title} />
+            </Panel>
+        );
+    }
+
+    const days = dayLabels(t);
+    const peak = `${copy.peakTotal}: ${days[heatmap.peak.day]} ${formatHeatmapHour(heatmap.peak.hour)} · ${heatmap.peak.count.toLocaleString()} ${copy.alerts} · ${copy.coverage} ${formatCoverageDuration(heatmap.peak.coverageMs, t)}`;
+    const cutoff = heatmap.confirmedThrough
+        ? `${copy.confirmedThrough} ${formatTime(new Date(heatmap.confirmedThrough).toISOString(), timezone)}`
+        : null;
+    const subtitle = cutoff ? `${peak} · ${cutoff}` : peak;
+    const cells = new Map(heatmap.cells.map((cell) => [`${cell.day}-${cell.hour}`, cell]));
+
+    return (
+        <Panel className="workspace-panel overview-v2-heatmap-panel">
+            <PanelHeading title={copy.title} description={subtitle} />
+            <div
+                className="overview-v2-heatmap-scroll"
+                tabIndex={0}
+                role="region"
+                aria-label={copy.title}
+            >
+                <div className="overview-v2-heatmap" aria-hidden="true">
+                    <span />
+                    {Array.from({ length: 24 }, (_, hour) => (
+                        <span className="overview-v2-heatmap-hour" key={hour}>
+                            {hour % 3 === 0 ? String(hour).padStart(2, "0") : ""}
+                        </span>
+                    ))}
+                    {HEATMAP_DAYS.map((day) => (
+                        <HeatmapVisualRow
+                            key={day}
+                            day={day}
+                            dayLabel={days[day]}
+                            cells={cells}
+                            noCoverage={copy.noCoverage}
+                            alerts={copy.alerts}
+                            coverage={copy.coverage}
+                            t={t}
+                        />
+                    ))}
+                </div>
+            </div>
+            <table className="sr-only">
+                <caption>
+                    {copy.title}. {subtitle}
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col">{copy.day}</th>
+                        {Array.from({ length: 24 }, (_, hour) => (
+                            <th scope="col" key={hour}>
+                                {formatHeatmapHour(hour)}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {HEATMAP_DAYS.map((day) => (
+                        <tr key={day}>
+                            <th scope="row">{days[day]}</th>
+                            {Array.from({ length: 24 }, (_, hour) => {
+                                const cell = cells.get(`${day}-${hour}`);
+                                return (
+                                    <td key={hour}>
+                                        {cell?.kind === "covered"
+                                            ? `${cell.count.toLocaleString()} ${copy.alerts}; ${copy.coverage} ${formatCoverageDuration(cell.coverageMs, t)}`
+                                            : copy.noCoverage}
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </Panel>
+    );
+}
+
+function HeatmapVisualRow({
+    day,
+    dayLabel,
+    cells,
+    noCoverage,
+    alerts,
+    coverage,
+    t,
+}: {
+    day: number;
+    dayLabel: string;
+    cells: Map<string, HeatmapCell>;
+    noCoverage: string;
+    alerts: string;
+    coverage: string;
+    t: Translate;
+}) {
+    return (
+        <>
+            <span className="overview-v2-heatmap-day">{dayLabel}</span>
+            {Array.from({ length: 24 }, (_, hour) => {
+                const cell = cells.get(`${day}-${hour}`);
+                const title =
+                    cell?.kind === "covered"
+                        ? `${dayLabel} ${formatHeatmapHour(hour)} — ${cell.count.toLocaleString()} ${alerts}; ${coverage} ${formatCoverageDuration(cell.coverageMs, t)}`
+                        : `${dayLabel} ${formatHeatmapHour(hour)} — ${noCoverage}`;
+                return (
+                    <span
+                        className="overview-v2-heatmap-cell"
+                        data-coverage={cell?.kind ?? "uncovered"}
+                        data-intensity={cell?.kind === "covered" ? cell.intensity : undefined}
+                        key={hour}
+                        title={title}
+                    >
+                        <strong>
+                            {cell?.kind === "covered" ? cell.count.toLocaleString() : "—"}
+                        </strong>
+                        <small>
+                            {cell?.kind === "covered"
+                                ? formatCoverageDuration(cell.coverageMs, t)
+                                : formatCoverageDuration(0, t)}
+                        </small>
+                    </span>
+                );
+            })}
+        </>
+    );
+}
+
 function buildChart(buckets: HourlyBucket[]): {
     groups: HourGroup[];
     maximum: number;
@@ -458,6 +634,245 @@ function buildChart(buckets: HourlyBucket[]): {
         data,
         series,
     };
+}
+
+export function buildHeatmap(
+    buckets: HourlyBucket[],
+    from: string,
+    to: string,
+    timezone: string,
+    checkpoint: string | null,
+): HeatmapState {
+    const fromMs = new Date(from).getTime();
+    const toMs = new Date(to).getTime();
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || toMs <= fromMs) {
+        return { kind: "unavailable", reason: "range" };
+    }
+    if (checkpoint === null) return { kind: "unavailable", reason: "unconfirmed" };
+    const checkpointMs = new Date(checkpoint).getTime();
+    if (!Number.isFinite(checkpointMs)) {
+        return { kind: "unavailable", reason: "unconfirmed" };
+    }
+    const checkpointInsideWindow = checkpointMs < toMs;
+    const confirmedTo = checkpointInsideWindow
+        ? Math.floor(checkpointMs / HOUR_MS) * HOUR_MS
+        : toMs;
+    if (confirmedTo <= fromMs) return { kind: "unavailable", reason: "unconfirmed" };
+
+    let formatter: Intl.DateTimeFormat;
+    try {
+        formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: timezone,
+            weekday: "short",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hourCycle: "h23",
+        });
+    } catch {
+        return { kind: "unavailable", reason: "timezone" };
+    }
+
+    const counts = new Map<number, number>();
+    for (const bucket of buckets) {
+        const timestamp = new Date(bucket.hour).getTime();
+        if (!Number.isFinite(timestamp)) continue;
+        const utcHour = Math.floor(timestamp / HOUR_MS) * HOUR_MS;
+        counts.set(utcHour, (counts.get(utcHour) ?? 0) + bucket.count);
+    }
+
+    const aggregate = new Map<
+        string,
+        { day: number; hour: number; count: number; coverageMs: number }
+    >();
+    const firstUtcHour = Math.floor(fromMs / HOUR_MS) * HOUR_MS;
+    for (let utcHour = firstUtcHour; utcHour < confirmedTo; utcHour += HOUR_MS) {
+        const coordinate = localCoordinate(formatter, utcHour);
+        const bucketOffset = localUtcOffsetMinutes(formatter, utcHour);
+        const coveredFrom = Math.max(fromMs, utcHour);
+        const coveredTo = Math.min(confirmedTo, utcHour + HOUR_MS);
+        const lastCoveredSecond = Math.max(coveredFrom, coveredTo - 1_000);
+        const coveredStartOffset = localUtcOffsetMinutes(formatter, coveredFrom);
+        const coveredEndOffset = localUtcOffsetMinutes(formatter, lastCoveredSecond);
+        if (
+            coordinate === null ||
+            bucketOffset === null ||
+            coveredStartOffset === null ||
+            coveredEndOffset === null ||
+            coordinate.minute !== 0 ||
+            coordinate.second !== 0 ||
+            bucketOffset % 60 !== 0 ||
+            coveredStartOffset !== bucketOffset ||
+            coveredEndOffset !== bucketOffset
+        ) {
+            return { kind: "unavailable", reason: "timezone" };
+        }
+        const key = `${coordinate.day}-${coordinate.hour}`;
+        const current = aggregate.get(key);
+        aggregate.set(key, {
+            day: coordinate.day,
+            hour: coordinate.hour,
+            count: (current?.count ?? 0) + (counts.get(utcHour) ?? 0),
+            coverageMs: (current?.coverageMs ?? 0) + (coveredTo - coveredFrom),
+        });
+    }
+
+    const maximum = Math.max(0, ...[...aggregate.values()].map((cell) => cell.count));
+    const cells: HeatmapCell[] = [];
+    for (const day of HEATMAP_DAYS) {
+        for (let hour = 0; hour < 24; hour += 1) {
+            const value = aggregate.get(`${day}-${hour}`);
+            cells.push(
+                value
+                    ? {
+                          kind: "covered",
+                          ...value,
+                          intensity:
+                              value.count === 0 || maximum === 0
+                                  ? 1
+                                  : 1 + Math.ceil((value.count / maximum) * 5),
+                      }
+                    : { kind: "uncovered", day, hour },
+            );
+        }
+    }
+    let peak: (HeatmapCell & { kind: "covered" }) | null = null;
+    for (const cell of cells) {
+        if (cell.kind === "covered" && (peak === null || cell.count > peak.count)) peak = cell;
+    }
+    if (peak === null) return { kind: "unavailable", reason: "range" };
+    return {
+        kind: "available",
+        cells,
+        peak,
+        confirmedThrough: checkpointInsideWindow ? confirmedTo : null,
+    };
+}
+
+function localCoordinate(
+    formatter: Intl.DateTimeFormat,
+    timestamp: number,
+): { day: number; hour: number; minute: number; second: number } | null {
+    const parts = formatter.formatToParts(new Date(timestamp));
+    const weekday = weekdayNumber(partValue(parts, "weekday"));
+    const hour = Number(partValue(parts, "hour"));
+    const minute = Number(partValue(parts, "minute"));
+    const second = Number(partValue(parts, "second"));
+    return weekday !== null && [hour, minute, second].every(Number.isInteger)
+        ? { day: weekday, hour, minute, second }
+        : null;
+}
+
+function localUtcOffsetMinutes(formatter: Intl.DateTimeFormat, timestamp: number): number | null {
+    const secondTimestamp = Math.floor(timestamp / 1_000) * 1_000;
+    const parts = formatter.formatToParts(new Date(secondTimestamp));
+    const year = Number(partValue(parts, "year"));
+    const month = Number(partValue(parts, "month"));
+    const day = Number(partValue(parts, "day"));
+    const hour = Number(partValue(parts, "hour"));
+    const minute = Number(partValue(parts, "minute"));
+    const second = Number(partValue(parts, "second"));
+    if (![year, month, day, hour, minute, second].every(Number.isInteger)) return null;
+    return (Date.UTC(year, month - 1, day, hour, minute, second) - secondTimestamp) / 60_000;
+}
+
+function partValue(parts: Intl.DateTimeFormatPart[], type: string): string {
+    return parts.find((part) => part.type === type)?.value ?? "";
+}
+
+function weekdayNumber(weekday: string): number | null {
+    if (weekday === "Sun") return 0;
+    if (weekday === "Mon") return 1;
+    if (weekday === "Tue") return 2;
+    if (weekday === "Wed") return 3;
+    if (weekday === "Thu") return 4;
+    if (weekday === "Fri") return 5;
+    if (weekday === "Sat") return 6;
+    return null;
+}
+
+function dayLabels(t: Translate): string[] {
+    return t("alerts") === "Alertas"
+        ? ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+}
+
+function heatmapCopy(t: Translate): {
+    title: string;
+    peakTotal: string;
+    timezoneUnavailable: string;
+    timezoneUnavailableDescription: string;
+    dataUnconfirmed: string;
+    dataUnconfirmedDescription: string;
+    invalidRange: string;
+    coverage: string;
+    confirmedThrough: string;
+    noCoverage: string;
+    day: string;
+    alerts: string;
+} {
+    return t("alerts") === "Alertas"
+        ? {
+              title: "Cuándo ocurren las alertas",
+              peakTotal: "Total máximo",
+              timezoneUnavailable: "No disponible para esta zona horaria.",
+              timezoneUnavailableDescription:
+                  "Los intervalos UTC no coinciden con horas locales completas; no se muestran datos para evitar una agrupación incorrecta.",
+              dataUnconfirmed: "Los datos de este periodo no están confirmados.",
+              dataUnconfirmedDescription:
+                  "No hay un punto de control que confirme ningún intervalo horario completo.",
+              invalidRange: "El periodo seleccionado no es válido.",
+              coverage: "cobertura",
+              confirmedThrough: "Los datos confirmados terminan a las",
+              noCoverage: "Sin cobertura temporal",
+              day: "Día",
+              alerts: "alertas",
+          }
+        : {
+              title: "When alerts happen",
+              peakTotal: "Peak total",
+              timezoneUnavailable: "Unavailable for this timezone.",
+              timezoneUnavailableDescription:
+                  "UTC buckets do not align to whole local hours, so no potentially misbinned data is shown.",
+              dataUnconfirmed: "Data for this period is not confirmed.",
+              dataUnconfirmedDescription:
+                  "No checkpoint confirms a complete hourly interval in this period.",
+              invalidRange: "The selected time range is invalid.",
+              coverage: "coverage",
+              confirmedThrough: "Confirmed data ends at",
+              noCoverage: "No temporal coverage",
+              day: "Day",
+              alerts: "alerts",
+          };
+}
+
+function unavailableHeatmapCopy(
+    reason: Extract<HeatmapState, { kind: "unavailable" }>["reason"],
+    copy: ReturnType<typeof heatmapCopy>,
+): { title: string; description: string } {
+    if (reason === "timezone") {
+        return {
+            title: copy.timezoneUnavailable,
+            description: copy.timezoneUnavailableDescription,
+        };
+    }
+    if (reason === "unconfirmed") {
+        return { title: copy.dataUnconfirmed, description: copy.dataUnconfirmedDescription };
+    }
+    return { title: copy.invalidRange, description: copy.invalidRange };
+}
+
+function formatCoverageDuration(milliseconds: number, t: Translate): string {
+    const locale = t("alerts") === "Alertas" ? "es-ES" : "en-US";
+    const hours = milliseconds / HOUR_MS;
+    return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(hours)} h`;
+}
+
+function formatHeatmapHour(hour: number): string {
+    return `${String(hour).padStart(2, "0")}:00`;
 }
 
 function orderedBuckets(buckets: HourlyBucket[]): HourlyBucket[] {

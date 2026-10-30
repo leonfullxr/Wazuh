@@ -19,6 +19,7 @@ import { StatusPill } from "../components/ui/status-pill";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { ThemeMenu } from "../components/theme/theme-menu";
 import { CommandPalette } from "./CommandPalette";
+import { CustomRange } from "./CustomRange";
 import type { AlertDrilldown } from "../features/overview/OverviewPage";
 
 export const nav = [
@@ -135,6 +136,10 @@ export function ContextHeader({
     setSelectedSite,
     timeRange,
     setTimeRange,
+    customRange,
+    windowFrom,
+    windowTo,
+    onCustomRange,
     modeState,
     isMock,
     scenario,
@@ -153,6 +158,10 @@ export function ContextHeader({
     setSelectedSite: (site: string) => void;
     timeRange: "24h" | "7d" | "30d";
     setTimeRange: (range: "24h" | "7d" | "30d") => void;
+    customRange: boolean;
+    windowFrom: string;
+    windowTo: string;
+    onCustomRange: (range: { from: string; to: string }) => void;
     isMock: boolean;
     scenario: string;
     setScenario: (scenario: string) => void;
@@ -235,13 +244,20 @@ export function ContextHeader({
                         <button
                             key={range}
                             type="button"
-                            aria-pressed={timeRange === range}
+                            aria-pressed={!customRange && timeRange === range}
                             onClick={() => setTimeRange(range)}
                         >
                             {range}
                         </button>
                     ))}
                 </div>
+                <CustomRange
+                    from={windowFrom}
+                    to={windowTo}
+                    locale={locale}
+                    active={customRange}
+                    onApply={onCustomRange}
+                />
                 <label className="language-control">
                     <span className="sr-only">{t("language")}</span>
                     <select

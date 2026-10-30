@@ -1,4 +1,6 @@
 .overview-v2 {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
     gap: var(--space-5, 20px);
 }
 .overview-v2-summary {
@@ -206,6 +208,97 @@
     border-style: dashed;
     opacity: 0.72;
 }
+.overview-v2-heatmap-panel {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    padding: 18px 20px 20px;
+}
+.overview-v2-heatmap-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.overview-v2-heatmap {
+    min-width: 980px;
+    display: grid;
+    grid-template-columns: 42px repeat(24, minmax(34px, 1fr));
+    gap: 4px;
+    align-items: center;
+}
+.overview-v2-heatmap-hour,
+.overview-v2-heatmap-day {
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+}
+.overview-v2-heatmap-hour {
+    text-align: center;
+}
+.overview-v2-heatmap-day {
+    padding-right: 4px;
+    text-align: right;
+}
+.overview-v2-heatmap-cell {
+    min-width: 0;
+    height: 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: var(--heat-1);
+}
+.overview-v2-heatmap-cell > strong,
+.overview-v2-heatmap-cell > small {
+    max-width: calc(100% - 4px);
+    overflow: hidden;
+    padding: 1px 2px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    color: var(--text);
+    font-family: var(--font-code);
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.overview-v2-heatmap-cell > strong {
+    font-size: 10px;
+    font-weight: 600;
+}
+.overview-v2-heatmap-cell > small {
+    font-size: 8px;
+    font-weight: 500;
+}
+.overview-v2-heatmap-cell[data-intensity="2"] {
+    background: var(--heat-2);
+}
+.overview-v2-heatmap-cell[data-intensity="3"] {
+    background: var(--heat-3);
+}
+.overview-v2-heatmap-cell[data-intensity="4"] {
+    background: var(--heat-4);
+}
+.overview-v2-heatmap-cell[data-intensity="5"] {
+    background: var(--heat-5);
+}
+.overview-v2-heatmap-cell[data-intensity="6"] {
+    background: var(--heat-6);
+}
+.overview-v2-heatmap-cell[data-coverage="uncovered"] {
+    border-color: var(--border-row);
+    background: repeating-linear-gradient(
+        135deg,
+        var(--surface-2),
+        var(--surface-2) 3px,
+        var(--surface) 3px,
+        var(--surface) 6px
+    );
+}
 .overview-v2-lists {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -316,6 +409,10 @@
     }
     .overview-v2-volume {
         overflow-x: auto;
+    }
+    .overview-v2-heatmap-panel {
+        padding-right: 12px;
+        padding-left: 12px;
     }
     .overview-v2-hour-select {
         width: 100%;
