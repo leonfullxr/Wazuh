@@ -1,0 +1,264 @@
+.m3-page {
+    --m3-section-gap: 24px;
+}
+
+.m3-grid {
+    gap: 20px;
+}
+
+.m3-detail > section,
+.m3-detail > .m3-two-column,
+.m3-detail > .m3-actions {
+    margin-top: var(--m3-section-gap);
+}
+
+.m3-list {
+    gap: 4px;
+}
+
+.m3-list-item {
+    min-height: 64px;
+    padding: 10px 12px;
+    border-color: transparent;
+    border-radius: var(--radius-control);
+    background: transparent;
+    transition:
+        background-color var(--time-hover) var(--ease-controls),
+        border-color var(--time-hover) var(--ease-controls);
+}
+
+.m3-list-item:hover {
+    border-color: var(--border);
+    background: var(--hover);
+}
+
+.m3-list-item[aria-current="true"] {
+    border-color: var(--border-strong);
+    background: var(--selected);
+}
+
+.m3-list-item strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.m3-list-item small,
+.m3-meta code,
+.m3-detail td code {
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums;
+}
+
+.m3-meta {
+    padding: 12px 0;
+    border-top: 1px solid var(--border-row);
+    border-bottom: 1px solid var(--border-row);
+}
+
+.m3-meta dt {
+    color: var(--text-2);
+    font-size: 12px;
+}
+
+.m3-meta dd {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.m3-graph-empty {
+    position: relative;
+    min-height: 300px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+}
+
+.m3-graph-grid {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-position: 0 0;
+    background-size: 24px 24px;
+    opacity: 0.8;
+}
+
+.m3-graph-empty-copy {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: min(420px, calc(100% - 40px));
+    padding: 16px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
+
+.m3-graph-empty-copy h4 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.m3-graph-empty-copy p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.m3-timeline {
+    display: grid;
+    gap: 0;
+    margin: 12px 0 16px;
+    padding: 0;
+    list-style: none;
+}
+
+.m3-timeline li {
+    display: grid;
+    grid-template-columns: 62px 16px minmax(0, 1fr);
+    gap: 8px;
+    min-width: 0;
+    padding: 0 0 20px;
+}
+
+.m3-timeline time {
+    padding-top: 1px;
+    overflow: hidden;
+    color: var(--text-muted);
+    font: 11px/18px var(--font-code);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.m3-timeline-marker {
+    position: relative;
+    align-self: stretch;
+    width: 16px;
+}
+
+.m3-timeline-marker::before {
+    position: absolute;
+    top: 4px;
+    left: 3px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+    background: var(--series-other);
+    box-shadow: 0 0 0 1px var(--border-strong);
+    content: "";
+}
+
+.m3-timeline-marker::after {
+    position: absolute;
+    top: 16px;
+    bottom: -20px;
+    left: 8px;
+    width: 1px;
+    background: var(--border-strong);
+    content: "";
+}
+
+.m3-timeline li:last-child .m3-timeline-marker::after {
+    content: none;
+}
+
+.m3-timeline-event {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.m3-timeline-event > strong {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.m3-timeline-event > span {
+    overflow-wrap: anywhere;
+    color: var(--text-muted);
+    font: 11px/18px var(--font-code);
+}
+
+.m3-timeline-event .m3-evidence {
+    margin-top: 8px;
+}
+
+.m3-detail .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+}
+
+.m3-detail table {
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.m3-detail th,
+.m3-detail td {
+    height: var(--table-row-height);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-row);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.m3-detail tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.m3-detail th {
+    color: var(--text-2);
+    font-weight: 500;
+}
+
+.m3-inline-form {
+    border-color: var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface-2);
+}
+
+@media (max-width: 1000px) {
+    .m3-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .m3-graph-empty {
+        min-height: 260px;
+    }
+}
+
+@media (max-width: 640px) {
+    .m3-page {
+        --m3-section-gap: 20px;
+    }
+
+    .m3-actions,
+    .m3-two-column {
+        grid-template-columns: 1fr;
+    }
+
+    .m3-meta {
+        grid-template-columns: 1fr;
+        gap: 3px;
+    }
+
+    .m3-meta dd + dt {
+        margin-top: 8px;
+    }
+
+    .m3-graph-empty {
+        min-height: 230px;
+        overflow-x: auto;
+    }
+
+    .m3-timeline li {
+        grid-template-columns: 54px 14px minmax(0, 1fr);
+        gap: 6px;
+    }
+}

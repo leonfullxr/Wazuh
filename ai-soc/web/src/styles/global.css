@@ -48,6 +48,9 @@ body {
     min-height: 100vh;
     background: var(--canvas);
 }
+body:has([role="dialog"][data-state="open"]) {
+    overflow: hidden;
+}
 button,
 input,
 select,
@@ -55,7 +58,7 @@ textarea {
     font: inherit;
 }
 :focus-visible {
-    outline: 2px solid var(--focus-ring);
+    outline: 2px solid var(--accent);
     outline-offset: 1px;
 }
 ::selection {
@@ -284,6 +287,20 @@ select {
     background: var(--surface);
     box-shadow: var(--shadow-active);
 }
+.sheet-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--stroke-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
 .mobile-menu-trigger,
 .mobile-rail {
     display: none;
@@ -345,9 +362,9 @@ select {
 .m3-narrative {
     margin: 1.25rem 0;
     padding: 1rem;
-    border: 1px solid var(--line, #d9dee7);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
-    background: var(--surface-subtle, #f8fafc);
+    background: var(--surface-subtle);
 }
 
 .m3-narrative-text {
@@ -357,7 +374,7 @@ select {
 }
 
 .m3-trust-note {
-    border-left: 3px solid var(--warning, #a16207);
+    border-left: 3px solid var(--warning);
     padding-left: 0.75rem;
     font-weight: 600;
 }
@@ -373,7 +390,7 @@ select {
 .m3-citation-detail {
     margin-top: 0.75rem;
     padding: 0.75rem;
-    border: 1px solid var(--line, #d9dee7);
+    border: 1px solid var(--border);
     background: var(--surface, white);
 }
 .m3-citation-detail .m3-meta dt {

@@ -1,0 +1,311 @@
+.metrics-v2 {
+    gap: var(--space-5, 20px);
+}
+
+.metrics-v2 .metrics-panel {
+    gap: 20px;
+    padding: 20px;
+    border-color: var(--border);
+    border-radius: var(--radius-panel, 8px);
+    background: var(--surface);
+    box-shadow: none;
+}
+
+.metrics-v2-panel-head {
+    align-items: flex-start;
+}
+
+.metrics-v2-panel-head h2,
+.metrics-v2-section-head h3,
+.metrics-v2-stats-card h3 {
+    margin: 0;
+    color: var(--text);
+    font: 600 13px/18px var(--font-ui);
+}
+
+.metrics-v2-panel-head p {
+    margin: 3px 0 0;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.metrics-v2 .metrics-v2-as-of {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+}
+
+.metrics-v2-summary {
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel, 8px);
+}
+
+.metrics-v2-summary > div {
+    min-height: 88px;
+    align-content: center;
+    gap: 7px;
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--surface);
+}
+
+.metrics-v2-summary > div:last-child {
+    border-right: 0;
+}
+
+.metrics-v2-summary span,
+.metrics-v2-quality-summary span {
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.metrics-v2-summary strong,
+.metrics-v2-quality-summary strong {
+    color: var(--text);
+    font: 600 22px/28px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+}
+
+.metrics-v2-quality-summary small {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.metrics-v2-percentiles,
+.metrics-v2-quality-grid {
+    gap: 12px;
+}
+
+.metrics-v2 .metric-subpanel {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel, 8px);
+    background: var(--surface);
+}
+
+.metrics-v2-stats-head,
+.metrics-v2-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.metrics-v2-stats-head > span,
+.metrics-v2-section-head > span {
+    color: var(--text-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.metrics-v2-distribution {
+    display: grid;
+    gap: 10px;
+    margin: 15px 0 0;
+}
+
+.metrics-v2-distribution > div {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.metrics-v2-distribution dt,
+.metrics-v2-distribution dd {
+    margin: 0;
+    color: var(--text-2);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.metrics-v2-distribution dd {
+    grid-column: 3;
+    grid-row: 1;
+    color: var(--text);
+    font-family: var(--font-code);
+}
+
+.metrics-v2-distribution > div > span {
+    grid-column: 2;
+    grid-row: 1;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--surface-2);
+}
+
+.metrics-v2-distribution i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--series-blue);
+}
+
+.metrics-v2-volume {
+    display: grid;
+    gap: 12px;
+    padding-top: 2px;
+}
+
+.metrics-v2-table {
+    min-width: 620px;
+}
+
+.metrics-v2-table th {
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+}
+
+.metrics-v2-table td {
+    height: 42px;
+    border-color: var(--border-row);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.metrics-v2-table tbody tr:hover {
+    background: var(--hover);
+}
+
+.metrics-v2-table code {
+    color: inherit;
+    font-family: var(--font-code);
+    font-size: 12px;
+}
+
+.metrics-v2-quality-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel, 8px);
+}
+
+.metrics-v2-quality-summary > div {
+    min-height: 96px;
+    display: grid;
+    align-content: center;
+    gap: 5px;
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+}
+
+.metrics-v2-quality-summary > div:last-child {
+    border-right: 0;
+}
+
+.metrics-v2 .metric-count-list {
+    margin-top: 10px;
+}
+
+.metrics-v2 .metric-count-list li {
+    min-height: 38px;
+    align-items: center;
+    padding: 8px 0;
+    border-color: var(--border-row);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.metrics-v2 .metric-count-list li:last-child {
+    border-bottom: 0;
+}
+
+.metrics-v2 .metric-count-list small {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.metrics-v2-empty {
+    min-height: 64px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 16px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-control, 6px);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.metrics-v2 .asset-edit {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel, 8px);
+    background: var(--surface-2);
+}
+
+.metrics-v2 .asset-edit input {
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+}
+
+@media (max-width: 760px) {
+    .metrics-v2 .metrics-panel {
+        padding: 16px;
+    }
+
+    .metrics-v2-panel-head {
+        display: grid;
+    }
+
+    .metrics-v2 .metrics-v2-as-of {
+        white-space: normal;
+    }
+
+    .metrics-v2-summary,
+    .metrics-v2-quality-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .metrics-v2-summary > div,
+    .metrics-v2-quality-summary > div {
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .metrics-v2-summary > div:nth-child(2n),
+    .metrics-v2-quality-summary > div:nth-child(2n) {
+        border-right: 0;
+    }
+
+    .metrics-v2-summary > div:nth-last-child(-n + 2),
+    .metrics-v2-quality-summary > div:nth-last-child(-n + 2) {
+        border-bottom: 0;
+    }
+}
+
+@media (max-width: 440px) {
+    .metrics-v2-summary,
+    .metrics-v2-quality-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics-v2-summary > div,
+    .metrics-v2-quality-summary > div,
+    .metrics-v2-summary > div:nth-child(2n),
+    .metrics-v2-quality-summary > div:nth-child(2n) {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .metrics-v2-summary > div:last-child,
+    .metrics-v2-quality-summary > div:last-child {
+        border-bottom: 0;
+    }
+}

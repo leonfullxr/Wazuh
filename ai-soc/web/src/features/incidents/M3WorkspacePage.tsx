@@ -16,10 +16,12 @@ import {
 } from "../../api/workspace-m3";
 import { WorkspaceRequestError } from "../../api/workspace";
 import { NarrativePanel } from "./NarrativePanel";
+import "./incident-v2.css";
 
 type Locale = "en" | "es";
 type Translate = (key: string) => string;
 type PageKind = "chains" | "incidents";
+type GraphKind = "chain" | "incident";
 type Selection = { kind: "chain"; id: string } | { kind: "incident"; id: string } | null;
 type IncidentStatus = components["schemas"]["IncidentStatusRequest"]["status"];
 type DispositionLabel = components["schemas"]["IncidentDispositionRequest"]["label"];
@@ -145,7 +147,7 @@ export function M3WorkspacePage({
     };
 
     return (
-        <section className="m3-page" aria-label={t(kind)}>
+        <div className="m3-page">
             {!siteId && (
                 <div className="alert" role="status">
                     {t("noSites")}
@@ -230,6 +232,7 @@ export function M3WorkspacePage({
                             <ChainDetailView
                                 key={chain.data.chain_id}
                                 detail={chain.data}
+                                locale={locale}
                                 t={t}
                                 onPromote={(title) =>
                                     void runAction(() =>
@@ -435,17 +438,19 @@ export function M3WorkspacePage({
                     </section>
                 </div>
             )}
-        </section>
+        </div>
     );
 }
 
 function ChainDetailView({
     detail,
+    locale,
     t,
     onPromote,
     onDismiss,
 }: {
     detail: components["schemas"]["ChainCandidateDetail"];
+    locale: Locale;
     t: Translate;
     onPromote: (title: string) => void;
     onDismiss: (reason: string) => void;
@@ -488,6 +493,7 @@ function ChainDetailView({
                 </dd>
             </dl>
             {detail.weak_heuristic && <p className="alert warning">{t("m3WeakEvidence")}</p>}
+            <GraphUnavailable kind="chain" locale={locale} />
             <section aria-labelledby="chain-stages-heading">
                 <h4 id="chain-stages-heading">{t("m3OrderedStages")}</h4>
                 {detail.stages.length ? (
@@ -653,6 +659,7 @@ function IncidentDetailView({
                     <code>{incident.evidence_head}</code>
                 </dd>
             </dl>
+            <GraphUnavailable kind="incident" locale={locale} />
             <NarrativePanel
                 key={`${siteId}:${incident.incident_id}:${incident.evidence_head}`}
                 siteId={siteId}
@@ -759,12 +766,21 @@ function IncidentDetailView({
                 <ol className="m3-timeline">
                     {events.map((event) => (
                         <li key={event.event_id}>
-                            <time dateTime={event.event_ts}>{fmtDate(event.event_ts, locale)}</time>
-                            <strong>{event.rule_id ?? t("m3Alert")}</strong>
-                            <span>
-                                {event.alert_key} · {event.group_id}
-                            </span>
-                            {event.stages.length > 0 && <EvidenceRows values={event.stages} />}
+                            <time
+                                dateTime={event.event_ts}
+                                title={fmtDate(event.event_ts, locale)}
+                                aria-label={fmtDate(event.event_ts, locale)}
+                            >
+                                {fmtTime(event.event_ts, locale)}
+                            </time>
+                            <span className="m3-timeline-marker" aria-hidden="true" />
+                            <div className="m3-timeline-event">
+                                <strong>{event.rule_id ?? t("m3Alert")}</strong>
+                                <span>
+                                    {event.alert_key} · {event.group_id}
+                                </span>
+                                {event.stages.length > 0 && <EvidenceRows values={event.stages} />}
+                            </div>
                         </li>
                     ))}
                 </ol>
@@ -1033,6 +1049,32 @@ function IncidentDetailView({
     );
 }
 
+function GraphUnavailable({ kind, locale }: { kind: GraphKind; locale: Locale }) {
+    const copy =
+        locale === "es"
+            ? {
+                  title: "Grafo de entidades no disponible",
+                  incident:
+                      "No hay relaciones entre entidades disponibles para este incidente. La cronología de eventos aparece a continuación.",
+                  chain: "No hay relaciones entre entidades disponibles para este candidato. Las etapas y la evidencia aparecen a continuación.",
+              }
+            : {
+                  title: "Entity graph unavailable",
+                  incident:
+                      "No entity relationships are available for this incident. The event timeline is below.",
+                  chain: "No entity relationships are available for this candidate. Its stages and evidence are below.",
+              };
+    return (
+        <section className="m3-graph-empty" aria-labelledby={`${kind}-graph-heading`}>
+            <div className="m3-graph-grid" aria-hidden="true" />
+            <div className="m3-graph-empty-copy">
+                <h4 id={`${kind}-graph-heading`}>{copy.title}</h4>
+                <p>{copy[kind]}</p>
+            </div>
+        </section>
+    );
+}
+
 function CreateIncidentForm({
     siteId,
     t,
@@ -1203,6 +1245,19 @@ function fmtDate(value: string, locale: Locale): string {
         : new Intl.DateTimeFormat(locale, {
               dateStyle: "medium",
               timeStyle: "short",
+              timeZone: "UTC",
+          }).format(date);
+}
+
+function fmtTime(value: string, locale: Locale): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(locale, {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
               timeZone: "UTC",
           }).format(date);
 }

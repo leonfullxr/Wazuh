@@ -87,3 +87,31 @@ state when the existing contract cannot supply a requested widget.
    states for data gaps. Keep chain and incident revision boundaries intact.
 4. Add behavior tests, keyboard and responsive coverage, and axe checks. Run
    typecheck, unit tests, end-to-end tests, and build before declaring completion.
+
+## Implementation and remaining work
+
+The current branch adds the V2 theme, semantic tags, navigation and command
+palette, overview, alerts, queue, metrics, incident timeline, and dashboard
+empty states. It retains the existing question and feedback flows. The graph
+is unavailable until incident and chain relationships have a typed, supported
+representation. Per-topic feedback likewise needs a topic-scoped API.
+
+The overview still needs previous-period rule comparisons, exact severity
+bands and levels, a day-and-hour heatmap, technique-level ATT&CK coverage,
+agent health histories, and first-seen entity data. Alert search still needs
+server-side query syntax, field distributions, totals, and histograms. Queue
+views need server-side category counts, group severity and ATT&CK metadata.
+The quality and operations dashboards show empty states for their unavailable
+answer-quality, backlog-flow, funnel, age, analyst-load, and tuning metrics.
+Metrics does not report p99 or component-wide health. Custom time ranges,
+report export, and graph-to-timeline highlighting are not implemented.
+
+Local mock checks exercised all twelve routes in both themes and at phone
+width, plus a strict-CSP preview. The local test files and harness are ignored
+and are not a clean-checkout release suite. A production cutover still needs
+tracked, reproducible tests for the web image and its authenticated behavior.
+
+The image, reproducibility scripts, and existing browser fixture still use
+`ui/`. Keep it until the web build replaces those inputs and the image and
+authenticated flows have been verified. In particular, investigate expired
+CSRF handling for workspace writes before making `web/` the packaged frontend.

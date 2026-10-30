@@ -8,7 +8,7 @@ export function SelectContent({ children }: { children: React.ReactNode }) {
         <SelectPrimitive.Portal>
             <SelectPrimitive.Content
                 position="popper"
-                className="z-50 min-w-32 rounded-control border border-[var(--stroke)] bg-white p-1 shadow-float"
+                className="z-50 min-w-32 rounded-control border border-[var(--stroke)] bg-[var(--surface)] p-1 shadow-float"
             >
                 <SelectPrimitive.Viewport>{children}</SelectPrimitive.Viewport>
             </SelectPrimitive.Content>

@@ -12,11 +12,14 @@ import {
     Search,
     Shield,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { BootstrapResponse } from "../../../contracts/v1/generated/types.ts";
 import type { Locale } from "../i18n";
 import { StatusPill } from "../components/ui/status-pill";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { ThemeMenu } from "../components/theme/theme-menu";
+import { CommandPalette } from "./CommandPalette";
+import type { AlertDrilldown } from "../features/overview/OverviewPage";
 
 export const nav = [
     { id: "overview", icon: LayoutDashboard },
@@ -24,6 +27,10 @@ export const nav = [
     { id: "queue", icon: ListTodo },
     { id: "chains", icon: GitBranch },
     { id: "incidents", icon: BriefcaseBusiness },
+] as const;
+export const dashboardNav = [
+    { id: "ai_quality", icon: BarChart3 },
+    { id: "soc_operations", icon: BriefcaseBusiness },
     { id: "metrics", icon: BarChart3 },
 ] as const;
 const secondaryNav = [
@@ -32,12 +39,18 @@ const secondaryNav = [
     { id: "topics", icon: Files },
     { id: "status", icon: Activity },
 ] as const;
-export type Route = (typeof nav)[number]["id"] | (typeof secondaryNav)[number]["id"];
+export type Route =
+    | (typeof nav)[number]["id"]
+    | (typeof dashboardNav)[number]["id"]
+    | (typeof secondaryNav)[number]["id"];
+const commandRoutes: readonly Route[] = [...nav, ...dashboardNav, ...secondaryNav].map(
+    (item) => item.id,
+);
 export function routeFromHash(): Route | null {
     const hash = location.hash.replace(/^#\/?/, "");
     if (!hash) return "overview";
     if (hash.startsWith("topic-")) return "investigate";
-    return [...nav, ...secondaryNav].find((item) => item.id === hash)?.id ?? null;
+    return [...nav, ...dashboardNav, ...secondaryNav].find((item) => item.id === hash)?.id ?? null;
 }
 type Translate = (key: string) => string;
 
@@ -65,6 +78,20 @@ export function NavigationRail({
                 <div className="rail-caption">{t("workspaceCaption")}</div>
                 <nav aria-label={t("mainNavigation")}>
                     {nav.map((item) => (
+                        <a
+                            key={item.id}
+                            href={`#${item.id}`}
+                            aria-current={route === item.id ? "page" : undefined}
+                            onClick={() => setRoute(item.id)}
+                        >
+                            <item.icon size={17} />
+                            {t(item.id)}
+                        </a>
+                    ))}
+                </nav>
+                <div className="rail-caption secondary-caption">{t("dashboards")}</div>
+                <nav aria-label={t("dashboards")}>
+                    {dashboardNav.map((item) => (
                         <a
                             key={item.id}
                             href={`#${item.id}`}
@@ -112,6 +139,8 @@ export function ContextHeader({
     isMock,
     scenario,
     setScenario,
+    onNavigate,
+    onSearch,
     t,
 }: {
     route: Route;
@@ -127,6 +156,8 @@ export function ContextHeader({
     isMock: boolean;
     scenario: string;
     setScenario: (scenario: string) => void;
+    onNavigate: (route: Route) => void;
+    onSearch: (filters: AlertDrilldown) => void;
     t: Translate;
 }) {
     return (
@@ -141,19 +172,29 @@ export function ContextHeader({
                         <Menu size={18} aria-hidden="true" />
                     </button>
                 </SheetTrigger>
-                <SheetContent title={locale === "es" ? "Navegación" : "Navigation"}>
+                <SheetContent
+                    title={locale === "es" ? "Navegación" : "Navigation"}
+                    closeLabel={locale === "es" ? "Cerrar navegación" : "Close navigation"}
+                >
                     <nav className="mobile-rail" aria-label={t("mainNavigation")}>
-                        {[...nav, ...secondaryNav].map((item) => (
-                            <SheetClose asChild key={item.id}>
-                                <a
-                                    href={`#${item.id}`}
-                                    aria-current={route === item.id ? "page" : undefined}
-                                >
-                                    <item.icon size={16} aria-hidden="true" />
-                                    {t(item.id)}
-                                </a>
-                            </SheetClose>
-                        ))}
+                        <MobileNavGroup
+                            label={t("mainNavigation")}
+                            items={nav}
+                            route={route}
+                            t={t}
+                        />
+                        <MobileNavGroup
+                            label={t("dashboards")}
+                            items={dashboardNav}
+                            route={route}
+                            t={t}
+                        />
+                        <MobileNavGroup
+                            label={t("secondaryTools")}
+                            items={secondaryNav}
+                            route={route}
+                            t={t}
+                        />
                     </nav>
                 </SheetContent>
             </Sheet>
@@ -162,6 +203,13 @@ export function ContextHeader({
                 <h1>{t(route)}</h1>
             </div>
             <div className="top-controls">
+                <CommandPalette
+                    locale={locale}
+                    routes={commandRoutes}
+                    t={t}
+                    onNavigate={onNavigate}
+                    onSearch={onSearch}
+                />
                 <label>
                     {t("site")}
                     <select
@@ -253,5 +301,31 @@ export function ContextHeader({
                 )}
             </div>
         </header>
+    );
+}
+
+function MobileNavGroup({
+    label,
+    items,
+    route,
+    t,
+}: {
+    label: string;
+    items: ReadonlyArray<{ id: Route; icon: LucideIcon }>;
+    route: Route;
+    t: Translate;
+}) {
+    return (
+        <div className="mobile-rail-section" aria-label={label} role="group">
+            <span className="mobile-rail-label">{label}</span>
+            {items.map((item) => (
+                <SheetClose asChild key={item.id}>
+                    <a href={`#${item.id}`} aria-current={route === item.id ? "page" : undefined}>
+                        <item.icon size={16} aria-hidden="true" />
+                        {t(item.id)}
+                    </a>
+                </SheetClose>
+            ))}
+        </div>
     );
 }

@@ -39,17 +39,29 @@ import { words, fmt } from "../i18n/answer-copy";
 import { workspaceWords } from "../i18n/workspace-copy";
 export { errorCopy, judgments, outcomes, reasons, removed } from "../i18n/answer-enums";
 
-import { ContextHeader, NavigationRail, nav, routeFromHash, type Route } from "./Navigation";
+import {
+    ContextHeader,
+    dashboardNav,
+    NavigationRail,
+    nav,
+    routeFromHash,
+    type Route,
+} from "./Navigation";
 import { EmptyInvestigate, PageHeading } from "./PageHeading";
 import { errorText } from "./error-copy";
 import { OverviewPage, type AlertDrilldown } from "../features/overview/OverviewPage";
 import { AlertsPage, type AlertFilterPatch } from "../features/alerts/AlertsPage";
 import { QueuePage } from "../features/queue/QueuePage";
 import { MetricsPage } from "../features/metrics/MetricsPage";
+import { DashboardPage } from "../features/dashboards/DashboardPage";
 import { M3WorkspacePage } from "../features/incidents/M3WorkspacePage";
 import { ThemeProvider } from "../components/theme/theme-menu";
 export function App() {
-    return <ThemeProvider><AppContent /></ThemeProvider>;
+    return (
+        <ThemeProvider>
+            <AppContent />
+        </ThemeProvider>
+    );
 }
 function AppContent() {
     const [route, setRoute] = useState<Route>(() => routeFromHash() ?? "overview");
@@ -378,7 +390,7 @@ function AppContent() {
         setSelectedEvidence({ question_id: answer.question_id, item });
     }
     const mapped = useMemo(() => evidenceById(answer), [answer]);
-    const icon = nav.find((n) => n.id === route)?.icon ?? Search;
+    const icon = [...nav, ...dashboardNav].find((n) => n.id === route)?.icon ?? Search;
     const PageIcon = icon;
     const allTopics = useMemo(() => topicsFromHistory(history), [history]);
     const queryParams = new URLSearchParams(location.search);
@@ -437,6 +449,8 @@ function AppContent() {
             <div className="app-main">
                 <ContextHeader
                     route={route}
+                    onNavigate={navigate}
+                    onSearch={openAlertDrilldown}
                     locale={locale}
                     setLocale={setLocale}
                     bootstrap={bootstrap}
@@ -494,6 +508,9 @@ function AppContent() {
                     )}
                     {route === "metrics" && (
                         <MetricsPage siteId={selectedSite} from={from} to={to} t={t} />
+                    )}
+                    {(route === "ai_quality" || route === "soc_operations") && (
+                        <DashboardPage kind={route} t={t} />
                     )}
                     {(route === "chains" || route === "incidents") && (
                         <M3WorkspacePage
