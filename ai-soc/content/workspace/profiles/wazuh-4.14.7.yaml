@@ -1,0 +1,28 @@
+schema_version: '1'
+profile_id: wazuh-4.14.7-provisional-1
+wazuh_version: '4.14.7'
+time_field: timestamp
+fields:
+  event_ts: [timestamp, '@timestamp']
+  wazuh_id: [id]
+  rule_id: [rule.id]
+  rule_level: [rule.level]
+  rule_description: [rule.description]
+  rule_groups: [rule.groups]
+  mitre_tactics: [rule.mitre.tactic]
+  mitre_techniques: [rule.mitre.id]
+  agent_id: [agent.id]
+  agent_name: [agent.name]
+  agent_ip: [agent.ip]
+  manager: [manager.name, manager]
+  decoder: [decoder.name]
+  location: [location]
+  src_ip: [data.srcip, data.src_ip, data.win.eventdata.ipAddress]
+  dst_ip: [data.dstip, data.dst_ip, data.win.eventdata.destinationIp]
+  src_user: [data.srcuser, data.src_user, data.win.eventdata.subjectUserName]
+  dst_user: [data.dstuser, data.dst_user, data.user, data.win.eventdata.targetUserName]
+entity_fields:
+  process: [data.audit.exe, data.command, data.process.name, data.win.eventdata.image]
+  file: [syscheck.path, data.path]
+  hash: [syscheck.sha256_after, syscheck.md5_after, data.hash]
+  cve: [data.vulnerability.cve, vulnerability.cve]

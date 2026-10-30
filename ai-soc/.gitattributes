@@ -1,0 +1,8 @@
+/contracts/v1/models.schema.json linguist-generated=true
+/contracts/v1/openapi.json linguist-generated=true
+/contracts/v1/generated/types.ts linguist-generated=true
+/contracts/workspace/v1/openapi.json linguist-generated=true
+/contracts/workspace/v1/types.ts linguist-generated=true
+/web/src/api/generated/validators.js linguist-generated=true
+/web/src/api/generated/workspace-validators.js linguist-generated=true
+/web/src/api/generated/workspace-validators.d.ts linguist-generated=true

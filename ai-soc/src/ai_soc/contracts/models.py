@@ -1,4 +1,4 @@
-"""Canonical strict wire and internal contract models (freeze revision 1.13)."""
+"""Canonical strict wire and internal contract models (freeze revision 1.16)."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import ipaddress
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
 from importlib.resources import files
-from typing import Annotated, Literal, Protocol, cast
+from typing import Annotated, Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -22,6 +22,7 @@ from pydantic import (
     HttpUrl,
     PlainSerializer,
     StringConstraints,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -218,6 +219,74 @@ class FieldId(StrEnum):
     vulnerability_detected_at = "vulnerability.detected_at"
     package_name = "package.name"
     package_version = "package.version"
+
+
+type EvidenceKey = (
+    FieldId
+    | Literal[
+        "count",
+        "outcome",
+        "matched_nothing",
+        "relation",
+        "approximate",
+        "bucket_key",
+        "operand_ids",
+        "expectation_id",
+        "expectation_version",
+        "kev_cve",
+        "kev_lookup",
+        "kev_freshness",
+        "kev_added_on",
+        "kev_coverage",
+        "kev_reason",
+        "kev_row_n",
+        "kev_subject_n",
+        "kev_annotated_n",
+        "kev_omitted_n",
+        "kev_hit_n",
+        "kev_not_listed_n",
+        "kev_invalid_n",
+        "kev_unavailable_n",
+        "kev_fresh_n",
+        "kev_stale_n",
+        "kev_not_yet_valid_n",
+        "kev_unknown_n",
+    ]
+)
+_EVIDENCE_KEYS = [
+    *(field.value for field in FieldId),
+    "count",
+    "outcome",
+    "matched_nothing",
+    "relation",
+    "approximate",
+    "bucket_key",
+    "operand_ids",
+    "expectation_id",
+    "expectation_version",
+    "kev_cve",
+    "kev_lookup",
+    "kev_freshness",
+    "kev_added_on",
+    "kev_coverage",
+    "kev_reason",
+    "kev_row_n",
+    "kev_subject_n",
+    "kev_annotated_n",
+    "kev_omitted_n",
+    "kev_hit_n",
+    "kev_not_listed_n",
+    "kev_invalid_n",
+    "kev_unavailable_n",
+    "kev_fresh_n",
+    "kev_stale_n",
+    "kev_not_yet_valid_n",
+    "kev_unknown_n",
+]
+type EvidenceValues = Annotated[
+    dict[EvidenceKey, EvidenceValue],
+    Field(json_schema_extra=cast(dict[str, Any], {"propertyNames": {"enum": _EVIDENCE_KEYS}})),
+]
 
 
 class IndexFamily(StrEnum):
@@ -617,12 +686,184 @@ class EvidenceSourceCheck(StrictModel):
     operand_ids: list[EvidenceId]
 
 
+class KevEntry(StrictModel):
+    cve: Annotated[str, StringConstraints(pattern=r"^CVE-[0-9]{4}-[0-9]{4,}$", max_length=32)]
+    added_on: date
+
+    @field_validator("cve")
+    @classmethod
+    def require_ascii_cve(cls, value: str) -> str:
+        if not value.isascii() or len(value.encode("ascii")) > 32:
+            raise ValueError("CVE must be ASCII and at most 32 bytes")
+        return value
+
+
+class KevPolicy(StrictModel):
+    topic_id: Literal["vuln_review"] = "vuln_review"
+    fetch_id: Literal["vuln_rows"] = "vuln_rows"
+    template_id: Literal[TemplateId.vulnerabilities_rows_v1] = TemplateId.vulnerabilities_rows_v1
+    max_age_seconds: Literal[604800] = 604800
+    page_context_items: Literal[256] = 256
+    page_context_bytes: Literal[49152] = 49152
+    initial_context_items: Literal[512] = 512
+    initial_context_bytes: Literal[98304] = 98304
+    page_summary_bytes: Literal[16384] = 16384
+
+
+class KevNotice(StrictModel):
+    source_url: Annotated[str, StringConstraints(min_length=1, max_length=512)]
+    terms_url: Annotated[str, StringConstraints(min_length=1, max_length=512)]
+    attribution: Annotated[str, StringConstraints(min_length=1, max_length=512)]
+    terms_text: Annotated[str, StringConstraints(min_length=1)]
+    transformations: Annotated[str, StringConstraints(min_length=1, max_length=512)]
+    terms_review_record: Annotated[str, StringConstraints(min_length=1, max_length=512)]
+
+    @field_validator("terms_text")
+    @classmethod
+    def bound_notice_text(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 4096:
+            raise ValueError("notice text exceeds 4096 UTF-8 bytes")
+        return value
+
+    @field_validator(
+        "source_url",
+        "terms_url",
+        "attribution",
+        "transformations",
+        "terms_review_record",
+    )
+    @classmethod
+    def bound_notice_fields(cls, value: str, info: ValidationInfo) -> str:
+        if len(value.encode("utf-8")) > 512:
+            raise ValueError("KEV notice field exceeds 512 UTF-8 bytes")
+        if info.field_name in {"source_url", "terms_url"}:
+            parsed = urlsplit(value)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+            ):
+                raise ValueError("KEV notice URLs must be HTTPS URLs without user information")
+        return value
+
+
+class KevMetadata(StrictModel):
+    dataset_id: Literal["cisa-kev"] = "cisa-kev"
+    catalog_version: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    record_count: int = Field(ge=1, le=4096)
+    published_at: UTCDateTime
+    retrieved_at: UTCDateTime
+    raw_sha256: SHA256
+    normalized_sha256: SHA256
+    normalizer_version: Literal["cisa-kev/1"] = "cisa-kev/1"
+    policy: KevPolicy
+    notice: KevNotice
+
+    @field_validator("catalog_version")
+    @classmethod
+    def bound_catalog_version(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 128:
+            raise ValueError("catalog version exceeds 128 UTF-8 bytes")
+        return value
+
+
+class KevCatalog(StrictModel):
+    metadata: KevMetadata
+    entries: tuple[KevEntry, ...] = Field(min_length=1, max_length=4096)
+
+    @model_validator(mode="after")
+    def validate_entries(self) -> KevCatalog:
+        cves = [entry.cve for entry in self.entries]
+        if cves != sorted(cves) or len(cves) != len(set(cves)):
+            raise ValueError("KEV entries must be uniquely CVE-sorted")
+        if len(cves) != self.metadata.record_count:
+            raise ValueError("KEV record count does not match entries")
+        return self
+
+
+class KevSnapshot(StrictModel):
+    metadata: KevMetadata
+    approved_at: UTCDateTime
+    approval_key_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    entries: tuple[KevEntry, ...] = Field(min_length=1, max_length=4096)
+
+    @model_validator(mode="after")
+    def validate_entries(self) -> KevSnapshot:
+        cves = [entry.cve for entry in self.entries]
+        if cves != sorted(cves) or len(cves) != len(set(cves)):
+            raise ValueError("KEV entries must be uniquely CVE-sorted")
+        if len(cves) != self.metadata.record_count:
+            raise ValueError("KEV record count does not match entries")
+        if self.approved_at < self.metadata.retrieved_at:
+            raise ValueError("KEV approval cannot precede retrieval")
+        return self
+
+
+class KevUseRef(StrictModel):
+    content_sha: GitSHA40
+    pack_sha256: SHA256
+    metadata: KevMetadata | None
+    approved_at: UTCDateTime | None
+    approval_key_id: str | None
+    policy_sha256: SHA256
+    evaluation_at: UTCDateTime
+    valid_from: UTCDateTime | None
+    expires_at: UTCDateTime | None
+
+    @model_validator(mode="after")
+    def validate_availability(self) -> KevUseRef:
+        absent = self.metadata is None
+        if absent != (self.approved_at is None) or absent != (self.approval_key_id is None):
+            raise ValueError("absent KEV metadata requires absent approval metadata")
+        if absent != (self.valid_from is None) or absent != (self.expires_at is None):
+            raise ValueError("absent KEV metadata requires absent validity dates")
+        if self.metadata is not None:
+            valid_from = max(
+                self.metadata.published_at,
+                self.metadata.retrieved_at,
+                cast(datetime, self.approved_at),
+            )
+            expires_at = self.metadata.published_at + timedelta(
+                seconds=self.metadata.policy.max_age_seconds
+            )
+            if self.valid_from != valid_from or self.expires_at != expires_at:
+                raise ValueError("KEV validity dates must be derived from metadata and approval")
+        return self
+
+
+class EvidenceSourceContext(StrictModel):
+    role: Literal["page", "subject"]
+    kev_use: KevUseRef | None = None
+    parent_evidence_id: EvidenceId | None = None
+    member_index: int | None = Field(default=None, ge=0, le=63)
+    page_evidence_id: EvidenceId | None = None
+
+    @model_validator(mode="after")
+    def validate_role(self) -> EvidenceSourceContext:
+        if self.role == "page":
+            if self.kev_use is None or any(
+                value is not None
+                for value in (self.parent_evidence_id, self.member_index, self.page_evidence_id)
+            ):
+                raise ValueError("page context source requires only kev_use")
+        elif (
+            self.kev_use is not None
+            or self.parent_evidence_id is None
+            or self.member_index is None
+            or self.page_evidence_id is None
+        ):
+            raise ValueError("subject context source requires row, member and page references")
+        return self
+
+
 type EvidenceSource = (
     EvidenceSourceRow
     | EvidenceSourceBucket
     | EvidenceSourceCount
     | EvidenceSourceProbe
     | EvidenceSourceCheck
+    | EvidenceSourceContext
 )
 
 
@@ -631,26 +872,48 @@ class EvidenceItem(StrictModel):
     topic_id: TopicId
     fetch_id: ContentId | None = None
     check_id: ContentId | None = None
-    kind: Literal["row", "aggregate", "check"]
+    kind: Literal["row", "aggregate", "check", "context"]
     source: EvidenceSource
     snapshot: SnapshotRef
-    values: dict[
-        FieldId
-        | Literal[
-            "count",
-            "outcome",
-            "matched_nothing",
-            "relation",
-            "approximate",
-            "bucket_key",
-            "operand_ids",
-            "expectation_id",
-            "expectation_version",
-        ],
-        EvidenceValue | list[EvidenceId],
-    ]
+    values: EvidenceValues = Field(
+        json_schema_extra=cast(
+            dict[str, Any],
+            {
+                "propertyNames": {"enum": _EVIDENCE_KEYS},
+                "additionalProperties": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"type": "integer"},
+                        {"type": "boolean"},
+                        {"type": "null"},
+                        {"type": "array", "items": {"type": "string"}},
+                    ]
+                },
+            },
+        )
+    )
     visibility: Visibility
     scope_hash: SHA256
+
+    @field_validator("values", mode="before")
+    @classmethod
+    def validate_value_map(cls, value: object) -> EvidenceValues:
+        if not isinstance(value, dict):
+            raise ValueError("evidence values must be an object")
+        mapping = cast(dict[object, object], value)
+        finite = set(_EVIDENCE_KEYS)
+        for key, item in mapping.items():
+            key_string = key.value if isinstance(key, FieldId) else key
+            if not isinstance(key_string, str) or key_string not in finite:
+                raise ValueError("evidence values contain an unknown key")
+            if not (
+                item is None
+                or isinstance(item, (str, int, bool))
+                or isinstance(item, list)
+                and all(isinstance(member, str) for member in cast(list[object], item))
+            ):
+                raise ValueError("evidence values contain an unsupported value")
+        return cast(EvidenceValues, value)
 
     @model_validator(mode="after")
     def validate_item_binding(self) -> EvidenceItem:
@@ -660,6 +923,146 @@ class EvidenceItem(StrictModel):
             raise ValueError("check evidence requires check_id")
         if self.kind != "check" and self.fetch_id is None:
             raise ValueError("row/aggregate evidence requires fetch_id")
+        if self.kind == "context":
+            if not isinstance(self.source, EvidenceSourceContext):
+                raise ValueError("context evidence requires a context source")
+            if self.topic_id != "vuln_review" or self.fetch_id != "vuln_rows":
+                raise ValueError("context evidence is bound to the KEV vulnerability fetch")
+            allowed = (
+                {
+                    "kev_coverage",
+                    "kev_reason",
+                    "kev_row_n",
+                    "kev_subject_n",
+                    "kev_annotated_n",
+                    "kev_omitted_n",
+                    "kev_hit_n",
+                    "kev_not_listed_n",
+                    "kev_invalid_n",
+                    "kev_unavailable_n",
+                    "kev_fresh_n",
+                    "kev_stale_n",
+                    "kev_not_yet_valid_n",
+                    "kev_unknown_n",
+                }
+                if self.source.role == "page"
+                else {"kev_cve", "kev_lookup", "kev_freshness", "kev_added_on"}
+            )
+            value_keys = {
+                key.value if isinstance(key, FieldId) else key
+                for key in cast(dict[object, object], self.values)
+            }
+            if not self.values or value_keys - allowed:
+                raise ValueError("context evidence contains keys invalid for its role")
+            enum_values = {
+                "kev_lookup": {"hit", "not_listed", "invalid_cve", "unavailable"},
+                "kev_freshness": {"fresh", "stale", "not_yet_valid", "unknown"},
+                "kev_coverage": {"complete", "incomplete", "unavailable"},
+                "kev_reason": {"not_configured", "limit", "lookup_error", "not_yet_available"},
+            }
+            for key, value in self.values.items():
+                if key in enum_values and (
+                    not isinstance(value, str) or value not in enum_values[key]
+                ):
+                    raise ValueError("context evidence contains an invalid finite value")
+                if key.endswith("_n") and (
+                    isinstance(value, bool) or not isinstance(value, int) or value < 0
+                ):
+                    raise ValueError("context counts must be nonnegative integers")
+                if key == "kev_added_on" and value is not None:
+                    try:
+                        valid_date = (
+                            isinstance(value, str)
+                            and date.fromisoformat(value).isoformat() == value
+                        )
+                    except ValueError:
+                        valid_date = False
+                    if not valid_date:
+                        raise ValueError("context added_on must be a calendar date")
+                if (
+                    key == "kev_cve"
+                    and value is not None
+                    and (not isinstance(value, str) or len(value.encode("utf-8")) > 32)
+                ):
+                    raise ValueError("context CVE value is invalid")
+            if self.source.role == "page" and "kev_coverage" not in self.values:
+                raise ValueError("page context evidence requires coverage")
+            if self.source.role == "page":
+                summary_counts = {
+                    "kev_row_n",
+                    "kev_subject_n",
+                    "kev_annotated_n",
+                    "kev_omitted_n",
+                    "kev_hit_n",
+                    "kev_not_listed_n",
+                    "kev_invalid_n",
+                    "kev_unavailable_n",
+                    "kev_fresh_n",
+                    "kev_stale_n",
+                    "kev_not_yet_valid_n",
+                    "kev_unknown_n",
+                }
+                if not summary_counts.issubset(self.values):
+                    raise ValueError("page context evidence requires complete summary counts")
+                lookup_total = sum(
+                    cast(int, self.values[key])
+                    for key in (
+                        "kev_hit_n",
+                        "kev_not_listed_n",
+                        "kev_invalid_n",
+                        "kev_unavailable_n",
+                    )
+                )
+                freshness_total = sum(
+                    cast(int, self.values[key])
+                    for key in (
+                        "kev_fresh_n",
+                        "kev_stale_n",
+                        "kev_not_yet_valid_n",
+                        "kev_unknown_n",
+                    )
+                )
+                annotated = cast(int, self.values["kev_annotated_n"])
+                omitted = cast(int, self.values["kev_omitted_n"])
+                if annotated + omitted != self.values["kev_subject_n"]:
+                    raise ValueError("page context counts must partition subjects")
+                if lookup_total != annotated or freshness_total != annotated:
+                    raise ValueError("page lookup and freshness counts must equal annotations")
+                coverage = self.values["kev_coverage"]
+                reason = self.values.get("kev_reason")
+                if coverage == "complete" and (reason is not None or omitted != 0):
+                    raise ValueError("complete page coverage cannot have omissions or a reason")
+                if coverage == "incomplete" and (reason is None or omitted == 0):
+                    raise ValueError("incomplete page coverage requires omissions and a reason")
+                if coverage == "unavailable" and (
+                    reason is None or omitted != self.values["kev_subject_n"]
+                ):
+                    raise ValueError("unavailable page coverage must omit every subject")
+            if self.source.role == "subject" and not {
+                "kev_cve",
+                "kev_lookup",
+                "kev_freshness",
+            }.issubset(self.values):
+                raise ValueError("subject context evidence requires lookup identity and states")
+            if self.source.role == "subject":
+                lookup = self.values["kev_lookup"]
+                cve = self.values["kev_cve"]
+                canonical_cve = (
+                    isinstance(cve, str)
+                    and len(cve.encode("ascii", errors="ignore")) <= 32
+                    and re.fullmatch(r"CVE-[0-9]{4}-[0-9]{4,}", cve, re.ASCII) is not None
+                )
+                if lookup in {"hit", "not_listed"} and not canonical_cve:
+                    raise ValueError("KEV hits and misses require a canonical CVE")
+                if lookup == "hit" and self.values.get("kev_added_on") is None:
+                    raise ValueError("KEV hits require their date-only added_on value")
+                if lookup != "hit" and self.values.get("kev_added_on") is not None:
+                    raise ValueError("only KEV hits carry added_on")
+        else:
+            if isinstance(self.source, EvidenceSourceContext) or any(
+                key.startswith("kev_") for key in self.values
+            ):
+                raise ValueError("KEV context fields require context evidence")
         return self
 
 
@@ -1777,6 +2180,58 @@ class AuditFetchRecord(StrictModel):
         return self
 
 
+class AuditContextUse(StrictModel):
+    topic_id: TopicId
+    fetch_id: ContentId
+    source_snapshot_key: SHA256
+    kev_use: KevUseRef
+    activation_at: UTCDateTime | None
+    availability_proof: Literal["boot", "cursor"]
+    rows_returned: int = Field(ge=0)
+    subjects_total: int = Field(ge=0)
+    annotated_subjects: int = Field(ge=0)
+    omitted_subjects: int = Field(ge=0)
+    lookup_counts: dict[Literal["hit", "not_listed", "invalid_cve", "unavailable"], int]
+    freshness_counts: dict[Literal["fresh", "stale", "not_yet_valid", "unknown"], int]
+    coverage: Literal["complete", "incomplete", "unavailable"]
+    reason: Literal["not_configured", "limit", "lookup_error", "not_yet_available"] | None
+    annotation_sha256: SHA256
+
+    @model_validator(mode="after")
+    def validate_counts(self) -> AuditContextUse:
+        if self.topic_id != "vuln_review" or self.fetch_id != "vuln_rows":
+            raise ValueError("audit KEV use is bound to vuln_review/vuln_rows")
+        if self.annotated_subjects + self.omitted_subjects != self.subjects_total:
+            raise ValueError("annotated and omitted subjects must partition the total")
+        if sum(self.lookup_counts.values()) != self.annotated_subjects:
+            raise ValueError("lookup counts must equal annotated subjects")
+        if sum(self.freshness_counts.values()) != self.annotated_subjects:
+            raise ValueError("freshness counts must equal annotated subjects")
+        if any(
+            value < 0 for value in (*self.lookup_counts.values(), *self.freshness_counts.values())
+        ):
+            raise ValueError("audit context counts must be nonnegative")
+        if (self.availability_proof == "boot") != (self.activation_at is not None):
+            raise ValueError("boot proof requires activation time and cursor proof forbids it")
+        if self.activation_at is not None and self.activation_at > self.kev_use.evaluation_at:
+            raise ValueError("boot activation cannot follow KEV evaluation time")
+        if self.coverage == "complete" and (self.reason is not None or self.omitted_subjects != 0):
+            raise ValueError("complete context coverage cannot have omissions or a reason")
+        if self.coverage == "incomplete" and (self.reason is None or self.omitted_subjects == 0):
+            raise ValueError("incomplete context coverage requires omissions and a reason")
+        if self.coverage == "unavailable" and (
+            self.reason is None or self.omitted_subjects != self.subjects_total
+        ):
+            raise ValueError("unavailable context must omit every subject")
+        return self
+
+
+class AuditPageReturn(StrictModel):
+    input_cursor_sha256: SHA256
+    next_cursor_sha256: SHA256 | None
+    response_sha256: SHA256
+
+
 class AuditEvent(StrictModel):
     schema_version: Literal["1"] = "1"
     event_id: UUID
@@ -1808,6 +2263,8 @@ class AuditEvent(StrictModel):
     outcome: Literal["attempted", "completed", "cancelled"]
     completion_id: UUID | None = None
     fetches: list[AuditFetchRecord] = Field(default_factory=lambda: list[AuditFetchRecord]())
+    context_uses: list[AuditContextUse] = Field(default_factory=lambda: list[AuditContextUse]())
+    page_return: AuditPageReturn | None = None
     created_at: UTCDateTime
 
     @field_validator("trace_id")
@@ -1827,6 +2284,12 @@ class AuditEvent(StrictModel):
             raise ValueError("only completed audit events may carry a completion ID")
         if self.outcome != "completed" and self.answer_status is not None:
             raise ValueError("only completed audit events may carry answer status")
+        if self.page_return is not None and (
+            self.outcome != "attempted"
+            or self.completion_id is not None
+            or self.answer_status is not None
+        ):
+            raise ValueError("page-return metadata is valid only on an attempted event")
         return self
 
 

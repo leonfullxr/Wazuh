@@ -76,6 +76,12 @@ Offline checks do not prove a live site works. Before analysts rely on the servi
 - [Telemetry and audit operations](docs/operations/telemetry.md)
 - [Bedrock capability probe](docs/operations/model-probe.md)
 
+## Analyst workspace
+
+The workspace modules provide a PostgreSQL-backed analyst workflow and a separate browser application. Run `make bootstrap`, then run `make web-build` to build the browser application. The `make ws-*` targets manage the workspace database and processes. See the [workspace operations guide](docs/operations/workspace-m3.md) for setup.
+
+The workspace is an opt-in development feature. Its commands and content assets currently require a source checkout. The AWS service image and deployment described above continue to run the existing question service and UI; they do not configure or serve the workspace. Workspace packaging and production deployment have not been qualified.
+
 ## Try it locally
 
 You can run the service on loopback with synthetic data, identities and a deterministic stand-in model. It is a demonstration, not a quality signal, and it refuses live or cloud environment variables.

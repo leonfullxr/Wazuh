@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, cast
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -88,11 +90,12 @@ def create_app(
     csrf: CsrfTokens,
     clock: Clock,
     readiness: Readiness,
+    workspace_runtime: object | None = None,
 ) -> FastAPI:
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(SecurityHeadersMiddleware)
 
-    async def service_failure(_: Request, error: Exception) -> JSONResponse:
+    async def service_failure(request: Request, error: Exception) -> JSONResponse:
         if isinstance(error, StateFailure):
             domain_error = error.error
         elif isinstance(error, ServiceFailure):
@@ -101,6 +104,9 @@ def create_app(
             raise error
         status = status_for(domain_error.code)
         headers = {"Retry-After": "60"} if status == 429 else None
+        if request.url.path.startswith("/v1/workspace/"):
+            headers = dict(headers or {})
+            headers["X-Trace-Id"] = domain_error.trace_id
         return JSONResponse(
             status_code=status,
             content=domain_error.model_dump(mode="json"),
@@ -194,6 +200,47 @@ def create_app(
         if ok:
             return JSONResponse(status_code=200, content={"status": "ready"})
         return JSONResponse(status_code=503, content={"status": "unavailable"})
+
+    if workspace_runtime is not None:
+        from psycopg import Error as PsycopgError
+
+        from ai_soc.workspace.api.router import (
+            WorkspaceApiError,
+            workspace_api_error_handler,
+            workspace_database_error_handler,
+            workspace_router,
+        )
+        from ai_soc.workspace.api.runtime import WorkspaceRuntime
+
+        if not isinstance(workspace_runtime, WorkspaceRuntime):
+            raise TypeError("workspace_runtime must be a WorkspaceRuntime")
+
+        async def workspace_validation_failure(
+            _: Request, error: RequestValidationError
+        ) -> JSONResponse:
+            if not _.url.path.startswith("/v1/workspace/"):
+                return await request_validation_exception_handler(_, error)
+            trace_id = uuid4().hex
+            body = {
+                "code": "BAD_FILTER",
+                "message": "One or more query parameters are invalid.",
+                "retryable": False,
+                "trace_id": trace_id,
+                "details": None,
+            }
+            return JSONResponse(
+                status_code=422,
+                content=body,
+                headers={"X-Trace-Id": trace_id, "Cache-Control": "no-store"},
+            )
+
+        app.add_exception_handler(WorkspaceApiError, cast(Any, workspace_api_error_handler))
+        app.add_exception_handler(PsycopgError, cast(Any, workspace_database_error_handler))
+        app.add_exception_handler(RequestValidationError, cast(Any, workspace_validation_failure))
+        app.include_router(
+            workspace_router(workspace_runtime, principal, verify_csrf),
+            prefix="/v1/workspace",
+        )
 
     async def bootstrap(request: Request, response: Response) -> JSONResponse:
         verified = await principal(request)

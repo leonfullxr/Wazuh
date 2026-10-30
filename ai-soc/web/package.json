@@ -1,0 +1,51 @@
+{
+  "name": "ai-soc-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode live",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run validators:generate && npm run workspace-types:generate && npm run workspace-validators:generate && vite build --mode live",
+    "validators:generate": "node scripts/generate-validators.mjs",
+    "validators:check": "node scripts/generate-validators.mjs --check",
+    "preview": "vite preview --mode live",
+    "workspace-types:generate": "node scripts/generate-workspace-types.mjs",
+    "workspace-types:check": "node scripts/generate-workspace-types.mjs --check",
+    "workspace-validators:generate": "node scripts/generate-workspace-validators.mjs",
+    "workspace-validators:check": "node scripts/generate-workspace-validators.mjs --check"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.2.6",
+    "@fontsource/jetbrains-mono": "5.2.6",
+    "@radix-ui/react-dialog": "1.1.15",
+    "@radix-ui/react-select": "2.2.6",
+    "@radix-ui/react-slot": "1.2.3",
+    "@radix-ui/react-tabs": "1.1.13",
+    "@radix-ui/react-tooltip": "1.2.8",
+    "@tanstack/react-query": "5.90.5",
+    "@tanstack/react-table": "8.21.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "0.552.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "tailwind-merge": "3.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "6.0.1",
+    "autoprefixer": "10.6.1",
+    "openapi-typescript": "7.13.0",
+    "postcss": "8.5.31",
+    "prettier": "3.6.2",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.4"
+  }
+}

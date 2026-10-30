@@ -21,6 +21,7 @@ dependencies = [
   "PyJWT[crypto]==2.10.1",
   "pydantic==2.13.5",
   "pydantic-settings==2.13.1",
+  "psycopg[binary]==3.3.6",
   "PyYAML==6.0.3",
   "typing-extensions==4.15.0",
   "tzdata==2025.3",
@@ -40,11 +41,18 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ai_soc"]
+include = ["src/ai_soc/workspace/migrations/*.sql"]
 
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 include = ["src/ai_soc"]
+exclude = [
+  "src/ai_soc/contracts/freeze.py",
+  "src/ai_soc/workspace/evaluation.py",
+  "src/ai_soc/workspace/lab_check.py",
+  "src/ai_soc/workspace/replay.py",
+]
 reportMissingTypeStubs = false
 
 [tool.ruff]

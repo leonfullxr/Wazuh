@@ -111,12 +111,23 @@ class AuditArchiveConsumer:
             raw = json.loads(body)
             if not isinstance(raw, dict):
                 raise ValueError("audit event must be a JSON object")
-            event = AuditEvent.model_validate_json(body)
-            encoded = audit_json(event).encode("utf-8")
+            if cast(dict[str, object], raw).get("schema_version") == "workspace.1":
+                from ai_soc.workspace.audit_message import (
+                    WorkspaceAuditMessage,
+                    workspace_audit_json,
+                )
+
+                event = WorkspaceAuditMessage.model_validate_json(body)
+                encoded = workspace_audit_json(event).encode("utf-8")
+                prefix = "workspace-events"
+            else:
+                event = AuditEvent.model_validate_json(body)
+                encoded = audit_json(event).encode("utf-8")
+                prefix = "events"
         except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as exc:
             raise ValueError("invalid audit queue message") from exc
 
-        key = f"events/{str(event.event_id)[:2]}/{event.event_id}.json"
+        key = f"{prefix}/{str(event.event_id)[:2]}/{event.event_id}.json"
         try:
             self._s3.put_object(
                 Bucket=self._bucket,

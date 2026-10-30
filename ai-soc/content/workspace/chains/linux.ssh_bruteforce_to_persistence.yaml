@@ -1,0 +1,75 @@
+id: linux.ssh_bruteforce_to_persistence
+version: '2.0.0'
+name: SSH brute force followed by persistence changes
+status: experimental
+window: 6h
+scope:
+  same_agent: true
+join:
+  primary: [agent.id, src_ip, dst_user]
+  fallback: [agent.id, dst_user]
+  fallback_confidence: 0.45
+stages:
+  - id: brute_force
+    rule_id: '5763'
+    confidence: 0.90
+    maps_to: T1110
+  - id: successful_ssh
+    any_of:
+      - {rule_id: '5715', decoder: sshd}
+      - {rule_id: '40112', decoder: sshd}
+    after: brute_force
+    max_gap: 30m
+    same_fields:
+      agent.id: agent.id
+      src_ip: src_ip
+      dst_user: dst_user
+    confidence: 0.95
+    maps_to: T1078
+  - id: sudo
+    rule_id: '5402'
+    after: successful_ssh
+    max_gap: 2h
+    same_fields:
+      agent.id: agent.id
+      dst_user: src_user
+    actor_match: true
+    confidence: 0.60
+    maps_to: T1548.003
+  - id: persistence_change
+    any_of:
+      - rule_id: '550'
+        syscheck.event: modified
+      - rule_id: '554'
+        syscheck.event: added
+    after: sudo
+    after_tolerance: 2500ms
+    max_gap: 4h
+    same_fields:
+      agent.id: agent.id
+    where_any:
+      syscheck.path:
+        - /etc/passwd
+        - /etc/sudoers*
+        - /etc/sudoers.d/*
+        - /root/.ssh/authorized_keys
+        - /home/*/.ssh/authorized_keys
+        - /etc/cron*
+        - /etc/cron*/*
+        - /var/spool/cron/*
+        - /etc/systemd/system/*
+    confidence: 0.70
+    maps_to: T1053.003
+output:
+  min_required_stages: 3
+  require_stages: [brute_force, successful_ssh]
+  promote_score: 75
+  confidence_cap_without_actor_fields: 0.72
+  confidence_cap_with_order_tolerance: 0.55
+qualification:
+  capture_id: 7af83aeb-3e60-4ef0-86d9-3911acf0c9e7
+  evidence: >-
+    Selector compatibility is documented in the installed-build S1 qualification record.
+  execution: >-
+    Experimental candidate only. No public projections establish this ordered
+    full chain; observed users, IPs, and event ordering differ.

@@ -284,20 +284,7 @@ class WazuhIndexer:
         site: AuthorizedSite,
         execution: ExecutionContext,
     ) -> FetchResult:
-        if self._cursor_cipher is None:
-            raise CursorError()
-        try:
-            payload = self._cursor_cipher.open(
-                cursor,
-                owner_key=principal.owner_key,
-                environment_id=site.config.environment_id,
-                policy_hash=site.policy_hash,
-                content_sha=self._content_sha,
-            )
-        except CursorError:
-            raise
-        if principal.expires_at <= self._clock():
-            raise CursorError(ErrorCode.AUTH_EXPIRED)
+        payload = self.open_cursor(cursor, principal=principal, site=site)
         context_error = self._context_error(principal, site, execution)
         if context_error is not None:
             raise CursorError(context_error)
@@ -356,11 +343,28 @@ class WazuhIndexer:
             principal=principal,
             prior_cursor=payload,
         )
-        if result.next_cursor is None:
-            await self._close_pit(
-                client, payload.pit_id, credential, payload.question_id, site, execution
-            )
         return result
+
+    def open_cursor(
+        self,
+        cursor: str,
+        *,
+        principal: VerifiedPrincipal,
+        site: AuthorizedSite,
+    ) -> CursorPayload:
+        """Authenticate continuation binding before the application starts a fetch."""
+        if self._cursor_cipher is None:
+            raise CursorError()
+        payload = self._cursor_cipher.open(
+            cursor,
+            owner_key=principal.owner_key,
+            environment_id=site.config.environment_id,
+            policy_hash=site.policy_hash,
+            content_sha=self._content_sha,
+        )
+        if principal.expires_at <= self._clock():
+            raise CursorError(ErrorCode.AUTH_EXPIRED)
+        return payload
 
     def _profile(self, site: AuthorizedSite) -> MappingProfile:
         profile = self._profiles.get(site.config.mapping_profile)

@@ -8,6 +8,7 @@ This document is the reviewed capability record for the alert and vulnerability 
 |---|---|---|---|
 | Alerts (`alerts_rows_v1`, `alerts_count_v1`, `alerts_group_v1`) | `wazuh-v4-fixture` | fixture only | No Wazuh release is qualified. |
 | Vulnerabilities (`vulnerabilities_rows_v1`, `vulnerabilities_count_v1`, `vulnerabilities_group_v1`) | `wazuh-v4-fixture` | fixture only | No Wazuh release is qualified. |
+| CISA KEV context (`vuln_review` / `vuln_rows`) | approved optional content-pack snapshot | offline public lookup only | A listing records known exploitation in that dated snapshot; it does not establish host compromise, current affected state, fleet coverage, or that an unlisted CVE is not exploited. |
 
 The profile name does not establish support for any deployed release. Support here means that the query compiler, the playbooks and the seed content were tested against the fixture paths below. Live sites must select and validate their own pinned mapping profile before use.
 

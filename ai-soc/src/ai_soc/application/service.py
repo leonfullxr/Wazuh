@@ -8,13 +8,15 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from hashlib import sha256
 from typing import Literal, Protocol, cast
 from uuid import UUID, uuid4
 
 from pydantic import TypeAdapter
 
-from ai_soc.application.answers import AnswerAssembly
+from ai_soc.application.answers import AnswerAssembly, audit_fetch_record
 from ai_soc.application.errors import ServiceFailure
+from ai_soc.application.kev_annotations import decorate_answer_tables, decorate_page
 from ai_soc.application.runtime import RequestCancellation, RequestCancelled
 from ai_soc.application.topic_evidence import TopicEvidence
 from ai_soc.application.topic_judgment import (
@@ -30,7 +32,9 @@ from ai_soc.contracts.models import (
     AnswerStatus,
     AskRequest,
     AuditAck,
+    AuditContextUse,
     AuditEvent,
+    AuditPageReturn,
     AuthorizedSite,
     BootstrapResponse,
     BuildProvenance,
@@ -46,6 +50,7 @@ from ai_soc.contracts.models import (
     FeedbackQueued,
     FeedbackRequest,
     FetchResult,
+    FetchSpec,
     FetchState,
     FollowupRecord,
     HTTPSUrl,
@@ -65,6 +70,7 @@ from ai_soc.contracts.models import (
     StageName,
     StageOutcome,
     StageSpan,
+    TemplateId,
     TopicAnswer,
     TopicDefinition,
     TopicPlan,
@@ -98,6 +104,7 @@ from ai_soc.identity.policy import SiteAuthorizationError
 from ai_soc.judgment.capabilities import CapabilityError, validate_selection
 from ai_soc.planning.followups import InvalidContinuation
 from ai_soc.planning.parser import has_deterministic_route
+from ai_soc.query.cursors import CursorCipher, CursorError
 from ai_soc.state.errors import StateFailure
 from ai_soc.telemetry.audit_delivery import AuditUnavailable
 from ai_soc.telemetry.events import TelemetryAdapter
@@ -110,6 +117,7 @@ from ai_soc.telemetry.operational import (
 )
 from ai_soc.telemetry.outcomes import (
     begin_stage_outcomes,
+    current_stage_outcomes,
     reset_stage_outcomes,
 )
 from ai_soc.telemetry.worker_capacity import document_slot
@@ -212,6 +220,8 @@ class ApplicationService:
     guardrail_identifier: str = ""
     guardrail_version: str = ""
     semantic_suggester: SemanticSuggester | None = None
+    kev_activation_at: datetime | None = None
+    cursor_cipher: CursorCipher | None = None
     _document_slots: asyncio.Semaphore = field(
         default_factory=lambda: asyncio.Semaphore(16), init=False, repr=False
     )
@@ -571,6 +581,16 @@ class ApplicationService:
                 )
                 blocks.append(block)
                 left_out.extend(omitted)
+            kev_uses: list[AuditContextUse] = []
+            if any(block.topic_id == "vuln_review" for block in blocks):
+                blocks, kev_uses = decorate_answer_tables(
+                    blocks,
+                    language=plan.language,
+                    catalog=self.catalog,
+                    manifest=manifest,
+                    activation_at=self.kev_activation_at or self.clock.now(),
+                    question_id=plan.question_id,
+                )
             blocks = order_topic_answers(blocks)
             status = derive_answer_status(blocks, left_out)
             followup = self._followup(plan, previous, blocks, left_out)
@@ -588,7 +608,14 @@ class ApplicationService:
                     trace_id=trace_context.trace_id,
                 )
             attempted_ack = await self._audit(
-                answer, principal, plan, site.policy_hash, manifest, "attempted", execution
+                answer,
+                principal,
+                plan,
+                site.policy_hash,
+                manifest,
+                "attempted",
+                execution,
+                context_uses=kev_uses,
             )
             command = CompletionCommand(
                 question_id=plan.question_id,
@@ -624,6 +651,7 @@ class ApplicationService:
                     "completed",
                     execution,
                     completion_id=receipt.completion_id,
+                    context_uses=kev_uses,
                 )
             except Exception:
                 # The attempted event was durably acknowledged before commit; this lifecycle
@@ -663,23 +691,109 @@ class ApplicationService:
                 await self.admissions.release(admission)
 
     async def page(self, request: PageRequest, principal: VerifiedPrincipal) -> FetchResult:
-        site = self._authorize_site(principal, request.environment_id)
-        grant = await self.admissions.acquire(
-            principal.owner_key, request.environment_id, "page", uuid4(), self.clock.now()
-        )
-        execution = self.runtime.create(
-            question_id=uuid4(),
-            operation="page",
-            owner_key=principal.owner_key,
-            environment_id=request.environment_id,
-            admission=grant,
-        )
+        trace_context = self._question_trace()
+        outcomes_token = begin_stage_outcomes()
         try:
-            return await self.fetches.page(
-                request.cursor, principal=principal, site=site, execution=execution
+            site = self._authorize_site(principal, request.environment_id)
+            if self.cursor_cipher is None:
+                raise CursorError()
+            manifest = self.catalog.manifest()
+            payload = self.cursor_cipher.open(
+                request.cursor,
+                owner_key=principal.owner_key,
+                environment_id=request.environment_id,
+                policy_hash=site.policy_hash,
+                content_sha=manifest.content_sha,
             )
+            if principal.expires_at <= self.clock.now():
+                raise CursorError(ErrorCode.AUTH_EXPIRED)
+            grant = await self.admissions.acquire(
+                principal.owner_key, request.environment_id, "page", uuid4(), self.clock.now()
+            )
+            execution = self.runtime.create(
+                question_id=payload.question_id,
+                operation="page",
+                owner_key=principal.owner_key,
+                environment_id=request.environment_id,
+                admission=grant,
+                trace_context=trace_context,
+            )
+            try:
+                result = await self.fetches.page(
+                    request.cursor, principal=principal, site=site, execution=execution
+                )
+                context_uses: list[AuditContextUse] = []
+                if result.topic_id == "vuln_review" and result.fetch_id == "vuln_rows":
+                    decorated = decorate_page(
+                        result,
+                        kev_index=getattr(self.catalog, "kev_index", None),
+                        manifest=manifest,
+                        activation_at=self.kev_activation_at or self.clock.now(),
+                        question_id=payload.question_id,
+                        evaluation_at=payload.snapshot.at,
+                    )
+                    result = decorated.result
+                    context_uses.append(decorated.audit_use)
+                fetch = FetchSpec(
+                    fetch_id=payload.fetch_id,
+                    template_id=TemplateId(payload.template_id),
+                    window=payload.window,
+                    filters=payload.filters,
+                    page_size=payload.page_size,
+                    limit=payload.remaining_top_n,
+                    order=payload.order,
+                )
+                record = audit_fetch_record(self.catalog, result, fetch)
+                event = AuditEvent(
+                    event_id=uuid4(),
+                    question_id=payload.question_id,
+                    trace_id=trace_context.trace_id,
+                    owner_key=principal.owner_key,
+                    environment_id=request.environment_id,
+                    authenticated_issuer=principal.issuer,
+                    auth_edge=principal.edge,
+                    service_sha=manifest.service_sha,
+                    image_digest=manifest.image_digest,
+                    content_sha=manifest.content_sha,
+                    pack_sha256=manifest.pack_sha256,
+                    policy_hash=site.policy_hash,
+                    cue_ids=[],
+                    topic_ids=[payload.topic_id],
+                    stage_outcomes=current_stage_outcomes(),
+                    outcome="attempted",
+                    fetches=[record] if record is not None else [],
+                    context_uses=context_uses,
+                    page_return=AuditPageReturn(
+                        input_cursor_sha256=sha256(request.cursor.encode("utf-8")).hexdigest(),
+                        next_cursor_sha256=(
+                            sha256(result.next_cursor.encode("utf-8")).hexdigest()
+                            if result.next_cursor is not None
+                            else None
+                        ),
+                        response_sha256=sha256(canonical_bytes(result)).hexdigest(),
+                    ),
+                    created_at=self.clock.now(),
+                )
+                started = self.clock.monotonic()
+                with self._stage(StageName.audit, trace_context) as span:
+                    if span is not None:
+                        span.set_outcome(StageOutcome.ok)
+                        span.record_latency(max(0, int((self.clock.monotonic() - started) * 1000)))
+                await self.telemetry.event(event, execution=execution)
+                return result
+            finally:
+                await self.admissions.release(grant)
+        except AuditUnavailable:
+            raise ServiceFailure(
+                public_error(
+                    ErrorCode.AUDIT_UNAVAILABLE,
+                    "The audit service is temporarily unavailable.",
+                    trace_id=trace_context.trace_id,
+                    retryable=True,
+                )
+            ) from None
         finally:
-            await self.admissions.release(grant)
+            reset_stage_outcomes(outcomes_token)
 
     async def feedback(
         self, request: FeedbackRequest, principal: VerifiedPrincipal
@@ -1235,6 +1349,7 @@ class ApplicationService:
         outcome: Literal["attempted", "completed", "cancelled"],
         execution: ExecutionContext,
         completion_id: UUID | None = None,
+        context_uses: list[AuditContextUse] | None = None,
     ) -> AuditAck:
         started = self.clock.monotonic()
         with self.telemetry.stage(StageName.audit, trace_context=execution.trace_context) as span:
@@ -1242,7 +1357,14 @@ class ApplicationService:
             span.record_latency(max(0, int((self.clock.monotonic() - started) * 1000)))
         return await self.telemetry.event(
             self._audit_event(
-                answer, principal, plan, policy_hash, manifest, outcome, completion_id
+                answer,
+                principal,
+                plan,
+                policy_hash,
+                manifest,
+                outcome,
+                completion_id,
+                context_uses=context_uses,
             ),
             execution=execution,
         )
@@ -1256,6 +1378,7 @@ class ApplicationService:
         manifest: BuildProvenance,
         outcome: Literal["attempted", "completed", "cancelled"],
         completion_id: UUID | None = None,
+        context_uses: list[AuditContextUse] | None = None,
     ) -> AuditEvent:
         return self._answers().audit_event(
             answer,
@@ -1267,6 +1390,7 @@ class ApplicationService:
             cue_ids=[cue_id for topic in plan.topics for cue_id in topic.cue_ids],
             topic_ids=[topic.topic_id for topic in plan.topics],
             completion_id=completion_id,
+            context_uses=context_uses,
         )
 
     def _local_execution(

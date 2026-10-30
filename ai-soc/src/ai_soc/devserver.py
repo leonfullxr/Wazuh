@@ -589,9 +589,9 @@ def _identity(
 
 
 def _compose(pack: Path, port: int) -> tuple[SocRuntime, httpx.AsyncClient, dict[str, str]]:
-    verify_content_pack(pack)
-    manifest = PackManifest.model_validate_json((pack / "manifest.json").read_bytes())
-    provenance_record = cast(dict[str, object], json.loads((pack / "provenance.json").read_bytes()))
+    verified_files = verify_content_pack(pack)
+    manifest = PackManifest.model_validate_json(verified_files["manifest.json"])
+    provenance_record = cast(dict[str, object], json.loads(verified_files["provenance.json"]))
     if provenance_record.get("mode") != "fixture":
         raise ValueError("content pack provenance mode must be fixture")
     catalog = load_content_catalog(
