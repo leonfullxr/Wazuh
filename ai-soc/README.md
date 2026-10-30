@@ -4,6 +4,45 @@ Wazuh AI SOC is a read-only assistant for Wazuh analysts. It plans an analyst's 
 
 It runs as a private HTTPS service on AWS (ECS Fargate behind an internal ALB), uses Amazon Bedrock for judgment with a pinned guardrail, and serves both a browser UI and an MCP endpoint (`soc_ask`, `soc_page`, `soc_feedback`).
 
+## Console preview
+
+These screenshots show a local **synthetic design preview**. The populated threat activity and quality dashboards, alert explorer, and incident and chain graphs include illustrative overlays that are not included in the production build. Their figures and relationships do not represent live service data. See [the redesign plan](web/REDESIGN_PLAN.md) for the current implementation and API gaps.
+
+### Threat activity
+
+![Synthetic threat activity overview](docs/screenshots/overview.png)
+
+### Alerts and queue
+
+![Synthetic alert explorer design preview](docs/screenshots/alerts.png)
+
+![Queue with synthetic groups](docs/screenshots/queue.png)
+
+### Incident and chain investigation
+
+![Synthetic incident with an illustrative entity graph and timeline](docs/screenshots/incidents.png)
+
+![Synthetic chain candidate with an illustrative graph](docs/screenshots/chains.png)
+
+### Dashboards
+
+![Illustrative AI SOC quality dashboard](docs/screenshots/ai-quality.png)
+
+![Illustrative SOC operations dashboard](docs/screenshots/soc-operations.png)
+
+![Service metrics with synthetic data](docs/screenshots/metrics.png)
+
+<details>
+<summary>More console screens</summary>
+
+![Investigation composer](docs/screenshots/investigate.png)
+
+![Question history](docs/screenshots/history.png)
+
+![Service status](docs/screenshots/status.png)
+
+</details>
+
 ## How it works
 
 1. Routing cues map the question to reviewed topics. Questions that match no topic get a clarification or a refusal, never a guess.
