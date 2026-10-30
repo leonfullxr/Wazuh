@@ -19,6 +19,7 @@ export default defineConfig({
                     for (const moduleId of artifact.moduleIds) {
                         if (
                             moduleId.includes("/src/mocks/") ||
+                            moduleId.includes("/verification/") ||
                             moduleId.endsWith("/src/main-mock.tsx")
                         ) {
                             this.error(`Mock module found in the production bundle: ${moduleId}`);

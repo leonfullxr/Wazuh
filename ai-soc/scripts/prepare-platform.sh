@@ -54,11 +54,9 @@ mkdir -p "$cache/node-v22.23.3/extracted"
 tar -xJf "$node_archive" --strip-components=1 -C "$cache/node-v22.23.3/extracted"
 
 mkdir -p "$repo_root/build/tool-cache/b5-ui-sync" "$repo_root/build/tool-cache/playwright"
-# The production browser is built from web/, but its lockfile does not declare the
-# Playwright runner. Keep browser preparation on the pinned legacy runner lock until
-# that tooling has its own lockfile. The b5-ui paths are part of the frozen runner
-# manifest and are intentionally preserved here.
-browser_runner_lock="$repo_root/ui/package-lock.json"
+# The browser runner inputs are kept separate from the production web application.
+# Preserve the b5-ui cache paths because they are part of the frozen runner manifest.
+browser_runner_lock="$repo_root/dev/pinned-inputs/b5-ui-package-lock.json"
 "$cache/node-v22.23.3/extracted/bin/node" - "$browser_runner_lock" <<'NODE'
 const fs = require("fs");
 
