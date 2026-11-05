@@ -1207,7 +1207,13 @@ function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
                                         <code key={index}>{String(item)}</code>
                                     ))
                                 ) : (
-                                    <code data-null={field === null || undefined}>
+                                    <code
+                                        data-null={field === null || undefined}
+                                        data-prose={
+                                            (typeof field === "string" && /\s/.test(field)) ||
+                                            undefined
+                                        }
+                                    >
                                         {String(field)}
                                     </code>
                                 )}

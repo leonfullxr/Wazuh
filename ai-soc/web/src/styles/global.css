@@ -1948,7 +1948,7 @@ tbody tr:hover {
 .alert-detail-list,
 .stats-list {
     display: grid;
-    grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
+    grid-template-columns: minmax(156px, 0.7fr) minmax(0, 1.3fr);
     gap: 8px 12px;
     margin: 0;
     font-size: 13px;
@@ -2554,4 +2554,32 @@ tbody tr:hover {
 .provenance-fields dd {
     margin: 0;
     color: var(--text);
+}
+/* Answered state: keep the composer and answer header compact so findings start sooner. */
+.composer {
+    padding: 16px 20px;
+}
+.composer .section-title {
+    margin-bottom: 10px !important;
+}
+.composer textarea {
+    min-height: 56px;
+    padding: 10px 12px;
+}
+.composer-controls {
+    margin-top: 10px;
+}
+.answer-summary {
+    padding: 14px 20px;
+}
+.answer-summary .ids-row {
+    margin-top: 8px;
+    row-gap: 4px;
+}
+.topic-header {
+    padding: 14px 20px;
+}
+.findings,
+.checks {
+    padding: 16px 20px;
 }

@@ -426,12 +426,21 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Narrative provenance reads as two compact columns of label/value pairs. */
+/* Narrative provenance: short fields pair up in two columns, digests take a full row. */
 .m3-narrative > .m3-meta {
     grid-template-columns:
-        minmax(110px, max-content) minmax(0, 1fr)
-        minmax(110px, max-content) minmax(0, 1fr);
-    gap: 6px 16px;
+        minmax(150px, max-content) minmax(0, 1fr)
+        minmax(150px, max-content) minmax(0, 1fr);
+    gap: 4px 16px;
+    line-height: 20px;
+}
+
+.m3-narrative > .m3-meta dt:has(+ dd > code) {
+    grid-column: 1;
+}
+
+.m3-narrative > .m3-meta dd:has(> code) {
+    grid-column: 2 / -1;
 }
 
 @media (max-width: 1200px) {
@@ -501,4 +510,11 @@
 .m3-evidence-fields dd code:empty,
 .m3-evidence-fields dd code[data-null] {
     color: var(--text-muted);
+}
+
+/* Prose values (they contain spaces) read in the UI font; ids and keys stay mono. */
+.m3-evidence-fields dd code[data-prose] {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    white-space: normal;
 }

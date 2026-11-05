@@ -136,9 +136,9 @@
     grid-column: 3;
     grid-row: 1;
     font-size: 13px;
+    font-weight: 550;
     text-align: right;
     color: var(--text);
-    font-family: var(--font-code);
 }
 
 .metrics-v2-distribution > div > span {

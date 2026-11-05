@@ -308,7 +308,12 @@
     }
 
     .queue-v2 .queue-table td:nth-child(3) {
-        width: 76px;
+        width: 60px;
+    }
+
+    .queue-v2 .queue-table th,
+    .queue-v2 .queue-table td {
+        padding-inline: 8px 4px;
     }
 
     .queue-v2 .queue-table td:nth-child(7) {

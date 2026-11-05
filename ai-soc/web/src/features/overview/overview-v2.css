@@ -449,8 +449,8 @@
     }
     .overview-v2-metric,
     .overview-v2-metric:nth-child(3) {
-        min-height: 72px;
-        padding: 12px 14px;
+        min-height: 64px;
+        padding: 10px 14px;
         border-right: 0;
         border-top: 0;
         border-bottom: 1px solid var(--border, var(--stroke-subtle));
