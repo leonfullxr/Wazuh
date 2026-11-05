@@ -34,6 +34,21 @@ export function date(value: string | null | undefined, tz: string, locale: Local
         return value;
     }
 }
+/** Day, month and time without year or offset, for ranges whose zone is shown elsewhere. */
+export function dateShort(value: string | null | undefined, tz: string, locale: Locale) {
+    if (!value) return "-";
+    try {
+        return new Intl.DateTimeFormat(locale === "es" ? "es-ES" : "en-GB", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: tz,
+        }).format(new Date(value));
+    } catch {
+        return value;
+    }
+}
 export function byteCount(text: string) {
     return bytes(text);
 }

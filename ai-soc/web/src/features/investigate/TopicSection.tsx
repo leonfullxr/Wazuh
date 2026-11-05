@@ -19,6 +19,7 @@ import { judgments, removed } from "../../i18n/answer-enums";
 import {
     countLabel,
     date,
+    dateShort,
     emptyProofQualified,
     formatVisibility,
     resolveCitation,
@@ -261,8 +262,9 @@ export function TopicSection({
                             </span>
                         )}
                         <span>
-                            {date(fetch.window.start, timezone, locale)} -{" "}
-                            {date(fetch.window.end, timezone, locale)} ({fetch.window.source_text})
+                            {dateShort(fetch.window.start, timezone, locale)} -{" "}
+                            {dateShort(fetch.window.end, timezone, locale)} (
+                            {fetch.window.source_text})
                         </span>
                         <span>
                             {date(fetch.snapshot_at ?? fetch.snapshot.at, timezone, locale)}

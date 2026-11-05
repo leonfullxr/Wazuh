@@ -518,3 +518,78 @@
     font-size: 13px;
     white-space: normal;
 }
+
+/* One label column (200px) for every key/value list on a detail page; inset cards subtract
+   their 12px padding so values line up with the outer column. */
+.m3-detail .m3-meta {
+    grid-template-columns: 200px minmax(0, 1fr);
+}
+
+.m3-narrative > .m3-meta {
+    grid-template-columns: 200px minmax(0, 1fr) 200px minmax(0, 1fr);
+}
+
+.m3-narrative > .m3-meta dt:last-of-type {
+    grid-column: 1;
+}
+
+.m3-narrative > .m3-meta dd:last-of-type {
+    grid-column: 2 / -1;
+}
+
+/* Full-width section cards align with the 200px outer column; narrow cards keep a short one. */
+.m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
+    grid-template-columns: 188px minmax(0, 1fr);
+}
+
+.m3-timeline .m3-evidence-fields > div,
+.m3-two-column .m3-evidence-fields > div {
+    grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.m3-evidence-fields dd > span,
+.m3-evidence-fields dd .field-number {
+    font-family: var(--font-ui);
+    font-size: 13px;
+}
+
+.field-number {
+    font-variant-numeric: tabular-nums;
+}
+
+.m3-stage-head > code {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.m3-stage-ordinal {
+    width: 20px;
+    height: 20px;
+}
+
+.m3-timeline time {
+    font-family: var(--font-ui);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1200px) {
+    .m3-narrative > .m3-meta {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .m3-detail .m3-meta,
+    .m3-narrative > .m3-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .m3-narrative > .m3-meta dt:last-of-type,
+    .m3-narrative > .m3-meta dd:last-of-type {
+        grid-column: auto;
+    }
+
+    .m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
+        grid-template-columns: 96px minmax(0, 1fr);
+    }
+}

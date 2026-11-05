@@ -187,7 +187,17 @@ export function OverviewPage({
                                             barCategoryGap="28%"
                                             accessibilityLayer={false}
                                         >
-                                            <XAxis dataKey="hour" hide />
+                                            <XAxis
+                                                dataKey="hour"
+                                                tickFormatter={(hour: string) =>
+                                                    formatTick(hour, timezone)
+                                                }
+                                                interval="preserveStartEnd"
+                                                minTickGap={56}
+                                                axisLine={{ stroke: "var(--border-strong)" }}
+                                                tickLine={false}
+                                                height={22}
+                                            />
                                             <CartesianGrid vertical={false} strokeDasharray="3 4" />
                                             <ReferenceArea
                                                 x1={activeHour}
@@ -459,7 +469,7 @@ function TopList({
                             </span>
                             <button type="button" onClick={() => onSelect(item)}>
                                 <span>{item.label}</span>
-                                {mono && <code>{item.key}</code>}
+                                {mono && item.key !== item.label && <code>{item.key}</code>}
                             </button>
                             <strong>{item.count.toLocaleString()}</strong>
                         </li>
@@ -978,6 +988,13 @@ function clippedHourRange(
     const to = Math.min(hourEnd, new Date(viewTo).getTime());
     return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
 }
+/** Chart ticks: time of day only; the end labels below the chart carry the dates. */
+function formatTick(value: string, timezone: string): string {
+    return new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: timezone }).format(
+        new Date(value),
+    );
+}
+
 function formatTime(value: string | null, timezone: string): string {
     return value
         ? new Intl.DateTimeFormat(undefined, {

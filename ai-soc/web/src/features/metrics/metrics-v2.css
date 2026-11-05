@@ -85,7 +85,7 @@
 }
 
 .metrics-v2-quality-grid {
-    align-items: start;
+    align-items: stretch;
 }
 
 .metrics-v2 .metric-subpanel {

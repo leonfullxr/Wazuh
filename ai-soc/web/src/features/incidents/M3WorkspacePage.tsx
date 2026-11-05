@@ -476,7 +476,9 @@ function ChainDetailView({
             <h3 id="chain-detail-heading">{t("m3CandidateDetail")}</h3>
             <dl className="m3-meta">
                 <dt>{t("m3CandidateId")}</dt>
-                <dd>{detail.chain_id}</dd>
+                <dd>
+                    <code>{detail.chain_id}</code>
+                </dd>
                 <dt>{t("m3Rule")}</dt>
                 <dd>
                     {detail.rule_id} · {detail.rule_version}
@@ -653,7 +655,9 @@ function IncidentDetailView({
             </div>
             <dl className="m3-meta">
                 <dt>{t("m3IncidentId")}</dt>
-                <dd>{incident.incident_id}</dd>
+                <dd>
+                    <code>{incident.incident_id}</code>
+                </dd>
                 <dt>{t("m3Status")}</dt>
                 <dd>
                     <StateTag value={incident.status} />
@@ -1166,6 +1170,17 @@ function EvidenceRows({ values }: { values: unknown[] }) {
     );
 }
 
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+/** One rendering per kind: muted dash for null, sans for numbers, prose and times, mono for ids. */
+function FieldValue({ value }: { value: string | number | boolean | null }) {
+    if (value === null) return <span className="null-value">{"\u2014"}</span>;
+    if (typeof value !== "string") return <span className="field-number">{String(value)}</span>;
+    if (ISO_TIMESTAMP.test(value)) return <span>{fmtDate(value)}</span>;
+    if (/\s/.test(value)) return <span>{value}</span>;
+    return <code>{value}</code>;
+}
+
 /** Stage records lead with ordinal, stage and outcome; other fields follow as rows. */
 type FlatField = string | number | boolean | null | Array<string | number | boolean | null>;
 
@@ -1204,18 +1219,12 @@ function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
                             <dd>
                                 {Array.isArray(field) ? (
                                     field.map((item, index) => (
-                                        <code key={index}>{String(item)}</code>
+                                        <div key={index}>
+                                            <FieldValue value={item} />
+                                        </div>
                                     ))
                                 ) : (
-                                    <code
-                                        data-null={field === null || undefined}
-                                        data-prose={
-                                            (typeof field === "string" && /\s/.test(field)) ||
-                                            undefined
-                                        }
-                                    >
-                                        {String(field)}
-                                    </code>
+                                    <FieldValue value={field} />
                                 )}
                             </dd>
                         </div>
@@ -1341,15 +1350,12 @@ export function fmtRange(first: string, last: string): string {
     return `${fmtDate(first)} – ${clock.format(end)}`;
 }
 
-function fmtTime(value: string, locale: Locale): string {
+function fmtTime(value: string, _locale?: Locale): string {
     const date = new Date(value);
     return Number.isNaN(date.getTime())
         ? value
-        : new Intl.DateTimeFormat(locale, {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
+        : new Intl.DateTimeFormat(undefined, {
+              timeStyle: "short",
               timeZone: "UTC",
           }).format(date);
 }

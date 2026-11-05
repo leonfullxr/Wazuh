@@ -311,6 +311,12 @@
         width: 60px;
     }
 
+    .queue-v2 .queue-table th:first-child,
+    .queue-v2 .queue-table td:first-child {
+        width: 28px;
+        padding-inline: 4px 0;
+    }
+
     .queue-v2 .queue-table th,
     .queue-v2 .queue-table td {
         padding-inline: 8px 4px;

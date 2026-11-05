@@ -46,7 +46,9 @@ export function StatusScreen({
                             </p>
                             <p>
                                 <span>{t("efforts")}</span>
-                                <span>{m.efforts.join(", ") || "-"}</span>
+                                <span className={m.efforts.length ? undefined : "null-value"}>
+                                    {m.efforts.join(", ") || "\u2014"}
+                                </span>
                             </p>
                         </article>
                     ))}
@@ -113,7 +115,9 @@ export function StatusScreen({
                                       )
                                     : k}
                             </span>
-                            <strong className="numeric">{v}</strong>
+                            <strong className="numeric">
+                                {typeof v === "number" ? v.toLocaleString() : v}
+                            </strong>
                         </p>
                     ))}
                 </section>
@@ -121,7 +125,7 @@ export function StatusScreen({
                     <h2>{t("build")}</h2>
                     {Object.entries(bootstrap.provenance).map(([k, v]) => (
                         <p key={k}>
-                            <span>{k}</span>
+                            <span className="mono">{k}</span>
                             <CopyValue value={String(v)} t={t} />
                         </p>
                     ))}

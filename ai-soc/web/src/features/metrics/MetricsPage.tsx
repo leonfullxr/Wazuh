@@ -117,7 +117,6 @@ export function MetricsPage({
                 <div className="section-heading-row metrics-v2-panel-head">
                     <div>
                         <h2>{t("operationalMetrics")}</h2>
-                        <p>{t("metricsDescription")}</p>
                     </div>
                     <span className="metrics-v2-as-of">
                         {t("metricAsOf")}: {formatTime(ops.window.to)}
@@ -145,7 +144,7 @@ export function MetricsPage({
                             {ops.volume
                                 .reduce((sum, bucket) => sum + bucket.count, 0)
                                 .toLocaleString()}{" "}
-                            {t("alerts")}
+                            {t("alerts").toLocaleLowerCase()}
                         </span>
                     </div>
                     {ops.volume.length > 0 ? (

@@ -1037,7 +1037,7 @@ select {
 .ids-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, max-content));
-    align-items: center;
+    align-items: baseline;
     gap: 6px 32px;
     margin-top: 12px;
     font-size: 12px;
@@ -2582,4 +2582,9 @@ tbody tr:hover {
 .findings,
 .checks {
     padding: 16px 20px;
+}
+/* One rendering for missing values across the app. */
+.null-value {
+    color: var(--text-muted);
+    font-family: var(--font-ui);
 }

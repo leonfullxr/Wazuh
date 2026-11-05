@@ -446,7 +446,7 @@ export function AlertsPage({
                                                 {alert.rule_level === null ? (
                                                     <Tag>{t("nullUnknown")}</Tag>
                                                 ) : (
-                                                    <Tag {...severityTag(alert.rule_level)} mono>
+                                                    <Tag {...severityTag(alert.rule_level)}>
                                                         {alert.rule_level}
                                                     </Tag>
                                                 )}
@@ -457,7 +457,11 @@ export function AlertsPage({
                                             <td>{alert.rule_description ?? t("nullUnknown")}</td>
                                             <td>{alert.agent_name ?? alert.agent_id ?? "—"}</td>
                                             <td>
-                                                <code>{alert.src_ip ?? "—"}</code>
+                                                {alert.src_ip ? (
+                                                    <code>{alert.src_ip}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
                                             </td>
                                             <td>{alert.dst_user ?? alert.src_user ?? "—"}</td>
                                             <td>{alert.mitre_tactics[0] ?? "—"}</td>
@@ -629,9 +633,9 @@ function AlertDrawer({
                             {alert.agent_name ?? alert.agent_id ?? "—"} · {alert.agent_ip ?? "—"}
                         </dd>
                         <dt>{t("source")}</dt>
-                        <dd>{alert.src_ip ?? "—"}</dd>
+                        <dd>{alert.src_ip ? <code>{alert.src_ip}</code> : <NullValue />}</dd>
                         <dt>{t("destination")}</dt>
-                        <dd>{alert.dst_ip ?? "—"}</dd>
+                        <dd>{alert.dst_ip ? <code>{alert.dst_ip}</code> : <NullValue />}</dd>
                         <dt>{t("user")}</dt>
                         <dd>
                             {alert.src_user ?? "—"} → {alert.dst_user ?? "—"}
@@ -688,6 +692,10 @@ function AlertDrawer({
             </div>
         </div>
     );
+}
+
+function NullValue() {
+    return <span className="null-value">{"\u2014"}</span>;
 }
 
 function safeWazuhUrl(value: string | null | undefined): string | null {

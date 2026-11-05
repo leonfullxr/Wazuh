@@ -209,6 +209,31 @@
         white-space: nowrap;
     }
 
+    /* The details action becomes a chevron; its text stays as the accessible name. */
+    .alerts-v2 .workspace-table td:last-child .text-link {
+        position: relative;
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        color: transparent;
+        white-space: nowrap;
+    }
+
+    .alerts-v2 .workspace-table td:last-child .text-link::after {
+        position: absolute;
+        top: 11px;
+        left: 10px;
+        width: 7px;
+        height: 7px;
+        border-top: 2px solid var(--accent);
+        border-right: 2px solid var(--accent);
+        transform: rotate(45deg);
+        content: "";
+    }
+
     .alerts-v2 > .workspace-panel:first-of-type {
         padding: 12px;
     }
