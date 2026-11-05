@@ -161,6 +161,17 @@ select {
     background: var(--canvas);
     color: var(--text);
 }
+/* Paint the rail column on the shell so it spans pages taller than the sticky rail. */
+@media (min-width: 1024px) {
+    .app-shell {
+        background: linear-gradient(
+            to right,
+            var(--rail) calc(var(--rail-width) - 1px),
+            var(--border) calc(var(--rail-width) - 1px) var(--rail-width),
+            var(--canvas) var(--rail-width)
+        );
+    }
+}
 .rail {
     position: sticky;
     top: 0;
