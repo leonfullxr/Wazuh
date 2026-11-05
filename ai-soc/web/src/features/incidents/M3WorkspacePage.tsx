@@ -313,7 +313,11 @@ export function M3WorkspacePage({
                                             <strong>{item.title}</strong>
                                             <span className="m3-list-meta">
                                                 <StateTag value={item.status} /> {t("m3Owner")}:{" "}
-                                                {item.owner_key ?? t("m3Unassigned")}
+                                                {item.owner_key ? (
+                                                    <code>{item.owner_key}</code>
+                                                ) : (
+                                                    t("m3Unassigned")
+                                                )}
                                             </span>
                                             <small>
                                                 {item.incident_id} · v{item.work_version} · r

@@ -1634,6 +1634,15 @@ tbody tr:hover {
     font-size: 13px;
     margin: 0;
 }
+/* Build provenance: key column plus left-aligned values, so hashes share one left edge. */
+.status-build p {
+    display: grid;
+    grid-template-columns: 168px minmax(0, 1fr);
+}
+.status-build .copy-value {
+    max-width: 100%;
+    justify-self: start;
+}
 .model-row {
     padding: 10px 0 0;
 }

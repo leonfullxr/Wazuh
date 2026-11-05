@@ -404,6 +404,13 @@
     gap: 6px;
 }
 
+.m3-list-item .m3-list-meta code {
+    margin-left: -2px;
+    color: var(--text-2);
+    font-family: var(--font-code);
+    font-size: 12px;
+}
+
 .m3-meta dd .tag {
     vertical-align: middle;
 }

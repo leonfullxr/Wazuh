@@ -121,7 +121,7 @@ export function StatusScreen({
                         </p>
                     ))}
                 </section>
-                <section className="panel">
+                <section className="panel status-build">
                     <h2>{t("build")}</h2>
                     {Object.entries(bootstrap.provenance).map(([k, v]) => (
                         <p key={k}>
