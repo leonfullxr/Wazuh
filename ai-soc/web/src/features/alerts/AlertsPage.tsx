@@ -626,11 +626,13 @@ function AlertDrawer({
                         <dd>{formatTime(alert.event_ts)}</dd>
                         <dt>{t("rule")}</dt>
                         <dd>
-                            {alert.rule_id ?? "—"} · {alert.rule_level ?? "—"}
+                            {alert.rule_id ? <code>{alert.rule_id}</code> : <NullValue />} ·{" "}
+                            {alert.rule_level ?? <NullValue />}
                         </dd>
                         <dt>{t("agent")}</dt>
                         <dd>
-                            {alert.agent_name ?? alert.agent_id ?? "—"} · {alert.agent_ip ?? "—"}
+                            {alert.agent_name ?? alert.agent_id ?? <NullValue />} ·{" "}
+                            {alert.agent_ip ? <code>{alert.agent_ip}</code> : <NullValue />}
                         </dd>
                         <dt>{t("source")}</dt>
                         <dd>{alert.src_ip ? <code>{alert.src_ip}</code> : <NullValue />}</dd>
@@ -647,13 +649,24 @@ function AlertDrawer({
                     </dl>
                     <section className="drawer-section">
                         <h3>{t("normalizedFields")}</h3>
-                        <p>
-                            {[
-                                ...alert.rule_groups,
-                                ...alert.mitre_tactics,
-                                ...alert.mitre_techniques,
-                            ].join(" · ") || "—"}
-                        </p>
+                        {[...alert.rule_groups, ...alert.mitre_tactics, ...alert.mitre_techniques]
+                            .length === 0 ? (
+                            <p>
+                                <NullValue />
+                            </p>
+                        ) : (
+                            <ul className="field-chips">
+                                {[
+                                    ...alert.rule_groups,
+                                    ...alert.mitre_tactics,
+                                    ...alert.mitre_techniques,
+                                ].map((field) => (
+                                    <li key={field}>
+                                        <code>{field}</code>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </section>
                     <section className="drawer-section">
                         <h3>{t("normalizationGaps")}</h3>

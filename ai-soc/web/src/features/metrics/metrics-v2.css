@@ -160,7 +160,9 @@
 .metrics-v2-volume {
     display: grid;
     gap: 12px;
-    padding-top: 2px;
+    margin-top: 4px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-row);
 }
 
 .metrics-v2-table {
@@ -322,4 +324,8 @@
     .metrics-v2-quality-summary > div:last-child {
         border-bottom: 0;
     }
+}
+
+.metrics-v2-quality-summary > div {
+    align-content: start;
 }

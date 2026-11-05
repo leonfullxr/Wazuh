@@ -22,7 +22,7 @@
 }
 
 .queue-v2-filters {
-    padding: 12px;
+    padding: 16px 20px;
     background: var(--surface-2, var(--surface-subtle));
 }
 

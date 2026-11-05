@@ -789,7 +789,8 @@ function GroupDrawer({
                             </code>
                             {component.evidence_ids.length > 0 && (
                                 <small>
-                                    {t("evidenceLabel")}: {component.evidence_ids.join(", ")}
+                                    {t("evidenceLabel")}:{" "}
+                                    <code>{component.evidence_ids.join(", ")}</code>
                                 </small>
                             )}
                         </li>

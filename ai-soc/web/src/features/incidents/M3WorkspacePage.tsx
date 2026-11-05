@@ -481,7 +481,7 @@ function ChainDetailView({
                 </dd>
                 <dt>{t("m3Rule")}</dt>
                 <dd>
-                    {detail.rule_id} · {detail.rule_version}
+                    <code>{detail.rule_id}</code> · {detail.rule_version}
                 </dd>
                 <dt>{t("m3CandidateState")}</dt>
                 <dd>
@@ -663,7 +663,9 @@ function IncidentDetailView({
                     <StateTag value={incident.status} />
                 </dd>
                 <dt>{t("m3Owner")}</dt>
-                <dd>{incident.owner_key ?? t("m3Unassigned")}</dd>
+                <dd>
+                    {incident.owner_key ? <code>{incident.owner_key}</code> : t("m3Unassigned")}
+                </dd>
                 <dt>{t("m3WorkVersion")}</dt>
                 <dd>{incident.work_version}</dd>
                 <dt>{t("m3EvidenceRevision")}</dt>
@@ -784,7 +786,9 @@ function IncidentDetailView({
                             </time>
                             <span className="m3-timeline-marker" aria-hidden="true" />
                             <div className="m3-timeline-event">
-                                <strong>{event.rule_id ?? t("m3Alert")}</strong>
+                                <strong>
+                                    {event.rule_id ? <code>{event.rule_id}</code> : t("m3Alert")}
+                                </strong>
                                 <span>
                                     {event.alert_key} · {event.group_id}
                                 </span>

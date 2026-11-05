@@ -66,14 +66,20 @@ export function AnswerView({
                 </div>
                 <div className="ids-row">
                     <span>
-                        {t("environment")}: <code>{answer.environment_id}</code>
+                        <span className="ids-label">
+                            {t("environment")}
+                            <span className="sr-only">:</span>
+                        </span>{" "}
+                        <code>{answer.environment_id}</code>
                     </span>
                     <span>
-                        {t("questionId")} <code>{answer.question_id}</code>
+                        <span className="ids-label">{t("questionId")}</span>{" "}
+                        <code>{answer.question_id}</code>
                         <CopyButton value={answer.question_id} t={t} />
                     </span>
                     <span>
-                        {t("traceId")} <code>{answer.trace_id}</code>
+                        <span className="ids-label">{t("traceId")}</span>{" "}
+                        <code>{answer.trace_id}</code>
                         <CopyButton value={answer.trace_id} t={t} />
                     </span>
                     <a href="#status">

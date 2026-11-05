@@ -215,10 +215,12 @@ export function NarrativePanel({
                         </dd>
                     </dl>
                     {data.evidence && (
-                        <p className="muted">
-                            {t("m3NarrativeFrozenPack")}:{" "}
-                            <code>{data.evidence.content_digest}</code>
-                        </p>
+                        <dl className="m3-meta">
+                            <dt>{t("m3NarrativeFrozenPack")}</dt>
+                            <dd>
+                                <code>{data.evidence.content_digest}</code>
+                            </dd>
+                        </dl>
                     )}
                 </>
             )}

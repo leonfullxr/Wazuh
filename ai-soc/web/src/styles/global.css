@@ -317,8 +317,8 @@ select {
     gap: 16px;
     padding: 10px 28px;
     border-bottom: 1px solid var(--border);
-    background: color-mix(in srgb, var(--canvas) 86%, transparent);
-    backdrop-filter: saturate(160%) blur(10px);
+    background: color-mix(in srgb, var(--canvas) 96%, transparent);
+    backdrop-filter: saturate(160%) blur(12px);
 }
 .top-title {
     min-width: 0;
@@ -1082,7 +1082,9 @@ code,
     position: sticky;
     top: calc(var(--header-height) + 8px);
     z-index: 10;
-    box-shadow: 0 -9px 0 0 var(--canvas);
+    box-shadow:
+        0 -9px 0 0 var(--canvas),
+        0 8px 12px -10px rgb(0 0 0 / 30%);
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -2549,7 +2551,7 @@ tbody tr:hover {
 }
 .provenance-fields > div {
     display: grid;
-    grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
+    grid-template-columns: 144px minmax(0, 1fr);
     gap: 12px;
 }
 .provenance-fields dt {
@@ -2591,4 +2593,53 @@ tbody tr:hover {
 .null-value {
     color: var(--text-muted);
     font-family: var(--font-ui);
+}
+/* Answer metadata: label column plus value, one baseline per row. */
+.ids-row > span {
+    display: grid;
+    grid-template-columns: 120px auto auto;
+    align-items: center;
+    gap: 6px;
+}
+.ids-label {
+    color: var(--text-muted);
+}
+/* The check-record note is said once, on the first row; later rows keep it for screen readers. */
+.checks tbody tr:not(:first-child) .check-reference small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+.field-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.field-chips code {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-tag);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 12px;
+}
+@media (max-width: 700px) {
+    .ids-row > span {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .ids-row > span > .ids-label {
+        grid-column: 1 / -1;
+    }
+    .ids-row > span > code {
+        overflow-wrap: anywhere;
+    }
 }

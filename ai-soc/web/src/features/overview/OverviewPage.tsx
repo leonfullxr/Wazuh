@@ -241,14 +241,6 @@ export function OverviewPage({
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div className="overview-v2-axis" aria-hidden="true">
-                                    <span>
-                                        {formatTime(chart.groups[0]?.hour ?? from, timezone)}
-                                    </span>
-                                    <span>
-                                        {formatTime(chart.groups.at(-1)?.hour ?? to, timezone)}
-                                    </span>
-                                </div>
                                 {activeGroup && (
                                     <HourBreakdown
                                         group={activeGroup}

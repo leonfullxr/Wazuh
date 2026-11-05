@@ -262,9 +262,13 @@ export function MetricsPage({
                                             <code>{item.rule_id}</code>
                                         </td>
                                         <td className="numeric">
-                                            {item.precision === null
-                                                ? t("emptyDenominator")
-                                                : `${(item.precision * 100).toFixed(1)}%`}
+                                            {item.precision === null ? (
+                                                <span className="null-value">
+                                                    {t("emptyDenominator")}
+                                                </span>
+                                            ) : (
+                                                `${(item.precision * 100).toFixed(1)}%`
+                                            )}
                                         </td>
                                         <td className="numeric">
                                             {item.true_positive_count.toLocaleString()}
