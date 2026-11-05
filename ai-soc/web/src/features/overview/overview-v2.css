@@ -120,8 +120,8 @@
 }
 .overview-v2-legend strong {
     color: var(--text);
-    font-family: var(--font-code);
-    font-weight: 500;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 .overview-v2-hour-select {
     width: min(100%, 360px);
@@ -236,7 +236,8 @@
 }
 .overview-v2-breakdown-actions strong {
     color: var(--text);
-    font: 500 11px/1 var(--font-code);
+    font: 600 12px/1 var(--font-ui);
+    font-variant-numeric: tabular-nums;
 }
 .overview-v2-breakdown-disabled {
     border-style: dashed;
@@ -413,7 +414,7 @@
     font-size: 11px;
 }
 .overview-v2-list li > strong {
-    font: 500 12px/1 var(--font-code);
+    font: 600 13px/1 var(--font-ui);
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-empty {

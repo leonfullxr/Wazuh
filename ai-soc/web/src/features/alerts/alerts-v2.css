@@ -101,7 +101,7 @@
     border-radius: 999px;
     background: var(--surface-2);
     color: var(--text-2);
-    font: 600 12px/20px var(--font-code);
+    font: 600 12px/20px var(--font-ui);
     font-variant-numeric: tabular-nums;
 }
 
@@ -212,6 +212,12 @@
     .alerts-v2 .workspace-table th:last-child,
     .alerts-v2 .workspace-table td:last-child {
         width: 44px;
+    }
+
+    /* The header text stays for screen readers; the chevron column needs no label. */
+    .alerts-v2 .workspace-table th:last-child {
+        font-size: 0;
+        color: transparent;
     }
 
     /* The details action becomes a chevron; its text stays as the accessible name. */

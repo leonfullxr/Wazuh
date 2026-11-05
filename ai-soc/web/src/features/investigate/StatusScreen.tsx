@@ -38,11 +38,11 @@ export function StatusScreen({
                             </h3>
                             <p>
                                 <span>{t("contextTokens")}</span>
-                                <strong className="numeric">{m.context_tokens}</strong>
+                                <strong className="numeric">{m.context_tokens.toLocaleString()}</strong>
                             </p>
                             <p>
                                 <span>{t("maxOutput")}</span>
-                                <strong className="numeric">{m.max_output_tokens}</strong>
+                                <strong className="numeric">{m.max_output_tokens.toLocaleString()}</strong>
                             </p>
                             <p>
                                 <span>{t("efforts")}</span>

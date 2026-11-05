@@ -34,7 +34,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     background: var(--surface-2);
-    color: var(--text-muted);
+    color: var(--text-2);
     font: 500 11px/1 var(--font-ui);
 }
 @media (max-width: 1279px) {
