@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import type { OverviewResponse, SiteSummary } from "../../api/workspace";
 import { getOverview } from "../../api/workspace";
 import { Panel } from "../../components/ui/panel";
@@ -178,7 +178,20 @@ export function OverviewPage({
                                             accessibilityLayer={false}
                                         >
                                             <XAxis dataKey="hour" hide />
-                                            <YAxis domain={[0, chart.maximum]} hide />
+                                            <CartesianGrid vertical={false} strokeDasharray="3 4" />
+                                            <YAxis
+                                                domain={[0, chart.maximum]}
+                                                ticks={[
+                                                    ...new Set([
+                                                        0,
+                                                        Math.round(chart.maximum / 2),
+                                                        chart.maximum,
+                                                    ]),
+                                                ]}
+                                                width={24}
+                                                axisLine={false}
+                                                tickLine={false}
+                                            />
                                             {[...chart.series].reverse().map((series) => (
                                                 <Bar
                                                     key={series.band}
@@ -198,12 +211,7 @@ export function OverviewPage({
                                                             <Cell
                                                                 key={`${series.band}-${datum.hour}`}
                                                                 fillOpacity={selected ? 1 : 0.58}
-                                                                stroke={
-                                                                    selected
-                                                                        ? "var(--accent)"
-                                                                        : "none"
-                                                                }
-                                                                strokeWidth={selected ? 1 : 0}
+                                                                stroke="none"
                                                             />
                                                         );
                                                     })}
@@ -311,7 +319,9 @@ function Metric({
     return (
         <div className="overview-v2-metric">
             <span>{label}</span>
-            <strong>{formatted}</strong>
+            <strong data-empty={value === null || value === undefined || undefined}>
+                {formatted}
+            </strong>
             {state && <small data-state={stateKind}>{state}</small>}
         </div>
     );

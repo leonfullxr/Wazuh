@@ -47,9 +47,9 @@
 
 .metrics-v2-summary > div {
     min-height: 88px;
-    align-content: center;
-    gap: 7px;
-    padding: 14px 16px;
+    align-content: start;
+    gap: 6px;
+    padding: 16px 20px;
     border-right: 1px solid var(--border);
     border-radius: 0;
     background: var(--surface);
@@ -69,7 +69,8 @@
 .metrics-v2-summary strong,
 .metrics-v2-quality-summary strong {
     color: var(--text);
-    font: 600 22px/28px var(--font-ui);
+    font: 650 24px/32px var(--font-ui);
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
 }
 
@@ -163,10 +164,7 @@
 }
 
 .metrics-v2-table th {
-    color: var(--text-2);
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: none;
+    color: var(--text-muted);
 }
 
 .metrics-v2-table td {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { AlertDetail, AlertFilters, AlertSummary, SiteSummary } from "../../api/workspace";
 import { getAlert, getIngestionHealth, listAlerts } from "../../api/workspace";
@@ -208,6 +209,7 @@ export function AlertsPage({
                             <p>{copy.filtersHelp}</p>
                         </div>
                         <div className="alerts-v2-capability" role="note">
+                            <Info size={14} aria-hidden="true" />
                             <strong>{copy.limitedSearch}</strong>
                             <span>{copy.limitedSearchHelp}</span>
                         </div>

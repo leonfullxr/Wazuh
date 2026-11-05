@@ -17,10 +17,13 @@ export function SheetContent({
 }) {
     return (
         <Dialog.Portal>
-            <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/20 pointer-events-auto" />
+            <div
+                aria-hidden="true"
+                className="fixed inset-0 z-40 bg-[var(--overlay)] pointer-events-auto"
+            />
             <Dialog.Content
                 aria-describedby={undefined}
-                className="fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto border-l border-[var(--stroke-subtle)] bg-[var(--bg)] p-6 shadow-float"
+                className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-[var(--border)] bg-[var(--surface)] p-[24px] shadow-float"
                 onCloseAutoFocus={(event) => {
                     if (restoreFocus) {
                         event.preventDefault();
@@ -28,7 +31,9 @@ export function SheetContent({
                     }
                 }}
             >
-                <Dialog.Title className="mb-4 font-semibold">{title}</Dialog.Title>
+                <Dialog.Title className="mb-[16px] mr-[40px] text-[16px] leading-[24px] font-semibold">
+                    {title}
+                </Dialog.Title>
                 <Dialog.Close className="sheet-close" aria-label={closeLabel}>
                     <X size={18} aria-hidden="true" />
                 </Dialog.Close>

@@ -150,7 +150,7 @@ export function CommandPalette({
                     if (event.target === event.currentTarget) close();
                 }}
             >
-                <h2 id="command-title">{spanish ? "Ir a o buscar" : "Navigate or search"}</h2>
+                <h2 id="command-title" className="sr-only">{spanish ? "Ir a o buscar" : "Navigate or search"}</h2>
                 <input
                     ref={inputRef}
                     value={query}
@@ -216,7 +216,7 @@ export function CommandPalette({
                     aria-label={spanish ? "Cerrar" : "Close"}
                     onClick={close}
                 >
-                    ×
+                    <kbd aria-hidden="true">Esc</kbd>
                 </button>
             </dialog>
         </>

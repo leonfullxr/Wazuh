@@ -489,7 +489,11 @@ export function QueuePage({
                                             </td>
                                             <td>
                                                 <div className="queue-v2-score">
-                                                    <strong>
+                                                    <strong
+                                                        data-pending={
+                                                            group.score === null || undefined
+                                                        }
+                                                    >
                                                         {group.score === null
                                                             ? t("scorePending")
                                                             : group.score.toFixed(1)}

@@ -10,9 +10,11 @@
 
 .queue-v2-intro {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: var(--space-3, 12px);
+    margin-top: -8px;
 }
 
 .queue-v2-intro .page-description {
@@ -80,6 +82,17 @@
     min-width: 300px;
 }
 
+.queue-v2 .queue-table th:first-child,
+.queue-v2 .queue-table td:first-child {
+    width: 36px;
+    padding-right: 0;
+}
+
+.queue-v2 .queue-table td:nth-child(5),
+.queue-v2 .queue-table td:nth-child(6) {
+    white-space: nowrap;
+}
+
 .queue-v2 .group-link {
     max-width: 420px;
     color: var(--text);
@@ -126,6 +139,14 @@
     font-family: var(--font-code);
     font-size: 13px;
     font-variant-numeric: tabular-nums;
+}
+
+.queue-v2-score > strong[data-pending] {
+    color: var(--text-2);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .queue-v2-score-track,
@@ -212,10 +233,65 @@
         position: static;
     }
 
-    .queue-v2 .queue-filter-row,
     .queue-v2 .bulk-toolbar {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .queue-v2 .queue-filter-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .queue-v2 .queue-filter-row label {
+        min-width: 0;
+    }
+
+    /* Phones keep group, score and status; the drawer holds the rest. */
+    .queue-v2 .queue-table {
+        min-width: 0;
+    }
+
+    .queue-v2 .queue-table td:nth-child(2) {
+        min-width: 0;
+    }
+
+    .queue-v2 .queue-table th:nth-child(4),
+    .queue-v2 .queue-table td:nth-child(4),
+    .queue-v2 .queue-table th:nth-child(5),
+    .queue-v2 .queue-table td:nth-child(5),
+    .queue-v2 .queue-table th:nth-child(6),
+    .queue-v2 .queue-table td:nth-child(6),
+    .queue-v2 .queue-table th:nth-child(8),
+    .queue-v2 .queue-table td:nth-child(8) {
+        display: none;
+    }
+
+    .queue-v2-score {
+        grid-template-columns: auto;
+    }
+
+    .queue-v2-table-panel {
+        padding: 12px;
+    }
+
+    .queue-v2 .queue-table th,
+    .queue-v2 .queue-table td {
+        padding: 8px 6px;
+    }
+
+    .queue-v2 .queue-table th {
+        white-space: normal;
+    }
+
+    .queue-v2-reasons,
+    .queue-v2-score + .table-secondary {
+        display: none !important;
+    }
+
+    .queue-v2-score-track {
+        display: none !important;
     }
 
     .queue-v2 .queue-filter-row label,

@@ -128,6 +128,8 @@ select {
     background-size: 4px 4px;
     background-repeat: no-repeat;
     font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     appearance: none;
     cursor: pointer;
 }
@@ -801,7 +803,7 @@ select {
 .composer textarea,
 .feedback textarea {
     width: 100%;
-    min-height: 106px;
+    min-height: 76px;
     padding: 12px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
@@ -955,7 +957,7 @@ select {
     color: var(--text-secondary);
 }
 .empty-state {
-    min-height: 240px;
+    min-height: 220px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1078,7 +1080,7 @@ code,
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 18px 20px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--stroke-subtle);
     flex-wrap: wrap;
 }
@@ -1115,10 +1117,20 @@ code,
 }
 .checks td {
     overflow-wrap: anywhere;
+    vertical-align: top;
+}
+.checks th:nth-child(1) {
+    width: 118px;
+}
+.checks th:nth-child(2) {
+    width: 26%;
+}
+.checks th:nth-child(4) {
+    width: 24%;
 }
 .finding {
     display: grid;
-    grid-template-columns: 150px 1fr;
+    grid-template-columns: 124px 1fr;
     gap: 8px 12px;
     padding: 11px 0;
     border-top: 1px solid var(--stroke-weak);
@@ -1323,11 +1335,17 @@ tbody tr:hover {
     max-width: 100%;
     flex-wrap: wrap;
     align-items: center;
-    gap: 7px;
+    gap: 2px 7px;
+    padding: 0;
+    border: 0;
     white-space: normal;
-    background: var(--surface-subtle);
+    background: none;
     color: var(--text-tertiary);
     cursor: default;
+}
+.check-reference small {
+    color: var(--text-muted);
+    font-size: 11px;
 }
 .check-reference small {
     font: inherit;
@@ -1512,14 +1530,14 @@ tbody tr:hover {
 .topic-list-row a {
     max-width: 240px;
 }
+/* Two independent columns so short cards do not leave holes. */
 .status-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 16px;
+    columns: 2;
+    column-gap: 16px;
 }
 .status-grid .panel {
-    margin: 0;
+    margin: 0 0 16px;
+    break-inside: avoid;
 }
 .status-grid h2 {
     margin-bottom: 12px;
@@ -1534,8 +1552,9 @@ tbody tr:hover {
 }
 .status-grid p {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
     padding: 7px 0;
     border-bottom: 1px solid var(--stroke-weak);
     font-size: 13px;
@@ -1549,14 +1568,25 @@ tbody tr:hover {
     display: block;
 }
 .copy-value {
-    max-width: 70%;
+    min-width: 0;
+    max-width: 62%;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
+}
+.copy-value-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.copy-value > svg {
+    flex: none;
+    color: var(--text-muted);
+}
+.copy-value:hover > svg {
+    color: var(--accent);
 }
 .drawer-backdrop {
     position: fixed;
@@ -1612,7 +1642,7 @@ tbody tr:hover {
 }
 .page-description {
     max-width: 80ch;
-    margin: -12px 0 2px;
+    margin: -8px 0 0;
     color: var(--text-2);
     font-size: 13.5px;
     line-height: 21px;
@@ -1855,6 +1885,17 @@ tbody tr:hover {
 }
 .drawer-section h3 {
     margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+.alert-drawer-body > .drawer-actions {
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.score-components li strong {
+    font-size: 13px;
+    font-weight: 550;
 }
 .drawer-section p,
 .drawer-section ul {
@@ -1968,11 +2009,14 @@ tbody tr:hover {
     font-size: 11px;
 }
 .score-components li code {
-    max-width: 14ch;
     align-self: start;
     font-size: 11px;
     text-align: right;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+}
+.provenance-row > strong {
+    font-size: 13px;
+    font-weight: 550;
 }
 .score-components li small,
 .provenance-row pre {
@@ -2244,7 +2288,7 @@ tbody tr:hover {
         margin-left: auto;
     }
     .status-grid {
-        grid-template-columns: 1fr;
+        columns: 1;
     }
     .topic-list-row {
         grid-template-columns: 1fr 1fr;
@@ -2357,4 +2401,18 @@ tbody tr:hover {
     border: 0;
     background: transparent;
     text-align: left;
+}
+
+/* One card-title scale across pages; .workspace outranks the feature sheets. */
+.workspace .overview-v2-panel-head h2,
+.workspace .alerts-v2-panel-heading h3,
+.workspace .alerts-v2-results-heading h3,
+.workspace .metrics-v2-panel-head h2,
+.workspace .dashboard-v2-available h2,
+.workspace .dashboard-v2-widget h2,
+.workspace .section-title h2,
+.workspace .status-grid h2 {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
 }

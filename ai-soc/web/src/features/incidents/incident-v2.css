@@ -17,16 +17,23 @@
 }
 
 .m3-empty-detail {
-    min-height: 360px;
+    min-height: 280px;
 }
 
 .m3-page .panel-head h3 {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
 }
 
-.m3-detail > .panel-head h3 {
+.m3-detail > .panel-head + .m3-meta,
+.m3-detail > h3 + .m3-meta {
+    margin-top: 14px;
+}
+
+.m3-detail > .panel-head h3,
+.m3-detail > h3 {
     font-size: 16px;
+    font-weight: 600;
     letter-spacing: -0.01em;
 }
 
@@ -91,7 +98,7 @@
 
 .m3-graph-empty {
     position: relative;
-    min-height: 300px;
+    min-height: 132px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);
@@ -110,10 +117,9 @@
 .m3-graph-empty-copy {
     position: absolute;
     inset: 50% auto auto 50%;
-    width: min(420px, calc(100% - 40px));
-    padding: 16px;
-    border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-panel);
+    width: min(460px, calc(100% - 40px));
+    padding: 10px 14px;
+    border-radius: var(--radius-control);
     background: var(--surface);
     text-align: center;
     transform: translate(-50%, -50%);
@@ -247,13 +253,30 @@
     background: var(--surface-2);
 }
 
+.m3-page .m3-narrative {
+    margin: var(--m3-section-gap) 0 0;
+    padding: 20px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+}
+
+.m3-page .m3-trust-note {
+    font-size: 13px;
+    font-weight: 550;
+    line-height: 20px;
+}
+
+.m3-list-item small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 1000px) {
     .m3-grid {
         grid-template-columns: 1fr;
-    }
-
-    .m3-graph-empty {
-        min-height: 260px;
     }
 }
 
@@ -277,7 +300,7 @@
     }
 
     .m3-graph-empty {
-        min-height: 230px;
+        min-height: 150px;
         overflow-x: auto;
     }
 

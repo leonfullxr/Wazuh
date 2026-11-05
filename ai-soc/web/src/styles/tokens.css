@@ -54,7 +54,7 @@
     --tag-green-text: #1a7a3d;
     --tag-amber-bg: #fff7e1;
     --tag-amber-border: #f4e1ae;
-    --tag-amber-text: #8a5300;
+    --tag-amber-text: #7a4800;
     --tag-orange-bg: #fff1e7;
     --tag-orange-border: #f8d5be;
     --tag-orange-text: #b2470a;
@@ -112,7 +112,7 @@
     --time-control: 160ms;
     --ease-controls: ease-out;
     --focus-ring: rgb(37 99 216 / 45%);
-    --overlay: rgb(15 18 24 / 40%);
+    --overlay: rgb(15 23 42 / 28%);
     /* Compatibility aliases used by the current screens. */
     --bg: var(--surface);
     --bg-secondary: var(--canvas);
@@ -209,7 +209,7 @@
     --heat-6: #4d8df0;
     --graph-edge: #4a505b;
     --focus-ring: rgb(110 161 255 / 55%);
-    --overlay: rgb(0 0 0 / 60%);
+    --overlay: rgb(0 0 0 / 50%);
 }
 
 @media (prefers-reduced-motion: reduce) {

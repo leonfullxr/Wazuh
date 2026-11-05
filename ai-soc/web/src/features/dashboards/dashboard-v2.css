@@ -3,7 +3,6 @@
     gap: var(--space-5, 20px);
 }
 
-.dashboard-v2 > .page-description,
 .dashboard-v2 > .workspace-panel {
     margin: 0;
 }
