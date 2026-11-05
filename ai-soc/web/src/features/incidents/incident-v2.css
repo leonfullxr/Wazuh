@@ -315,8 +315,13 @@
 
 /* Long digests and IDs stay on one line; the full value stays selectable. */
 .m3-meta dd code {
-    color: var(--text-2);
-    font-size: 12px;
+    color: var(--text);
+    font-size: 12.5px;
+}
+
+.m3-meta + .m3-meta {
+    border-top: 0;
+    padding-top: 0;
 }
 
 .m3-meta dd code,
@@ -351,7 +356,7 @@
 
 .m3-evidence-fields dd code {
     color: var(--text);
-    font-size: 12px;
+    font-size: 12.5px;
 }
 
 @media (max-width: 1000px) {

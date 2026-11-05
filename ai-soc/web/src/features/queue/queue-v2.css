@@ -295,6 +295,7 @@
 
     .queue-v2 .queue-table th {
         font-size: 11px;
+        line-height: 14px;
         letter-spacing: 0.02em;
         vertical-align: bottom;
     }

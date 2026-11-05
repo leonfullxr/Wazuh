@@ -224,6 +224,9 @@ export function TopicSection({
                             </tbody>
                         </table>
                     </div>
+                    {block.checks.some((c) => c.evidence_ids.some((id) => !mapped.has(id))) && (
+                        <p className="checks-note">{t("checkNotIncluded")}</p>
+                    )}
                 </div>
             )}
             {block.tables.map((fetch) => (

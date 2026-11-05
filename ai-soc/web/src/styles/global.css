@@ -524,7 +524,7 @@ select {
 }
 .m3-grid {
     display: grid;
-    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.7fr);
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
 }
@@ -2604,8 +2604,8 @@ tbody tr:hover {
 .ids-label {
     color: var(--text-muted);
 }
-/* The check-record note is said once, on the first row; later rows keep it for screen readers. */
-.checks tbody tr:not(:first-child) .check-reference small {
+/* The check-record note is said once under the table; rows keep it for screen readers. */
+.checks .check-reference small {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -2641,5 +2641,41 @@ tbody tr:hover {
     }
     .ids-row > span > code {
         overflow-wrap: anywhere;
+    }
+}
+.checks-note {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.checks-note::first-letter {
+    text-transform: uppercase;
+}
+.check-reference code {
+    color: var(--text);
+    font-size: 12.5px;
+}
+/* Phones: comfortable 40px controls. */
+@media (max-width: 700px) {
+    :root {
+        --control-height: 40px;
+    }
+    .alerts-v2 .workspace-table td:last-child .text-link {
+        width: 40px;
+        height: 40px;
+    }
+    .alerts-v2 .workspace-table td:last-child .text-link::after {
+        top: 15px;
+        left: 14px;
+    }
+    .queue-table input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+    }
+    .range-segment button {
+        height: 34px;
+    }
+    .theme-menu button {
+        height: 34px;
     }
 }
