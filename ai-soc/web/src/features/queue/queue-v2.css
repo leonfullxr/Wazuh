@@ -294,9 +294,13 @@
     }
 
     .queue-v2 .queue-table th {
-        font-size: 9.5px;
-        letter-spacing: 0;
-        white-space: nowrap;
+        font-size: 11px;
+        letter-spacing: 0.02em;
+        vertical-align: bottom;
+    }
+
+    .queue-v2 .queue-table th:nth-child(3) {
+        white-space: normal;
     }
 
     .queue-v2-score > strong[data-pending] {

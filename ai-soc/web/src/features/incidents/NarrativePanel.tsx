@@ -69,61 +69,6 @@ export function NarrativePanel({
                         </p>
                     )}
                     <p className="m3-trust-note">{t("m3NarrativeTrust")}</p>
-                    <dl className="m3-meta">
-                        <dt>{t("m3EvidenceRevision")}</dt>
-                        <dd>
-                            <code>{data.evidence_revision}</code>
-                        </dd>
-                        <dt>{t("m3NarrativeStatus")}</dt>
-                        <dd>{t(`m3Narrative_${data.status}`)}</dd>
-                        <dt>{t("m3NarrativeGeneration")}</dt>
-                        <dd>
-                            <code>{data.generation_id ?? t("m3NotReported")}</code>
-                        </dd>
-                        <dt>{t("m3NarrativeGenerationDigest")}</dt>
-                        <dd>
-                            <code>{data.generation_digest ?? t("m3NotReported")}</code>
-                        </dd>
-                        <dt>{t("m3NarrativePackDigest")}</dt>
-                        <dd>
-                            <code>{data.pack_digest ?? t("m3NotReported")}</code>
-                        </dd>
-                        {data.evidence && (
-                            <>
-                                <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
-                                <dd>
-                                    <code>{data.evidence.content_digest}</code>
-                                </dd>
-                            </>
-                        )}
-                        {summary && (
-                            <>
-                                <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
-                                <dd>
-                                    <code>{summary.pack_digest}</code>
-                                </dd>
-                            </>
-                        )}
-                        <dt>{t("m3NarrativeCompleted")}</dt>
-                        <dd>
-                            {data.completed_at
-                                ? new Intl.DateTimeFormat(undefined, {
-                                      dateStyle: "medium",
-                                      timeStyle: "short",
-                                  }).format(new Date(data.completed_at))
-                                : t("m3NotReported")}
-                        </dd>
-                        <dt>{t("m3NarrativeUsage")}</dt>
-                        <dd>
-                            {tokenUsage(data.usage.input_tokens, t("m3NarrativeInput"), t)} ·{" "}
-                            {tokenUsage(
-                                data.usage.cached_input_tokens,
-                                t("m3NarrativeCachedInput"),
-                                t,
-                            )}{" "}
-                            · {tokenUsage(data.usage.output_tokens, t("m3NarrativeOutput"), t)}
-                        </dd>
-                    </dl>
                     {removals.length > 0 && (
                         <div>
                             <h5>{t("m3NarrativeRemovals")}</h5>
@@ -212,6 +157,61 @@ export function NarrativePanel({
                             )}
                         </section>
                     )}
+                    <dl className="m3-meta">
+                        <dt>{t("m3EvidenceRevision")}</dt>
+                        <dd>
+                            <code>{data.evidence_revision}</code>
+                        </dd>
+                        <dt>{t("m3NarrativeStatus")}</dt>
+                        <dd>{t(`m3Narrative_${data.status}`)}</dd>
+                        <dt>{t("m3NarrativeGeneration")}</dt>
+                        <dd>
+                            <code>{data.generation_id ?? t("m3NotReported")}</code>
+                        </dd>
+                        <dt>{t("m3NarrativeGenerationDigest")}</dt>
+                        <dd>
+                            <code>{data.generation_digest ?? t("m3NotReported")}</code>
+                        </dd>
+                        <dt>{t("m3NarrativePackDigest")}</dt>
+                        <dd>
+                            <code>{data.pack_digest ?? t("m3NotReported")}</code>
+                        </dd>
+                        {data.evidence && (
+                            <>
+                                <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
+                                <dd>
+                                    <code>{data.evidence.content_digest}</code>
+                                </dd>
+                            </>
+                        )}
+                        {summary && (
+                            <>
+                                <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
+                                <dd>
+                                    <code>{summary.pack_digest}</code>
+                                </dd>
+                            </>
+                        )}
+                        <dt>{t("m3NarrativeCompleted")}</dt>
+                        <dd>
+                            {data.completed_at
+                                ? new Intl.DateTimeFormat(undefined, {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                  }).format(new Date(data.completed_at))
+                                : t("m3NotReported")}
+                        </dd>
+                        <dt>{t("m3NarrativeUsage")}</dt>
+                        <dd>
+                            {tokenUsage(data.usage.input_tokens, t("m3NarrativeInput"), t)} ·{" "}
+                            {tokenUsage(
+                                data.usage.cached_input_tokens,
+                                t("m3NarrativeCachedInput"),
+                                t,
+                            )}{" "}
+                            · {tokenUsage(data.usage.output_tokens, t("m3NarrativeOutput"), t)}
+                        </dd>
+                    </dl>
                     {data.evidence && (
                         <p className="muted">
                             {t("m3NarrativeFrozenPack")}:{" "}

@@ -210,12 +210,16 @@
     }
 
     .alerts-v2 > .workspace-panel:first-of-type {
-        padding: 16px;
+        padding: 12px;
     }
 
     .alerts-v2-panel-heading {
-        gap: 10px;
-        margin-bottom: 12px;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        row-gap: 8px;
     }
 
     .alerts-v2 .alert-filter-form {

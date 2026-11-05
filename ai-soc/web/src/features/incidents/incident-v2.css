@@ -226,7 +226,9 @@
 }
 
 .m3-timeline-event > span {
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--text-muted);
     font: 11px/18px var(--font-code);
 }

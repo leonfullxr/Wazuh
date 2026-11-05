@@ -1279,10 +1279,10 @@ tbody tr:hover {
 .fetch-table > summary {
     display: flex;
     align-items: center;
-    gap: 11px;
+    flex-wrap: wrap;
+    gap: 4px 14px;
     min-height: 48px;
-    overflow-x: auto;
-    white-space: nowrap;
+    padding: 10px 0;
     cursor: pointer;
     font-size: 12px;
     color: var(--text-tertiary);
