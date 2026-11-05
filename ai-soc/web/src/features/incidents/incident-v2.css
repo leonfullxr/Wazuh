@@ -16,6 +16,30 @@
     gap: 4px;
 }
 
+.m3-empty-detail {
+    min-height: 360px;
+}
+
+.m3-page .panel-head h3 {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.m3-detail > .panel-head h3 {
+    font-size: 16px;
+    letter-spacing: -0.01em;
+}
+
+.m3-detail h4 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.m3-create h4 {
+    font-size: 13px;
+    font-weight: 600;
+}
+
 .m3-list-item {
     min-height: 64px;
     padding: 10px 12px;

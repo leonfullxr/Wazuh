@@ -115,7 +115,7 @@
 
 .metrics-v2-distribution > div {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-columns: 64px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 10px;
 }
@@ -131,6 +131,7 @@
 .metrics-v2-distribution dd {
     grid-column: 3;
     grid-row: 1;
+    text-align: right;
     color: var(--text);
     font-family: var(--font-code);
 }
@@ -251,7 +252,7 @@
 
 .metrics-v2 .asset-edit input {
     border-color: var(--border-strong);
-    background: var(--surface);
+    background-color: var(--control-bg);
     color: var(--text);
 }
 

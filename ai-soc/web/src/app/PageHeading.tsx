@@ -14,7 +14,9 @@ export function PageHeading({
     return (
         <div className="page-head">
             <div>
-                <Icon size={20} />
+                <span className="page-icon" aria-hidden="true">
+                    <Icon size={17} />
+                </span>
                 <h2>{t(route)}</h2>
             </div>
             {route === "investigate" && <span className="muted">{t("evidenceReview")}</span>}

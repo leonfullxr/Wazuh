@@ -32,7 +32,7 @@ export function Tag({
     return (
         <span
             className={cn(
-                "inline-flex h-5 max-w-full shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-tag)] border px-1.5 text-xs font-medium leading-none",
+                "tag inline-flex h-5 max-w-full shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-tag)] border px-1.5 text-xs font-medium leading-none",
                 toneClasses[tone],
                 mono && "font-mono",
                 className,

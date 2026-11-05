@@ -46,6 +46,8 @@ import {
     NavigationRail,
     nav,
     routeFromHash,
+    secondaryNav,
+    ShellStatus,
     type Route,
 } from "./Navigation";
 import { EmptyInvestigate, PageHeading } from "./PageHeading";
@@ -402,7 +404,8 @@ function AppContent() {
         setSelectedEvidence({ question_id: answer.question_id, item });
     }
     const mapped = useMemo(() => evidenceById(answer), [answer]);
-    const icon = [...nav, ...dashboardNav].find((n) => n.id === route)?.icon ?? Search;
+    const icon =
+        [...nav, ...dashboardNav, ...secondaryNav].find((n) => n.id === route)?.icon ?? Search;
     const PageIcon = icon;
     const allTopics = useMemo(() => topicsFromHistory(history), [history]);
     const queryParams = new URLSearchParams(location.search);
@@ -460,9 +463,19 @@ function AppContent() {
             dispatch({ type: "page-error", context, error: errorText(e, locale) });
         }
     }
+    const shellStatus = (
+        <ShellStatus
+            bootstrap={bootstrap}
+            modeState={boot.isLoading ? "loading" : boot.isError ? "unavailable" : null}
+            isMock={isMock}
+            scenario={scenario}
+            setScenario={setScenario}
+            t={t}
+        />
+    );
     return (
         <div className="app-shell">
-            <NavigationRail route={route} setRoute={navigate} t={t} />
+            <NavigationRail route={route} setRoute={navigate} footer={shellStatus} t={t} />
             <div className="app-main">
                 <ContextHeader
                     route={route}
@@ -472,7 +485,6 @@ function AppContent() {
                     setLocale={setLocale}
                     bootstrap={bootstrap}
                     sites={sitesQuery.data?.items ?? []}
-                    modeState={boot.isLoading ? "loading" : boot.isError ? "unavailable" : null}
                     selectedSite={selectedSite}
                     setSelectedSite={setSelectedSite}
                     timeRange={activeRange}
@@ -487,9 +499,7 @@ function AppContent() {
                         setTimeRange(range);
                         updateUrl({ range, from: null, to: null, cursor: null });
                     }}
-                    isMock={isMock}
-                    scenario={scenario}
-                    setScenario={setScenario}
+                    footer={shellStatus}
                     t={t}
                 />
                 <main id="main" className="workspace" tabIndex={-1}>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { MousePointerClick } from "lucide-react";
 import type { components } from "../../../../contracts/workspace/v1/types.ts";
 import {
     createIncident,
@@ -1179,7 +1180,8 @@ function failureMessage(error: unknown, t: Translate): string {
 
 function EmptyDetail({ text }: { text: string }) {
     return (
-        <div className="empty-state">
+        <div className="empty-state m3-empty-detail">
+            <MousePointerClick aria-hidden="true" />
             <p>{text}</p>
         </div>
     );

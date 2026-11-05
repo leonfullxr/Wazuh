@@ -35,9 +35,12 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 21px;
-    font-feature-settings: "tnum" on;
+    font-feature-settings: "tnum" on, "cv11" on;
     color: var(--text);
-    background: var(--bg);
+    background: var(--canvas);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 * {
     box-sizing: border-box;
@@ -59,11 +62,74 @@ textarea {
 }
 :focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline-offset: 2px;
 }
 ::selection {
     color: var(--text);
     background: var(--accent-soft);
+}
+::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+/* Shared form controls. Feature rules may still set size, never the look. */
+select,
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+textarea {
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background-color: var(--control-bg);
+    color: var(--text);
+    box-shadow: var(--control-shadow);
+    transition:
+        border-color var(--time-control) var(--ease-controls),
+        box-shadow var(--time-control) var(--ease-controls);
+}
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]) {
+    height: var(--control-height);
+    padding-block: 0;
+    font-size: 13px;
+}
+select:hover,
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):hover,
+textarea:hover {
+    border-color: var(--control-border-hover);
+}
+select:focus-visible,
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+textarea:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: var(--focus-halo);
+}
+select:disabled,
+input:disabled,
+textarea:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+input[type="checkbox"],
+input[type="radio"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+}
+select {
+    height: var(--control-height);
+    max-width: 190px;
+    padding: 0 30px 0 10px;
+    /* A CSS-drawn chevron keeps the strict CSP (no data: images). */
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
+        linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+    background-position:
+        calc(100% - 15px) 52%,
+        calc(100% - 11px) 52%;
+    background-size: 4px 4px;
+    background-repeat: no-repeat;
+    font-size: 13px;
+    appearance: none;
+    cursor: pointer;
 }
 .sr-only {
     position: absolute;
@@ -81,7 +147,7 @@ textarea {
     left: -999px;
     top: 8px;
     z-index: 200;
-    background: var(--bg);
+    background: var(--surface);
     padding: 8px;
 }
 .skip-link:focus {
@@ -90,25 +156,32 @@ textarea {
 .app-shell {
     min-height: 100vh;
     display: flex;
-    background: var(--bg);
+    background: var(--canvas);
     color: var(--text);
 }
 .rail {
+    position: sticky;
+    top: 0;
     width: var(--rail-width);
+    height: 100vh;
     flex: none;
     display: flex;
     flex-direction: column;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--stroke-subtle);
+    overflow-y: auto;
+    background: var(--rail);
+    border-right: 1px solid var(--border);
 }
 .brand {
     height: var(--header-height);
+    flex: none;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 20px;
+    padding: 0 18px;
+    font-size: 14px;
     font-weight: 650;
-    border-bottom: 1px solid var(--stroke-subtle);
+    letter-spacing: -0.01em;
 }
 .brand-mark {
     display: grid;
@@ -116,37 +189,59 @@ textarea {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: var(--text);
-    color: var(--bg);
+    background: linear-gradient(160deg, #3b7cf0, #1f4fb8);
+    color: #ffffff;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 22%),
+        0 1px 2px rgb(16 24 40 / 20%);
+}
+.brand small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    letter-spacing: 0;
 }
 .rail-caption {
-    padding: 20px 20px 8px;
+    padding: 20px 20px 6px;
+    color: var(--text-muted);
     font-size: 11px;
-    color: var(--text-2);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 .rail nav {
     padding: 0 10px;
     display: grid;
-    gap: 3px;
+    gap: 1px;
 }
 .rail nav a,
 .mobile-nav a {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 10px;
     height: 32px;
-    padding: 0 11px;
+    padding: 0 10px;
     border-radius: var(--radius-control);
-    color: var(--text-tertiary);
+    color: var(--text-2);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13.5px;
+    font-weight: 450;
     transition:
         background-color var(--time-control) var(--ease-controls),
         color var(--time-control) var(--ease-controls);
 }
+.rail nav a svg,
+.mobile-rail-section a svg {
+    flex: none;
+    color: var(--text-muted);
+    transition: color var(--time-control) var(--ease-controls);
+}
 .rail nav a:hover,
 .mobile-nav a:hover {
-    background: var(--surface-subtle);
+    background: var(--hover);
     color: var(--text);
     transition-duration: var(--time-hover);
 }
@@ -155,12 +250,44 @@ textarea {
     background: var(--selected);
     color: var(--text);
     box-shadow: none;
-    font-weight: 500;
+    font-weight: 550;
+}
+.rail nav a[aria-current="page"] svg,
+.mobile-rail-section a[aria-current="page"] svg {
+    color: var(--accent);
 }
 .rail-bottom {
     margin-top: auto;
-    padding: 16px 20px;
-    border-top: 1px solid var(--stroke-subtle);
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+}
+.shell-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.shell-dev {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border: 1px dashed var(--tag-amber-border);
+    border-radius: var(--radius-panel);
+    background: var(--tag-amber-bg);
+}
+.shell-dev label {
+    display: grid;
+    gap: 4px;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 500;
+}
+.shell-dev select {
+    width: 100%;
+    max-width: none;
+    height: 28px;
+    font-size: 12px;
 }
 .app-main {
     flex: 1;
@@ -174,20 +301,33 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    padding: 8px 24px;
-    border-bottom: 1px solid var(--stroke-subtle);
-    background: var(--bg);
+    gap: 16px;
+    padding: 10px 28px;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--canvas) 86%, transparent);
+    backdrop-filter: saturate(160%) blur(10px);
 }
-.top-title span,
+.top-title {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.top-title > span,
 .eyebrow {
     font-size: 12px;
     color: var(--text-muted);
 }
+.top-title > span[aria-hidden="true"] {
+    color: var(--border-strong);
+}
 .top-title h1 {
     margin: 0;
-    font-size: 20px;
-    line-height: 28px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 20px;
     font-weight: 600;
 }
 .top-controls {
@@ -197,6 +337,12 @@ textarea {
     gap: 8px;
     flex-wrap: wrap;
 }
+.top-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 2px;
+    background: var(--border);
+}
 .top-controls label,
 .composer-controls label {
     display: flex;
@@ -205,15 +351,20 @@ textarea {
     font-size: 12px;
     color: var(--text-muted);
 }
-select {
-    height: var(--control-height);
-    max-width: 190px;
-    padding: 0 28px 0 10px;
-    border: 1px solid var(--stroke-control);
-    border-radius: var(--radius-control);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 13px;
+.top-site {
+    position: relative;
+}
+.top-site > svg {
+    position: absolute;
+    left: 10px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.top-site select {
+    padding-left: 30px;
+}
+.language-control select {
+    width: 64px;
 }
 .mobile-nav {
     display: none;
@@ -222,7 +373,7 @@ select {
     width: 100%;
     max-width: 1440px;
     margin: 0 auto;
-    padding: 24px 24px 48px;
+    padding: 28px 28px 56px;
     outline: none;
 }
 .page-head {
@@ -230,17 +381,29 @@ select {
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    margin: 0 0 22px;
+    margin: 0 0 20px;
 }
 .page-head > div {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+}
+.page-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--shadow-panel);
 }
 .page-head h2 {
     margin: 0;
-    font: 600 20px/28px var(--font-display);
-    letter-spacing: -0.02em;
+    font: 650 22px/30px var(--font-display);
+    letter-spacing: -0.022em;
 }
 .muted {
     color: var(--text-muted);
@@ -248,8 +411,9 @@ select {
 }
 .panel {
     background: var(--surface);
-    border: 1px solid var(--stroke-subtle);
+    border: 1px solid var(--border);
     border-radius: var(--radius-card);
+    box-shadow: var(--shadow-panel);
     padding: 20px;
     margin-bottom: 16px;
     min-width: 0;
@@ -261,18 +425,18 @@ select {
     padding: 2px;
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
-    background: var(--hover);
+    background: var(--surface-2);
 }
 .theme-menu button {
-    min-width: 28px;
-    height: var(--control-height-compact);
-    padding: 0 8px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 26px;
+    padding: 0;
     border: 0;
-    border-radius: var(--radius-tag);
+    border-radius: calc(var(--radius-control) - 2px);
     background: transparent;
-    color: var(--text-2);
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--text-muted);
     cursor: pointer;
     transition:
         color var(--time-hover) var(--ease-controls),
@@ -286,6 +450,11 @@ select {
     background: var(--surface);
     box-shadow: var(--shadow-active);
 }
+.dark .theme-menu button[aria-pressed="true"],
+.dark .range-segment button[aria-pressed="true"],
+.dark .range-segment button[aria-selected="true"] {
+    background: var(--selected);
+}
 .sheet-close {
     position: absolute;
     top: 16px;
@@ -294,7 +463,7 @@ select {
     place-items: center;
     width: 32px;
     height: 32px;
-    border: 1px solid var(--stroke-control);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-control);
     background: var(--surface);
     color: var(--text);
@@ -309,19 +478,27 @@ select {
     align-items: center;
     gap: 2px;
     padding: 2px;
+    border: 1px solid var(--border);
     border-radius: var(--radius-control);
-    background: var(--hover);
+    background: var(--surface-2);
 }
 .range-segment button {
-    height: var(--control-height-compact);
-    padding: 0 8px;
+    height: 26px;
+    min-width: 38px;
+    padding: 0 9px;
     border: 0;
-    border-radius: var(--radius-tag);
+    border-radius: calc(var(--radius-control) - 2px);
     background: transparent;
     color: var(--text-2);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 550;
     cursor: pointer;
+    transition:
+        color var(--time-hover) var(--ease-controls),
+        background-color var(--time-hover) var(--ease-controls);
+}
+.range-segment button:hover {
+    color: var(--text);
 }
 .range-segment button[aria-pressed="true"],
 .range-segment button[aria-selected="true"] {
@@ -503,9 +680,9 @@ select {
     min-width: 0;
     padding: 8px 10px;
     border: 1px solid var(--stroke-control);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     color: var(--text);
-    background: var(--bg);
+    background-color: var(--control-bg);
 }
 .m3-inline-form textarea,
 .m3-create textarea {
@@ -556,6 +733,22 @@ select {
     display: block;
     color: var(--text-muted);
 }
+.mobile-rail-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.mobile-rail-footer {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
 @media (max-width: 1023px) {
     .rail {
         display: none;
@@ -602,7 +795,8 @@ select {
     margin-bottom: 12px;
 }
 .section-title h2 {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 600;
 }
 .composer textarea,
 .feedback textarea {
@@ -613,7 +807,7 @@ select {
     border-radius: var(--radius-control);
     resize: vertical;
     color: var(--text);
-    background: var(--bg);
+    background-color: var(--control-bg);
 }
 .composer-controls {
     display: flex;
@@ -629,38 +823,49 @@ select {
     margin-left: auto;
 }
 .btn {
-    min-height: 36px;
+    min-height: var(--control-height);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
     padding: 0 12px;
-    border: 1px solid var(--stroke-strong);
+    border: 1px solid var(--control-border);
     border-radius: var(--radius-control);
-    background: var(--bg);
-    color: var(--text-secondary);
-    font-size: 14px;
+    background: var(--control-bg);
+    color: var(--text);
+    box-shadow: var(--control-shadow);
+    font-size: 13px;
     font-weight: 550;
+    line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
     transition:
         background-color var(--time-control) var(--ease-controls),
         border-color var(--time-control) var(--ease-controls),
         color var(--time-control) var(--ease-controls);
 }
+/* "outline" is also a Tailwind utility; keep it from drawing a second border. */
+.btn.outline:not(:focus-visible) {
+    outline: none;
+}
 .btn:hover {
-    background: var(--surface-subtle);
-    border-color: var(--text-muted);
+    background: var(--hover);
+    border-color: var(--control-border-hover);
     transition-duration: var(--time-hover);
 }
 .btn.primary {
-    background: var(--text);
-    border-color: var(--text-tertiary);
-    color: var(--bg);
+    background: var(--primary-button);
+    border-color: transparent;
+    color: var(--primary-button-foreground);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 14%),
+        0 1px 2px rgb(16 24 40 / 14%);
 }
 .btn.primary:hover {
-    background: var(--text-tertiary);
+    background: var(--primary-button-hover);
 }
-.btn:disabled {
+.btn:disabled,
+.btn:disabled:hover {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -730,7 +935,7 @@ select {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 3px 8px;
+    padding: 2px 8px;
     border-radius: 999px;
     background: var(--surface-subtle);
     color: var(--text-secondary);
@@ -750,22 +955,36 @@ select {
     color: var(--text-secondary);
 }
 .empty-state {
-    min-height: 210px;
+    min-height: 240px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     text-align: center;
     color: var(--text-muted);
 }
+.empty-state > svg {
+    width: 44px;
+    height: 44px;
+    padding: 11px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--text-2);
+}
 .empty-state h2 {
-    margin: 10px 0 2px;
-    font-size: 16px;
+    margin: 4px 0 2px;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--text);
 }
 .empty-state p {
-    max-width: 520px;
+    max-width: 460px;
+    margin: 4px 0 0;
     font-size: 13px;
+    line-height: 20px;
 }
 .answer-summary {
     padding: 16px 20px;
@@ -868,8 +1087,10 @@ code,
 }
 .topic-header h2 {
     margin: 2px 0;
-    font-size: 19px;
+    font-size: 18px;
+    font-weight: 600;
     line-height: 25px;
+    letter-spacing: -0.012em;
 }
 .topic-header code {
     color: var(--text-muted);
@@ -885,7 +1106,8 @@ code,
 .findings h3,
 .checks h3 {
     margin: 0 0 12px;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
 }
 .checks table {
     width: 100%;
@@ -966,25 +1188,31 @@ table {
     font-size: 13px;
 }
 th {
-    padding: 8px 10px;
+    height: 36px;
+    padding: 8px 12px;
     text-align: left;
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 600;
-    border-bottom: 1px solid var(--stroke);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
 td {
-    padding: 9px 10px;
+    padding: 10px 12px;
     text-align: left;
-    border-bottom: 1px solid var(--stroke-weak);
+    border-bottom: 1px solid var(--border-row);
+}
+tbody tr:last-child td {
+    border-bottom: 0;
 }
 tbody tr {
     cursor: pointer;
-    transition: background-color 300ms var(--ease-controls);
+    transition: background-color var(--time-control) var(--ease-controls);
 }
 tbody tr:hover {
-    background: var(--bg-secondary);
+    background: var(--hover);
 }
 .numeric {
     font-variant-numeric: tabular-nums;
@@ -1011,6 +1239,49 @@ tbody tr:hover {
 .fetch-table > summary strong {
     color: var(--text);
     font-family: var(--font-code);
+}
+.fetch-checks {
+    display: grid;
+    gap: 6px;
+    padding: 4px 0 12px;
+}
+.fetch-check {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+    color: var(--text-2);
+}
+.fetch-check-outcome {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 7px;
+    border: 1px solid var(--tag-green-border);
+    border-radius: 999px;
+    background: var(--tag-green-bg);
+    color: var(--tag-green-text);
+    font-weight: 550;
+}
+.fetch-check-outcome[data-outcome="failed"] {
+    border-color: var(--tag-red-border);
+    background: var(--tag-red-bg);
+    color: var(--tag-red-text);
+}
+.fetch-check-outcome[data-outcome="unknown"] {
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
+}
+.fetch-check code {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.fetch-check p {
+    flex-basis: 100%;
+    margin: 0;
 }
 .fetch-table .table-note {
     padding-top: 8px;
@@ -1182,8 +1453,12 @@ tbody tr:hover {
     background: none;
     color: var(--accent-text);
     text-align: left;
-    text-decoration: underline;
+    text-decoration: none;
+    text-underline-offset: 3px;
     cursor: pointer;
+}
+.text-link:hover {
+    text-decoration: underline;
 }
 .history-open {
     flex: 1;
@@ -1240,18 +1515,22 @@ tbody tr:hover {
 .status-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    align-items: start;
+    gap: 16px;
 }
 .status-grid .panel {
     margin: 0;
 }
 .status-grid h2 {
-    margin-bottom: 14px;
-    font-size: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
 }
 .status-grid h3 {
     margin: 8px 0;
-    font-size: 14px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
 }
 .status-grid p {
     display: flex;
@@ -1332,13 +1611,15 @@ tbody tr:hover {
     gap: 16px;
 }
 .page-description {
-    margin: -10px 0 2px;
-    color: var(--text-muted);
-    font-size: 13px;
+    max-width: 80ch;
+    margin: -12px 0 2px;
+    color: var(--text-2);
+    font-size: 13.5px;
+    line-height: 21px;
 }
 .workspace-panel {
     margin: 0;
-    padding: 18px;
+    padding: 20px;
 }
 .workspace-panel h2,
 .workspace-panel h3 {
@@ -1488,12 +1769,12 @@ tbody tr:hover {
 .group-drawer-body input,
 .group-drawer-body textarea,
 .asset-edit input {
-    min-height: 36px;
+    min-height: var(--control-height);
     padding: 6px 9px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
     color: var(--text);
-    background: var(--bg);
+    background-color: var(--control-bg);
 }
 .alert-filter-form select,
 .queue-filter-row select,
@@ -1517,7 +1798,7 @@ tbody tr:hover {
     vertical-align: top;
 }
 .workspace-table td > strong,
-.workspace-table td > span {
+.workspace-table td > span:not(.tag) {
     display: block;
 }
 .workspace-table tr {
@@ -1525,13 +1806,16 @@ tbody tr:hover {
 }
 .level-badge {
     display: inline-flex !important;
-    min-width: 28px;
+    min-width: 30px;
+    height: 22px;
+    align-items: center;
     justify-content: center;
-    padding: 2px 5px;
-    border-radius: 5px;
+    padding: 0 6px;
+    border: 1px solid var(--tag-amber-border);
+    border-radius: var(--radius-tag);
     background: var(--warning-soft);
     color: var(--warning-text);
-    font-weight: 650;
+    font: 600 12px/1 var(--font-code);
     font-variant-numeric: tabular-nums;
 }
 .alert-drawer-body,
@@ -1684,8 +1968,11 @@ tbody tr:hover {
     font-size: 11px;
 }
 .score-components li code {
+    max-width: 14ch;
     align-self: start;
     font-size: 11px;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 .score-components li small,
 .provenance-row pre {
@@ -1855,16 +2142,44 @@ tbody tr:hover {
         display: none;
     }
     .topbar {
-        gap: 8px;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+    .top-title {
+        flex: 1;
+    }
+    .top-title > span {
+        display: none;
+    }
+    .top-title h1 {
+        font-size: 15px;
     }
     .top-controls {
-        gap: 5px;
+        width: 100%;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 6px;
+        margin-left: 0;
+    }
+    .top-controls > .language-control,
+    .top-controls > .theme-menu,
+    .top-controls > .top-divider {
+        display: none;
     }
     .top-controls label {
         font-size: 0;
     }
-    .top-controls label select {
-        max-width: 90px;
+    .top-site {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .top-controls .top-site select {
+        width: 100%;
+        max-width: none;
+    }
+    .range-segment button {
+        min-width: 0;
+        padding: 0 7px;
     }
     .top-controls .status-pill {
         display: inline-flex;

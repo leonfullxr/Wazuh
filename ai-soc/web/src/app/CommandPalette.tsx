@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
 import type { Locale } from "../i18n";
 import type { AlertDrilldown } from "../features/overview/OverviewPage";
 import type { Route } from "./Navigation";
@@ -133,7 +134,9 @@ export function CommandPalette({
                     setOpen(true);
                 }}
             >
-                Ctrl/⌘K
+                <Search size={14} aria-hidden="true" />
+                <span>{spanish ? "Buscar" : "Search"}</span>
+                <kbd aria-hidden="true">Ctrl K</kbd>
             </button>
             <dialog
                 ref={dialogRef}

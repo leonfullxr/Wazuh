@@ -3,12 +3,45 @@
 }
 .command-trigger {
     min-width: 40px;
-    height: 32px;
-    border: 1px solid var(--stroke-control);
+    height: var(--control-height);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--control-border);
     border-radius: var(--radius-control);
-    background: var(--surface);
-    color: var(--text-2);
+    background: var(--control-bg);
+    color: var(--text-muted);
+    box-shadow: var(--control-shadow);
+    font-size: 13px;
     cursor: pointer;
+    transition: border-color var(--time-control) var(--ease-controls);
+}
+.command-trigger:hover {
+    border-color: var(--control-border-hover);
+    color: var(--text-2);
+}
+.command-trigger > span {
+    min-width: 96px;
+    text-align: left;
+}
+.command-trigger kbd,
+.command-dialog kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font: 500 11px/1 var(--font-ui);
+}
+@media (max-width: 1279px) {
+    .command-trigger > span,
+    .command-trigger kbd {
+        display: none;
+    }
 }
 .command-dialog {
     position: fixed;
@@ -28,15 +61,17 @@
 }
 .command-dialog h2 {
     margin: 0 40px 12px 0;
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 600;
 }
 .command-dialog input {
     width: 100%;
-    min-height: 36px;
+    min-height: 40px;
+    font-size: 14px;
     padding: 0 10px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
-    background: var(--surface);
+    background-color: var(--control-bg);
     color: var(--text);
 }
 .command-results {
@@ -60,11 +95,11 @@
 }
 .command-close {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--stroke-control);
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
     border-radius: var(--radius-control);
     background: var(--surface);
     color: var(--text);

@@ -146,21 +146,25 @@ export function OverviewPage({
                             <EmptyPanel text={t("noData")} />
                         ) : (
                             <>
-                                <ChartLegend totals={chart.totals} t={t} />
-                                <label className="overview-v2-hour-select">
-                                    <span>{t("eventTime")}</span>
-                                    <select
-                                        value={activeHour}
-                                        onChange={(event) => setSelectedHour(event.target.value)}
-                                    >
-                                        {chart.groups.map((group) => (
-                                            <option key={group.hour} value={group.hour}>
-                                                {formatTime(group.hour, timezone)} ·{" "}
-                                                {group.total.toLocaleString()}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                <div className="overview-v2-chart-toolbar">
+                                    <ChartLegend totals={chart.totals} t={t} />
+                                    <label className="overview-v2-hour-select">
+                                        <span>{t("eventTime")}</span>
+                                        <select
+                                            value={activeHour}
+                                            onChange={(event) =>
+                                                setSelectedHour(event.target.value)
+                                            }
+                                        >
+                                            {chart.groups.map((group) => (
+                                                <option key={group.hour} value={group.hour}>
+                                                    {formatTime(group.hour, timezone)} ·{" "}
+                                                    {group.total.toLocaleString()}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
                                 <div
                                     className="overview-v2-chart"
                                     role="img"

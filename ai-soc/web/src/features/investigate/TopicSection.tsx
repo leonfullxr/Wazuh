@@ -278,7 +278,10 @@ export function TopicSection({
                         >
                             {fetch.checks.map((check) => (
                                 <div className="fetch-check" key={`${check.code}:${check.name}`}>
-                                    <span className="fetch-check-outcome">
+                                    <span
+                                        className="fetch-check-outcome"
+                                        data-outcome={check.outcome}
+                                    >
                                         {check.outcome === "passed" ? (
                                             <Check size={14} aria-hidden="true" />
                                         ) : check.outcome === "failed" ? (
