@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isFlatRecord } from "../../src/features/incidents/M3WorkspacePage";
+import { isFlatRecord } from "../../src/lib/utils";
 
 describe("isFlatRecord", () => {
     it("accepts objects of primitive fields and rejects everything else", () => {

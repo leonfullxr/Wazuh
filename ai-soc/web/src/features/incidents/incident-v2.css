@@ -1,5 +1,5 @@
 .m3-page {
-    --m3-section-gap: 24px;
+    --m3-section-gap: 20px;
 }
 
 .m3-grid {
@@ -103,7 +103,7 @@
 
 .m3-graph-empty {
     position: relative;
-    min-height: 132px;
+    min-height: 96px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);
@@ -252,10 +252,31 @@
     font-weight: 500;
 }
 
-.m3-inline-form {
-    border-color: var(--border);
-    border-radius: var(--radius-panel);
-    background: var(--surface-2);
+/* Single-field forms sit on one row; forms with a textarea stack with the action on the right. */
+.m3-page .m3-inline-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px 10px;
+    margin: 10px 0 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.m3-page .m3-inline-form:has(textarea),
+.m3-page .m3-inline-form:has(label + label) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.m3-page .m3-inline-form > .btn {
+    justify-self: end;
+}
+
+/* The timeline grid must not reach evidence items nested inside an event. */
+.m3-timeline .m3-evidence li {
+    display: block;
+    padding: 10px 12px;
 }
 
 .m3-page .m3-narrative {
@@ -354,4 +375,40 @@
         grid-template-columns: 54px 14px minmax(0, 1fr);
         gap: 6px;
     }
+}
+
+.m3-list-item .m3-list-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.m3-meta dd .tag {
+    vertical-align: middle;
+}
+
+.m3-stage-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.m3-stage-head > code {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.m3-stage-ordinal {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--text-2);
+    font: 600 11px/1 var(--font-ui);
+    font-variant-numeric: tabular-nums;
 }

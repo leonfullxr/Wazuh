@@ -4,6 +4,7 @@ import { Panel } from "../../components/ui/panel";
 import { Sheet, SheetClose, SheetContent } from "../../components/ui/sheet";
 import { Tag } from "../../components/ui/tag";
 import { dispositionTags, statusTags } from "../../lib/semantic";
+import { isFlatRecord } from "../../lib/utils";
 import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates";
 import * as api from "../../api/workspace";
 import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/workspace";
@@ -813,13 +814,27 @@ function GroupDrawer({
                                 {t("expiresAt")}:{" "}
                                 {item.expires_at ? formatTime(item.expires_at) : "—"}
                             </span>
-                            <pre
-                                tabIndex={0}
-                                role="group"
-                                aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
-                            >
-                                {JSON.stringify(item.value, null, 2)}
-                            </pre>
+                            {isFlatRecord(item.value) ? (
+                                <dl
+                                    className="provenance-fields"
+                                    aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
+                                >
+                                    {Object.entries(item.value).map(([key, field]) => (
+                                        <div key={key}>
+                                            <dt>{key}</dt>
+                                            <dd>{String(field)}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            ) : (
+                                <pre
+                                    tabIndex={0}
+                                    role="group"
+                                    aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
+                                >
+                                    {JSON.stringify(item.value, null, 2)}
+                                </pre>
+                            )}
                         </div>
                     ))
                 )}
@@ -956,11 +971,13 @@ function GroupDrawer({
                     {t("saveDisposition")}
                 </button>
             </section>
-            <SheetClose asChild>
-                <button className="btn outline" type="button">
-                    {t("detailsClose")}
-                </button>
-            </SheetClose>
+            <div className="drawer-actions">
+                <SheetClose asChild>
+                    <button className="btn outline" type="button">
+                        {t("detailsClose")}
+                    </button>
+                </SheetClose>
+            </div>
         </div>
     );
 }

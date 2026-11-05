@@ -43,7 +43,7 @@
 }
 
 .dashboard-v2-widget {
-    min-height: 190px;
+    min-height: 0;
     padding: 0;
     overflow: hidden;
 }
@@ -66,11 +66,9 @@
 .dashboard-v2-empty {
     display: grid;
     align-content: center;
-    min-height: 120px;
-    margin: 14px 20px 20px;
-    padding: 18px 20px;
-    border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-control);
+    min-height: 96px;
+    margin: 6px 0 0;
+    padding: 0 20px 22px;
 }
 
 .dashboard-v2-empty strong {

@@ -140,8 +140,9 @@
 }
 
 .queue-v2-score > strong {
-    font-family: var(--font-code);
-    font-size: 13px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 650;
     font-variant-numeric: tabular-nums;
 }
 
@@ -198,9 +199,11 @@
 }
 
 .queue-v2-drawer .group-score-card strong {
-    font-family: var(--font-code);
-    font-size: 24px;
-    font-weight: 600;
+    font-family: var(--font-ui);
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
 .queue-v2-drawer-score {

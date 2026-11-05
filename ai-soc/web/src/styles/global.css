@@ -680,15 +680,20 @@ select {
 .m3-actions input {
     width: 100%;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 0 10px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
     color: var(--text);
     background-color: var(--control-bg);
 }
+.m3-inline-form select {
+    max-width: none;
+    padding-right: 30px;
+}
 .m3-inline-form textarea,
 .m3-create textarea {
     min-height: 70px;
+    padding: 8px 10px;
     resize: vertical;
 }
 .m3-check {
@@ -1561,6 +1566,11 @@ tbody tr:hover {
     font-size: 12px;
     font-weight: 600;
 }
+.status-grid h3 code {
+    margin-left: 6px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
 .status-grid p {
     display: flex;
     align-items: center;
@@ -1868,6 +1878,15 @@ tbody tr:hover {
     gap: 18px;
     padding-bottom: 22px;
 }
+.group-drawer-body .propagate-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+}
+.group-drawer-body .drawer-section > .btn.primary {
+    justify-self: end;
+}
 .drawer-alert-title {
     margin: 0;
     color: var(--text-secondary);
@@ -1902,16 +1921,18 @@ tbody tr:hover {
     font-size: 13px;
     font-weight: 600;
 }
-/* Sheet content pads 24px; the footer pins to its bottom edge. */
-.alert-drawer-body {
+/* Sheet content pads 24px and sticky offsets start inside that padding, so the footer uses -24px. */
+.alert-drawer-body,
+.group-drawer-body {
     min-height: calc(100vh - 88px);
     display: flex;
     flex-direction: column;
     padding-bottom: 0;
 }
-.alert-drawer-body > .drawer-actions {
+.alert-drawer-body > .drawer-actions,
+.group-drawer-body > .drawer-actions {
     position: sticky;
-    bottom: 0;
+    bottom: -24px;
     justify-content: flex-end;
     margin: auto -24px -24px;
     padding: 14px 24px;
@@ -2030,8 +2051,9 @@ tbody tr:hover {
 .provenance-row span {
     display: block;
     margin-top: 2px;
-    color: var(--text-muted);
-    font-size: 11px;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 18px;
 }
 .score-components li code {
     align-self: start;
@@ -2076,7 +2098,7 @@ tbody tr:hover {
 .member-link code,
 .member-link small {
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 12px;
     overflow-wrap: anywhere;
 }
 .workspace-action-message {
@@ -2459,4 +2481,24 @@ tbody tr:hover {
 }
 .model-row:last-child {
     padding-bottom: 0;
+}
+.provenance-fields {
+    display: grid;
+    gap: 4px;
+    margin: 6px 0 0;
+    font-size: 12px;
+}
+.provenance-fields > div {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 12px;
+}
+.provenance-fields dt {
+    color: var(--text-muted);
+    font-family: var(--font-code);
+}
+.provenance-fields dd {
+    margin: 0;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
 }

@@ -16,6 +16,9 @@ import {
     type IncidentActionCommand,
 } from "../../api/workspace-m3";
 import { WorkspaceRequestError } from "../../api/workspace";
+import { Tag } from "../../components/ui/tag";
+import { statusTags, type WorkStatus } from "../../lib/semantic";
+import { isFlatRecord } from "../../lib/utils";
 import { NarrativePanel } from "./NarrativePanel";
 import "./incident-v2.css";
 
@@ -195,8 +198,8 @@ export function M3WorkspacePage({
                                         }
                                     >
                                         <strong>{item.rule_id}</strong>
-                                        <span>
-                                            {item.state} · {t("m3Score")}:{" "}
+                                        <span className="m3-list-meta">
+                                            <StateTag value={item.state} /> {t("m3Score")}:{" "}
                                             {item.score_available
                                                 ? formatScore(item.score)
                                                 : t("m3ScoreUnavailable")}
@@ -308,8 +311,8 @@ export function M3WorkspacePage({
                                             }
                                         >
                                             <strong>{item.title}</strong>
-                                            <span>
-                                                {item.status} · {t("m3Owner")}:{" "}
+                                            <span className="m3-list-meta">
+                                                <StateTag value={item.status} /> {t("m3Owner")}:{" "}
                                                 {item.owner_key ?? t("m3Unassigned")}
                                             </span>
                                             <small>
@@ -479,7 +482,9 @@ function ChainDetailView({
                     {detail.rule_id} · {detail.rule_version}
                 </dd>
                 <dt>{t("m3CandidateState")}</dt>
-                <dd>{detail.state}</dd>
+                <dd>
+                    <StateTag value={detail.state} />
+                </dd>
                 <dt>{t("m3Score")}</dt>
                 <dd>
                     {detail.score_available ? formatScore(detail.score) : t("m3ScoreUnavailable")}
@@ -650,7 +655,9 @@ function IncidentDetailView({
                 <dt>{t("m3IncidentId")}</dt>
                 <dd>{incident.incident_id}</dd>
                 <dt>{t("m3Status")}</dt>
-                <dd>{incident.status}</dd>
+                <dd>
+                    <StateTag value={incident.status} />
+                </dd>
                 <dt>{t("m3Owner")}</dt>
                 <dd>{incident.owner_key ?? t("m3Unassigned")}</dd>
                 <dt>{t("m3WorkVersion")}</dt>
@@ -1152,22 +1159,45 @@ function EvidenceRows({ values }: { values: unknown[] }) {
             {values.map((value, index) => (
                 <li key={index}>
                     {isFlatRecord(value) ? (
-                        <dl className="m3-evidence-fields">
-                            {Object.entries(value).map(([key, field]) => (
-                                <div key={key}>
-                                    <dt>{key}</dt>
-                                    <dd>
-                                        <code>{String(field)}</code>
-                                    </dd>
-                                </div>
-                            ))}
-                        </dl>
+                        <FlatEvidence value={value} />
                     ) : (
                         <pre>{printable(value)}</pre>
                     )}
                 </li>
             ))}
         </ul>
+    );
+}
+
+/** Stage records lead with ordinal, stage and outcome; other fields follow as rows. */
+function FlatEvidence({ value }: { value: Record<string, string | number | boolean | null> }) {
+    const { ordinal, stage_id: stage, outcome, ...rest } = value;
+    const staged = stage !== undefined && stage !== null;
+    const fields = Object.entries(staged ? rest : value);
+    return (
+        <>
+            {staged && (
+                <div className="m3-stage-head">
+                    {ordinal !== undefined && ordinal !== null && (
+                        <span className="m3-stage-ordinal">{String(ordinal)}</span>
+                    )}
+                    <code>{String(stage)}</code>
+                    {outcome !== undefined && outcome !== null && <Tag>{String(outcome)}</Tag>}
+                </div>
+            )}
+            {fields.length > 0 && (
+                <dl className="m3-evidence-fields">
+                    {fields.map(([key, field]) => (
+                        <div key={key}>
+                            <dt>{key}</dt>
+                            <dd>
+                                <code>{String(field)}</code>
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
+        </>
     );
 }
 
@@ -1240,17 +1270,13 @@ function parseDispositionLabel(value: string): DispositionLabel | undefined {
     }
 }
 
-export function isFlatRecord(
-    value: unknown,
-): value is Record<string, string | number | boolean | null> {
-    return (
-        typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value) &&
-        Object.values(value).every(
-            (field) => field === null || ["string", "number", "boolean"].includes(typeof field),
-        )
-    );
+function StateTag({ value }: { value: string }) {
+    const tone = Object.hasOwn(statusTags, value)
+        ? statusTags[value as WorkStatus]
+        : value === "open"
+          ? { tone: "blue" as const, dot: false }
+          : { tone: "neutral" as const, dot: false };
+    return <Tag {...tone}>{value}</Tag>;
 }
 
 function printable(value: unknown): string {
