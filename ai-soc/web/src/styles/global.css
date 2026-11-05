@@ -1887,6 +1887,9 @@ tbody tr:hover {
 .group-drawer-body .drawer-section > .btn.primary {
     justify-self: end;
 }
+.group-drawer-body .drawer-section > .btn.outline {
+    justify-self: start;
+}
 .drawer-alert-title {
     margin: 0;
     color: var(--text-secondary);

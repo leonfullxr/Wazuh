@@ -194,6 +194,11 @@
 
     .alerts-v2 .workspace-table td:nth-child(1) {
         min-width: 86px;
+        font-size: 11px;
+    }
+
+    .alerts-v2 > .workspace-panel:last-of-type {
+        padding: 16px 12px;
     }
 
     .alerts-v2 .workspace-table td:nth-child(2) {
