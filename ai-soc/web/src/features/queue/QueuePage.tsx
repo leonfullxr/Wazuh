@@ -4,7 +4,7 @@ import { Panel } from "../../components/ui/panel";
 import { Sheet, SheetClose, SheetContent } from "../../components/ui/sheet";
 import { Tag } from "../../components/ui/tag";
 import { dispositionTags, statusTags } from "../../lib/semantic";
-import { isFlatRecord } from "../../lib/utils";
+import { humanizeKey, isFlatRecord } from "../../lib/utils";
 import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates";
 import * as api from "../../api/workspace";
 import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/workspace";
@@ -766,7 +766,7 @@ function GroupDrawer({
                 </dd>
                 {group.primary_entity && (
                     <>
-                        <dt>{group.primary_entity.kind}</dt>
+                        <dt>{humanizeKey(group.primary_entity.kind)}</dt>
                         <dd>
                             <code>{group.primary_entity.value}</code>
                         </dd>
@@ -805,16 +805,28 @@ function GroupDrawer({
                     group.enrichments.map((item) => (
                         <div className="provenance-row" key={item.enrichment_id}>
                             <strong>{item.source}</strong>
-                            <span>
-                                {t("sourceVersion")}: {item.source_version}
-                            </span>
-                            <span>
-                                {t("fetchedAt")}: {formatTime(item.fetched_at)}
-                            </span>
-                            <span>
-                                {t("expiresAt")}:{" "}
-                                {item.expires_at ? formatTime(item.expires_at) : "—"}
-                            </span>
+                            <dl className="provenance-fields">
+                                <div>
+                                    <dt>{t("sourceVersion")}</dt>
+                                    <dd>
+                                        <code>{item.source_version}</code>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>{t("fetchedAt")}</dt>
+                                    <dd>{formatTime(item.fetched_at)}</dd>
+                                </div>
+                                <div>
+                                    <dt>{t("expiresAt")}</dt>
+                                    <dd>
+                                        {item.expires_at ? (
+                                            formatTime(item.expires_at)
+                                        ) : (
+                                            <span className="null-value">{"\u2014"}</span>
+                                        )}
+                                    </dd>
+                                </div>
+                            </dl>
                             {isFlatRecord(item.value) ? (
                                 <dl
                                     className="provenance-fields"
@@ -822,7 +834,7 @@ function GroupDrawer({
                                 >
                                     {Object.entries(item.value).map(([key, field]) => (
                                         <div key={key}>
-                                            <dt>{key}</dt>
+                                            <dt>{humanizeKey(key)}</dt>
                                             <dd>
                                                 {Array.isArray(field)
                                                     ? field.join(", ")

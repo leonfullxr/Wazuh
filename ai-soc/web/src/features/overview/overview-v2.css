@@ -348,7 +348,7 @@
     background: var(--heat-6);
 }
 .overview-v2-heatmap-cell[data-coverage="uncovered"] {
-    border-color: var(--border-row);
+    border-color: transparent;
     background: var(--surface-2);
 }
 .overview-v2-lists {
@@ -512,5 +512,10 @@
 }
 
 .overview-v2-lists {
-    align-items: start;
+    align-items: stretch;
+}
+@media (min-width: 1280px) {
+    .overview-v2-list:last-child {
+        grid-column: span 2;
+    }
 }

@@ -20,3 +20,24 @@ export function isFlatRecord(value: unknown): value is Record<string, Primitive 
         )
     );
 }
+
+const ACRONYMS: Record<string, string> = {
+    id: "ID",
+    ids: "IDs",
+    ip: "IP",
+    ips: "IPs",
+    url: "URL",
+    sha: "SHA",
+};
+
+/** API field keys as labels: "evidence_ids" reads "Evidence IDs", "count_30d" reads "Count 30d". */
+export function humanizeKey(key: string): string {
+    const words = key.split(/[_\s]+/).filter(Boolean);
+    return words
+        .map((word, index) => {
+            const lower = word.toLowerCase();
+            if (ACRONYMS[lower]) return ACRONYMS[lower];
+            return index === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
+        })
+        .join(" ");
+}

@@ -326,7 +326,9 @@
 
 .m3-meta dd code,
 .m3-evidence-fields dd code {
-    display: block;
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: bottom;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -542,9 +544,9 @@
     grid-column: 2 / -1;
 }
 
-/* Full-width section cards align with the 200px outer column; narrow cards keep a short one. */
+/* Full-width section cards align with the meta value column (200px + 14px gap); narrow cards keep a short one. */
 .m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
-    grid-template-columns: 188px minmax(0, 1fr);
+    grid-template-columns: 202px minmax(0, 1fr);
 }
 
 .m3-timeline .m3-evidence-fields > div,
@@ -600,6 +602,19 @@
 }
 
 .m3-evidence-fields dt {
-    font-family: var(--font-code);
-    font-size: 12px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+/* An id followed by more text (rule plus version, owner) stays inline. */
+.m3-meta dd > code:not(:only-child) {
+    display: inline;
+}
+
+.m3-list-item[aria-current="true"] {
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.m3-timeline .m3-evidence li {
+    padding: 8px 0 0;
 }

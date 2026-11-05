@@ -41,8 +41,9 @@
     gap: 0;
     overflow: hidden;
     padding: 0;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: var(--radius-panel, 8px);
+    background: var(--surface-2);
 }
 
 .metrics-v2-summary > div {
@@ -52,7 +53,7 @@
     padding: 16px 20px;
     border-right: 1px solid var(--border);
     border-radius: 0;
-    background: var(--surface);
+    background: transparent;
 }
 
 .metrics-v2-summary > div:last-child {
@@ -91,9 +92,9 @@
 .metrics-v2 .metric-subpanel {
     min-width: 0;
     padding: 16px;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: var(--radius-panel, 8px);
-    background: var(--surface);
+    background: var(--surface-2);
 }
 
 .metrics-v2-stats-head,

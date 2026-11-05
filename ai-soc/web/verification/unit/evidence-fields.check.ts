@@ -36,3 +36,15 @@ describe("compactId", () => {
         expect(compactId(long)).toBe(`${"a".repeat(12)}…${"c".repeat(8)}`);
     });
 });
+
+import { humanizeKey } from "../../src/lib/utils";
+
+describe("humanizeKey", () => {
+    it("turns API keys into sentence-case labels with acronyms", () => {
+        expect(humanizeKey("evidence_ids")).toBe("Evidence IDs");
+        expect(humanizeKey("group_id")).toBe("Group ID");
+        expect(humanizeKey("added_at")).toBe("Added at");
+        expect(humanizeKey("host")).toBe("Host");
+        expect(humanizeKey("count_30d")).toBe("Count 30d");
+    });
+});

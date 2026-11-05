@@ -656,10 +656,15 @@ select {
 }
 .m3-evidence li {
     min-width: 0;
-    padding: 10px;
-    border: 1px solid var(--stroke-subtle);
-    border-radius: 8px;
-    background: var(--bg-secondary);
+    padding: 10px 0;
+    border: 0;
+    border-top: 1px solid var(--border-row);
+    border-radius: 0;
+    background: none;
+}
+.m3-evidence li:first-child {
+    border-top: 0;
+    padding-top: 0;
 }
 .m3-evidence pre {
     margin: 0;
@@ -1165,6 +1170,11 @@ code,
 }
 .checks th:nth-child(2) {
     width: 18%;
+}
+@media (min-width: 1100px) {
+    .checks th:nth-child(2) {
+        width: 260px;
+    }
 }
 .checks th:nth-child(4) {
     width: 23%;
@@ -2115,7 +2125,7 @@ tbody tr:hover {
     font-size: 12px;
     line-height: 18px;
 }
-.score-components li code {
+.score-components li > code {
     align-self: start;
     color: var(--text);
     font: 600 13px/18px var(--font-ui);
@@ -2123,7 +2133,7 @@ tbody tr:hover {
     text-align: right;
     white-space: nowrap;
 }
-.score-components li code[data-unavailable] {
+.score-components li > code[data-unavailable] {
     grid-column: 1 / -1;
     color: var(--text-muted);
     font-size: 12px;
@@ -2561,6 +2571,9 @@ tbody tr:hover {
     margin: 0;
     color: var(--text);
 }
+.provenance-row > .provenance-fields + .provenance-fields {
+    margin-top: 0;
+}
 /* Answered state: keep the composer and answer header compact so findings start sooner. */
 .composer {
     padding: 16px 20px;
@@ -2677,5 +2690,27 @@ tbody tr:hover {
     }
     .theme-menu button {
         height: 34px;
+    }
+}
+.check-reference > code {
+    display: inline-block;
+    max-width: 17ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+.score-components li small code {
+    font-size: 12px;
+    font-weight: 400;
+}
+/* Phones: drop the icon tile so the page title is not repeated at full weight. */
+@media (max-width: 700px) {
+    .page-head .page-icon {
+        display: none;
+    }
+    .page-head h2 {
+        font-size: 20px;
+        line-height: 26px;
     }
 }

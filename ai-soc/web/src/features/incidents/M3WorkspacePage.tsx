@@ -18,7 +18,7 @@ import {
 import { WorkspaceRequestError } from "../../api/workspace";
 import { Tag } from "../../components/ui/tag";
 import { statusTags, type WorkStatus } from "../../lib/semantic";
-import { isFlatRecord } from "../../lib/utils";
+import { humanizeKey, isFlatRecord } from "../../lib/utils";
 import { NarrativePanel } from "./NarrativePanel";
 import "./incident-v2.css";
 
@@ -1219,7 +1219,7 @@ function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
                 <dl className="m3-evidence-fields">
                     {fields.map(([key, field]) => (
                         <div key={key}>
-                            <dt>{key}</dt>
+                            <dt>{humanizeKey(key)}</dt>
                             <dd>
                                 {Array.isArray(field) ? (
                                     field.map((item, index) => (
