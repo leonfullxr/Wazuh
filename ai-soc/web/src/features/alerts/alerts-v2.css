@@ -94,10 +94,14 @@
 }
 
 .alerts-v2-results-heading > strong {
-    font-family: var(--font-code);
-    font-size: 20px;
-    line-height: 28px;
-    font-weight: 600;
+    align-self: flex-start;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 600 12px/20px var(--font-code);
     font-variant-numeric: tabular-nums;
 }
 
@@ -162,6 +166,30 @@
 
     .alerts-v2-capability {
         max-width: none;
+    }
+
+    /* Phones keep time, level, description and the details action. */
+    .alerts-v2 .workspace-table {
+        min-width: 0;
+    }
+
+    .alerts-v2 .workspace-table th:nth-child(3),
+    .alerts-v2 .workspace-table td:nth-child(3),
+    .alerts-v2 .workspace-table th:nth-child(5),
+    .alerts-v2 .workspace-table td:nth-child(5),
+    .alerts-v2 .workspace-table th:nth-child(6),
+    .alerts-v2 .workspace-table td:nth-child(6),
+    .alerts-v2 .workspace-table th:nth-child(7),
+    .alerts-v2 .workspace-table td:nth-child(7),
+    .alerts-v2 .workspace-table th:nth-child(8),
+    .alerts-v2 .workspace-table td:nth-child(8) {
+        display: none;
+    }
+
+    .alerts-v2 .workspace-table th,
+    .alerts-v2 .workspace-table td {
+        padding: 8px 6px;
+        white-space: normal;
     }
 
     .alerts-v2 .alert-filter-form {

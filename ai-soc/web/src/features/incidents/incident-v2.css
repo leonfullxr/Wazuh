@@ -14,6 +14,11 @@
 
 .m3-list {
     gap: 4px;
+    margin-inline: -12px;
+}
+
+.m3-create > .btn.primary {
+    justify-self: end;
 }
 
 .m3-empty-detail {
@@ -272,6 +277,42 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Long digests and IDs stay on one line; the full value stays selectable. */
+.m3-meta dd code,
+.m3-evidence-fields dd code {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.m3-evidence-fields {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+}
+
+.m3-evidence-fields > div {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+    font-size: 12px;
+}
+
+.m3-evidence-fields dt {
+    color: var(--text-muted);
+}
+
+.m3-evidence-fields dd {
+    min-width: 0;
+    margin: 0;
+}
+
+.m3-evidence-fields dd code {
+    color: var(--text);
+    font-size: 12px;
 }
 
 @media (max-width: 1000px) {

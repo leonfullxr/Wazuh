@@ -1151,7 +1151,20 @@ function EvidenceRows({ values }: { values: unknown[] }) {
         <ul className="m3-evidence">
             {values.map((value, index) => (
                 <li key={index}>
-                    <pre>{printable(value)}</pre>
+                    {isFlatRecord(value) ? (
+                        <dl className="m3-evidence-fields">
+                            {Object.entries(value).map(([key, field]) => (
+                                <div key={key}>
+                                    <dt>{key}</dt>
+                                    <dd>
+                                        <code>{String(field)}</code>
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
+                    ) : (
+                        <pre>{printable(value)}</pre>
+                    )}
                 </li>
             ))}
         </ul>
@@ -1225,6 +1238,19 @@ function parseDispositionLabel(value: string): DispositionLabel | undefined {
         default:
             return undefined;
     }
+}
+
+export function isFlatRecord(
+    value: unknown,
+): value is Record<string, string | number | boolean | null> {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.values(value).every(
+            (field) => field === null || ["string", "number", "boolean"].includes(typeof field),
+        )
+    );
 }
 
 function printable(value: unknown): string {

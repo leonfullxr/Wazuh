@@ -937,24 +937,35 @@ select {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 2px 8px;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--tag-neutral-border);
     border-radius: 999px;
-    background: var(--surface-subtle);
-    color: var(--text-secondary);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
     font-size: 12px;
+    font-weight: 550;
     white-space: nowrap;
 }
 .status-pill-positive {
-    background: var(--positive-soft);
-    color: var(--positive-text);
+    border-color: var(--tag-green-border);
+    background: var(--tag-green-bg);
+    color: var(--tag-green-text);
+}
+.status-pill-negative {
+    border-color: var(--tag-red-border);
+    background: var(--tag-red-bg);
+    color: var(--tag-red-text);
 }
 .status-pill-warning {
-    background: var(--warning-soft);
-    color: var(--warning-text);
+    border-color: var(--tag-amber-border);
+    background: var(--tag-amber-bg);
+    color: var(--tag-amber-text);
 }
 .status-pill-neutral {
-    background: var(--surface-subtle);
-    color: var(--text-secondary);
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
 }
 .empty-state {
     min-height: 220px;
@@ -1561,11 +1572,14 @@ tbody tr:hover {
     margin: 0;
 }
 .model-row {
-    padding: 10px 0;
-    border-top: 1px solid var(--stroke-weak);
+    padding: 10px 0 0;
 }
-.model-row p {
-    display: block;
+.model-row + .model-row {
+    margin-top: 10px;
+}
+.model-row:first-of-type {
+    padding-top: 0;
+    border-top: 0;
 }
 .copy-value {
     min-width: 0;
@@ -1761,7 +1775,7 @@ tbody tr:hover {
 .table-secondary,
 .top-count {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
 }
 .top-count {
     color: var(--text);
@@ -1888,10 +1902,21 @@ tbody tr:hover {
     font-size: 13px;
     font-weight: 600;
 }
+/* Sheet content pads 24px; the footer pins to its bottom edge. */
+.alert-drawer-body {
+    min-height: calc(100vh - 88px);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+}
 .alert-drawer-body > .drawer-actions {
+    position: sticky;
+    bottom: 0;
     justify-content: flex-end;
-    padding-top: 16px;
+    margin: auto -24px -24px;
+    padding: 14px 24px;
     border-top: 1px solid var(--border);
+    background: var(--surface);
 }
 .score-components li strong {
     font-size: 13px;
@@ -1991,8 +2016,8 @@ tbody tr:hover {
 .provenance-row {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 5px 12px;
-    padding: 10px;
+    gap: 4px 12px;
+    padding: 12px;
     border: 1px solid var(--stroke-subtle);
     border-radius: 8px;
 }
@@ -2004,15 +2029,24 @@ tbody tr:hover {
 .score-components li small,
 .provenance-row span {
     display: block;
-    margin-top: 4px;
+    margin-top: 2px;
     color: var(--text-muted);
     font-size: 11px;
 }
 .score-components li code {
     align-self: start;
-    font-size: 11px;
+    color: var(--text);
+    font: 600 13px/18px var(--font-ui);
+    font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
+}
+.score-components li code[data-unavailable] {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
 }
 .provenance-row > strong {
     font-size: 13px;
@@ -2415,4 +2449,14 @@ tbody tr:hover {
     font-size: 14px;
     font-weight: 600;
     line-height: 20px;
+}
+.topics-panel {
+    margin-top: 20px;
+}
+.status-grid .panel > p:last-child,
+.model-row:last-child p:last-child {
+    border-bottom: 0;
+}
+.model-row:last-child {
+    padding-bottom: 0;
 }

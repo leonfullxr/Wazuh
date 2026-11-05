@@ -781,7 +781,7 @@ function GroupDrawer({
                                 <strong>{component.name}</strong>
                                 <span>{component.explanation}</span>
                             </div>
-                            <code>
+                            <code data-unavailable={!component.available || undefined}>
                                 {component.available
                                     ? component.contribution.toFixed(1)
                                     : t("unavailableScore")}

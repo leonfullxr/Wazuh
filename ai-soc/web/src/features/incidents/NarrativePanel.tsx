@@ -107,7 +107,10 @@ export function NarrativePanel({
                         <dt>{t("m3NarrativeCompleted")}</dt>
                         <dd>
                             {data.completed_at
-                                ? new Date(data.completed_at).toLocaleString(locale)
+                                ? new Intl.DateTimeFormat(locale, {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                  }).format(new Date(data.completed_at))
                                 : t("m3NotReported")}
                         </dd>
                         <dt>{t("m3NarrativeUsage")}</dt>

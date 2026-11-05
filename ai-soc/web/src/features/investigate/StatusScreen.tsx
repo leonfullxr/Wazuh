@@ -36,11 +36,16 @@ export function StatusScreen({
                             {m.label} <code>{m.id}</code>
                         </h3>
                         <p>
-                            {t("contextTokens")}: {m.context_tokens} | {t("maxOutput")}:{" "}
-                            {m.max_output_tokens}
+                            <span>{t("contextTokens")}</span>
+                            <strong className="numeric">{m.context_tokens}</strong>
                         </p>
                         <p>
-                            {t("efforts")}: {m.efforts.join(", ") || "-"}
+                            <span>{t("maxOutput")}</span>
+                            <strong className="numeric">{m.max_output_tokens}</strong>
+                        </p>
+                        <p>
+                            <span>{t("efforts")}</span>
+                            <span>{m.efforts.join(", ") || "-"}</span>
                         </p>
                     </article>
                 ))}

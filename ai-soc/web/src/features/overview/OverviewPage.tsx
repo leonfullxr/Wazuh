@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    ReferenceArea,
+    ResponsiveContainer,
+    XAxis,
+    YAxis,
+} from "recharts";
 import type { OverviewResponse, SiteSummary } from "../../api/workspace";
 import { getOverview } from "../../api/workspace";
 import { Panel } from "../../components/ui/panel";
@@ -73,6 +82,7 @@ export function OverviewPage({
     const hourly = query.data?.hourly;
     const checkpoint = query.data?.freshness.checkpoint_at ?? null;
     const chart = useMemo(() => buildChart(hourly ?? []), [hourly]);
+    const yTicks = niceTicks(chart.maximum);
     const heatmap = useMemo(
         () => buildHeatmap(hourly ?? [], from, to, timezone, checkpoint),
         [checkpoint, from, hourly, timezone, to],
@@ -179,15 +189,16 @@ export function OverviewPage({
                                         >
                                             <XAxis dataKey="hour" hide />
                                             <CartesianGrid vertical={false} strokeDasharray="3 4" />
+                                            <ReferenceArea
+                                                x1={activeHour}
+                                                x2={activeHour}
+                                                fill="var(--accent)"
+                                                fillOpacity={0.1}
+                                                ifOverflow="visible"
+                                            />
                                             <YAxis
-                                                domain={[0, chart.maximum]}
-                                                ticks={[
-                                                    ...new Set([
-                                                        0,
-                                                        Math.round(chart.maximum / 2),
-                                                        chart.maximum,
-                                                    ]),
-                                                ]}
+                                                domain={[0, yTicks.at(-1) ?? 1]}
+                                                ticks={yTicks}
                                                 width={24}
                                                 axisLine={false}
                                                 tickLine={false}
@@ -210,7 +221,7 @@ export function OverviewPage({
                                                         return (
                                                             <Cell
                                                                 key={`${series.band}-${datum.hour}`}
-                                                                fillOpacity={selected ? 1 : 0.58}
+                                                                fillOpacity={selected ? 1 : 0.72}
                                                                 stroke="none"
                                                             />
                                                         );
@@ -604,6 +615,17 @@ function HeatmapVisualRow({
             })}
         </>
     );
+}
+
+/** Axis ticks from 0 at a 1/2/5 x 10^n step, about three steps tall. */
+export function niceTicks(maximum: number): number[] {
+    const raw = Math.max(maximum, 1) / 3;
+    const power = 10 ** Math.floor(Math.log10(raw));
+    const scaled = raw / power;
+    const step = (scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10) * power;
+    const size = Math.max(1, Math.round(step));
+    const count = Math.max(1, Math.ceil(maximum / size));
+    return Array.from({ length: count + 1 }, (_, index) => index * size);
 }
 
 function buildChart(buckets: HourlyBucket[]): {

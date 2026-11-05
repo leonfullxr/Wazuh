@@ -79,7 +79,7 @@
 }
 
 .queue-v2 .queue-table td:nth-child(2) {
-    min-width: 300px;
+    min-width: 260px;
 }
 
 .queue-v2 .queue-table th:first-child,
@@ -88,9 +88,13 @@
     padding-right: 0;
 }
 
-.queue-v2 .queue-table td:nth-child(5),
-.queue-v2 .queue-table td:nth-child(6) {
+.queue-v2 .queue-table td:nth-child(5) {
     white-space: nowrap;
+}
+
+.queue-v2 .queue-table td:first-child {
+    vertical-align: top;
+    padding-top: 13px;
 }
 
 .queue-v2 .group-link {
@@ -254,6 +258,7 @@
     }
 
     .queue-v2 .queue-table td:nth-child(2) {
+        width: 55%;
         min-width: 0;
     }
 
