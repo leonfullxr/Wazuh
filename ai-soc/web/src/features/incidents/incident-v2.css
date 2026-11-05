@@ -280,6 +280,11 @@
 }
 
 /* Long digests and IDs stay on one line; the full value stays selectable. */
+.m3-meta dd code {
+    color: var(--text-2);
+    font-size: 12px;
+}
+
 .m3-meta dd code,
 .m3-evidence-fields dd code {
     display: block;

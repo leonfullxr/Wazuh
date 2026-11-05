@@ -223,8 +223,12 @@
 
 .queue-v2-drawer .score-components li code {
     color: var(--text);
-    font-family: var(--font-code);
+    font-family: var(--font-ui);
     font-variant-numeric: tabular-nums;
+}
+
+.queue-v2-drawer .score-components li code[data-unavailable] {
+    color: var(--text-muted);
 }
 
 @media (max-width: 760px) {
