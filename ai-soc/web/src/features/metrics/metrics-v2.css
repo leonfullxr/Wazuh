@@ -71,7 +71,6 @@
     color: var(--text);
     font: 650 24px/32px var(--font-ui);
     letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
 }
 
 .metrics-v2-quality-summary small {
@@ -83,6 +82,10 @@
 .metrics-v2-percentiles,
 .metrics-v2-quality-grid {
     gap: 12px;
+}
+
+.metrics-v2-quality-grid {
+    align-items: start;
 }
 
 .metrics-v2 .metric-subpanel {

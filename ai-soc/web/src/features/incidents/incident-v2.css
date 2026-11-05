@@ -82,7 +82,6 @@
 .m3-meta code,
 .m3-detail td code {
     font-family: var(--font-code);
-    font-variant-numeric: tabular-nums;
 }
 
 .m3-meta {
@@ -467,7 +466,7 @@
 }
 
 .m3-detail td:last-child {
-    min-width: 176px;
+    white-space: nowrap;
 }
 
 .m3-detail td small,
@@ -494,4 +493,10 @@
 
 .m3-grid > .panel > .m3-list:last-child {
     margin-bottom: 0;
+}
+
+/* Membership history and other evidence rows: null values recede. */
+.m3-evidence-fields dd code:empty,
+.m3-evidence-fields dd code[data-null] {
+    color: var(--text-muted);
 }

@@ -107,7 +107,7 @@ export function NarrativePanel({
                         <dt>{t("m3NarrativeCompleted")}</dt>
                         <dd>
                             {data.completed_at
-                                ? new Intl.DateTimeFormat(locale, {
+                                ? new Intl.DateTimeFormat(undefined, {
                                       dateStyle: "medium",
                                       timeStyle: "short",
                                   }).format(new Date(data.completed_at))

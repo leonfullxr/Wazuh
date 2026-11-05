@@ -706,10 +706,7 @@ function IncidentDetailView({
                                                 ? t("m3ScoreUnavailable")
                                                 : formatScore(member.score)}
                                         </td>
-                                        <td>
-                                            {fmtDate(member.first_ts, locale)} –{" "}
-                                            {fmtDate(member.last_ts, locale)}
-                                        </td>
+                                        <td>{fmtRange(member.first_ts, member.last_ts)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1210,7 +1207,9 @@ function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
                                         <code key={index}>{String(item)}</code>
                                     ))
                                 ) : (
-                                    <code>{String(field)}</code>
+                                    <code data-null={field === null || undefined}>
+                                        {String(field)}
+                                    </code>
                                 )}
                             </dd>
                         </div>
@@ -1312,15 +1311,28 @@ function formatScore(score: number | null): string {
     return score === null ? "—" : score.toString();
 }
 
-function fmtDate(value: string, locale: Locale): string {
+// Same browser-locale format as Alerts and Queue; incident evidence stays in UTC.
+function fmtDate(value: string, _locale?: Locale): string {
     const date = new Date(value);
     return Number.isNaN(date.getTime())
         ? value
-        : new Intl.DateTimeFormat(locale, {
+        : new Intl.DateTimeFormat(undefined, {
               dateStyle: "medium",
               timeStyle: "short",
               timeZone: "UTC",
           }).format(date);
+}
+
+/** A first/last pair; a same-day range shows the date once and only the end time. */
+export function fmtRange(first: string, last: string): string {
+    const start = new Date(first);
+    const end = new Date(last);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
+        return `${fmtDate(first)} – ${fmtDate(last)}`;
+    if (start.toISOString().slice(0, 10) !== end.toISOString().slice(0, 10))
+        return `${fmtDate(first)} – ${fmtDate(last)}`;
+    const clock = new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: "UTC" });
+    return `${fmtDate(first)} – ${clock.format(end)}`;
 }
 
 function fmtTime(value: string, locale: Locale): string {

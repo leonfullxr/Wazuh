@@ -599,6 +599,7 @@ function HeatmapVisualRow({
                         className="overview-v2-heatmap-cell"
                         data-coverage={cell?.kind ?? "uncovered"}
                         data-intensity={cell?.kind === "covered" ? cell.intensity : undefined}
+                        data-empty={cell?.kind !== "covered" || cell.count === 0 || undefined}
                         key={hour}
                         title={title}
                     >

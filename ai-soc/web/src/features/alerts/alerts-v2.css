@@ -124,11 +124,15 @@
     vertical-align: middle;
 }
 
-.alerts-v2 .workspace-table code,
-.alerts-v2-time {
+.alerts-v2 .workspace-table code {
     font-family: var(--font-code);
     font-size: 12px;
+}
+
+.alerts-v2-time {
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .alerts-v2-view-toggle {

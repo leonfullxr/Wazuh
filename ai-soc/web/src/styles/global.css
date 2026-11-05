@@ -1080,8 +1080,9 @@ code,
 }
 .topic-jump {
     position: sticky;
-    top: var(--header-height);
+    top: calc(var(--header-height) + 8px);
     z-index: 10;
+    box-shadow: 0 -9px 0 0 var(--canvas);
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -1397,8 +1398,13 @@ tbody tr:hover {
 .judgment-meta,
 .fetch-message,
 .original-question {
-    color: var(--text-tertiary);
+    margin: 8px 0 0;
+    color: var(--text-muted);
     font-size: 12px;
+}
+.original-question strong {
+    color: var(--text-muted);
+    font-weight: 400;
 }
 .fetch-message {
     padding: 8px 10px;
@@ -1733,7 +1739,6 @@ tbody tr:hover {
 .backlog-strip > div > strong {
     font-size: 22px;
     line-height: 1.2;
-    font-variant-numeric: tabular-nums;
 }
 .ingestion-alert {
     align-items: center;
@@ -1957,7 +1962,6 @@ tbody tr:hover {
 .stats-list dd {
     margin: 0;
     overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums;
 }
 .drawer-section {
     display: grid;
@@ -2546,10 +2550,8 @@ tbody tr:hover {
 }
 .provenance-fields dt {
     color: var(--text-muted);
-    font-family: var(--font-code);
 }
 .provenance-fields dd {
     margin: 0;
     color: var(--text);
-    font-variant-numeric: tabular-nums;
 }
