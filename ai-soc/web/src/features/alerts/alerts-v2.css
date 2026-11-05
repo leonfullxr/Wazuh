@@ -209,6 +209,11 @@
         white-space: nowrap;
     }
 
+    .alerts-v2 .workspace-table th:last-child,
+    .alerts-v2 .workspace-table td:last-child {
+        width: 44px;
+    }
+
     /* The details action becomes a chevron; its text stays as the accessible name. */
     .alerts-v2 .workspace-table td:last-child .text-link {
         position: relative;

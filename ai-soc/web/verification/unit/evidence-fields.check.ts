@@ -26,3 +26,13 @@ describe("fmtRange", () => {
         expect(twoDays.split(" – ")[1]).toMatch(/2026/);
     });
 });
+
+import { compactId } from "../../src/features/incidents/NarrativePanel";
+
+describe("compactId", () => {
+    it("keeps short ids and shortens long ones to head and tail", () => {
+        expect(compactId("chain-demo-001")).toBe("chain-demo-001");
+        const long = "a".repeat(12) + "b".repeat(40) + "c".repeat(8);
+        expect(compactId(long)).toBe(`${"a".repeat(12)}…${"c".repeat(8)}`);
+    });
+});

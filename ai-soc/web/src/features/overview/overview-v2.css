@@ -474,10 +474,12 @@
         grid-column: auto;
     }
     .overview-v2-chart {
-        min-width: 560px;
+        height: 180px;
     }
-    .overview-v2-volume {
-        overflow-x: auto;
+    .overview-v2-axis {
+        gap: 12px;
+        padding-left: 0;
+        font-size: 10px;
     }
     .overview-v2-heatmap-panel {
         padding-right: 12px;
@@ -489,7 +491,6 @@
     }
     .overview-v2-breakdown {
         grid-template-columns: 1fr;
-        min-width: 560px;
     }
     .overview-v2-breakdown-actions {
         justify-content: flex-start;
@@ -499,4 +500,12 @@
     .overview-v2-chart .recharts-rectangle {
         transition: none;
     }
+}
+
+.overview-v2-list li > button > code.overview-v2-list-id {
+    color: var(--text);
+    font-size: 13px;
+}
+.overview-v2-list {
+    padding-bottom: 16px;
 }

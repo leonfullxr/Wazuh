@@ -134,7 +134,9 @@ export function NarrativePanel({
                                                     onClick={() => setSelectedCitation(citation)}
                                                 >
                                                     {t(`m3Citation_${citation.kind}`)} ·{" "}
-                                                    <code>{citation.fact_id}</code>
+                                                    <code title={citation.fact_id}>
+                                                        {compactId(citation.fact_id)}
+                                                    </code>
                                                 </button>
                                             </li>
                                         ))}
@@ -319,4 +321,9 @@ function narrativeFailure(error: unknown, t: Translate): string {
         return error.message;
     }
     return error instanceof Error ? error.message : t("m3Unavailable");
+}
+
+/** Long ids keep their head and tail; the full value stays in the title. */
+export function compactId(value: string): string {
+    return value.length > 24 ? `${value.slice(0, 12)}\u2026${value.slice(-8)}` : value;
 }

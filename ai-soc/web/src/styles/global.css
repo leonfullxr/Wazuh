@@ -1162,10 +1162,14 @@ code,
     width: 118px;
 }
 .checks th:nth-child(2) {
-    width: 26%;
+    width: 18%;
 }
 .checks th:nth-child(4) {
-    width: 24%;
+    width: 23%;
+}
+.checks td:nth-child(3) {
+    font-size: 13px;
+    line-height: 20px;
 }
 .finding {
     display: grid;

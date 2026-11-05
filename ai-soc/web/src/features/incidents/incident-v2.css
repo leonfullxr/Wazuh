@@ -593,3 +593,8 @@
         grid-template-columns: 96px minmax(0, 1fr);
     }
 }
+
+.m3-evidence-fields dt {
+    font-family: var(--font-code);
+    font-size: 12px;
+}

@@ -183,7 +183,7 @@ export function OverviewPage({
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={chart.data}
-                                            margin={{ top: 4, right: 2, bottom: 0, left: 2 }}
+                                            margin={{ top: 4, right: 18, bottom: 0, left: 2 }}
                                             barCategoryGap="28%"
                                             accessibilityLayer={false}
                                         >
@@ -468,7 +468,11 @@ function TopList({
                                 {index + 1}
                             </span>
                             <button type="button" onClick={() => onSelect(item)}>
-                                <span>{item.label}</span>
+                                {mono && item.key === item.label ? (
+                                    <code className="overview-v2-list-id">{item.label}</code>
+                                ) : (
+                                    <span>{item.label}</span>
+                                )}
                                 {mono && item.key !== item.label && <code>{item.key}</code>}
                             </button>
                             <strong>{item.count.toLocaleString()}</strong>
