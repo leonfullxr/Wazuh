@@ -35,7 +35,7 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 21px;
-    font-feature-settings: "tnum" on, "cv11" on;
+    font-feature-settings: "cv11" on;
     color: var(--text);
     background: var(--canvas);
     -webkit-font-smoothing: antialiased;
@@ -532,9 +532,12 @@ select {
     margin: 22px 0 10px;
     font-size: 15px;
 }
-.m3-detail h5 {
+.m3-detail h5,
+.m3-detail h6 {
     margin: 16px 0 8px;
-    font-size: 13px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .m3-narrative {
@@ -547,7 +550,9 @@ select {
 
 .m3-narrative-text {
     max-width: 76ch;
-    line-height: 1.65;
+    margin: 0;
+    font-size: 14px;
+    line-height: 22px;
     white-space: pre-wrap;
 }
 
@@ -560,9 +565,15 @@ select {
 .m3-citations {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 8px;
+    margin: 0 0 12px;
     list-style: none;
     padding: 0;
+}
+.m3-citations .btn {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .m3-citation-detail {
@@ -1901,7 +1912,8 @@ tbody tr:hover {
     grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
     gap: 8px 12px;
     margin: 0;
-    font-size: 12px;
+    font-size: 13px;
+    line-height: 19px;
 }
 .alert-detail-list dt,
 .stats-list dt {
@@ -1950,7 +1962,8 @@ tbody tr:hover {
 .drawer-section ul {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 13px;
+    line-height: 19px;
 }
 .raw-json,
 .provenance-row pre {
@@ -2493,7 +2506,7 @@ tbody tr:hover {
 }
 .provenance-fields > div {
     display: grid;
-    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
     gap: 12px;
 }
 .provenance-fields dt {

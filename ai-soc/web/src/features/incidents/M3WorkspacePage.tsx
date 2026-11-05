@@ -1182,7 +1182,19 @@ function FlatEvidence({ value }: { value: Record<string, string | number | boole
                         <span className="m3-stage-ordinal">{String(ordinal)}</span>
                     )}
                     <code>{String(stage)}</code>
-                    {outcome !== undefined && outcome !== null && <Tag>{String(outcome)}</Tag>}
+                    {outcome !== undefined && outcome !== null && (
+                        <Tag
+                            tone={
+                                outcome === "matched"
+                                    ? "green"
+                                    : outcome === "missing"
+                                      ? "amber"
+                                      : "neutral"
+                            }
+                        >
+                            {String(outcome)}
+                        </Tag>
+                    )}
                 </div>
             )}
             {fields.length > 0 && (

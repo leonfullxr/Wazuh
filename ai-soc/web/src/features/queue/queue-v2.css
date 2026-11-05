@@ -71,7 +71,8 @@
 
 .queue-v2 .queue-table td {
     height: var(--table-row-height, 42px);
-    vertical-align: middle;
+    padding-top: 12px;
+    vertical-align: top;
 }
 
 .queue-v2 .queue-table tbody tr:hover {
@@ -265,7 +266,6 @@
     }
 
     .queue-v2 .queue-table td:nth-child(2) {
-        width: 55%;
         min-width: 0;
     }
 
@@ -294,7 +294,21 @@
     }
 
     .queue-v2 .queue-table th {
+        font-size: 9.5px;
+        letter-spacing: 0;
+        white-space: nowrap;
+    }
+
+    .queue-v2-score > strong[data-pending] {
         white-space: normal;
+    }
+
+    .queue-v2 .queue-table td:nth-child(3) {
+        width: 76px;
+    }
+
+    .queue-v2 .queue-table td:nth-child(7) {
+        width: 88px;
     }
 
     .queue-v2-reasons,

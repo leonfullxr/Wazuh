@@ -159,6 +159,10 @@
     padding: 0 0 20px;
 }
 
+.m3-timeline > li:last-child {
+    padding-bottom: 0;
+}
+
 .m3-timeline time {
     padding-top: 1px;
     overflow: hidden;
@@ -411,4 +415,74 @@
     color: var(--text-2);
     font: 600 11px/1 var(--font-ui);
     font-variant-numeric: tabular-nums;
+}
+
+/* Narrative provenance reads as two compact columns of label/value pairs. */
+.m3-narrative > .m3-meta {
+    grid-template-columns:
+        minmax(110px, max-content) minmax(0, 1fr)
+        minmax(110px, max-content) minmax(0, 1fr);
+    gap: 6px 16px;
+}
+
+@media (max-width: 1200px) {
+    .m3-narrative > .m3-meta {
+        grid-template-columns: minmax(110px, 0.35fr) minmax(0, 1fr);
+    }
+}
+
+/* One rhythm for detail sections: a hairline and a 24px lead-in. */
+.m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
+.m3-detail > .m3-two-column {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-row);
+}
+
+.m3-detail > section > h4:first-child,
+.m3-detail > .m3-two-column h4 {
+    margin-top: 0;
+}
+
+/* Evidence groups: one-line ids, wider group column, top-aligned cells. */
+.m3-detail td {
+    vertical-align: top;
+}
+
+.m3-detail td:first-child {
+    min-width: 220px;
+}
+
+.m3-detail td:nth-child(2) code {
+    max-width: 18ch;
+}
+
+.m3-detail td:last-child {
+    min-width: 176px;
+}
+
+.m3-detail td small,
+.m3-detail td code {
+    display: block;
+    max-width: 30ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Membership edits: add and remove side by side, action below. */
+.m3-page .m3-inline-form:has(label + label):not(:has(select)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.m3-page .m3-inline-form:has(label + label):not(:has(select)) > .btn {
+    grid-column: 1 / -1;
+}
+
+.m3-graph-empty-copy p {
+    text-wrap: balance;
+}
+
+.m3-grid > .panel > .m3-list:last-child {
+    margin-bottom: 0;
 }

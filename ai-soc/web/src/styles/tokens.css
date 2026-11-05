@@ -115,7 +115,7 @@
     --overlay: rgb(15 23 42 / 28%);
     /* Compatibility aliases used by the current screens. */
     --bg: var(--surface);
-    --bg-secondary: var(--canvas);
+    --bg-secondary: var(--surface-2);
     --surface-subtle: var(--surface-2);
     --text-secondary: var(--text);
     --text-tertiary: var(--text-2);
