@@ -155,7 +155,7 @@ export function MetricsPage({
                                     <tr>
                                         <th>{t("eventTime")}</th>
                                         <th>{t("alertLevel")}</th>
-                                        <th>{t("alerts")}</th>
+                                        <th className="numeric">{t("alerts")}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -163,7 +163,9 @@ export function MetricsPage({
                                         <tr key={`${bucket.hour}-${bucket.level_band}-${index}`}>
                                             <td>{formatTime(bucket.hour)}</td>
                                             <td>{bucket.level_band}</td>
-                                            <td>{bucket.count.toLocaleString()}</td>
+                                            <td className="numeric">
+                                                {bucket.count.toLocaleString()}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -246,11 +248,11 @@ export function MetricsPage({
                         <thead>
                             <tr>
                                 <th>{t("filterRule")}</th>
-                                <th>{t("precision")}</th>
-                                <th>{t("truePositive")}</th>
-                                <th>{t("falsePositive")}</th>
-                                <th>{t("benignTruePositive")}</th>
-                                <th>{t("denominatorLabel")}</th>
+                                <th className="numeric">{t("precision")}</th>
+                                <th className="numeric">{t("truePositive")}</th>
+                                <th className="numeric">{t("falsePositive")}</th>
+                                <th className="numeric">{t("benignTruePositive")}</th>
+                                <th className="numeric">{t("denominatorLabel")}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -260,15 +262,21 @@ export function MetricsPage({
                                         <td>
                                             <code>{item.rule_id}</code>
                                         </td>
-                                        <td>
+                                        <td className="numeric">
                                             {item.precision === null
                                                 ? t("emptyDenominator")
                                                 : `${(item.precision * 100).toFixed(1)}%`}
                                         </td>
-                                        <td>{item.true_positive_count.toLocaleString()}</td>
-                                        <td>{item.false_positive_count.toLocaleString()}</td>
-                                        <td>{item.benign_true_positive_count.toLocaleString()}</td>
-                                        <td>
+                                        <td className="numeric">
+                                            {item.true_positive_count.toLocaleString()}
+                                        </td>
+                                        <td className="numeric">
+                                            {item.false_positive_count.toLocaleString()}
+                                        </td>
+                                        <td className="numeric">
+                                            {item.benign_true_positive_count.toLocaleString()}
+                                        </td>
+                                        <td className="numeric">
                                             {item.true_positive_count.toLocaleString()} +{" "}
                                             {item.false_positive_count.toLocaleString()} ={" "}
                                             {item.true_positive_count + item.false_positive_count}

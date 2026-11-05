@@ -822,7 +822,11 @@ function GroupDrawer({
                                     {Object.entries(item.value).map(([key, field]) => (
                                         <div key={key}>
                                             <dt>{key}</dt>
-                                            <dd>{String(field)}</dd>
+                                            <dd>
+                                                {Array.isArray(field)
+                                                    ? field.join(", ")
+                                                    : String(field)}
+                                            </dd>
                                         </div>
                                     ))}
                                 </dl>
@@ -871,15 +875,15 @@ function GroupDrawer({
                 <h3>
                     {t("owner")} / {t("statusLabel")}
                 </h3>
-                <label>
-                    {t("owner")}
-                    <input
-                        aria-label={t("owner")}
-                        value={owner}
-                        onChange={(event) => setOwner(event.target.value)}
-                    />
-                </label>
-                <div className="drawer-actions">
+                <div className="queue-v2-field-row">
+                    <label>
+                        {t("owner")}
+                        <input
+                            aria-label={t("owner")}
+                            value={owner}
+                            onChange={(event) => setOwner(event.target.value)}
+                        />
+                    </label>
                     <button
                         className="btn outline"
                         type="button"
@@ -888,6 +892,9 @@ function GroupDrawer({
                     >
                         {owner.trim() ? t("assign") : t("unassign")}
                     </button>
+                </div>
+                <label>
+                    {t("statusLabel")}
                     <select
                         aria-label={t("statusLabel")}
                         disabled={busy}
@@ -903,7 +910,7 @@ function GroupDrawer({
                             </option>
                         ))}
                     </select>
-                </div>
+                </label>
             </section>
             <section className="drawer-section">
                 <h3>{t("disposition")}</h3>

@@ -136,6 +136,14 @@
     font-weight: 600;
 }
 
+.m3-actions form > .btn {
+    justify-self: start;
+}
+
+.m3-detail > .m3-two-column {
+    column-gap: 32px;
+}
+
 .m3-graph-empty-copy p {
     margin: 0;
     color: var(--text-muted);
@@ -433,7 +441,8 @@
 
 /* One rhythm for detail sections: a hairline and a 24px lead-in. */
 .m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
-.m3-detail > .m3-two-column {
+.m3-detail > .m3-two-column,
+.m3-detail > .m3-actions {
     margin-top: 28px;
     padding-top: 24px;
     border-top: 1px solid var(--border-row);

@@ -1170,7 +1170,9 @@ function EvidenceRows({ values }: { values: unknown[] }) {
 }
 
 /** Stage records lead with ordinal, stage and outcome; other fields follow as rows. */
-function FlatEvidence({ value }: { value: Record<string, string | number | boolean | null> }) {
+type FlatField = string | number | boolean | null | Array<string | number | boolean | null>;
+
+function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
     const { ordinal, stage_id: stage, outcome, ...rest } = value;
     const staged = stage !== undefined && stage !== null;
     const fields = Object.entries(staged ? rest : value);
@@ -1203,7 +1205,13 @@ function FlatEvidence({ value }: { value: Record<string, string | number | boole
                         <div key={key}>
                             <dt>{key}</dt>
                             <dd>
-                                <code>{String(field)}</code>
+                                {Array.isArray(field) ? (
+                                    field.map((item, index) => (
+                                        <code key={index}>{String(item)}</code>
+                                    ))
+                                ) : (
+                                    <code>{String(field)}</code>
+                                )}
                             </dd>
                         </div>
                     ))}

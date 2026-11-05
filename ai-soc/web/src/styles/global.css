@@ -1024,10 +1024,10 @@ select {
     gap: 12px;
 }
 .ids-row {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, max-content));
     align-items: center;
-    gap: 18px;
+    gap: 6px 32px;
     margin-top: 12px;
     font-size: 12px;
     color: var(--text-muted);
@@ -1559,12 +1559,21 @@ tbody tr:hover {
 }
 /* Two independent columns so short cards do not leave holes. */
 .status-grid {
-    columns: 2;
-    column-gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+}
+.status-col {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
 }
 .status-grid .panel {
-    margin: 0 0 16px;
-    break-inside: avoid;
+    margin: 0;
+}
+.status-grid .panel > h3 {
+    margin: 14px 0 4px;
 }
 .status-grid h2 {
     margin-bottom: 12px;
@@ -1898,8 +1907,22 @@ tbody tr:hover {
 .group-drawer-body .drawer-section > .btn.primary {
     justify-self: end;
 }
-.group-drawer-body .drawer-section > .btn.outline {
-    justify-self: start;
+.group-drawer-body > .btn {
+    align-self: flex-start;
+}
+.group-drawer-body .drawer-section > label > select,
+.group-drawer-body .drawer-section > label > textarea {
+    width: 100%;
+    max-width: none;
+}
+.queue-v2-field-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+}
+.queue-v2-field-row input {
+    width: 100%;
 }
 .drawer-alert-title {
     margin: 0;
@@ -2339,6 +2362,7 @@ tbody tr:hover {
     }
     .ids-row {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px;
     }
     .finding {
@@ -2360,7 +2384,7 @@ tbody tr:hover {
         margin-left: auto;
     }
     .status-grid {
-        columns: 1;
+        grid-template-columns: 1fr;
     }
     .topic-list-row {
         grid-template-columns: 1fr 1fr;
