@@ -899,7 +899,7 @@ function IncidentDetailView({
                                         {item.actor_key} · {fmtDate(item.at, locale)} · v
                                         {item.work_version}
                                     </span>
-                                    <details>
+                                    <details className="disclosure">
                                         <summary>{t("m3HistoryDetails")}</summary>
                                         <EvidenceRows
                                             values={[item.before, item.after]}
@@ -1059,7 +1059,7 @@ function IncidentDetailView({
                     )}
                     <h5>{t("m3MembershipHistory")}</h5>
                     {data.membership_intervals.length ? (
-                        <EvidenceRows values={data.membership_intervals} locale={locale} />
+                        <EvidenceRows values={data.membership_intervals} locale={locale} compact />
                     ) : (
                         <p className="muted">{t("m3NoMembershipHistory")}</p>
                     )}
@@ -1175,13 +1175,22 @@ function CreateIncidentForm({
     );
 }
 
-function EvidenceRows({ values, locale }: { values: unknown[]; locale: Locale }) {
+/** `compact` shortens every long identifier, for narrow side cards. */
+function EvidenceRows({
+    values,
+    locale,
+    compact = false,
+}: {
+    values: unknown[];
+    locale: Locale;
+    compact?: boolean;
+}) {
     return (
         <ul className="m3-evidence">
             {values.map((value, index) => (
                 <li key={index}>
                     {isFlatRecord(value) ? (
-                        <FlatEvidence value={value} locale={locale} />
+                        <FlatEvidence value={value} locale={locale} compact={compact} />
                     ) : (
                         <pre>{printable(value)}</pre>
                     )}
@@ -1197,21 +1206,31 @@ const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 function FieldValue({
     value,
     locale,
+    compact,
 }: {
     value: string | number | boolean | null;
     locale: Locale;
+    compact?: boolean;
 }) {
     if (value === null) return <span className="null-value">{"\u2014"}</span>;
     if (typeof value !== "string") return <span className="field-number">{String(value)}</span>;
     if (ISO_TIMESTAMP.test(value)) return <span>{fmtDate(value)}</span>;
     if (/\s/.test(value)) return <span>{value}</span>;
-    return <IdValue value={value} locale={locale} />;
+    return <IdValue value={value} locale={locale} compact={compact} />;
 }
 
 /** Stage records lead with ordinal, stage and outcome; other fields follow as rows. */
 type FlatField = string | number | boolean | null | Array<string | number | boolean | null>;
 
-function FlatEvidence({ value, locale }: { value: Record<string, FlatField>; locale: Locale }) {
+function FlatEvidence({
+    value,
+    locale,
+    compact,
+}: {
+    value: Record<string, FlatField>;
+    locale: Locale;
+    compact?: boolean;
+}) {
     const { ordinal, stage_id: stage, outcome, ...rest } = value;
     const staged = stage !== undefined && stage !== null;
     const fields = Object.entries(staged ? rest : value);
@@ -1247,11 +1266,15 @@ function FlatEvidence({ value, locale }: { value: Record<string, FlatField>; loc
                                 {Array.isArray(field) ? (
                                     field.map((item, index) => (
                                         <div key={index}>
-                                            <FieldValue value={item} locale={locale} />
+                                            <FieldValue
+                                                value={item}
+                                                locale={locale}
+                                                compact={compact}
+                                            />
                                         </div>
                                     ))
                                 ) : (
-                                    <FieldValue value={field} locale={locale} />
+                                    <FieldValue value={field} locale={locale} compact={compact} />
                                 )}
                             </dd>
                         </div>

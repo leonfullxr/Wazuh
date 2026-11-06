@@ -428,6 +428,13 @@ export function QueuePage({
                 />
             ) : (
                 <Panel className="workspace-panel table-panel queue-v2-table-panel">
+                    <div className="queue-v2-results-heading">
+                        <div>
+                            <h3>{t("groupsTitle")}</h3>
+                            <p>{t("rowsLoaded")}</p>
+                        </div>
+                        <strong>{rows.length.toLocaleString()}</strong>
+                    </div>
                     <div className="table-scroll">
                         <table className="workspace-table queue-table">
                             <thead>

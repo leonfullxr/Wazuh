@@ -170,7 +170,7 @@ export function NarrativePanel({
                         </section>
                     )}
                     {/* Generation provenance is secondary to the summary and evidence, so it starts folded. */}
-                    <details className="m3-provenance">
+                    <details className="m3-provenance disclosure">
                         <summary>{t("m3NarrativeProvenance")}</summary>
                         <dl className="m3-meta">
                             <dt>{t("m3EvidenceRevision")}</dt>
@@ -367,12 +367,14 @@ export function IdValue({
     value,
     locale,
     copy = false,
+    compact = false,
 }: {
     value: string;
     locale: Locale;
     copy?: boolean;
+    compact?: boolean;
 }) {
-    const long = value.length > 40 && !value.includes("://");
+    const long = value.length > (compact ? 24 : 40) && !value.includes("://");
     if (!long && !copy && !UUID.test(value)) return <code>{value}</code>;
     return (
         <CopyValue

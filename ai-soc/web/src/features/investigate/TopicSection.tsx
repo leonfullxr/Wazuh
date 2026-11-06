@@ -18,7 +18,6 @@ import {
 import { judgments, removed } from "../../i18n/answer-enums";
 import {
     countLabel,
-    date,
     dateShort,
     emptyProofQualified,
     formatVisibility,
@@ -26,6 +25,7 @@ import {
     safeDocumentUrl,
 } from "../../app/state/answer-format";
 import { pageStateKey } from "../../app/state/answer-session";
+import { HashText } from "../incidents/NarrativePanel";
 import {
     EmptyExplanation,
     EvidenceChip,
@@ -164,7 +164,7 @@ export function TopicSection({
                 </div>
             )}
             {block.judgment.removed.length > 0 && (
-                <details className="removed">
+                <details className="removed disclosure">
                     <summary>{removedFindingsCopy(block.judgment.removed.length, locale)}</summary>
                     <ul>
                         {block.judgment.removed.map((r, i) => (
@@ -206,7 +206,9 @@ export function TopicSection({
                                             <OutcomePill outcome={c.outcome} locale={locale} />
                                         </td>
                                         <td>{c.label}</td>
-                                        <td>{c.message}</td>
+                                        <td>
+                                            <HashText text={c.message} locale={locale} />
+                                        </td>
                                         <td>
                                             {c.evidence_ids.map((id) => (
                                                 <EvidenceChip
@@ -272,7 +274,7 @@ export function TopicSection({
                             {fetch.window.source_text})
                         </span>
                         <span>
-                            {date(fetch.snapshot_at ?? fetch.snapshot.at, timezone, locale)}
+                            {dateShort(fetch.snapshot_at ?? fetch.snapshot.at, timezone, locale)}
                         </span>
                         {(fetch.snapshot.kind === "first_page_only" || fetch.next_cursor) && (
                             <span>{t("firstPage")}</span>

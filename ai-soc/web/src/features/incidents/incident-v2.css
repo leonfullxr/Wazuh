@@ -700,14 +700,11 @@
     vertical-align: baseline;
 }
 
-/* Narrow side cards (membership history): label above value, so UUIDs fit whole. */
+/* Narrow side cards (membership history): label left, value right like the header block;
+   identifiers are compacted so they fit on one line. */
 .m3-two-column .m3-evidence-fields > div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1px;
-}
-
-.m3-two-column .m3-evidence-fields > div + div {
-    margin-top: 6px;
+    grid-template-columns: 40% minmax(0, 1fr);
+    gap: 12px;
 }
 
 .m3-provenance {
@@ -739,29 +736,6 @@
     padding-top: 0;
 }
 
-.m3-provenance > summary {
-    list-style: none;
-}
-
-.m3-provenance > summary::-webkit-details-marker {
-    display: none;
-}
-
-.m3-provenance > summary::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    margin: 0 4px 2px 2px;
-    border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor;
-    transform: rotate(-45deg);
-    transition: transform var(--time-hover, 120ms) ease;
-}
-
-.m3-provenance[open] > summary::before {
-    margin-bottom: 4px;
-    transform: rotate(45deg);
-}
 
 /* Provenance rows share the header block's rhythm and value column. */
 .m3-provenance > .m3-meta {
@@ -774,4 +748,24 @@
     margin-top: 8px;
     padding-top: 0;
     border-top: 0;
+}
+
+/* Empty graph: a quiet dashed placeholder (the partial dot field read as an artifact). */
+.m3-graph-empty {
+    min-height: 72px;
+    border-style: dashed;
+}
+
+.m3-graph-grid {
+    display: none;
+}
+
+.m3-graph-empty-copy {
+    width: min(680px, calc(100% - 40px));
+    padding: 0;
+    background: transparent;
+}
+
+.m3-provenance[open] > .m3-meta:first-of-type {
+    padding-top: 4px;
 }

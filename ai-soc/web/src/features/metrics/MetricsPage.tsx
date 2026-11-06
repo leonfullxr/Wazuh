@@ -226,13 +226,16 @@ export function MetricsPage({
                                     <li key={item.k}>
                                         <span>Precision@{item.k}</span>
                                         <span>
-                                            {item.precision === null
-                                                ? t("emptyDenominator")
-                                                : `${(item.precision * 100).toFixed(1)}%`}
+                                            {item.precision === null ? (
+                                                <span className="null-value">{"\u2014"}</span>
+                                            ) : (
+                                                `${(item.precision * 100).toFixed(1)}%`
+                                            )}
                                         </span>
                                         <small>
-                                            {item.relevant_count} / {item.labelled_count}{" "}
-                                            {t("labelled")}
+                                            {item.precision === null
+                                                ? t("emptyDenominator")
+                                                : `${item.relevant_count} / ${item.labelled_count} ${t("labelled")}`}
                                         </small>
                                     </li>
                                 ))}
@@ -263,8 +266,14 @@ export function MetricsPage({
                                         </td>
                                         <td className="numeric">
                                             {item.precision === null ? (
-                                                <span className="null-value">
-                                                    {t("emptyDenominator")}
+                                                <span
+                                                    className="null-value"
+                                                    title={t("emptyDenominator")}
+                                                >
+                                                    {"\u2014"}
+                                                    <span className="sr-only">
+                                                        {t("emptyDenominator")}
+                                                    </span>
                                                 </span>
                                             ) : (
                                                 `${(item.precision * 100).toFixed(1)}%`

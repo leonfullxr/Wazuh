@@ -1099,9 +1099,12 @@ code,
     position: sticky;
     top: calc(var(--header-height) + 8px);
     z-index: 10;
+    /* Canvas rings hide card edges behind the stuck bar and keep 8px clear below it. */
     box-shadow:
         0 -9px 0 0 var(--canvas),
-        0 8px 12px -10px rgb(0 0 0 / 30%);
+        0 0 0 2px var(--canvas),
+        0 9px 0 0 var(--canvas),
+        0 16px 12px -10px rgb(0 0 0 / 22%);
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -1328,6 +1331,18 @@ tbody tr:hover {
 .fetch-summary-break {
     flex-basis: 100%;
     height: 0;
+}
+/* Second-row facts are joined by muted separators so they read as a list, not a sentence. */
+.fetch-table > summary {
+    column-gap: 8px;
+}
+.fetch-table > summary > strong {
+    margin-right: 6px;
+}
+.fetch-summary-break ~ span:not(.fetch-summary-break + span)::before {
+    margin-right: 8px;
+    color: var(--text-muted);
+    content: "\00b7";
 }
 .fetch-checks {
     display: grid;
@@ -2790,4 +2805,35 @@ tbody tr:hover {
     color: var(--text);
     font-size: 0.9em;
     font-weight: 600;
+}
+/* One disclosure marker everywhere: a muted chevron that turns down when open. */
+details.disclosure > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    cursor: pointer;
+}
+details.disclosure > summary::-webkit-details-marker {
+    display: none;
+}
+details.disclosure > summary::before {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin: 0 3px 1px 1px;
+    border-right: 1.5px solid var(--text-muted);
+    border-bottom: 1.5px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform var(--time-hover, 120ms) ease;
+    content: "";
+}
+details.disclosure[open] > summary::before {
+    margin-bottom: 4px;
+    transform: rotate(45deg);
+}
+/* Drawer values: mono sized to sit on the same baseline as the 13px sans values. */
+.alert-detail-list dd code {
+    font-size: 12.5px;
+    line-height: inherit;
 }

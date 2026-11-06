@@ -437,3 +437,52 @@
         white-space: nowrap;
     }
 }
+
+/* Same card grammar as Alerts: titled table card with a count badge, filters across the card. */
+.queue-v2-results-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.queue-v2-results-heading h3 {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+}
+
+.queue-v2-results-heading p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.queue-v2-results-heading > strong {
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 600 12px/20px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 761px) {
+    .queue-v2 .queue-filter-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .queue-v2 .queue-filter-row label,
+    .queue-v2 .queue-filter-row input,
+    .queue-v2 .queue-filter-row select {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+}
