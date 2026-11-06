@@ -271,6 +271,7 @@ export function QueuePage({
                     <label>
                         {t("owner")}
                         <input
+                            className="id-input"
                             key={`owner-${filters.ownerKey ?? ""}`}
                             aria-label={t("owner")}
                             defaultValue={filters.ownerKey ?? ""}
@@ -301,6 +302,7 @@ export function QueuePage({
                     <label>
                         {t("filterRule")}
                         <input
+                            className="id-input"
                             key={`rule-${filters.ruleId ?? ""}`}
                             aria-label={t("filterRule")}
                             defaultValue={filters.ruleId ?? ""}
@@ -321,6 +323,7 @@ export function QueuePage({
                     <label>
                         {t("owner")}
                         <input
+                            className="id-input"
                             aria-label={t("owner")}
                             value={ownerDraft}
                             onChange={(event) => setOwnerDraft(event.target.value)}
@@ -942,6 +945,7 @@ function GroupDrawer({
                     <label>
                         {t("owner")}
                         <input
+                            className="id-input"
                             aria-label={t("owner")}
                             value={owner}
                             onChange={(event) => setOwner(event.target.value)}

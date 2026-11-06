@@ -385,10 +385,12 @@ export function IdValue({
     );
 }
 
+// Long hex hashes, ISO times, and lowercase hyphenated host ids such as agent-042 or web-01.
 const PROSE_TOKEN =
-    /\b[0-9a-f]{32,}\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?/gi;
+    /\b[0-9a-f]{32,}\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?|\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+\b/g;
 
-/** Prose keeps its words; long hex hashes become compact ids with copy and ISO times read as dates. */
+/** Prose keeps its words; hashes become compact ids with copy, ISO times read as dates and host
+ * ids are mono, matching the rest of the console. */
 export function HashText({ text, locale }: { text: string; locale: Locale }) {
     const parts: ReactNode[] = [];
     let last = 0;
@@ -400,8 +402,10 @@ export function HashText({ text, locale }: { text: string; locale: Locale }) {
                 <time key={start} dateTime={match[0]}>
                     {fmtDate(match[0], locale)}
                 </time>
-            ) : (
+            ) : /^[0-9a-f]{32,}$/.test(match[0]) ? (
                 <IdValue key={start} value={match[0]} locale={locale} />
+            ) : (
+                <code key={start}>{match[0]}</code>
             ),
         );
         last = start + match[0].length;

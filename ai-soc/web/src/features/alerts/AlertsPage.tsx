@@ -663,7 +663,7 @@ function AlertDrawer({
                         <dt>{t("user")}</dt>
                         <dd>
                             {alert.src_user ? <code>{alert.src_user}</code> : <NullValue />}
-                            {" \u2192 "}
+                            <span className="kv-sep">{"\u2192"}</span>
                             {alert.dst_user ? <code>{alert.dst_user}</code> : <NullValue />}
                         </dd>
                         <dt>{t("mappingProfile")}</dt>

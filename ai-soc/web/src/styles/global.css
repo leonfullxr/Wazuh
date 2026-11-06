@@ -1132,8 +1132,21 @@ code,
     background: var(--surface);
     font-size: 11px;
 }
+.topic-jump a {
+    padding: 2px 8px 2px 2px;
+    border-radius: 999px;
+}
+.topic-jump a[aria-current="location"] {
+    background: var(--accent-wash);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    color: var(--text);
+}
+.topic-jump a[aria-current="location"] > span:first-child {
+    background: var(--accent);
+    color: var(--primary-button-foreground);
+}
 .topic-section {
-    scroll-margin-top: calc(var(--header-height) + 64px);
+    scroll-margin-top: calc(var(--header-height) + 72px);
     padding: 0;
     overflow: hidden;
 }
@@ -2919,4 +2932,20 @@ input[type="checkbox"]:disabled {
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
+}
+/* Separator glyphs inside a value (source to destination) are quieter than the values. */
+.kv-sep {
+    margin: 0 6px;
+    color: var(--text-muted);
+}
+/* Inputs that hold identifiers (owners, group and rule ids) use the mono face, like the values. */
+input.id-input,
+textarea.id-input {
+    font-family: var(--font-code);
+    font-size: 12.5px;
+}
+input.id-input::placeholder,
+textarea.id-input::placeholder {
+    font-family: var(--font-ui);
+    font-size: 13px;
 }

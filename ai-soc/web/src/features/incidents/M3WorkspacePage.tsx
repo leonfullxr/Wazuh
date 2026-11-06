@@ -760,6 +760,7 @@ function IncidentDetailView({
                     <label>
                         {t("m3AddGroups")}
                         <textarea
+                            className="id-input"
                             value={addGroups}
                             onChange={(event) => setAddGroups(event.target.value)}
                             placeholder={t("m3GroupIdsHint")}
@@ -768,6 +769,7 @@ function IncidentDetailView({
                     <label>
                         {t("m3RemoveGroups")}
                         <textarea
+                            className="id-input"
                             value={removeGroups}
                             onChange={(event) => setRemoveGroups(event.target.value)}
                             placeholder={t("m3GroupIdsHint")}
@@ -833,6 +835,7 @@ function IncidentDetailView({
                         <label>
                             {t("m3Owner")}
                             <input
+                                className="id-input"
                                 maxLength={256}
                                 value={owner}
                                 onChange={(event) => setOwner(event.target.value)}
@@ -1146,6 +1149,7 @@ function CreateIncidentForm({
             <label>
                 {t("m3GroupIds")}
                 <textarea
+                    className="id-input"
                     required
                     value={groupIdsText}
                     onChange={(event) => setGroupIdsText(event.target.value)}
@@ -1163,6 +1167,7 @@ function CreateIncidentForm({
             <label>
                 {t("m3Owner")}
                 <input
+                    className="id-input"
                     maxLength={256}
                     value={owner}
                     onChange={(event) => setOwner(event.target.value)}

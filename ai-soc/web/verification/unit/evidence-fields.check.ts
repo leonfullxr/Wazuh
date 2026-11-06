@@ -64,6 +64,17 @@ describe("HashText", () => {
         expect(html).toContain(`${"a".repeat(12)}…${"a".repeat(8)}`);
         expect(html.endsWith(" has a score.")).toBe(true);
     });
+    it("sets hyphenated host ids in mono and leaves ordinary words alone", () => {
+        const html = renderToStaticMarkup(
+            createElement(HashText, {
+                text: "Rule 5763 was observed on agent agent-042 for a first-page read.",
+                locale: "en",
+            }),
+        );
+        expect(html).toContain("agent <code>agent-042</code>");
+        expect(html).toContain("Rule 5763 was");
+        expect(html).toContain("first-page read.");
+    });
     it("renders ISO timestamps in prose as dates", () => {
         const html = renderToStaticMarkup(
             createElement(HashText, { text: "seen at 2026-10-23T09:12:00+00:00.", locale: "en" }),

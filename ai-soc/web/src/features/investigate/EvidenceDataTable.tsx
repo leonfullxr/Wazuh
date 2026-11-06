@@ -139,15 +139,18 @@ export function EvidenceDataTable({
                     )}
                 </button>
             ),
-            cell: ({ row }) => (
-                <span
-                    className={
-                        column.kind === "ip" ? "mono" : column.kind === "integer" ? "numeric" : ""
-                    }
-                >
-                    {fieldValue(row.original.values[column.field], column.kind, timezone, locale)}
-                </span>
-            ),
+            cell: ({ row }) => {
+                const value = row.original.values[column.field];
+                if (value === null || value === undefined || value === "")
+                    return <span className="null-value">{"\u2014"}</span>;
+                // Identifiers (IPs and *.id fields) are mono, like ids everywhere else.
+                const idLike = column.kind === "ip" || /(^|\.)id$/.test(column.field);
+                return (
+                    <span className={idLike ? "mono" : column.kind === "integer" ? "numeric" : ""}>
+                        {fieldValue(value, column.kind, timezone, locale)}
+                    </span>
+                );
+            },
         }));
         if (kevSubjects.size)
             base.push({

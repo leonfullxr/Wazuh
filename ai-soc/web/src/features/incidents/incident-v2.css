@@ -237,9 +237,10 @@
     margin-top: 8px;
 }
 
+/* Detail tables sit directly on the card like every other table (no second border level). */
 .m3-detail .table-wrap {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-panel);
+    border: 0;
+    border-radius: 0;
 }
 
 .m3-detail table {
@@ -799,4 +800,42 @@
 .m3-timeline time {
     color: var(--text-2);
     font-size: 13px;
+}
+
+/* Timeline starts at the section edge; the stage chip is quieter than its event. */
+.m3-timeline li {
+    grid-template-columns: 44px 16px minmax(0, 1fr);
+}
+
+.m3-timeline time {
+    text-align: left;
+}
+
+.m3-timeline .m3-stage-head > code {
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* Empty entity graph: one left-aligned muted line, like the other detail-page notes. */
+.m3-graph-empty {
+    min-height: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--border-row);
+    border-radius: var(--radius-control);
+}
+
+.m3-graph-empty-copy {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    width: auto;
+    text-align: left;
+    transform: none;
+}
+
+.m3-graph-empty-copy h4 {
+    margin: 0;
 }

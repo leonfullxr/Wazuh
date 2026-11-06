@@ -392,3 +392,14 @@
 .metrics-v2-table code.table-primary {
     font-weight: 500;
 }
+
+/* Table edges line up with the tile content above (16px padding + 1px hairline). */
+.metrics-v2-table th:first-child,
+.metrics-v2-table td:first-child {
+    padding-left: 17px;
+}
+
+.metrics-v2-table th:last-child,
+.metrics-v2-table td:last-child {
+    padding-right: 17px;
+}
