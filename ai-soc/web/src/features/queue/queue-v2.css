@@ -356,7 +356,8 @@
 }
 
 /* Narrow phones: each group is a stacked row (title, then score; status on the right). */
-.queue-v2-score-label {
+/* Phone-only label; the desktop table has a Priority score column header. */
+.queue-v2 .queue-table .queue-v2-score-label {
     display: none;
 }
 
