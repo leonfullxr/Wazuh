@@ -64,4 +64,12 @@ describe("HashText", () => {
         expect(html).toContain(`${"a".repeat(12)}…${"a".repeat(8)}`);
         expect(html.endsWith(" has a score.")).toBe(true);
     });
+    it("renders ISO timestamps in prose as dates", () => {
+        const html = renderToStaticMarkup(
+            createElement(HashText, { text: "seen at 2026-10-23T09:12:00+00:00.", locale: "en" }),
+        );
+        expect(html).toContain('<time dateTime="2026-10-23T09:12:00+00:00">');
+        expect(html).not.toContain(">2026-10-23T09:12");
+        expect(html.endsWith("</time>.")).toBe(true);
+    });
 });

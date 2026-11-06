@@ -132,15 +132,19 @@ export function StatusScreen({
                     {Object.entries(bootstrap.provenance).map(([k, v]) => (
                         <p key={k}>
                             <span>{humanizeKey(k)}</span>
-                            <CopyValue
-                                value={String(v)}
-                                displayValue={
-                                    String(v).length > 40 && !String(v).includes("://")
-                                        ? compactId(String(v))
-                                        : String(v)
-                                }
-                                t={t}
-                            />
+                            {String(v).length < 8 ? (
+                                <strong className="mono">{String(v)}</strong>
+                            ) : (
+                                <CopyValue
+                                    value={String(v)}
+                                    displayValue={
+                                        String(v).length > 24 && !String(v).includes("://")
+                                            ? compactId(String(v))
+                                            : String(v)
+                                    }
+                                    t={t}
+                                />
+                            )}
                         </p>
                     ))}
                 </section>

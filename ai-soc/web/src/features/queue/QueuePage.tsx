@@ -797,11 +797,19 @@ function GroupDrawer({
                                 <strong>{component.name}</strong>
                                 <span>{component.explanation}</span>
                             </div>
-                            <code data-unavailable={!component.available || undefined}>
-                                {component.available
-                                    ? component.contribution.toFixed(1)
-                                    : t("unavailableScore")}
-                            </code>
+                            {/* Every card keeps a value in the top-right slot; missing ones show the dash. */}
+                            {component.available ? (
+                                <code>{component.contribution.toFixed(1)}</code>
+                            ) : (
+                                <>
+                                    <code data-unavailable="true">
+                                        <span className="null-value" aria-hidden="true">
+                                            {"\u2014"}
+                                        </span>
+                                    </code>
+                                    <small>{t("unavailableScore")}</small>
+                                </>
+                            )}
                             {component.evidence_ids.length > 0 && (
                                 <small>
                                     {t("evidenceLabel")}:{" "}

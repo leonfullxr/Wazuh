@@ -1319,6 +1319,16 @@ tbody tr:hover {
     color: var(--text);
     font-family: var(--font-code);
 }
+.fetch-table > summary {
+    font-size: 13px;
+}
+.fetch-table > summary > strong {
+    font-size: 13px;
+}
+.fetch-summary-break {
+    flex-basis: 100%;
+    height: 0;
+}
 .fetch-checks {
     display: grid;
     gap: 6px;
@@ -1646,18 +1656,10 @@ tbody tr:hover {
     font-size: 13px;
     margin: 0;
 }
-/* Build provenance: key column plus left-aligned values, so hashes share one left edge. */
-.status-build p {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-}
-.status-build p > span {
-    color: var(--text-2);
-}
-.status-build .copy-value {
-    justify-content: space-between;
-    width: 100%;
-    max-width: 100%;
+/* Build provenance reads like the other status cards: label left, value right,
+   copy icons trailing on one edge. */
+.status-build p > strong {
+    margin-right: 19px;
 }
 /* One key-value style on the page: muted labels, regular-weight values. */
 .status-grid p > span:first-child {
@@ -2166,11 +2168,8 @@ tbody tr:hover {
     white-space: nowrap;
 }
 .score-components li > code[data-unavailable] {
-    grid-column: 1 / -1;
     color: var(--text-muted);
-    font-size: 12px;
-    font-weight: 500;
-    text-align: left;
+    font-weight: 400;
 }
 .provenance-row > strong {
     font-size: 13px;
@@ -2642,7 +2641,7 @@ tbody tr:hover {
 /* Answer metadata: label column plus value, one baseline per row. */
 .ids-row > span {
     display: grid;
-    grid-template-columns: 120px auto auto;
+    grid-template-columns: 200px auto auto;
     align-items: center;
     gap: 6px;
 }
@@ -2785,4 +2784,10 @@ tbody tr:hover {
     .top-controls > .range-segment button {
         flex: 1 1 0;
     }
+}
+/* A topic without a document heading shows its id at title size, so every topic header has a title row. */
+.topic-header h2 > code {
+    color: var(--text);
+    font-size: 0.9em;
+    font-weight: 600;
 }

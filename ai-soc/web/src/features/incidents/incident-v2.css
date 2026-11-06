@@ -441,7 +441,7 @@
 }
 
 /* Narrative provenance: short fields pair up in two columns, digests take a full row. */
-.m3-narrative > .m3-meta {
+.m3-provenance > .m3-meta {
     grid-template-columns:
         minmax(150px, max-content) minmax(0, 1fr)
         minmax(150px, max-content) minmax(0, 1fr);
@@ -449,18 +449,18 @@
     line-height: 20px;
 }
 
-.m3-narrative > .m3-meta dt:has(+ dd > code),
-.m3-narrative > .m3-meta dt:has(+ dd > .copy-value) {
+.m3-provenance > .m3-meta dt:has(+ dd > code),
+.m3-provenance > .m3-meta dt:has(+ dd > .copy-value) {
     grid-column: 1;
 }
 
-.m3-narrative > .m3-meta dd:has(> code),
-.m3-narrative > .m3-meta dd:has(> .copy-value) {
+.m3-provenance > .m3-meta dd:has(> code),
+.m3-provenance > .m3-meta dd:has(> .copy-value) {
     grid-column: 2 / -1;
 }
 
 @media (max-width: 1200px) {
-    .m3-narrative > .m3-meta {
+    .m3-provenance > .m3-meta {
         grid-template-columns: minmax(110px, 0.35fr) minmax(0, 1fr);
     }
 }
@@ -541,15 +541,15 @@
     grid-template-columns: 200px minmax(0, 1fr);
 }
 
-.m3-narrative > .m3-meta {
+.m3-provenance > .m3-meta {
     grid-template-columns: 200px minmax(0, 1fr) 200px minmax(0, 1fr);
 }
 
-.m3-narrative > .m3-meta dt:last-of-type {
+.m3-provenance > .m3-meta dt:last-of-type {
     grid-column: 1;
 }
 
-.m3-narrative > .m3-meta dd:last-of-type {
+.m3-provenance > .m3-meta dd:last-of-type {
     grid-column: 2 / -1;
 }
 
@@ -589,19 +589,19 @@
 }
 
 @media (max-width: 1200px) {
-    .m3-narrative > .m3-meta {
+    .m3-provenance > .m3-meta {
         grid-template-columns: 200px minmax(0, 1fr);
     }
 }
 
 @media (max-width: 640px) {
     .m3-detail .m3-meta,
-    .m3-narrative > .m3-meta {
+    .m3-provenance > .m3-meta {
         grid-template-columns: 1fr;
     }
 
-    .m3-narrative > .m3-meta dt:last-of-type,
-    .m3-narrative > .m3-meta dd:last-of-type {
+    .m3-provenance > .m3-meta dt:last-of-type,
+    .m3-provenance > .m3-meta dd:last-of-type {
         grid-column: auto;
     }
 
@@ -636,7 +636,7 @@
     font-size: 12.5px;
 }
 
-.m3-narrative > .m3-meta .copy-value {
+.m3-provenance > .m3-meta .copy-value {
     max-width: 100%;
     color: var(--text);
     font-size: 12.5px;
@@ -648,7 +648,7 @@
 }
 
 /* The next section draws the divider, so the narrative's last block does not. */
-.m3-narrative > .m3-meta:last-child {
+.m3-provenance > .m3-meta:last-child {
     border-bottom: 0;
     padding-bottom: 0;
 }
@@ -708,4 +708,70 @@
 
 .m3-two-column .m3-evidence-fields > div + div {
     margin-top: 6px;
+}
+
+.m3-provenance {
+    margin-top: 12px;
+    border-top: 1px solid var(--border-row);
+}
+
+.m3-provenance > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 550;
+    cursor: pointer;
+}
+
+.m3-provenance > summary:hover {
+    color: var(--text);
+}
+
+.m3-provenance[open] > summary {
+    margin-bottom: 4px;
+}
+
+.m3-provenance > .m3-meta:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.m3-provenance > summary {
+    list-style: none;
+}
+
+.m3-provenance > summary::-webkit-details-marker {
+    display: none;
+}
+
+.m3-provenance > summary::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    margin: 0 4px 2px 2px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform var(--time-hover, 120ms) ease;
+}
+
+.m3-provenance[open] > summary::before {
+    margin-bottom: 4px;
+    transform: rotate(45deg);
+}
+
+/* Provenance rows share the header block's rhythm and value column. */
+.m3-provenance > .m3-meta {
+    gap: 8px 14px;
+    margin-bottom: 0;
+    line-height: normal;
+}
+
+.m3-provenance > .m3-meta + .m3-meta {
+    margin-top: 8px;
+    padding-top: 0;
+    border-top: 0;
 }

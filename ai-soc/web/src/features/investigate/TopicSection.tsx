@@ -248,6 +248,8 @@ export function TopicSection({
                         <span>{stateWord(fetch.state, locale)}</span>
                         <span>{countLabel(fetch, locale)}</span>
                         {fetch.count?.approximate && <span>{t("approx")}</span>}
+                        {/* Second row: visibility, window and scope sit under the dataset name. */}
+                        <span className="fetch-summary-break" aria-hidden="true" />
                         <span>
                             {t("visibility")}: {formatVisibility(fetch.scope.visibility, locale)}
                         </span>

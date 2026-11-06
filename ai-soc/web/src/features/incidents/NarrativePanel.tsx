@@ -5,6 +5,7 @@ import { getIncidentNarrative } from "../../api/workspace-m3";
 import { WorkspaceRequestError } from "../../api/workspace";
 import { fmt } from "../../i18n/answer-copy";
 import { CopyValue } from "../investigate/CopyValue";
+import { fmtDate } from "./M3WorkspacePage";
 
 type Locale = "en" | "es";
 type Translate = (key: string) => string;
@@ -168,77 +169,88 @@ export function NarrativePanel({
                             )}
                         </section>
                     )}
-                    <dl className="m3-meta">
-                        <dt>{t("m3EvidenceRevision")}</dt>
-                        <dd>
-                            <code>{data.evidence_revision}</code>
-                        </dd>
-                        <dt>{t("m3NarrativeStatus")}</dt>
-                        <dd>{t(`m3Narrative_${data.status}`)}</dd>
-                        <dt>{t("m3NarrativeGeneration")}</dt>
-                        <dd>
-                            <code>{data.generation_id ?? t("m3NotReported")}</code>
-                        </dd>
-                        <dt>{t("m3NarrativeGenerationDigest")}</dt>
-                        <dd>
-                            {data.generation_digest ? (
-                                <IdValue value={data.generation_digest} locale={locale} />
-                            ) : (
-                                <code>{t("m3NotReported")}</code>
+                    {/* Generation provenance is secondary to the summary and evidence, so it starts folded. */}
+                    <details className="m3-provenance">
+                        <summary>{t("m3NarrativeProvenance")}</summary>
+                        <dl className="m3-meta">
+                            <dt>{t("m3EvidenceRevision")}</dt>
+                            <dd>
+                                <IdValue value={data.evidence_revision} locale={locale} />
+                            </dd>
+                            <dt>{t("m3NarrativeStatus")}</dt>
+                            <dd>{t(`m3Narrative_${data.status}`)}</dd>
+                            <dt>{t("m3NarrativeGeneration")}</dt>
+                            <dd>
+                                {data.generation_id ? (
+                                    <IdValue value={data.generation_id} locale={locale} />
+                                ) : (
+                                    <code>{t("m3NotReported")}</code>
+                                )}
+                            </dd>
+                            <dt>{t("m3NarrativeGenerationDigest")}</dt>
+                            <dd>
+                                {data.generation_digest ? (
+                                    <IdValue value={data.generation_digest} locale={locale} />
+                                ) : (
+                                    <code>{t("m3NotReported")}</code>
+                                )}
+                            </dd>
+                            <dt>{t("m3NarrativePackDigest")}</dt>
+                            <dd>
+                                {data.pack_digest ? (
+                                    <IdValue value={data.pack_digest} locale={locale} />
+                                ) : (
+                                    <code>{t("m3NotReported")}</code>
+                                )}
+                            </dd>
+                            {data.evidence && (
+                                <>
+                                    <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
+                                    <dd>
+                                        <IdValue
+                                            value={data.evidence.content_digest}
+                                            locale={locale}
+                                        />
+                                    </dd>
+                                </>
                             )}
-                        </dd>
-                        <dt>{t("m3NarrativePackDigest")}</dt>
-                        <dd>
-                            {data.pack_digest ? (
-                                <IdValue value={data.pack_digest} locale={locale} />
-                            ) : (
-                                <code>{t("m3NotReported")}</code>
+                            {summary && (
+                                <>
+                                    <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
+                                    <dd>
+                                        <IdValue value={summary.pack_digest} locale={locale} />
+                                    </dd>
+                                </>
                             )}
-                        </dd>
+                            <dt>{t("m3NarrativeCompleted")}</dt>
+                            <dd>
+                                {data.completed_at
+                                    ? new Intl.DateTimeFormat(undefined, {
+                                          dateStyle: "medium",
+                                          timeStyle: "short",
+                                      }).format(new Date(data.completed_at))
+                                    : t("m3NotReported")}
+                            </dd>
+                            <dt>{t("m3NarrativeUsage")}</dt>
+                            <dd>
+                                {tokenUsage(data.usage.input_tokens, t("m3NarrativeInput"), t)} ·{" "}
+                                {tokenUsage(
+                                    data.usage.cached_input_tokens,
+                                    t("m3NarrativeCachedInput"),
+                                    t,
+                                )}{" "}
+                                · {tokenUsage(data.usage.output_tokens, t("m3NarrativeOutput"), t)}
+                            </dd>
+                        </dl>
                         {data.evidence && (
-                            <>
-                                <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
+                            <dl className="m3-meta">
+                                <dt>{t("m3NarrativeFrozenPack")}</dt>
                                 <dd>
                                     <IdValue value={data.evidence.content_digest} locale={locale} />
                                 </dd>
-                            </>
+                            </dl>
                         )}
-                        {summary && (
-                            <>
-                                <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
-                                <dd>
-                                    <IdValue value={summary.pack_digest} locale={locale} />
-                                </dd>
-                            </>
-                        )}
-                        <dt>{t("m3NarrativeCompleted")}</dt>
-                        <dd>
-                            {data.completed_at
-                                ? new Intl.DateTimeFormat(undefined, {
-                                      dateStyle: "medium",
-                                      timeStyle: "short",
-                                  }).format(new Date(data.completed_at))
-                                : t("m3NotReported")}
-                        </dd>
-                        <dt>{t("m3NarrativeUsage")}</dt>
-                        <dd>
-                            {tokenUsage(data.usage.input_tokens, t("m3NarrativeInput"), t)} ·{" "}
-                            {tokenUsage(
-                                data.usage.cached_input_tokens,
-                                t("m3NarrativeCachedInput"),
-                                t,
-                            )}{" "}
-                            · {tokenUsage(data.usage.output_tokens, t("m3NarrativeOutput"), t)}
-                        </dd>
-                    </dl>
-                    {data.evidence && (
-                        <dl className="m3-meta">
-                            <dt>{t("m3NarrativeFrozenPack")}</dt>
-                            <dd>
-                                <IdValue value={data.evidence.content_digest} locale={locale} />
-                            </dd>
-                        </dl>
-                    )}
+                    </details>
                 </>
             )}
         </section>
@@ -347,24 +359,49 @@ export function compactId(value: string): string {
     return value.length > 24 ? `${value.slice(0, 12)}\u2026${value.slice(-8)}` : value;
 }
 
-/** Long hashes show head and tail; the button copies the full value and the title reveals it. */
-export function IdValue({ value, locale }: { value: string; locale: Locale }) {
-    if (value.length <= 40 || value.includes("://")) return <code>{value}</code>;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Identifiers (hashes, UUIDs, or `copy`) get a trailing copy button; long hashes show head and
+ * tail with the full value in the title. Short scalars stay plain code. */
+export function IdValue({
+    value,
+    locale,
+    copy = false,
+}: {
+    value: string;
+    locale: Locale;
+    copy?: boolean;
+}) {
+    const long = value.length > 40 && !value.includes("://");
+    if (!long && !copy && !UUID.test(value)) return <code>{value}</code>;
     return (
-        <CopyValue value={value} displayValue={compactId(value)} t={(key) => fmt(locale, key)} />
+        <CopyValue
+            value={value}
+            displayValue={long ? compactId(value) : value}
+            t={(key) => fmt(locale, key)}
+        />
     );
 }
 
-const HEX_HASH = /\b[0-9a-f]{32,}\b/gi;
+const PROSE_TOKEN =
+    /\b[0-9a-f]{32,}\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?/gi;
 
-/** Prose keeps its words; long hex hashes inside it render as compact ids with copy. */
+/** Prose keeps its words; long hex hashes become compact ids with copy and ISO times read as dates. */
 export function HashText({ text, locale }: { text: string; locale: Locale }) {
     const parts: ReactNode[] = [];
     let last = 0;
-    for (const match of text.matchAll(HEX_HASH)) {
+    for (const match of text.matchAll(PROSE_TOKEN)) {
         const start = match.index ?? 0;
         if (start > last) parts.push(text.slice(last, start));
-        parts.push(<IdValue key={start} value={match[0]} locale={locale} />);
+        parts.push(
+            /^\d{4}-/.test(match[0]) ? (
+                <time key={start} dateTime={match[0]}>
+                    {fmtDate(match[0], locale)}
+                </time>
+            ) : (
+                <IdValue key={start} value={match[0]} locale={locale} />
+            ),
+        );
         last = start + match[0].length;
     }
     if (last < text.length) parts.push(text.slice(last));

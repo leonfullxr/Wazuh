@@ -19,7 +19,7 @@ import { WorkspaceRequestError } from "../../api/workspace";
 import { Tag } from "../../components/ui/tag";
 import { statusTags, type WorkStatus } from "../../lib/semantic";
 import { humanizeKey, isFlatRecord } from "../../lib/utils";
-import { IdValue, NarrativePanel } from "./NarrativePanel";
+import { IdValue, NarrativePanel, compactId } from "./NarrativePanel";
 import "./incident-v2.css";
 
 type Locale = "en" | "es";
@@ -321,9 +321,9 @@ export function M3WorkspacePage({
                                                     t("m3Unassigned")
                                                 )}
                                             </span>
-                                            <small>
-                                                {item.incident_id} · v{item.work_version} · r
-                                                {item.revision_seq}
+                                            <small title={item.incident_id}>
+                                                {compactId(item.incident_id)} · v{item.work_version}{" "}
+                                                · r{item.revision_seq}
                                             </small>
                                         </button>
                                     </li>
@@ -483,7 +483,7 @@ function ChainDetailView({
             <dl className="m3-meta">
                 <dt>{t("m3CandidateId")}</dt>
                 <dd>
-                    <code>{detail.chain_id}</code>
+                    <IdValue value={detail.chain_id} locale={locale} copy />
                 </dd>
                 <dt>{t("m3Rule")}</dt>
                 <dd>
@@ -499,7 +499,7 @@ function ChainDetailView({
                 </dd>
                 <dt>{t("m3Manifest")}</dt>
                 <dd>
-                    <code>{detail.manifest_id}</code>
+                    <IdValue value={detail.manifest_id} locale={locale} />
                 </dd>
                 <dt>{t("m3Revision")}</dt>
                 <dd>
@@ -662,7 +662,7 @@ function IncidentDetailView({
             <dl className="m3-meta">
                 <dt>{t("m3IncidentId")}</dt>
                 <dd>
-                    <code>{incident.incident_id}</code>
+                    <IdValue value={incident.incident_id} locale={locale} />
                 </dd>
                 <dt>{t("m3Status")}</dt>
                 <dd>
@@ -676,7 +676,7 @@ function IncidentDetailView({
                 <dd>{incident.work_version}</dd>
                 <dt>{t("m3EvidenceRevision")}</dt>
                 <dd>
-                    <code>{incident.evidence_head}</code>
+                    <IdValue value={incident.evidence_head} locale={locale} />
                 </dd>
             </dl>
             <GraphUnavailable kind="incident" locale={locale} />
@@ -1354,7 +1354,7 @@ function formatScore(score: number | null): string {
 }
 
 // Same browser-locale format as Alerts and Queue; incident evidence stays in UTC.
-function fmtDate(value: string, _locale?: Locale): string {
+export function fmtDate(value: string, _locale?: Locale): string {
     const date = new Date(value);
     return Number.isNaN(date.getTime())
         ? value

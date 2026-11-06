@@ -339,3 +339,41 @@
         width: auto;
     }
 }
+
+/* Phones: a tighter filter card and results lead-in so the first alert shows sooner. */
+@media (max-width: 480px) {
+    .alerts-v2 {
+        gap: 12px;
+    }
+
+    .alerts-v2-panel-heading {
+        margin-bottom: 8px;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        gap: 8px;
+    }
+
+    .alerts-v2 .alert-filter-form > label {
+        gap: 4px;
+    }
+
+    .alerts-v2-results-heading {
+        margin-bottom: 4px;
+    }
+
+    .alerts-v2 .workspace-table tbody tr:first-child {
+        padding-top: 4px;
+    }
+}
+
+/* The per-row details action stays quiet until hovered, so descriptions lead the row. */
+.alerts-v2 .workspace-table td:last-child .text-link {
+    color: var(--text-2);
+}
+
+.alerts-v2 .workspace-table tr:hover td:last-child .text-link,
+.alerts-v2 .workspace-table td:last-child .text-link:hover,
+.alerts-v2 .workspace-table td:last-child .text-link:focus-visible {
+    color: var(--accent-text);
+}

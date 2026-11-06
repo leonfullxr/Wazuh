@@ -183,7 +183,7 @@ export function OverviewPage({
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={chart.data}
-                                            margin={{ top: 4, right: 18, bottom: 0, left: 2 }}
+                                            margin={{ top: 10, right: 18, bottom: 0, left: 2 }}
                                             barCategoryGap="28%"
                                             accessibilityLayer={false}
                                         >

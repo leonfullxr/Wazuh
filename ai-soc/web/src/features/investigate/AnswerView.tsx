@@ -83,8 +83,8 @@ export function AnswerView({
                         <CopyButton value={answer.trace_id} t={t} />
                     </span>
                     <a href="#status">
-                        {t("provenance")}: {answer.provenance.content_sha.slice(0, 8)} /{" "}
-                        {answer.provenance.pack_sha256.slice(0, 8)}
+                        {t("provenance")}: <code>{answer.provenance.content_sha.slice(0, 8)}</code>{" "}
+                        / <code>{answer.provenance.pack_sha256.slice(0, 8)}</code>
                     </a>
                 </div>
                 {question && (
