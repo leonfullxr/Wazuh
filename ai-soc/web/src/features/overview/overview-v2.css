@@ -514,8 +514,16 @@
 .overview-v2-lists {
     align-items: stretch;
 }
+/* Wide screens: three equal lists, then two equal halves (six-column track). */
 @media (min-width: 1280px) {
+    .overview-v2-lists {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .overview-v2-list,
     .overview-v2-list:last-child {
         grid-column: span 2;
+    }
+    .overview-v2-list:nth-child(n + 4) {
+        grid-column: span 3;
     }
 }

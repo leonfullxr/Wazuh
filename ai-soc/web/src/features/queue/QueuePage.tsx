@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Panel } from "../../components/ui/panel";
-import { Sheet, SheetClose, SheetContent } from "../../components/ui/sheet";
+import { Sheet, SheetContent } from "../../components/ui/sheet";
 import { Tag } from "../../components/ui/tag";
 import { dispositionTags, statusTags } from "../../lib/semantic";
 import { humanizeKey, isFlatRecord } from "../../lib/utils";
@@ -489,6 +489,14 @@ export function QueuePage({
                                                 )}
                                             </td>
                                             <td>
+                                                {group.score !== null && (
+                                                    <span
+                                                        className="queue-v2-score-label"
+                                                        aria-hidden="true"
+                                                    >
+                                                        {t("score")}
+                                                    </span>
+                                                )}
                                                 <div className="queue-v2-score">
                                                     <strong
                                                         data-pending={
@@ -519,7 +527,13 @@ export function QueuePage({
                                             </td>
                                             <td>{group.alert_count.toLocaleString()}</td>
                                             <td>{formatTime(group.last_ts)}</td>
-                                            <td>{workState.owner_key ?? t("unassigned")}</td>
+                                            <td>
+                                                {workState.owner_key ? (
+                                                    <code>{workState.owner_key}</code>
+                                                ) : (
+                                                    t("unassigned")
+                                                )}
+                                            </td>
                                             <td>
                                                 <div>
                                                     <Tag {...statusTags[workState.status]}>
@@ -991,13 +1005,6 @@ function GroupDrawer({
                     {t("saveDisposition")}
                 </button>
             </section>
-            <div className="drawer-actions">
-                <SheetClose asChild>
-                    <button className="btn outline" type="button">
-                        {t("detailsClose")}
-                    </button>
-                </SheetClose>
-            </div>
         </div>
     );
 }

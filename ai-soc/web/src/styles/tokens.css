@@ -7,6 +7,8 @@
     --rail: #fbfbfc;
     --surface: #ffffff;
     --surface-2: #f6f7f9;
+    /* Borderless data tiles need a little more separation than surface-2. */
+    --surface-tile: #f1f3f6;
     --hover: #f1f2f5;
     --selected: #e9ecf1;
     --border: #e3e6eb;
@@ -146,6 +148,7 @@
     --rail: #0a0c0f;
     --surface: #14171c;
     --surface-2: #191c22;
+    --surface-tile: #1b1f26;
     --hover: #1d2128;
     --selected: #242932;
     --border: #252a32;

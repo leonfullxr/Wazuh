@@ -321,9 +321,9 @@ export function MetricsPage({
                                 assets.map((asset) => (
                                     <tr key={`${asset.entity_kind}-${asset.entity_id}`}>
                                         <td>
-                                            <span className="table-primary">
+                                            <code className="table-primary">
                                                 {asset.entity_value}
-                                            </span>
+                                            </code>
                                             <span className="table-secondary">
                                                 <code>#{asset.entity_id}</code> ·{" "}
                                                 {asset.entity_kind}
@@ -331,7 +331,13 @@ export function MetricsPage({
                                         </td>
                                         <td>{asset.criticality}</td>
                                         <td>{asset.tags.join(", ") || "—"}</td>
-                                        <td>{asset.set_by ?? t("unavailable")}</td>
+                                        <td>
+                                            {asset.set_by ? (
+                                                <code>{asset.set_by}</code>
+                                            ) : (
+                                                t("unavailable")
+                                            )}
+                                        </td>
                                         <td>
                                             {asset.set_at
                                                 ? formatTime(asset.set_at)

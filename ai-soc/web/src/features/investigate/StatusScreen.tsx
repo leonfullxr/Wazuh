@@ -4,6 +4,7 @@ import { words } from "../../i18n/answer-copy";
 import { KevFreshnessNote } from "./EvidenceDataTable";
 import { date } from "../../app/state/answer-format";
 import { CopyValue } from "./CopyValue";
+import { humanizeKey } from "../../lib/utils";
 export function StatusScreen({
     bootstrap,
     answer,
@@ -38,11 +39,15 @@ export function StatusScreen({
                             </h3>
                             <p>
                                 <span>{t("contextTokens")}</span>
-                                <strong className="numeric">{m.context_tokens.toLocaleString()}</strong>
+                                <strong className="numeric">
+                                    {m.context_tokens.toLocaleString()}
+                                </strong>
                             </p>
                             <p>
                                 <span>{t("maxOutput")}</span>
-                                <strong className="numeric">{m.max_output_tokens.toLocaleString()}</strong>
+                                <strong className="numeric">
+                                    {m.max_output_tokens.toLocaleString()}
+                                </strong>
                             </p>
                             <p>
                                 <span>{t("efforts")}</span>
@@ -125,7 +130,7 @@ export function StatusScreen({
                     <h2>{t("build")}</h2>
                     {Object.entries(bootstrap.provenance).map(([k, v]) => (
                         <p key={k}>
-                            <span className="mono">{k}</span>
+                            <span>{humanizeKey(k)}</span>
                             <CopyValue value={String(v)} t={t} />
                         </p>
                     ))}

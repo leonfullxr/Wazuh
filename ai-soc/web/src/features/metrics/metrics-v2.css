@@ -43,7 +43,7 @@
     padding: 0;
     border: 0;
     border-radius: var(--radius-panel, 8px);
-    background: var(--surface-2);
+    background: var(--surface-tile);
 }
 
 .metrics-v2-summary > div {
@@ -94,7 +94,7 @@
     padding: 16px;
     border: 0;
     border-radius: var(--radius-panel, 8px);
-    background: var(--surface-2);
+    background: var(--surface-tile);
 }
 
 .metrics-v2-stats-head,
@@ -329,4 +329,28 @@
 
 .metrics-v2-quality-summary > div {
     align-content: start;
+}
+
+/* Both KPI strips use the same filled, borderless tiles. */
+.metrics-v2-quality-summary {
+    border: 0;
+    background: var(--surface-tile);
+}
+
+.metrics-v2-quality-summary > div {
+    min-height: 88px;
+    padding: 16px 20px;
+}
+
+/* Hourly volume: fixed time and level columns so the level sits next to its time. */
+.metrics-v2-volume .metrics-v2-table {
+    table-layout: fixed;
+}
+
+.metrics-v2-volume .metrics-v2-table th:first-child {
+    width: 220px;
+}
+
+.metrics-v2-volume .metrics-v2-table th:nth-child(2) {
+    width: 160px;
 }

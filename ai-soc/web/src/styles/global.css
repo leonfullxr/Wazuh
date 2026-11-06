@@ -1169,7 +1169,7 @@ code,
     width: 118px;
 }
 .checks th:nth-child(2) {
-    width: 18%;
+    width: 24%;
 }
 @media (min-width: 1100px) {
     .checks th:nth-child(2) {
@@ -1637,7 +1637,10 @@ tbody tr:hover {
 /* Build provenance: key column plus left-aligned values, so hashes share one left edge. */
 .status-build p {
     display: grid;
-    grid-template-columns: 168px minmax(0, 1fr);
+    grid-template-columns: 200px minmax(0, 1fr);
+}
+.status-build p > span {
+    color: var(--text-2);
 }
 .status-build .copy-value {
     max-width: 100%;
@@ -2713,13 +2716,23 @@ tbody tr:hover {
     font-size: 12px;
     font-weight: 400;
 }
-/* Phones: drop the icon tile so the page title is not repeated at full weight. */
+/* Phones: the top bar already names the page, so the heading stays for screen readers only. */
 @media (max-width: 700px) {
+    .page-head {
+        margin: 0;
+    }
     .page-head .page-icon {
         display: none;
     }
     .page-head h2 {
-        font-size: 20px;
-        line-height: 26px;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+    .page-head > .muted {
+        margin-bottom: 12px;
     }
 }

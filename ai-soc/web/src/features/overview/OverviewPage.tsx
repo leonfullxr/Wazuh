@@ -270,6 +270,7 @@ export function OverviewPage({
                             items={data.top_agents}
                             t={t}
                             mono
+                            monoLabel
                             onSelect={(item) => onDrilldown({ agent_id: item.key })}
                         />
                         <TopList
@@ -372,7 +373,8 @@ function HourBreakdown({
             <div>
                 <strong>{formatTime(group.hour, timezone)}</strong>
                 <span>
-                    {group.total.toLocaleString()} {t("alerts").toLocaleLowerCase()}
+                    {group.total.toLocaleString()}{" "}
+                    {t(group.total === 1 ? "alertSingular" : "alerts").toLocaleLowerCase()}
                 </span>
             </div>
             <div className="overview-v2-breakdown-actions">
@@ -439,12 +441,15 @@ function TopList({
     items,
     t,
     mono = false,
+    monoLabel = false,
     onSelect,
 }: {
     title: string;
     items: OverviewResponse["top_rules"];
     t: Translate;
     mono?: boolean;
+    /** Labels that are identifiers themselves (host names) render in mono too. */
+    monoLabel?: boolean;
     onSelect: (item: OverviewResponse["top_rules"][number]) => void;
 }) {
     return (
@@ -460,7 +465,7 @@ function TopList({
                                 {index + 1}
                             </span>
                             <button type="button" onClick={() => onSelect(item)}>
-                                {mono && item.key === item.label ? (
+                                {mono && (monoLabel || item.key === item.label) ? (
                                     <code className="overview-v2-list-id">{item.label}</code>
                                 ) : (
                                     <span>{item.label}</span>

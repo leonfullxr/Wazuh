@@ -19,7 +19,7 @@ import { WorkspaceRequestError } from "../../api/workspace";
 import { Tag } from "../../components/ui/tag";
 import { statusTags, type WorkStatus } from "../../lib/semantic";
 import { humanizeKey, isFlatRecord } from "../../lib/utils";
-import { NarrativePanel } from "./NarrativePanel";
+import { IdValue, NarrativePanel } from "./NarrativePanel";
 import "./incident-v2.css";
 
 type Locale = "en" | "es";
@@ -197,7 +197,9 @@ export function M3WorkspacePage({
                                             setSelection({ kind: "chain", id: item.chain_id })
                                         }
                                     >
-                                        <strong>{item.rule_id}</strong>
+                                        <strong>
+                                            <code title={item.rule_id}>{item.rule_id}</code>
+                                        </strong>
                                         <span className="m3-list-meta">
                                             <StateTag value={item.state} /> {t("m3Score")}:{" "}
                                             {item.score_available
@@ -501,7 +503,7 @@ function ChainDetailView({
                 </dd>
                 <dt>{t("m3Revision")}</dt>
                 <dd>
-                    <code>{detail.revision_digest}</code>
+                    <IdValue value={detail.revision_digest} locale={locale} />
                 </dd>
             </dl>
             {detail.weak_heuristic && <p className="alert warning">{t("m3WeakEvidence")}</p>}
@@ -509,12 +511,12 @@ function ChainDetailView({
             <section aria-labelledby="chain-stages-heading">
                 <h4 id="chain-stages-heading">{t("m3OrderedStages")}</h4>
                 {detail.stages.length ? (
-                    <EvidenceRows values={detail.stages} />
+                    <EvidenceRows values={detail.stages} locale={locale} />
                 ) : (
                     <p className="muted">{t("m3NoStageEvidence")}</p>
                 )}
                 {Array.isArray(missing) && missing.length > 0 && (
-                    <p>
+                    <p className="m3-missing">
                         {t("m3MissingStages")}: {missing.map((item) => printable(item)).join(", ")}
                     </p>
                 )}
@@ -543,21 +545,21 @@ function ChainDetailView({
             <section aria-labelledby="chain-links-heading">
                 <h4 id="chain-links-heading">{t("m3Links")}</h4>
                 {detail.edges.length ? (
-                    <EvidenceRows values={detail.edges} />
+                    <EvidenceRows values={detail.edges} locale={locale} />
                 ) : (
                     <p className="muted">{t("m3NoLinks")}</p>
                 )}
                 {detail.weak_edges.length > 0 && (
                     <>
                         <h5>{t("m3WeakLinks")}</h5>
-                        <EvidenceRows values={detail.weak_edges} />
+                        <EvidenceRows values={detail.weak_edges} locale={locale} />
                     </>
                 )}
             </section>
             <section aria-labelledby="chain-pins-heading">
                 <h4 id="chain-pins-heading">{t("m3ScorePins")}</h4>
                 {detail.score_pins.length ? (
-                    <EvidenceRows values={detail.score_pins} />
+                    <EvidenceRows values={detail.score_pins} locale={locale} />
                 ) : (
                     <p className="muted">{t("m3NoScorePins")}</p>
                 )}
@@ -705,10 +707,15 @@ function IncidentDetailView({
                                     <tr key={member.group_id}>
                                         <td>
                                             <strong>{member.title}</strong>
-                                            <small>{member.group_id}</small>
+                                            <small>
+                                                <IdValue value={member.group_id} locale={locale} />
+                                            </small>
                                         </td>
                                         <td>
-                                            <code>{member.group_revision}</code>
+                                            <IdValue
+                                                value={member.group_revision}
+                                                locale={locale}
+                                            />
                                         </td>
                                         <td>{member.alert_count}</td>
                                         <td>
@@ -794,9 +801,12 @@ function IncidentDetailView({
                                     {event.rule_id ? <code>{event.rule_id}</code> : t("m3Alert")}
                                 </strong>
                                 <span>
-                                    {event.alert_key} · {event.group_id}
+                                    {event.alert_key} ·{" "}
+                                    <IdValue value={event.group_id} locale={locale} />
                                 </span>
-                                {event.stages.length > 0 && <EvidenceRows values={event.stages} />}
+                                {event.stages.length > 0 && (
+                                    <EvidenceRows values={event.stages} locale={locale} />
+                                )}
                             </div>
                         </li>
                     ))}
@@ -891,7 +901,10 @@ function IncidentDetailView({
                                     </span>
                                     <details>
                                         <summary>{t("m3HistoryDetails")}</summary>
-                                        <EvidenceRows values={[item.before, item.after]} />
+                                        <EvidenceRows
+                                            values={[item.before, item.after]}
+                                            locale={locale}
+                                        />
                                     </details>
                                 </li>
                             ))}
@@ -1046,7 +1059,7 @@ function IncidentDetailView({
                     )}
                     <h5>{t("m3MembershipHistory")}</h5>
                     {data.membership_intervals.length ? (
-                        <EvidenceRows values={data.membership_intervals} />
+                        <EvidenceRows values={data.membership_intervals} locale={locale} />
                     ) : (
                         <p className="muted">{t("m3NoMembershipHistory")}</p>
                     )}
@@ -1162,13 +1175,13 @@ function CreateIncidentForm({
     );
 }
 
-function EvidenceRows({ values }: { values: unknown[] }) {
+function EvidenceRows({ values, locale }: { values: unknown[]; locale: Locale }) {
     return (
         <ul className="m3-evidence">
             {values.map((value, index) => (
                 <li key={index}>
                     {isFlatRecord(value) ? (
-                        <FlatEvidence value={value} />
+                        <FlatEvidence value={value} locale={locale} />
                     ) : (
                         <pre>{printable(value)}</pre>
                     )}
@@ -1181,18 +1194,24 @@ function EvidenceRows({ values }: { values: unknown[] }) {
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
 /** One rendering per kind: muted dash for null, sans for numbers, prose and times, mono for ids. */
-function FieldValue({ value }: { value: string | number | boolean | null }) {
+function FieldValue({
+    value,
+    locale,
+}: {
+    value: string | number | boolean | null;
+    locale: Locale;
+}) {
     if (value === null) return <span className="null-value">{"\u2014"}</span>;
     if (typeof value !== "string") return <span className="field-number">{String(value)}</span>;
     if (ISO_TIMESTAMP.test(value)) return <span>{fmtDate(value)}</span>;
     if (/\s/.test(value)) return <span>{value}</span>;
-    return <code>{value}</code>;
+    return <IdValue value={value} locale={locale} />;
 }
 
 /** Stage records lead with ordinal, stage and outcome; other fields follow as rows. */
 type FlatField = string | number | boolean | null | Array<string | number | boolean | null>;
 
-function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
+function FlatEvidence({ value, locale }: { value: Record<string, FlatField>; locale: Locale }) {
     const { ordinal, stage_id: stage, outcome, ...rest } = value;
     const staged = stage !== undefined && stage !== null;
     const fields = Object.entries(staged ? rest : value);
@@ -1228,11 +1247,11 @@ function FlatEvidence({ value }: { value: Record<string, FlatField> }) {
                                 {Array.isArray(field) ? (
                                     field.map((item, index) => (
                                         <div key={index}>
-                                            <FieldValue value={item} />
+                                            <FieldValue value={item} locale={locale} />
                                         </div>
                                     ))
                                 ) : (
-                                    <FieldValue value={field} />
+                                    <FieldValue value={field} locale={locale} />
                                 )}
                             </dd>
                         </div>

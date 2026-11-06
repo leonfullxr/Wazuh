@@ -46,5 +46,6 @@ describe("humanizeKey", () => {
         expect(humanizeKey("added_at")).toBe("Added at");
         expect(humanizeKey("host")).toBe("Host");
         expect(humanizeKey("count_30d")).toBe("Count 30d");
+        expect(humanizeKey("docs_manifest_sha256")).toBe("Docs manifest SHA-256");
     });
 });

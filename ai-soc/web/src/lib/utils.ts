@@ -28,6 +28,7 @@ const ACRONYMS: Record<string, string> = {
     ips: "IPs",
     url: "URL",
     sha: "SHA",
+    sha256: "SHA-256",
 };
 
 /** API field keys as labels: "evidence_ids" reads "Evidence IDs", "count_30d" reads "Count 30d". */

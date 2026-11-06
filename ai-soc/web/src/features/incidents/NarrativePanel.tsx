@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import type { components } from "../../../../contracts/workspace/v1/types.ts";
 import { getIncidentNarrative } from "../../api/workspace-m3";
 import { WorkspaceRequestError } from "../../api/workspace";
+import { fmt } from "../../i18n/answer-copy";
+import { CopyValue } from "../investigate/CopyValue";
 
 type Locale = "en" | "es";
 type Translate = (key: string) => string;
@@ -172,17 +174,25 @@ export function NarrativePanel({
                         </dd>
                         <dt>{t("m3NarrativeGenerationDigest")}</dt>
                         <dd>
-                            <code>{data.generation_digest ?? t("m3NotReported")}</code>
+                            {data.generation_digest ? (
+                                <IdValue value={data.generation_digest} locale={locale} />
+                            ) : (
+                                <code>{t("m3NotReported")}</code>
+                            )}
                         </dd>
                         <dt>{t("m3NarrativePackDigest")}</dt>
                         <dd>
-                            <code>{data.pack_digest ?? t("m3NotReported")}</code>
+                            {data.pack_digest ? (
+                                <IdValue value={data.pack_digest} locale={locale} />
+                            ) : (
+                                <code>{t("m3NotReported")}</code>
+                            )}
                         </dd>
                         {data.evidence && (
                             <>
                                 <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
                                 <dd>
-                                    <code>{data.evidence.content_digest}</code>
+                                    <IdValue value={data.evidence.content_digest} locale={locale} />
                                 </dd>
                             </>
                         )}
@@ -190,7 +200,7 @@ export function NarrativePanel({
                             <>
                                 <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
                                 <dd>
-                                    <code>{summary.pack_digest}</code>
+                                    <IdValue value={summary.pack_digest} locale={locale} />
                                 </dd>
                             </>
                         )}
@@ -218,7 +228,7 @@ export function NarrativePanel({
                         <dl className="m3-meta">
                             <dt>{t("m3NarrativeFrozenPack")}</dt>
                             <dd>
-                                <code>{data.evidence.content_digest}</code>
+                                <IdValue value={data.evidence.content_digest} locale={locale} />
                             </dd>
                         </dl>
                     )}
@@ -328,4 +338,12 @@ function narrativeFailure(error: unknown, t: Translate): string {
 /** Long ids keep their head and tail; the full value stays in the title. */
 export function compactId(value: string): string {
     return value.length > 24 ? `${value.slice(0, 12)}\u2026${value.slice(-8)}` : value;
+}
+
+/** Long hashes show head and tail; the button copies the full value and the title reveals it. */
+export function IdValue({ value, locale }: { value: string; locale: Locale }) {
+    if (value.length <= 40) return <code>{value}</code>;
+    return (
+        <CopyValue value={value} displayValue={compactId(value)} t={(key) => fmt(locale, key)} />
+    );
 }

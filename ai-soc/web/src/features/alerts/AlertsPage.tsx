@@ -452,10 +452,22 @@ export function AlertsPage({
                                                 )}
                                             </td>
                                             <td>
-                                                <code>{alert.rule_id ?? "—"}</code>
+                                                {alert.rule_id ? (
+                                                    <code>{alert.rule_id}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
                                             </td>
                                             <td>{alert.rule_description ?? t("nullUnknown")}</td>
-                                            <td>{alert.agent_name ?? alert.agent_id ?? "—"}</td>
+                                            <td>
+                                                {(alert.agent_name ?? alert.agent_id) ? (
+                                                    <code>
+                                                        {alert.agent_name ?? alert.agent_id}
+                                                    </code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
+                                            </td>
                                             <td>
                                                 {alert.src_ip ? (
                                                     <code>{alert.src_ip}</code>
@@ -463,8 +475,14 @@ export function AlertsPage({
                                                     <NullValue />
                                                 )}
                                             </td>
-                                            <td>{alert.dst_user ?? alert.src_user ?? "—"}</td>
-                                            <td>{alert.mitre_tactics[0] ?? "—"}</td>
+                                            <td>
+                                                {(alert.dst_user ?? alert.src_user) ? (
+                                                    <code>{alert.dst_user ?? alert.src_user}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
+                                            </td>
+                                            <td>{alert.mitre_tactics[0] ?? <NullValue />}</td>
                                             <td>
                                                 <SheetTrigger asChild>
                                                     <button
@@ -631,8 +649,12 @@ function AlertDrawer({
                         </dd>
                         <dt>{t("agent")}</dt>
                         <dd>
-                            {alert.agent_name ?? alert.agent_id ?? <NullValue />} ·{" "}
-                            {alert.agent_ip ? <code>{alert.agent_ip}</code> : <NullValue />}
+                            {(alert.agent_name ?? alert.agent_id) ? (
+                                <code>{alert.agent_name ?? alert.agent_id}</code>
+                            ) : (
+                                <NullValue />
+                            )}{" "}
+                            · {alert.agent_ip ? <code>{alert.agent_ip}</code> : <NullValue />}
                         </dd>
                         <dt>{t("source")}</dt>
                         <dd>{alert.src_ip ? <code>{alert.src_ip}</code> : <NullValue />}</dd>

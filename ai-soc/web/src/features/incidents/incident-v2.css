@@ -449,11 +449,13 @@
     line-height: 20px;
 }
 
-.m3-narrative > .m3-meta dt:has(+ dd > code) {
+.m3-narrative > .m3-meta dt:has(+ dd > code),
+.m3-narrative > .m3-meta dt:has(+ dd > .copy-value) {
     grid-column: 1;
 }
 
-.m3-narrative > .m3-meta dd:has(> code) {
+.m3-narrative > .m3-meta dd:has(> code),
+.m3-narrative > .m3-meta dd:has(> .copy-value) {
     grid-column: 2 / -1;
 }
 
@@ -624,4 +626,55 @@
 
 .m3-timeline .m3-evidence li {
     padding: 8px 0 0;
+}
+
+/* Compact hashes with copy share the value column of code ids. */
+.m3-meta .copy-value,
+.m3-evidence-fields .copy-value {
+    max-width: 100%;
+    color: var(--text);
+    font-size: 12.5px;
+}
+
+.m3-narrative > .m3-meta .copy-value {
+    max-width: 100%;
+    color: var(--text);
+    font-size: 12.5px;
+}
+
+.m3-timeline-event > strong > code {
+    font-family: var(--font-code);
+    font-weight: 500;
+}
+
+.m3-timeline-event > span .copy-value {
+    color: inherit;
+    font-size: 11px;
+    vertical-align: bottom;
+}
+
+.m3-detail .m3-stage-head > code {
+    font-size: 12.5px;
+}
+
+.m3-missing {
+    margin: 4px 0 0;
+    color: var(--text-2);
+    font-size: 13px;
+}
+
+.m3-detail td .copy-value {
+    max-width: 100%;
+    color: inherit;
+    font-size: 12px;
+}
+
+.m3-list-item > strong > code {
+    display: block;
+    overflow: hidden;
+    font-family: var(--font-code);
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
