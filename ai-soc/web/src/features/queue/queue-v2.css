@@ -36,9 +36,9 @@
 
 .queue-v2 .queue-filter-row input,
 .queue-v2 .queue-filter-row select,
-.queue-v2 .bulk-toolbar input,
+.queue-v2 .bulk-toolbar input:not([type="checkbox"]),
 .queue-v2 .bulk-toolbar select,
-.queue-v2-drawer input,
+.queue-v2-drawer input:not([type="checkbox"]),
 .queue-v2-drawer select {
     min-height: var(--control-height, 32px);
 }

@@ -2907,3 +2907,16 @@ input[type="checkbox"]:disabled {
     font-size: 13px;
     font-weight: 500;
 }
+/* Dark theme: unchecked boxes keep a 3:1 outline against the row. */
+.dark input[type="checkbox"]:not(:checked) {
+    border-color: var(--text-muted);
+}
+/* Group member cards use the drawer card title style and the shared 12px card padding. */
+.member-link {
+    padding: 12px;
+}
+.member-link > span:first-child {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}

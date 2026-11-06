@@ -357,11 +357,8 @@
     width: 160px;
 }
 
-/* Full-width table; the count column reads left-aligned so each count sits by its level. */
-.metrics-v2-volume .metrics-v2-table th:nth-child(3),
-.metrics-v2-volume .metrics-v2-table td:nth-child(3) {
-    text-align: left;
-}
+/* Event time and level keep fixed columns; counts right-align at the card edge like the
+   precision table below. */
 
 /* The capped hourly table sits under the tiles without a full-width rule over empty space. */
 .metrics-v2-volume {
@@ -384,10 +381,14 @@
 }
 
 .metrics-v2-distribution > div > span {
-    background: var(--surface-2);
+    background: var(--border);
 }
 
 .metrics-v2 .metric-count-list li {
     min-height: 30px;
     padding: 5px 0;
+}
+
+.metrics-v2-table code.table-primary {
+    font-weight: 500;
 }

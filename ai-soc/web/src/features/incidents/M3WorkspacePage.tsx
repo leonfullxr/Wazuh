@@ -487,7 +487,7 @@ function ChainDetailView({
                 </dd>
                 <dt>{t("m3Rule")}</dt>
                 <dd>
-                    <code>{detail.rule_id}</code> · {detail.rule_version}
+                    <code>{detail.rule_id}</code> · <code>{detail.rule_version}</code>
                 </dd>
                 <dt>{t("m3CandidateState")}</dt>
                 <dd>
@@ -896,8 +896,8 @@ function IncidentDetailView({
                                 <li key={item.history_id}>
                                     <strong>{item.action}</strong>
                                     <span>
-                                        {item.actor_key} · {fmtDate(item.at, locale)} · v
-                                        {item.work_version}
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
                                     </span>
                                     <details className="disclosure">
                                         <summary>{t("m3HistoryDetails")}</summary>
@@ -927,8 +927,8 @@ function IncidentDetailView({
                                 <li key={item.comment_id}>
                                     <p>{item.body}</p>
                                     <span>
-                                        {item.actor_key} · {fmtDate(item.at, locale)} · v
-                                        {item.work_version}
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
                                     </span>
                                 </li>
                             ))}
@@ -1032,8 +1032,8 @@ function IncidentDetailView({
                                 <li key={item.disposition_id}>
                                     <strong>{t(`m3Disposition_${item.label}`)}</strong>
                                     <span>
-                                        {item.actor_key} · {fmtDate(item.at, locale)} · v
-                                        {item.work_version}
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
                                     </span>
                                     {item.reason_code && (
                                         <p>

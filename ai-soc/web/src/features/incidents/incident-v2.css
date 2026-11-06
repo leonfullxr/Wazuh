@@ -779,3 +779,24 @@
 .m3-history {
     padding-left: 0;
 }
+
+/* Narrative header: heading and Refresh share one centred row, and the heading keeps the same
+   distance from the divider as the other section headings. */
+.m3-narrative > .panel-head {
+    margin: -6px 0 10px;
+}
+
+.m3-narrative > .panel-head h4 {
+    margin: 0;
+}
+
+.m3-narrative > .panel-head .btn {
+    height: 28px;
+    padding: 0 10px;
+}
+
+/* Timeline times use the shared 13px secondary style. */
+.m3-timeline time {
+    color: var(--text-2);
+    font-size: 13px;
+}
