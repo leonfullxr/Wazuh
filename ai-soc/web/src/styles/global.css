@@ -1103,8 +1103,8 @@ code,
     box-shadow:
         0 -9px 0 0 var(--canvas),
         0 0 0 2px var(--canvas),
-        0 9px 0 0 var(--canvas),
-        0 16px 12px -10px rgb(0 0 0 / 22%);
+        0 14px 0 0 var(--canvas),
+        0 20px 12px -12px rgb(0 0 0 / 22%);
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -1673,9 +1673,7 @@ tbody tr:hover {
 }
 /* Build provenance reads like the other status cards: label left, value right,
    copy icons trailing on one edge. */
-.status-build p > strong {
-    margin-right: 19px;
-}
+
 /* One key-value style on the page: muted labels, regular-weight values. */
 .status-grid p > span:first-child {
     color: var(--text-2);
@@ -2836,4 +2834,76 @@ details.disclosure[open] > summary::before {
 .alert-detail-list dd code {
     font-size: 12.5px;
     line-height: inherit;
+}
+/* Secondary metadata reads as content, not fine print: 13px in the secondary text colour. */
+.ids-row {
+    color: var(--text-2);
+    font-size: 13px;
+}
+.ids-row code {
+    font-size: 12.5px;
+}
+.status-grid h3 {
+    font-size: 13px;
+}
+.status-grid h3 code {
+    color: var(--text-2);
+    font-size: 12.5px;
+}
+.group-score-card span,
+.group-score-card small {
+    color: var(--text-2);
+    font-size: 12.5px;
+}
+/* Checkboxes: one drawn control in both themes (native ones render as solid grey squares in
+   dark mode). The input stays native; the tick is a CSS border, so no image is needed. */
+input[type="checkbox"] {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--control-bg);
+    cursor: pointer;
+    transition:
+        background-color var(--time-hover, 120ms) ease,
+        border-color var(--time-hover, 120ms) ease;
+}
+input[type="checkbox"]::before {
+    width: 8px;
+    height: 4px;
+    margin-top: -2px;
+    border-bottom: 2px solid var(--primary-button-foreground);
+    border-left: 2px solid var(--primary-button-foreground);
+    opacity: 0;
+    transform: rotate(-45deg);
+    content: "";
+}
+input[type="checkbox"]:hover:not(:disabled) {
+    border-color: var(--text-muted);
+}
+input[type="checkbox"]:checked {
+    border-color: var(--primary-button);
+    background: var(--primary-button);
+}
+input[type="checkbox"]:checked::before {
+    opacity: 1;
+}
+input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+input[type="checkbox"]:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+/* One row-action style: accent, 13px medium, underline on hover (Alerts, Metrics, Investigate). */
+.workspace-table td .text-link:not(.group-link),
+.topic-header a {
+    font-size: 13px;
+    font-weight: 500;
 }

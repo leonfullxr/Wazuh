@@ -287,29 +287,7 @@ export function TopicSection({
                         >
                             {fetch.checks.map((check) => (
                                 <div className="fetch-check" key={`${check.code}:${check.name}`}>
-                                    <span
-                                        className="fetch-check-outcome"
-                                        data-outcome={check.outcome}
-                                    >
-                                        {check.outcome === "passed" ? (
-                                            <Check size={14} aria-hidden="true" />
-                                        ) : check.outcome === "failed" ? (
-                                            <AlertCircle size={14} aria-hidden="true" />
-                                        ) : (
-                                            <CircleHelp size={14} aria-hidden="true" />
-                                        )}
-                                        {locale === "en"
-                                            ? check.outcome === "passed"
-                                                ? "Passed"
-                                                : check.outcome === "failed"
-                                                  ? "Failed"
-                                                  : "Unknown"
-                                            : check.outcome === "passed"
-                                              ? "Superada"
-                                              : check.outcome === "failed"
-                                                ? "Fallida"
-                                                : "Desconocida"}
-                                    </span>
+                                    <OutcomePill outcome={check.outcome} locale={locale} />
                                     <span>
                                         {localeEnum(evidenceCheckNames, check.name, locale)}
                                     </span>

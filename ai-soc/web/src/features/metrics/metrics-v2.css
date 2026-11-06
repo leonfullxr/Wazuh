@@ -85,8 +85,9 @@
     gap: 12px;
 }
 
+/* Cards size to their content, so a short list does not leave a blank half-card. */
 .metrics-v2-quality-grid {
-    align-items: stretch;
+    align-items: start;
 }
 
 .metrics-v2 .metric-subpanel {
@@ -356,14 +357,37 @@
     width: 160px;
 }
 
-/* Keep each count next to its time and level instead of 700px away. */
-.metrics-v2-volume > .metrics-v2-section-head,
-.metrics-v2-volume > .table-scroll {
-    max-width: 560px;
+/* Full-width table; the count column reads left-aligned so each count sits by its level. */
+.metrics-v2-volume .metrics-v2-table th:nth-child(3),
+.metrics-v2-volume .metrics-v2-table td:nth-child(3) {
+    text-align: left;
 }
 
 /* The capped hourly table sits under the tiles without a full-width rule over empty space. */
 .metrics-v2-volume {
     padding-top: 8px;
     border-top: 0;
+}
+
+/* Two surface levels only: inner tiles and KPI strips sit on the card surface with a hairline
+   outline instead of a grey fill. */
+.metrics-v2-summary,
+.metrics-v2-quality-summary,
+.metrics-v2 .metric-subpanel {
+    border: 1px solid var(--border-row);
+    background: transparent;
+}
+
+.metrics-v2-summary > div,
+.metrics-v2-quality-summary > div {
+    border-color: var(--border-row);
+}
+
+.metrics-v2-distribution > div > span {
+    background: var(--surface-2);
+}
+
+.metrics-v2 .metric-count-list li {
+    min-height: 30px;
+    padding: 5px 0;
 }

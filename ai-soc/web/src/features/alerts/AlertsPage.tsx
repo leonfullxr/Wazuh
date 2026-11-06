@@ -667,7 +667,9 @@ function AlertDrawer({
                             {alert.dst_user ? <code>{alert.dst_user}</code> : <NullValue />}
                         </dd>
                         <dt>{t("mappingProfile")}</dt>
-                        <dd>{alert.mapping_profile}</dd>
+                        <dd>
+                            <code>{alert.mapping_profile}</code>
+                        </dd>
                         <dt>{t("ingestedAt")}</dt>
                         <dd>{formatTime(alert.ingested_at)}</dd>
                     </dl>

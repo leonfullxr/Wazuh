@@ -284,7 +284,8 @@
         grid-template-columns: auto;
     }
 
-    .queue-v2-table-panel {
+    .queue-v2-table-panel,
+    .queue-v2-filters {
         padding: 12px;
     }
 

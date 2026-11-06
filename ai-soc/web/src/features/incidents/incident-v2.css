@@ -465,12 +465,12 @@
     }
 }
 
-/* One rhythm for detail sections: a hairline and a 24px lead-in. */
+/* One rhythm for detail sections: a hairline with 20px either side. */
 .m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
 .m3-detail > .m3-two-column,
 .m3-detail > .m3-actions {
-    margin-top: 28px;
-    padding-top: 24px;
+    margin-top: 20px;
+    padding-top: 20px;
     border-top: 1px solid var(--border-row);
 }
 
@@ -768,4 +768,14 @@
 
 .m3-provenance[open] > .m3-meta:first-of-type {
     padding-top: 4px;
+}
+
+/* Timeline: no trailing band after the last event. */
+.m3-timeline {
+    margin: 10px 0 0;
+}
+
+/* Work history entries sit flush with their heading, like membership history. */
+.m3-history {
+    padding-left: 0;
 }

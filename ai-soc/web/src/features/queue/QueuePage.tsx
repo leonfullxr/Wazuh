@@ -529,7 +529,13 @@ export function QueuePage({
                                                 </div>
                                                 {group.computation_version && (
                                                     <span className="table-secondary">
-                                                        {group.computation_version.split(":")[0]}
+                                                        <code>
+                                                            {
+                                                                group.computation_version.split(
+                                                                    ":",
+                                                                )[0]
+                                                            }
+                                                        </code>
                                                     </span>
                                                 )}
                                             </td>
@@ -750,9 +756,13 @@ function GroupDrawer({
                 <strong>{group.score === null ? t("scorePending") : group.score.toFixed(1)}</strong>
                 <span>{t("score")}</span>
                 <small>
-                    {group.computation_version
-                        ? `${t("uncalibratedShort")} · ${group.computation_version}`
-                        : t("scorePendingDescription")}
+                    {group.computation_version ? (
+                        <>
+                            {t("uncalibratedShort")} · <code>{group.computation_version}</code>
+                        </>
+                    ) : (
+                        t("scorePendingDescription")
+                    )}
                 </small>
                 {group.score !== null && (
                     <span className="queue-v2-drawer-score" aria-hidden="true">
@@ -776,7 +786,13 @@ function GroupDrawer({
                 <dt>{t("groupLast")}</dt>
                 <dd>{formatTime(group.last_ts)}</dd>
                 <dt>{t("scoreVersion")}</dt>
-                <dd>{group.computation_version ?? "—"}</dd>
+                <dd>
+                    {group.computation_version ? (
+                        <code>{group.computation_version}</code>
+                    ) : (
+                        <span className="null-value">{"\u2014"}</span>
+                    )}
+                </dd>
                 <dt>{t("scoreDigest")}</dt>
                 <dd>
                     <code>{group.input_digest ?? "—"}</code>
