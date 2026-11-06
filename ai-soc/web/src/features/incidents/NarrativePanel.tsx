@@ -71,7 +71,9 @@ export function NarrativePanel({
                             {t("m3NarrativeHistorical")}
                         </p>
                     )}
-                    <p className="m3-trust-note">{t("m3NarrativeTrust")}</p>
+                    <p className="m3-trust-note">
+                        <TrustNote text={t("m3NarrativeTrust")} />
+                    </p>
                     {removals.length > 0 && (
                         <div>
                             <h5>{t("m3NarrativeRemovals")}</h5>
@@ -412,4 +414,15 @@ export function HashText({ text, locale }: { text: string; locale: Locale }) {
     }
     if (last < text.length) parts.push(text.slice(last));
     return <>{parts}</>;
+}
+
+/** Only the lead sentence of the trust note is bold; the rest reads as normal guidance. */
+function TrustNote({ text }: { text: string }) {
+    const cut = text.indexOf(". ");
+    if (cut < 0) return <strong>{text}</strong>;
+    return (
+        <>
+            <strong>{text.slice(0, cut + 1)}</strong> {text.slice(cut + 2)}
+        </>
+    );
 }

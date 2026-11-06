@@ -1138,8 +1138,9 @@ code,
 }
 .topic-jump a[aria-current="location"] {
     background: var(--accent-wash);
-    box-shadow: inset 0 0 0 1px var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
     color: var(--text);
+    font-weight: 550;
 }
 .topic-jump a[aria-current="location"] > span:first-child {
     background: var(--accent);
@@ -2948,4 +2949,23 @@ input.id-input::placeholder,
 textarea.id-input::placeholder {
     font-family: var(--font-ui);
     font-size: 13px;
+}
+/* Answer data tables: field-name headers are identifiers, so mono; sort glyphs stay quiet
+   until hovered or active. */
+.fetch-table th .sort-button {
+    color: var(--text-2);
+    font: 400 12px var(--font-code);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.fetch-table th .sort-button svg {
+    opacity: 0.4;
+}
+.fetch-table th .sort-button:hover svg,
+.fetch-table th[aria-sort="ascending"] .sort-button svg,
+.fetch-table th[aria-sort="descending"] .sort-button svg {
+    opacity: 1;
+}
+.ids-link code {
+    color: inherit;
 }

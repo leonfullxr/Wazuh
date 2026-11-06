@@ -839,3 +839,53 @@
 .m3-graph-empty-copy h4 {
     margin: 0;
 }
+
+/* Trust note: regular weight with a bold lead sentence; narrative prose at body size. */
+.m3-page .m3-trust-note {
+    font-weight: 400;
+}
+
+.m3-page .m3-trust-note strong {
+    font-weight: 600;
+}
+
+.m3-narrative-text {
+    font-size: 14px;
+    line-height: 22px;
+}
+
+/* Empty entity graph: a plain muted line flush with the section, like other empty notes. */
+.m3-graph-empty {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.m3-graph-empty-copy h4,
+.m3-graph-empty-copy p {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* Detail tables use the 13px body size; only the hash sub-line stays small. */
+.m3-detail td {
+    font-size: 13px;
+}
+
+.m3-detail td > strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Timeline marker: a solid dot, not a ring (the rail between events stays). */
+.m3-timeline-marker::before {
+    top: 5px;
+    left: 4px;
+    width: 8px;
+    height: 8px;
+    border: 0;
+    background: var(--text-muted);
+    box-shadow: none;
+}

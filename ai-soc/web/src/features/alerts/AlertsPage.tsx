@@ -662,9 +662,18 @@ function AlertDrawer({
                         <dd>{alert.dst_ip ? <code>{alert.dst_ip}</code> : <NullValue />}</dd>
                         <dt>{t("user")}</dt>
                         <dd>
-                            {alert.src_user ? <code>{alert.src_user}</code> : <NullValue />}
-                            <span className="kv-sep">{"\u2192"}</span>
-                            {alert.dst_user ? <code>{alert.dst_user}</code> : <NullValue />}
+                            {/* Source and destination only show an arrow when both are known. */}
+                            {alert.src_user && alert.dst_user ? (
+                                <>
+                                    <code>{alert.src_user}</code>
+                                    <span className="kv-sep">{"\u2192"}</span>
+                                    <code>{alert.dst_user}</code>
+                                </>
+                            ) : alert.src_user || alert.dst_user ? (
+                                <code>{alert.src_user ?? alert.dst_user}</code>
+                            ) : (
+                                <NullValue />
+                            )}
                         </dd>
                         <dt>{t("mappingProfile")}</dt>
                         <dd>

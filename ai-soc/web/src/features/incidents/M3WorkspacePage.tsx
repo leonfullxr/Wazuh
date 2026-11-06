@@ -1025,7 +1025,7 @@ function IncidentDetailView({
                             />
                         </label>
                         <p className="muted">{t("m3IncidentDispositionScope")}</p>
-                        <button className="btn outline" type="submit">
+                        <button className="btn primary" type="submit">
                             {t("m3SaveDisposition")}
                         </button>
                     </form>

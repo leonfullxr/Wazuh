@@ -487,3 +487,9 @@
         max-width: none;
     }
 }
+
+@media (max-width: 480px) {
+    .queue-v2-results-heading {
+        margin-bottom: 0;
+    }
+}
