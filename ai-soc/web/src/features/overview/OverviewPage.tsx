@@ -192,8 +192,8 @@ export function OverviewPage({
                                                 tickFormatter={(hour: string) =>
                                                     formatTick(hour, timezone)
                                                 }
-                                                interval="preserveStartEnd"
-                                                minTickGap={56}
+                                                interval="equidistantPreserveStart"
+                                                minTickGap={40}
                                                 axisLine={{ stroke: "var(--border-strong)" }}
                                                 tickLine={false}
                                                 height={22}

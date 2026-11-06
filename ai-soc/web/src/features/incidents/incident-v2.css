@@ -644,13 +644,28 @@
 
 .m3-timeline-event > strong > code {
     font-family: var(--font-code);
-    font-weight: 500;
+    font-weight: 600;
+}
+
+/* The next section draws the divider, so the narrative's last block does not. */
+.m3-narrative > .m3-meta:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.m3-timeline-event > .m3-evidence {
+    margin-top: 6px;
+}
+
+.m3-timeline-event .m3-evidence > li {
+    padding-top: 0;
 }
 
 .m3-timeline-event > span .copy-value {
     color: inherit;
     font-size: 11px;
-    vertical-align: bottom;
+    line-height: 18px;
+    vertical-align: top;
 }
 
 .m3-detail .m3-stage-head > code {
@@ -677,4 +692,20 @@
     font-weight: 500;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.m3-narrative-text .copy-value {
+    color: var(--text);
+    font-size: 12.5px;
+    vertical-align: baseline;
+}
+
+/* Narrow side cards (membership history): label above value, so UUIDs fit whole. */
+.m3-two-column .m3-evidence-fields > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1px;
+}
+
+.m3-two-column .m3-evidence-fields > div + div {
+    margin-top: 6px;
 }

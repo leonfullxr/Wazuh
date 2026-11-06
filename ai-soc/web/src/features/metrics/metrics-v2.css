@@ -344,6 +344,7 @@
 
 /* Hourly volume: fixed time and level columns so the level sits next to its time. */
 .metrics-v2-volume .metrics-v2-table {
+    min-width: 0;
     table-layout: fixed;
 }
 
@@ -353,4 +354,10 @@
 
 .metrics-v2-volume .metrics-v2-table th:nth-child(2) {
     width: 160px;
+}
+
+/* Keep each count next to its time and level instead of 700px away. */
+.metrics-v2-volume > .metrics-v2-section-head,
+.metrics-v2-volume > .table-scroll {
+    max-width: 560px;
 }

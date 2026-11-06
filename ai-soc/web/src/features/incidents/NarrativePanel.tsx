@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { components } from "../../../../contracts/workspace/v1/types.ts";
 import { getIncidentNarrative } from "../../api/workspace-m3";
@@ -112,7 +112,14 @@ export function NarrativePanel({
                                 <p className="muted">{t("m3NarrativeInvalid")}</p>
                             ) : (
                                 <p className="m3-narrative-text">
-                                    {locale === "es" ? summary.rendered_es : summary.rendered_en}
+                                    <HashText
+                                        text={
+                                            locale === "es"
+                                                ? summary.rendered_es
+                                                : summary.rendered_en
+                                        }
+                                        locale={locale}
+                                    />
                                 </p>
                             )}
                             {summary.static_error && (
@@ -342,8 +349,24 @@ export function compactId(value: string): string {
 
 /** Long hashes show head and tail; the button copies the full value and the title reveals it. */
 export function IdValue({ value, locale }: { value: string; locale: Locale }) {
-    if (value.length <= 40) return <code>{value}</code>;
+    if (value.length <= 40 || value.includes("://")) return <code>{value}</code>;
     return (
         <CopyValue value={value} displayValue={compactId(value)} t={(key) => fmt(locale, key)} />
     );
+}
+
+const HEX_HASH = /\b[0-9a-f]{32,}\b/gi;
+
+/** Prose keeps its words; long hex hashes inside it render as compact ids with copy. */
+export function HashText({ text, locale }: { text: string; locale: Locale }) {
+    const parts: ReactNode[] = [];
+    let last = 0;
+    for (const match of text.matchAll(HEX_HASH)) {
+        const start = match.index ?? 0;
+        if (start > last) parts.push(text.slice(last, start));
+        parts.push(<IdValue key={start} value={match[0]} locale={locale} />);
+        last = start + match[0].length;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return <>{parts}</>;
 }

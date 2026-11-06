@@ -662,7 +662,9 @@ function AlertDrawer({
                         <dd>{alert.dst_ip ? <code>{alert.dst_ip}</code> : <NullValue />}</dd>
                         <dt>{t("user")}</dt>
                         <dd>
-                            {alert.src_user ?? "—"} → {alert.dst_user ?? "—"}
+                            {alert.src_user ? <code>{alert.src_user}</code> : <NullValue />}
+                            {" \u2192 "}
+                            {alert.dst_user ? <code>{alert.dst_user}</code> : <NullValue />}
                         </dd>
                         <dt>{t("mappingProfile")}</dt>
                         <dd>{alert.mapping_profile}</dd>

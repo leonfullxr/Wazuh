@@ -520,10 +520,11 @@ export function QueuePage({
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="table-secondary">
-                                                    {group.computation_version?.split(":")[0] ??
-                                                        t("scorePending")}
-                                                </span>
+                                                {group.computation_version && (
+                                                    <span className="table-secondary">
+                                                        {group.computation_version.split(":")[0]}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td>{group.alert_count.toLocaleString()}</td>
                                             <td>{formatTime(group.last_ts)}</td>
@@ -882,8 +883,12 @@ function GroupDrawer({
                         <span>{alert.rule_description ?? alert.rule_id ?? "Alert"}</span>
                         <code>{alert.alert_key}</code>
                         <small>
-                            {alert.agent_name ?? alert.agent_id ?? "—"} ·{" "}
-                            {formatTime(alert.event_ts)}
+                            {(alert.agent_name ?? alert.agent_id) ? (
+                                <code>{alert.agent_name ?? alert.agent_id}</code>
+                            ) : (
+                                <span className="null-value">{"\u2014"}</span>
+                            )}{" "}
+                            · {formatTime(alert.event_ts)}
                         </small>
                     </button>
                 ))}

@@ -49,3 +49,19 @@ describe("humanizeKey", () => {
         expect(humanizeKey("docs_manifest_sha256")).toBe("Docs manifest SHA-256");
     });
 });
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { HashText } from "../../src/features/incidents/NarrativePanel";
+
+describe("HashText", () => {
+    it("keeps prose and compacts long hex hashes with the full value in the title", () => {
+        const hash = "a".repeat(64);
+        const html = renderToStaticMarkup(
+            createElement(HashText, { text: `Group ${hash} has a score.`, locale: "en" }),
+        );
+        expect(html.startsWith("Group ")).toBe(true);
+        expect(html).toContain(`title="${hash}"`);
+        expect(html).toContain(`${"a".repeat(12)}…${"a".repeat(8)}`);
+        expect(html.endsWith(" has a score.")).toBe(true);
+    });
+});

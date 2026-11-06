@@ -31,12 +31,14 @@ export function SheetContent({
                     }
                 }}
             >
-                <Dialog.Title className="mb-[16px] mr-[40px] text-[16px] leading-[24px] font-semibold">
-                    {title}
-                </Dialog.Title>
-                <Dialog.Close className="sheet-close" aria-label={closeLabel}>
-                    <X size={18} aria-hidden="true" />
-                </Dialog.Close>
+                <div className="sheet-head">
+                    <Dialog.Title className="text-[16px] leading-[24px] font-semibold">
+                        {title}
+                    </Dialog.Title>
+                    <Dialog.Close className="sheet-close" aria-label={closeLabel}>
+                        <X size={18} aria-hidden="true" />
+                    </Dialog.Close>
+                </div>
                 {children}
             </Dialog.Content>
         </Dialog.Portal>

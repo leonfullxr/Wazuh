@@ -315,7 +315,7 @@ export function EvidenceChip({
     if (!item && isCheckRecord)
         return (
             <span className="citation check-reference" title={id}>
-                <code>{id}</code>
+                <code>{id.slice(0, 16)}</code>
                 <CopyValue value={id} displayValue="" t={t} />
                 <small>{t("checkNotIncluded")}</small>
             </span>

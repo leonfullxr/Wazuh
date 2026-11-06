@@ -5,6 +5,7 @@ import { KevFreshnessNote } from "./EvidenceDataTable";
 import { date } from "../../app/state/answer-format";
 import { CopyValue } from "./CopyValue";
 import { humanizeKey } from "../../lib/utils";
+import { compactId } from "../incidents/NarrativePanel";
 export function StatusScreen({
     bootstrap,
     answer,
@@ -131,7 +132,15 @@ export function StatusScreen({
                     {Object.entries(bootstrap.provenance).map(([k, v]) => (
                         <p key={k}>
                             <span>{humanizeKey(k)}</span>
-                            <CopyValue value={String(v)} t={t} />
+                            <CopyValue
+                                value={String(v)}
+                                displayValue={
+                                    String(v).length > 40 && !String(v).includes("://")
+                                        ? compactId(String(v))
+                                        : String(v)
+                                }
+                                t={t}
+                            />
                         </p>
                     ))}
                 </section>
