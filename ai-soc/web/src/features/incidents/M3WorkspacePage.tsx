@@ -779,6 +779,22 @@ function IncidentDetailView({
                         {t("m3UpdateMembership")}
                     </button>
                 </form>
+                <h5>{t("m3MembershipHistory")}</h5>
+                {data.membership_intervals.length ? (
+                    <EvidenceRows values={data.membership_intervals} locale={locale} />
+                ) : (
+                    <p className="muted">{t("m3NoMembershipHistory")}</p>
+                )}
+                {data.next_cursors.membership && (
+                    <button
+                        className="btn outline"
+                        onClick={() =>
+                            onMoreDetail("membership", data.next_cursors.membership ?? "")
+                        }
+                    >
+                        {t("nextPage")}
+                    </button>
+                )}
             </section>
             <section aria-labelledby="incident-timeline-heading">
                 <h4 id="incident-timeline-heading">{t("m3Timeline")}</h4>
@@ -952,6 +968,37 @@ function IncidentDetailView({
                 </section>
                 <section aria-labelledby="incident-disposition-heading">
                     <h4 id="incident-disposition-heading">{t("m3Disposition")}</h4>
+                    {data.dispositions.length ? (
+                        <ol className="m3-history">
+                            {data.dispositions.map((item) => (
+                                <li key={item.disposition_id}>
+                                    <strong>{t(`m3Disposition_${item.label}`)}</strong>
+                                    <span>
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
+                                    </span>
+                                    {item.reason_code && (
+                                        <p>
+                                            {t("m3FpReason")}: {item.reason_code}
+                                        </p>
+                                    )}
+                                    {item.note && <p>{item.note}</p>}
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p className="muted">{t("m3NoDispositions")}</p>
+                    )}
+                    {data.next_cursors.dispositions && (
+                        <button
+                            className="btn outline"
+                            onClick={() =>
+                                onMoreDetail("dispositions", data.next_cursors.dispositions ?? "")
+                            }
+                        >
+                            {t("nextPage")}
+                        </button>
+                    )}
                     <form
                         className="m3-inline-form"
                         onSubmit={(event) => {
@@ -1029,53 +1076,6 @@ function IncidentDetailView({
                             {t("m3SaveDisposition")}
                         </button>
                     </form>
-                    {data.dispositions.length ? (
-                        <ol className="m3-history">
-                            {data.dispositions.map((item) => (
-                                <li key={item.disposition_id}>
-                                    <strong>{t(`m3Disposition_${item.label}`)}</strong>
-                                    <span>
-                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
-                                        v{item.work_version}
-                                    </span>
-                                    {item.reason_code && (
-                                        <p>
-                                            {t("m3FpReason")}: {item.reason_code}
-                                        </p>
-                                    )}
-                                    {item.note && <p>{item.note}</p>}
-                                </li>
-                            ))}
-                        </ol>
-                    ) : (
-                        <p className="muted">{t("m3NoDispositions")}</p>
-                    )}
-                    {data.next_cursors.dispositions && (
-                        <button
-                            className="btn outline"
-                            onClick={() =>
-                                onMoreDetail("dispositions", data.next_cursors.dispositions ?? "")
-                            }
-                        >
-                            {t("nextPage")}
-                        </button>
-                    )}
-                    <h5>{t("m3MembershipHistory")}</h5>
-                    {data.membership_intervals.length ? (
-                        <EvidenceRows values={data.membership_intervals} locale={locale} compact />
-                    ) : (
-                        <p className="muted">{t("m3NoMembershipHistory")}</p>
-                    )}
-                    {data.next_cursors.membership && (
-                        <button
-                            className="btn outline"
-                            onClick={() =>
-                                onMoreDetail("membership", data.next_cursors.membership ?? "")
-                            }
-                        >
-                            {t("nextPage")}
-                        </button>
-                    )}
                 </section>
             </div>
         </>

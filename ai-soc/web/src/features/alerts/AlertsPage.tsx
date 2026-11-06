@@ -535,7 +535,7 @@ export function AlertsPage({
                     </div>
                 </Panel>
                 <SheetContent
-                    title={t("alertDetails")}
+                    title={detail.data?.rule_description ?? t("alertDetails")}
                     closeLabel={t("detailsClose")}
                     restoreFocus={restoreTriggerFocus}
                 >
@@ -620,7 +620,6 @@ function AlertDrawer({
     const [view, setView] = useState<"fields" | "json">("fields");
     return (
         <div className="alert-drawer-body">
-            <p className="drawer-alert-title">{alert.rule_description ?? t("nullUnknown")}</p>
             <div className="alerts-v2-view-toggle" aria-label={copy.documentView} role="group">
                 <button
                     type="button"

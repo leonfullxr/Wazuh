@@ -2969,3 +2969,50 @@ textarea.id-input::placeholder {
 .ids-link code {
     color: inherit;
 }
+/* Answered Investigate: a shorter composer and tighter answer header so findings start higher. */
+main:has(.answer-summary) .composer {
+    padding: 14px 20px;
+}
+main:has(.answer-summary) .composer .section-title {
+    margin-bottom: 8px !important;
+}
+main:has(.answer-summary) .composer textarea {
+    height: 44px;
+    min-height: 44px;
+}
+main:has(.answer-summary) .composer-controls {
+    margin-top: 8px;
+}
+.answer-summary {
+    padding: 12px 20px;
+}
+.answer-summary .original-question {
+    margin-top: 6px;
+}
+.topic-header {
+    padding: 12px 20px;
+}
+/* Light theme: unchecked boxes get the same 3:1 outline as dark. */
+input[type="checkbox"]:not(:checked) {
+    border-color: var(--text-muted);
+}
+/* Topic header: the topic id sits on the title line, after the title. */
+.topic-header > div:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+}
+.topic-header > div:first-child > .eyebrow {
+    flex-basis: 100%;
+}
+/* Every page keeps the same header block height: routes without a description reserve its
+   slot, so the first card does not jump when switching tabs. */
+@media (min-width: 701px) {
+    main.workspace:not(:has(.page-description)) > .page-head {
+        margin-bottom: 53px;
+    }
+}
+main.workspace > .page-description {
+    margin-bottom: 20px;
+}

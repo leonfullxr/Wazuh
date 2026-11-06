@@ -12,15 +12,17 @@ export function PageHeading({
     t: Translate;
 }) {
     return (
-        <div className="page-head">
-            <div>
-                <span className="page-icon" aria-hidden="true">
-                    <Icon size={17} />
-                </span>
-                <h2>{t(route)}</h2>
+        <>
+            <div className="page-head">
+                <div>
+                    <span className="page-icon" aria-hidden="true">
+                        <Icon size={17} />
+                    </span>
+                    <h2>{t(route)}</h2>
+                </div>
             </div>
-            {route === "investigate" && <span className="muted">{t("evidenceReview")}</span>}
-        </div>
+            {route === "investigate" && <p className="page-description">{t("evidenceReview")}</p>}
+        </>
     );
 }
 

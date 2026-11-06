@@ -493,3 +493,34 @@
         margin-bottom: 0;
     }
 }
+
+/* One border level in the drawer: items inside a section are rows with hairline dividers,
+   not bordered cards; the score hero keeps only a background tint. */
+.queue-v2-drawer .score-components li,
+.queue-v2-drawer .provenance-row,
+.queue-v2-drawer .member-link {
+    padding: 10px 0;
+    border: 0;
+    border-bottom: 1px solid var(--border-row);
+    border-radius: 0;
+    background: transparent;
+}
+
+.queue-v2-drawer .score-components li:last-child,
+.queue-v2-drawer .provenance-row:last-child,
+.queue-v2-drawer .member-link:last-of-type {
+    border-bottom: 0;
+}
+
+.queue-v2-drawer .member-link:hover {
+    background: transparent;
+}
+
+.queue-v2-drawer .member-link:hover > span:first-child {
+    color: var(--accent-text);
+}
+
+.queue-v2-drawer .group-score-card {
+    border: 0;
+    background: var(--surface-2);
+}

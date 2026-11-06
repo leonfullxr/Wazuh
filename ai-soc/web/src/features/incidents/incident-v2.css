@@ -889,3 +889,28 @@
     background: var(--text-muted);
     box-shadow: none;
 }
+
+/* Evidence groups: auto column sizing with tighter cells; the group name keeps one line. */
+section[aria-labelledby="incident-members-heading"] th,
+section[aria-labelledby="incident-members-heading"] td {
+    padding-right: 10px;
+    padding-left: 10px;
+}
+
+section[aria-labelledby="incident-members-heading"] td > strong {
+    white-space: nowrap;
+}
+
+section[aria-labelledby="incident-members-heading"] > h5 {
+    margin: 20px 0 8px;
+}
+
+/* Empty entity graph: a primary label, then the muted sentence after a 12px gap. */
+.m3-graph-empty-copy {
+    column-gap: 12px;
+}
+
+.m3-graph-empty-copy h4 {
+    color: var(--text);
+    font-weight: 600;
+}

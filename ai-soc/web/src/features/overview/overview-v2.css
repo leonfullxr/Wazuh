@@ -527,3 +527,41 @@
         grid-column: span 3;
     }
 }
+
+/* Wide screens: legend and hour picker share the title row, and the card loses its slack,
+   so the plot keeps its height while the card gets shorter. */
+@media (min-width: 1100px) {
+    .overview-v2-volume {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        column-gap: 24px;
+    }
+
+    .overview-v2-volume > :not(.overview-v2-panel-head):not(.overview-v2-chart-toolbar) {
+        grid-column: 1 / -1;
+    }
+
+    .overview-v2-volume > .overview-v2-panel-head {
+        margin-bottom: 8px;
+    }
+
+    .overview-v2-volume > .overview-v2-chart-toolbar {
+        margin: 0 0 8px;
+        flex-wrap: nowrap;
+    }
+}
+
+.overview-v2-chart {
+    padding-top: 4px;
+}
+
+.overview-v2-breakdown {
+    margin-top: 10px;
+    padding-top: 12px;
+}
+
+.overview-v2-legend li,
+.overview-v2-legend > * {
+    white-space: nowrap;
+}
