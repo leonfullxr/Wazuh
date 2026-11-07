@@ -3044,3 +3044,12 @@ main.workspace > .page-description {
 .topic-header {
     align-items: flex-end;
 }
+/* Enrichment source names: mono, but lighter than the section title above them. */
+.provenance-row > strong {
+    color: var(--text-2);
+    font-weight: 500;
+}
+/* Wazuh group and tactic tokens are labels, so the drawer chips use the UI face like the tables. */
+.field-chips code {
+    font-family: var(--font-ui);
+}

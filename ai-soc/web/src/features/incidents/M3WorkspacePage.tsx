@@ -341,6 +341,7 @@ export function M3WorkspacePage({
                         <CreateIncidentForm
                             siteId={siteId}
                             t={t}
+                            secondary={selection?.kind === "incident"}
                             onCreate={(body) =>
                                 void runAction(async () => {
                                     const result = await createIncident(body);
@@ -567,6 +568,7 @@ function ChainDetailView({
             {detail.state === "open" && (
                 <div className="m3-actions">
                     <form
+                        id="chain-promote-form"
                         onSubmit={(event) => {
                             event.preventDefault();
                             onPromote(title.trim());
@@ -580,11 +582,9 @@ function ChainDetailView({
                                 onChange={(event) => setTitle(event.target.value)}
                             />
                         </label>
-                        <button className="btn primary" type="submit">
-                            {t("m3Promote")}
-                        </button>
                     </form>
                     <form
+                        id="chain-dismiss-form"
                         onSubmit={(event) => {
                             event.preventDefault();
                             if (reason.trim()) onDismiss(reason.trim());
@@ -599,10 +599,16 @@ function ChainDetailView({
                                 onChange={(event) => setReason(event.target.value)}
                             />
                         </label>
-                        <button className="btn outline" type="submit">
+                    </form>
+                    {/* One right-aligned action row; each button submits its own form. */}
+                    <div className="m3-actions-row">
+                        <button className="btn outline" type="submit" form="chain-dismiss-form">
                             {t("m3Dismiss")}
                         </button>
-                    </form>
+                        <button className="btn primary" type="submit" form="chain-promote-form">
+                            {t("m3Promote")}
+                        </button>
+                    </div>
                 </div>
             )}
         </>
@@ -1112,10 +1118,13 @@ function CreateIncidentForm({
     siteId,
     t,
     onCreate,
+    secondary = false,
 }: {
     siteId: string;
     t: Translate;
     onCreate: (body: components["schemas"]["IncidentCreateRequest"]) => void;
+    /** While an incident is open its own actions are primary, so this one steps back. */
+    secondary?: boolean;
 }) {
     const [groupIdsText, setGroupIdsText] = useState("");
     const [title, setTitle] = useState("");
@@ -1173,7 +1182,7 @@ function CreateIncidentForm({
                     onChange={(event) => setOwner(event.target.value)}
                 />
             </label>
-            <button className="btn primary" type="submit">
+            <button className={secondary ? "btn outline" : "btn primary"} type="submit">
                 {t("m3Create")}
             </button>
         </form>

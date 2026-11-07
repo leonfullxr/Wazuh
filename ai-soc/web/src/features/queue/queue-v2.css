@@ -529,3 +529,18 @@
 .queue-v2-drawer .provenance-fields > div {
     grid-template-columns: 156px minmax(0, 1fr);
 }
+
+/* Alerts-in-group is a count, so it right-aligns like other numeric columns. */
+.queue-v2 .queue-table th:nth-child(4),
+.queue-v2 .queue-table td:nth-child(4) {
+    text-align: right;
+}
+
+.queue-v2-drawer-score,
+.queue-v2-drawer-score > span {
+    border-radius: 999px;
+}
+
+.queue-v2-drawer-score {
+    overflow: hidden;
+}
