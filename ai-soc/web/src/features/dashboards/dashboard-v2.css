@@ -136,3 +136,8 @@
 .dashboard-v2-available > div > p {
     max-width: 900px;
 }
+
+/* An odd last card spans both columns instead of leaving a hole. */
+.dashboard-v2-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}

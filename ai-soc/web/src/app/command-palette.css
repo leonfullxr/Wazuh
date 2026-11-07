@@ -150,3 +150,8 @@
     color: var(--text-2);
     font: 500 11px/16px var(--font-ui);
 }
+
+/* Search actions keep their labels in one column so the query values align. */
+.command-search-label {
+    min-width: 100px;
+}

@@ -217,7 +217,9 @@ export function CommandPalette({
                             })()}
                             {action.kind === "search" ? (
                                 <>
-                                    {action.label.slice(0, -value.length)}
+                                    <span className="command-search-label">
+                                        {action.label.slice(0, -value.length)}
+                                    </span>
                                     <code>{value}</code>
                                 </>
                             ) : (

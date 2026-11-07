@@ -599,3 +599,8 @@
     font-size: 13px;
     line-height: 20px;
 }
+
+/* Secondary rule and agent ids in top lists read at 12px. */
+.overview-v2-list li > button > code:not(.overview-v2-list-id) {
+    font-size: 12px;
+}

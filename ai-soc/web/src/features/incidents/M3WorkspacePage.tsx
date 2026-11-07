@@ -355,7 +355,6 @@ export function M3WorkspacePage({
                         <CreateIncidentForm
                             siteId={siteId}
                             t={t}
-                            secondary={selection?.kind === "incident"}
                             onCreate={(body) =>
                                 void runAction(async () => {
                                     const result = await createIncident(body);
@@ -1130,13 +1129,11 @@ function CreateIncidentForm({
     siteId,
     t,
     onCreate,
-    secondary = false,
 }: {
     siteId: string;
     t: Translate;
     onCreate: (body: components["schemas"]["IncidentCreateRequest"]) => void;
     /** While an incident is open its own actions are primary, so this one steps back. */
-    secondary?: boolean;
 }) {
     const [groupIdsText, setGroupIdsText] = useState("");
     const [title, setTitle] = useState("");
@@ -1194,7 +1191,7 @@ function CreateIncidentForm({
                     onChange={(event) => setOwner(event.target.value)}
                 />
             </label>
-            <button className={secondary ? "btn outline" : "btn primary"} type="submit">
+            <button className="btn outline" type="submit">
                 {t("m3Create")}
             </button>
         </form>

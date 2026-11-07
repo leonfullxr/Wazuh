@@ -3137,3 +3137,9 @@ main.workspace > .page-description {
 .panel.empty-state {
     min-height: 266px;
 }
+
+/* A single-sentence empty state is a hint, not a title: regular weight, secondary colour. */
+.empty-state > svg + :last-child {
+    color: var(--text-2);
+    font-weight: 400;
+}

@@ -1071,3 +1071,19 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
 section[aria-labelledby="chain-links-heading"] > h5 {
     margin-top: 12px;
 }
+
+/* The two decision pairs sit further apart than a field and its button. */
+.m3-detail > .m3-actions {
+    column-gap: 32px;
+}
+
+/* Single-field stage values share a fixed slot, so the labels stack in one column. */
+.m3-stage-field > :last-child {
+    min-width: 168px;
+    text-align: left;
+}
+
+/* Both decision buttons share one width, so the two inputs match. */
+.m3-actions form > .btn {
+    min-width: 152px;
+}
