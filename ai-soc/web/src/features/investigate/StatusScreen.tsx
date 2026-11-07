@@ -67,35 +67,34 @@ export function StatusScreen({
                 </section>
                 <section className="panel freshness">
                     <h2>{t("freshness")}</h2>
-                    <p>{t("statusFresh")}</p>
-                    {answer ? (
-                        answer.blocks.flatMap((b) =>
-                            b.tables.map((f) => (
-                                <p key={`${b.topic_id}-${f.fetch_id}`}>
-                                    <strong>{f.fetch_id}</strong> |{" "}
-                                    {date(
-                                        f.snapshot_at ?? f.snapshot.at,
-                                        Intl.DateTimeFormat().resolvedOptions().timeZone,
-                                        locale,
-                                    )}{" "}
-                                    |{" "}
-                                    {date(
-                                        f.window.start,
-                                        Intl.DateTimeFormat().resolvedOptions().timeZone,
-                                        locale,
-                                    )}{" "}
-                                    -{" "}
-                                    {date(
-                                        f.window.end,
-                                        Intl.DateTimeFormat().resolvedOptions().timeZone,
-                                        locale,
-                                    )}
-                                </p>
-                            )),
-                        )
-                    ) : (
-                        <p className="muted">{t("notReady")}</p>
-                    )}
+                    {!answer && <p className="freshness-empty">{t("notReady")}</p>}
+                    <p className={answer ? undefined : "muted"}>{t("statusFresh")}</p>
+                    {answer
+                        ? answer.blocks.flatMap((b) =>
+                              b.tables.map((f) => (
+                                  <p key={`${b.topic_id}-${f.fetch_id}`}>
+                                      <strong>{f.fetch_id}</strong> |{" "}
+                                      {date(
+                                          f.snapshot_at ?? f.snapshot.at,
+                                          Intl.DateTimeFormat().resolvedOptions().timeZone,
+                                          locale,
+                                      )}{" "}
+                                      |{" "}
+                                      {date(
+                                          f.window.start,
+                                          Intl.DateTimeFormat().resolvedOptions().timeZone,
+                                          locale,
+                                      )}{" "}
+                                      -{" "}
+                                      {date(
+                                          f.window.end,
+                                          Intl.DateTimeFormat().resolvedOptions().timeZone,
+                                          locale,
+                                      )}
+                                  </p>
+                              )),
+                          )
+                        : null}
                     <KevFreshnessNote answer={answer} locale={locale} t={t} />
                 </section>
             </div>

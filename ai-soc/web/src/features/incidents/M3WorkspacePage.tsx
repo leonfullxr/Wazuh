@@ -166,7 +166,14 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="chain-list-heading">
                         <div className="panel-head">
-                            <h3 id="chain-list-heading" className="sr-only">{t("m3Candidates")}</h3>
+                            <h3 id="chain-list-heading" className="sr-only">
+                                {t("m3Candidates")}
+                            </h3>
+                            <ListCount
+                                count={chains.data?.items.length}
+                                one={t("m3CandidateOne")}
+                                many={t("m3CandidateMany")}
+                            />
                             <button className="btn outline" onClick={() => void chains.refetch()}>
                                 {t("refresh")}
                             </button>
@@ -270,7 +277,14 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="incident-list-heading">
                         <div className="panel-head">
-                            <h3 id="incident-list-heading" className="sr-only">{t("m3Incidents")}</h3>
+                            <h3 id="incident-list-heading" className="sr-only">
+                                {t("m3Incidents")}
+                            </h3>
+                            <ListCount
+                                count={incidents.data?.items.length}
+                                one={t("m3IncidentOne")}
+                                many={t("m3IncidentMany")}
+                            />
                             <button
                                 className="btn outline"
                                 onClick={() => void incidents.refetch()}
@@ -1245,7 +1259,12 @@ function FlatEvidence({
 }) {
     const { ordinal, stage_id: stage, outcome, ...rest } = value;
     const staged = stage !== undefined && stage !== null;
-    const fields = Object.entries(staged ? rest : value);
+    const restEntries = Object.entries(rest);
+    const inline =
+        staged && restEntries.length === 1 && !Array.isArray(restEntries[0][1])
+            ? restEntries[0]
+            : undefined;
+    const fields = inline ? [] : Object.entries(staged ? rest : value);
     return (
         <>
             {staged && (
@@ -1266,6 +1285,16 @@ function FlatEvidence({
                         >
                             {String(outcome)}
                         </Tag>
+                    )}
+                    {inline && (
+                        <span className="m3-stage-field">
+                            <span>{humanizeKey(inline[0])}</span>
+                            <FieldValue
+                                value={inline[1] as Exclude<FlatField, unknown[]>}
+                                locale={locale}
+                                compact={compact}
+                            />
+                        </span>
                     )}
                 </div>
             )}
@@ -1315,6 +1344,15 @@ function failureMessage(error: unknown, t: Translate): string {
         return error.message;
     }
     return error instanceof Error ? error.message : t("m3Unavailable");
+}
+
+function ListCount({ count, one, many }: { count?: number; one: string; many: string }) {
+    if (count === undefined) return <span />;
+    return (
+        <span className="m3-list-count">
+            {count} {count === 1 ? one : many}
+        </span>
+    );
 }
 
 function EmptyDetail({ text }: { text: string }) {

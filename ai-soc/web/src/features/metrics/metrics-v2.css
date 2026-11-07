@@ -85,9 +85,9 @@
     gap: 12px;
 }
 
-/* Cards size to their content, so a short list does not leave a blank half-card. */
+/* Paired cards share one bottom edge, like the percentile pairs above. */
 .metrics-v2-quality-grid {
-    align-items: start;
+    align-items: stretch;
 }
 
 .metrics-v2 .metric-subpanel {

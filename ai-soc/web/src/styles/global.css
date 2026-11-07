@@ -638,7 +638,7 @@ select {
     border-color: var(--stroke-control);
     background: var(--bg-secondary);
 }
-.m3-list-item span,
+.m3-list-item > span,
 .m3-list-item small,
 .m3-list-item em {
     color: var(--text-muted);
@@ -3112,4 +3112,28 @@ main.workspace > .page-description {
 }
 .fetch-table th .sort-button {
     gap: 7px;
+}
+
+/* Page-level empty cards share one height and centre their content. */
+.panel:has(> .empty-state:only-child) {
+    padding: 0;
+}
+.empty-state,
+.m3-empty-detail {
+    min-height: 264px;
+}
+/* An empty status card leads with the same 14px semibold line as the dashboards. */
+.status-grid .freshness-empty {
+    padding-bottom: 2px;
+    border-bottom: 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+.status-grid .freshness-empty + p {
+    padding-top: 0;
+    border-bottom: 0;
+}
+.panel.empty-state {
+    min-height: 266px;
 }

@@ -938,9 +938,7 @@ function GroupDrawer({
                 </button>
             )}
             <section className="drawer-section">
-                <h3>
-                    {t("owner")} / {t("statusLabel")}
-                </h3>
+                <h3>{t("ownerAndStatus")}</h3>
                 <div className="queue-v2-field-row">
                     <label>
                         {t("owner")}
