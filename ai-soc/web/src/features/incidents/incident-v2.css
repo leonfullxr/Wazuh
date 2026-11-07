@@ -1268,3 +1268,24 @@ section[aria-labelledby="chain-stages-heading"] .m3-evidence {
     font-family: var(--font-code);
     font-size: 12.5px;
 }
+
+/* Missing stages: a 10px inset under the closing hairline, no reserved height, so the
+   standard 32px reaches the next section. */
+.m3-detail .m3-missing-row {
+    padding-top: 10px;
+}
+
+.m3-detail .m3-missing-row > div {
+    min-height: 0;
+}
+
+/* "Candidate evidence" is a section name, not a record title: section size, no rule under it. */
+#chain-detail-heading {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+section[aria-labelledby="chain-detail-heading"] > .m3-meta {
+    padding-top: 0;
+    border-top: 0;
+}

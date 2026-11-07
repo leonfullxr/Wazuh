@@ -72,7 +72,7 @@ describe("HashText", () => {
             }),
         );
         expect(html).toContain("agent <code>agent-042</code>");
-        expect(html).toContain("Rule 5763 was");
+        expect(html).toContain("Rule <code>5763</code> was");
         expect(html).toContain("first-page read.");
     });
     it("renders ISO timestamps in prose as dates", () => {

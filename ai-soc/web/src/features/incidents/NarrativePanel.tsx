@@ -391,7 +391,7 @@ export function IdValue({
 
 // Long hex hashes, ISO times, and lowercase hyphenated host ids such as agent-042 or web-01.
 const PROSE_TOKEN =
-    /\b[0-9a-f]{32,}\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?|\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+\b/g;
+    /\b[0-9a-f]{32,}\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?|\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+\b|(?<=\b(?:[Rr]ule|[Rr]egla) )\d+\b/g;
 
 /** Prose keeps its words; hashes become compact ids with copy, ISO times read as dates and host
  * ids are mono, matching the rest of the console. */

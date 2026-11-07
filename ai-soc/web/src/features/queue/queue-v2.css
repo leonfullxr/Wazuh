@@ -575,3 +575,38 @@
 .queue-v2-drawer .provenance-fields dd code {
     font-size: 13px;
 }
+
+/* Score components follow the drawer's label/value grammar: name in the label column, value on
+   the value column, explanation and evidence full width beneath. */
+.queue-v2-drawer .score-components li {
+    grid-template-columns: minmax(156px, 0.7fr) minmax(0, 1.3fr);
+    column-gap: 12px;
+    row-gap: 2px;
+}
+
+.queue-v2-drawer .score-components li > div {
+    display: contents;
+}
+
+.queue-v2-drawer .score-components li > div > strong {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.queue-v2-drawer .score-components li > code {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+}
+
+.queue-v2-drawer .score-components li > div > span,
+.queue-v2-drawer .score-components li > small {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Load more sits 12px under the last member row. */
+.queue-v2-drawer .load-more {
+    margin-top: -14px;
+}

@@ -3182,3 +3182,15 @@ main.workspace > .page-description {
 .topic-jump a[aria-current="location"] {
     padding-right: 4px;
 }
+
+/* Normalized fields are identifiers: 12px mono inside the chip. */
+.field-chips code {
+    font-family: var(--font-code);
+    font-size: 12px;
+}
+/* Disabled outline buttons (pagers) stay legible: muted text at full opacity, border kept. */
+.btn.outline:disabled,
+.btn.outline:disabled:hover {
+    opacity: 1;
+    color: var(--text-muted);
+}
