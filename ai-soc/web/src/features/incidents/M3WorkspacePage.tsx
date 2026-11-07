@@ -533,7 +533,9 @@ function ChainDetailView({
                     <dl className="m3-evidence-fields m3-missing-row">
                         <div>
                             <dt>{t("m3MissingStages")}</dt>
-                            <dd>{missing.map((item) => printable(item)).join(", ")}</dd>
+                            <dd>
+                                <code>{missing.map((item) => printable(item)).join(", ")}</code>
+                            </dd>
                         </div>
                     </dl>
                 )}
@@ -1302,7 +1304,7 @@ function FlatEvidence({
                     </span>
                     {inline && (
                         <span className="m3-stage-field">
-                            <span>{humanizeKey(inline[0])}</span>
+                            <span className="sr-only">{humanizeKey(inline[0])}</span>
                             <FieldValue
                                 value={inline[1] as Exclude<FlatField, unknown[]>}
                                 locale={locale}

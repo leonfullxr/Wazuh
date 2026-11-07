@@ -566,3 +566,12 @@
 .queue-v2-drawer-meta > code {
     font-size: 12px;
 }
+
+/* One key-value pitch (27px) and one 13px value size across the drawer. */
+.queue-v2-drawer .provenance-fields {
+    row-gap: 6px;
+}
+
+.queue-v2-drawer .provenance-fields dd code {
+    font-size: 13px;
+}

@@ -450,3 +450,11 @@
         margin-top: 10px;
     }
 }
+
+/* The Alerts filter card starts at the same inset as Queue's. */
+@media (min-width: 761px) {
+    .alerts-v2 > .workspace-panel:first-of-type {
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
+}

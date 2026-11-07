@@ -631,3 +631,8 @@
 .dark .overview-v2-heatmap-cell[data-empty] {
     background: color-mix(in srgb, var(--surface-2), white 3%);
 }
+
+/* Light theme: empty heatmap cells one step darker so the grid holds. */
+html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
+    background: color-mix(in srgb, var(--surface-2), black 3%);
+}

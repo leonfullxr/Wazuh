@@ -3177,3 +3177,8 @@ main.workspace > .page-description {
 .topic-jump {
     gap: 16px;
 }
+
+/* The active topic outline leaves room after its status pill. */
+.topic-jump a[aria-current="location"] {
+    padding-right: 4px;
+}
