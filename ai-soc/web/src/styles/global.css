@@ -3034,3 +3034,13 @@ main.workspace > .page-description {
 .sheet-head > :first-child {
     margin-top: 4px;
 }
+/* Enrichment source names are identifiers: mono, like the source version beside them. */
+.provenance-row > strong {
+    font-family: var(--font-code);
+    font-size: 13px;
+    font-weight: 600;
+}
+/* Topic header: the status, model and document link sit on the title line, not mid-block. */
+.topic-header {
+    align-items: flex-end;
+}

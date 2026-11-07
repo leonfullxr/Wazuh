@@ -124,7 +124,7 @@
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-hour-select {
-    width: min(100%, 330px);
+    width: min(100%, 280px);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
@@ -569,4 +569,28 @@
 .overview-v2-legend li,
 .overview-v2-legend > * {
     white-space: nowrap;
+}
+
+/* Heatmap: shorter cells and quieter empty slots, so the hours with alerts carry the signal. */
+.overview-v2-heatmap {
+    gap: 3px;
+}
+
+.overview-v2-heatmap-cell {
+    height: 24px;
+}
+
+.overview-v2-heatmap-cell[data-empty] {
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+/* Top lists: cards size to their content and every list row shares one type style. */
+.overview-v2-lists {
+    align-items: start;
+}
+
+.overview-v2-list li > button > span,
+.overview-v2-list li > button > code.overview-v2-list-id {
+    font-size: 13px;
+    line-height: 20px;
 }

@@ -918,3 +918,33 @@ section[aria-labelledby="incident-members-heading"] > h5 {
     color: var(--text);
     font-weight: 600;
 }
+
+/* Wide screens: the list column stays in view while the detail scrolls. */
+@media (min-width: 1201px) {
+    .m3-grid {
+        align-items: start;
+    }
+
+    .m3-grid > .panel:first-child {
+        position: sticky;
+        top: calc(var(--header-height) + 16px);
+    }
+}
+
+/* Detail tables start and end on the same edges as the label column and section headings. */
+.m3-detail section table th:first-child,
+.m3-detail section table td:first-child {
+    padding-left: 0;
+}
+
+.m3-detail section table th:last-child,
+.m3-detail section table td:last-child {
+    padding-right: 0;
+}
+
+/* Record names that are identifiers (history actions) are mono, like every other id. */
+.m3-work-history li > strong {
+    font-family: var(--font-code);
+    font-size: 13px;
+    font-weight: 600;
+}

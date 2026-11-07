@@ -33,7 +33,7 @@ export function StatusScreen({
                     <h3 className="status-subhead">{t("sites")}</h3>
                     {bootstrap.sites.map((s) => (
                         <p key={s.id}>
-                            {s.label} <code>{s.id}</code>
+                            <span>{s.label}</span> <code>{s.id}</code>
                         </p>
                     ))}
                 </section>

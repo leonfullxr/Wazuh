@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { dashboardNav, nav, secondaryNav } from "./Navigation";
 import type { Locale } from "../i18n";
 import type { AlertDrilldown } from "../features/overview/OverviewPage";
 import type { Route } from "./Navigation";
+
+// Looked up lazily: Navigation imports this module, so its lists are not ready at load time.
+function routeIcon(id: string): typeof Search {
+    return (
+        [...nav, ...dashboardNav, ...secondaryNav].find((item) => item.id === id)?.icon ?? Search
+    );
+}
 import "./command-palette.css";
 
 type CommandAction =
@@ -150,7 +158,10 @@ export function CommandPalette({
                     if (event.target === event.currentTarget) close();
                 }}
             >
-                <h2 id="command-title" className="sr-only">{spanish ? "Ir a o buscar" : "Navigate or search"}</h2>
+                <h2 id="command-title" className="sr-only">
+                    {spanish ? "Ir a o buscar" : "Navigate or search"}
+                </h2>
+                <Search className="command-input-icon" size={16} aria-hidden="true" />
                 <input
                     ref={inputRef}
                     value={query}
@@ -199,6 +210,11 @@ export function CommandPalette({
                             onFocus={() => setActiveIndex(index)}
                             onClick={() => run(action)}
                         >
+                            {(() => {
+                                const Icon =
+                                    action.kind === "search" ? Search : routeIcon(action.id);
+                                return <Icon size={15} aria-hidden="true" />;
+                            })()}
                             {action.kind === "search" ? (
                                 <>
                                     {action.label.slice(0, -value.length)}
@@ -209,6 +225,18 @@ export function CommandPalette({
                             )}
                         </button>
                     ))}
+                </div>
+                <div className="command-footer" aria-hidden="true">
+                    <span>
+                        <kbd>Up</kbd>
+                        <kbd>Down</kbd> {spanish ? "Mover" : "Move"}
+                    </span>
+                    <span>
+                        <kbd>Enter</kbd> {spanish ? "Abrir" : "Open"}
+                    </span>
+                    <span>
+                        <kbd>Esc</kbd> {spanish ? "Cerrar" : "Close"}
+                    </span>
                 </div>
                 <button
                     type="button"

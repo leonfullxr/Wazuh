@@ -108,3 +108,45 @@
     color: var(--text);
     cursor: pointer;
 }
+
+/* Search glyph inside the input, icons on results and a quiet key-hint footer. */
+.command-input-icon {
+    position: absolute;
+    top: 32px;
+    left: 32px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.command-dialog input {
+    padding: 0 76px 0 38px;
+}
+.command-results button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.command-results button > svg {
+    flex: none;
+    color: var(--text-muted);
+}
+.command-results button[aria-selected="true"] > svg {
+    color: var(--accent);
+}
+.command-footer {
+    display: flex;
+    gap: 16px;
+    margin: 12px -20px -8px;
+    padding: 10px 20px 0;
+    border-top: 1px solid var(--border-row);
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.command-footer kbd {
+    margin-right: 2px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-row);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 500 11px/16px var(--font-ui);
+}

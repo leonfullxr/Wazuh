@@ -910,7 +910,7 @@ function IncidentDetailView({
                     </form>
                     <h5>{t("m3History")}</h5>
                     {data.history.length ? (
-                        <ol className="m3-history">
+                        <ol className="m3-history m3-work-history">
                             {data.history.map((item) => (
                                 <li key={item.history_id}>
                                     <strong>{item.action}</strong>

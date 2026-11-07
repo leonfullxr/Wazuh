@@ -368,3 +368,45 @@
 }
 
 
+
+/* Desktop filter card uses the Queue grammar: four equal fields, actions on their own row,
+   and the search notice as one muted line under the subtitle. */
+@media (min-width: 761px) {
+    .alerts-v2-panel-heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .alerts-v2-capability {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 6px;
+        max-width: none;
+    }
+
+    .alerts-v2-capability > svg {
+        margin-top: 0;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        align-items: end;
+        gap: 12px;
+    }
+
+    .alerts-v2 .alert-filter-form > label,
+    .alerts-v2 .alert-filter-form input,
+    .alerts-v2 .alert-filter-form select {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .alerts-v2 .alert-filter-form > .filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
