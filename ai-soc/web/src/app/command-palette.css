@@ -96,7 +96,7 @@
 .command-close {
     position: absolute;
     top: 26px;
-    right: 26px;
+    right: 32px;
     display: grid;
     place-items: center;
     width: auto;

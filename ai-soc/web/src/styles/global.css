@@ -3091,3 +3091,25 @@ main.workspace > .page-description {
 .composer-controls .submit-hint {
     margin-left: 4px;
 }
+/* One empty-state pattern: icon tile, a 14px semibold primary line, an optional muted line. */
+.empty-state {
+    padding: 48px 16px;
+}
+.empty-state h2,
+.empty-state > svg + p {
+    margin: 4px 0 2px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+/* Banner and panel copy wraps evenly instead of leaving one-word orphans. */
+.dashboard-v2-available p {
+    max-width: 900px;
+}
+.panel p,
+.workspace-panel p {
+    text-wrap: pretty;
+}
+.fetch-table th .sort-button {
+    gap: 7px;
+}

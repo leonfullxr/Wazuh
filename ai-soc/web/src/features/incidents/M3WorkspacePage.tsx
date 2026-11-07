@@ -166,7 +166,7 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="chain-list-heading">
                         <div className="panel-head">
-                            <h3 id="chain-list-heading">{t("m3Candidates")}</h3>
+                            <h3 id="chain-list-heading" className="sr-only">{t("m3Candidates")}</h3>
                             <button className="btn outline" onClick={() => void chains.refetch()}>
                                 {t("refresh")}
                             </button>
@@ -270,7 +270,7 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="incident-list-heading">
                         <div className="panel-head">
-                            <h3 id="incident-list-heading">{t("m3Incidents")}</h3>
+                            <h3 id="incident-list-heading" className="sr-only">{t("m3Incidents")}</h3>
                             <button
                                 className="btn outline"
                                 onClick={() => void incidents.refetch()}
@@ -584,6 +584,9 @@ function ChainDetailView({
                                 onChange={(event) => setReason(event.target.value)}
                             />
                         </label>
+                        <button className="btn outline" type="submit">
+                            {t("m3Dismiss")}
+                        </button>
                     </form>
                     <form
                         id="chain-promote-form"
@@ -600,16 +603,10 @@ function ChainDetailView({
                                 onChange={(event) => setTitle(event.target.value)}
                             />
                         </label>
-                    </form>
-                    {/* One right-aligned action row; each button submits its own form. */}
-                    <div className="m3-actions-row">
-                        <button className="btn outline" type="submit" form="chain-dismiss-form">
-                            {t("m3Dismiss")}
-                        </button>
-                        <button className="btn primary" type="submit" form="chain-promote-form">
+                        <button className="btn primary" type="submit">
                             {t("m3Promote")}
                         </button>
-                    </div>
+                    </form>
                 </div>
             )}
         </>

@@ -130,3 +130,9 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* The banner copy runs to the button instead of wrapping early. */
+.dashboard-v2-available > div,
+.dashboard-v2-available > div > p {
+    max-width: 900px;
+}

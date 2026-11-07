@@ -998,3 +998,33 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
 .m3-timeline-event > span {
     font-size: 12px;
 }
+
+/* List cards: the page title already names the list, so only Refresh shows in the card head. */
+.m3-grid > .panel:first-child > .panel-head {
+    justify-content: flex-end;
+}
+
+/* Chain decisions: each column holds its label, input and button; one section rhythm above. */
+.m3-actions form > .btn {
+    justify-self: end;
+}
+
+.m3-detail > .m3-actions {
+    padding-top: 20px;
+}
+
+.m3-detail > .m3-actions > .m3-actions-title {
+    margin: 0;
+}
+
+/* Narrative: a clear gap after the trust note; inline mono ids keep the prose line height. */
+.m3-narrative .m3-trust-note {
+    margin-bottom: 12px;
+}
+
+.m3-narrative-text code,
+.m3-narrative-text .copy-value {
+    font-size: 0.92em;
+    line-height: inherit;
+    vertical-align: baseline;
+}

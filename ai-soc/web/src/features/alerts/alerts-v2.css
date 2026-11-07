@@ -424,3 +424,29 @@
         flex-wrap: nowrap;
     }
 }
+
+/* Phones match phone Queue too: no visible filter-card title, the notice under the fields. */
+@media (max-width: 760px) {
+    .alerts-v2 > .workspace-panel:first-of-type {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .alerts-v2-panel-heading {
+        display: contents;
+    }
+
+    .alerts-v2-panel-heading > div:first-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .alerts-v2-capability {
+        order: 2;
+        margin-top: 10px;
+    }
+}
