@@ -561,3 +561,8 @@
 .queue-v2-drawer .load-more {
     margin-top: -6px;
 }
+
+/* The drawer's group id reads at the shared 12px secondary-id size. */
+.queue-v2-drawer-meta > code {
+    font-size: 12px;
+}

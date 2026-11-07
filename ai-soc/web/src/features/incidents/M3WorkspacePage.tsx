@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MousePointerClick } from "lucide-react";
 import type { components } from "../../../../contracts/workspace/v1/types.ts";
@@ -824,29 +824,40 @@ function IncidentDetailView({
                     <p className="muted">{t("m3NoEvents")}</p>
                 )}
                 <ol className="m3-timeline">
-                    {events.map((event) => (
-                        <li key={event.event_id}>
-                            <time
-                                dateTime={event.event_ts}
-                                title={fmtDate(event.event_ts, locale)}
-                                aria-label={fmtDate(event.event_ts, locale)}
-                            >
-                                {fmtTime(event.event_ts, locale)}
-                            </time>
-                            <span className="m3-timeline-marker" aria-hidden="true" />
-                            <div className="m3-timeline-event">
-                                <strong>
-                                    {event.rule_id ? <code>{event.rule_id}</code> : t("m3Alert")}
-                                </strong>
-                                <span>
-                                    {event.alert_key} ·{" "}
-                                    <IdValue value={event.group_id} locale={locale} />
-                                </span>
-                                {event.stages.length > 0 && (
-                                    <EvidenceRows values={event.stages} locale={locale} />
-                                )}
-                            </div>
-                        </li>
+                    {events.map((event, index) => (
+                        <Fragment key={event.event_id}>
+                            {(index === 0 ||
+                                event.event_ts.slice(0, 10) !==
+                                    events[index - 1].event_ts.slice(0, 10)) && (
+                                <li className="m3-timeline-day">{fmtDay(event.event_ts)}</li>
+                            )}
+                            <li>
+                                <time
+                                    dateTime={event.event_ts}
+                                    title={fmtDate(event.event_ts, locale)}
+                                    aria-label={fmtDate(event.event_ts, locale)}
+                                >
+                                    {fmtTime(event.event_ts, locale)}
+                                </time>
+                                <span className="m3-timeline-marker" aria-hidden="true" />
+                                <div className="m3-timeline-event">
+                                    <strong>
+                                        {event.rule_id ? (
+                                            <code>{event.rule_id}</code>
+                                        ) : (
+                                            t("m3Alert")
+                                        )}
+                                    </strong>
+                                    <span>
+                                        {event.alert_key} ·{" "}
+                                        <IdValue value={event.group_id} locale={locale} />
+                                    </span>
+                                    {event.stages.length > 0 && (
+                                        <EvidenceRows values={event.stages} locale={locale} />
+                                    )}
+                                </div>
+                            </li>
+                        </Fragment>
                     ))}
                 </ol>
                 {eventsNext && (
@@ -1451,6 +1462,13 @@ export function fmtRange(first: string, last: string): string {
         return `${fmtDate(first)} – ${fmtDate(last)}`;
     const clock = new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: "UTC" });
     return `${fmtDate(first)} – ${clock.format(end)}`;
+}
+
+function fmtDay(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" }).format(date);
 }
 
 function fmtTime(value: string, _locale?: Locale): string {

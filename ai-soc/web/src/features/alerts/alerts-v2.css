@@ -71,7 +71,7 @@
 }
 
 .alerts-v2-active-filters > span:first-child {
-    margin-right: 2px;
+    margin-right: 6px;
 }
 
 .alerts-v2-active-filters button {
@@ -227,7 +227,7 @@
         width: 40px;
         height: 40px;
         overflow: hidden;
-        border: 1px solid var(--border);
+        border: 0;
         border-radius: var(--radius-control);
         color: transparent;
         white-space: nowrap;
@@ -239,8 +239,8 @@
         left: 14px;
         width: 7px;
         height: 7px;
-        border-top: 2px solid var(--accent);
-        border-right: 2px solid var(--accent);
+        border-top: 2px solid var(--text-muted);
+        border-right: 2px solid var(--text-muted);
         transform: rotate(45deg);
         content: "";
     }

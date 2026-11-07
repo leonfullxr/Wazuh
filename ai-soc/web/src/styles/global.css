@@ -3172,3 +3172,8 @@ main.workspace > .page-description {
 .status-grid h3.status-subhead {
     font-size: 13px;
 }
+
+/* Topic strip destinations sit further apart so each scans as one unit. */
+.topic-jump {
+    gap: 16px;
+}
