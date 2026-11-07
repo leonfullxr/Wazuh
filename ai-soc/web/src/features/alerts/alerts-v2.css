@@ -369,21 +369,36 @@
 
 
 
-/* Desktop filter card uses the Queue grammar: four equal fields, actions on their own row,
-   and the search notice as one muted line under the subtitle. */
+/* Desktop filter card matches Queue: no visible card title, four equal fields with the actions
+   on the same row, and the search notice as one muted line under the fields. The title stays
+   for screen readers. */
 @media (min-width: 761px) {
-    .alerts-v2-panel-heading {
+    .alerts-v2 > .workspace-panel:first-of-type {
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
+    }
+
+    .alerts-v2-panel-heading {
+        display: contents;
+    }
+
+    .alerts-v2-panel-heading > div:first-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
     }
 
     .alerts-v2-capability {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
+        order: 2;
         gap: 4px 6px;
         max-width: none;
+        margin-top: 10px;
     }
 
     .alerts-v2-capability > svg {
@@ -392,7 +407,7 @@
 
     .alerts-v2 .alert-filter-form {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
         align-items: end;
         gap: 12px;
     }
@@ -406,7 +421,6 @@
     }
 
     .alerts-v2 .alert-filter-form > .filter-actions {
-        grid-column: 1 / -1;
-        justify-content: flex-end;
+        flex-wrap: nowrap;
     }
 }

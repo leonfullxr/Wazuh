@@ -403,3 +403,9 @@
 .metrics-v2-table td:last-child {
     padding-right: 17px;
 }
+
+/* Host criticality is a number, so it right-aligns like the rule table. */
+.metrics-v2-assets th:nth-child(2),
+.metrics-v2-assets td:nth-child(2) {
+    text-align: right;
+}

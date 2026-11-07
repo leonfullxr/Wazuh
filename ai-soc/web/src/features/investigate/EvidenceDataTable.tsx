@@ -122,6 +122,12 @@ export function EvidenceDataTable({
     const columns = useMemo<ColumnDef<EvidenceRow>[]>(() => {
         const base: ColumnDef<EvidenceRow>[] = fetch.columns.map((column) => ({
             id: column.field,
+            // Counts right-align like every numeric column; ids stay left in mono.
+            meta: {
+                numeric:
+                    column.kind === "integer" &&
+                    !/(^|\.)id$|^(agent|manager)\.name$|hostname$/.test(column.field),
+            },
             accessorFn: (row) => row.values[column.field],
             header: ({ column: tableColumn }) => (
                 <button
@@ -208,6 +214,12 @@ export function EvidenceDataTable({
                             {group.headers.map((header) => (
                                 <th
                                     key={header.id}
+                                    className={
+                                        (header.column.columnDef.meta as { numeric?: boolean })
+                                            ?.numeric
+                                            ? "numeric"
+                                            : undefined
+                                    }
                                     scope="col"
                                     aria-sort={
                                         header.column.getIsSorted() === "asc"
@@ -247,7 +259,15 @@ export function EvidenceDataTable({
                             }}
                         >
                             {row.getVisibleCells().map((cell) => (
-                                <td key={cell.id}>
+                                <td
+                                    key={cell.id}
+                                    className={
+                                        (cell.column.columnDef.meta as { numeric?: boolean })
+                                            ?.numeric
+                                            ? "numeric"
+                                            : undefined
+                                    }
+                                >
                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </td>
                             ))}

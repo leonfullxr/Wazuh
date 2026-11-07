@@ -970,3 +970,31 @@ section[aria-labelledby="incident-members-heading"] th:nth-child(4),
 section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
     text-align: right;
 }
+
+/* Every form action is auto-width and right-aligned, including Create incident. */
+.m3-create > .btn,
+.m3-create .btn[type="submit"] {
+    justify-self: end;
+    width: auto;
+}
+
+.m3-actions-title {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+/* Evidence group counts get fixed columns and room before the event time. */
+section[aria-labelledby="incident-members-heading"] th:nth-child(3),
+section[aria-labelledby="incident-members-heading"] th:nth-child(4) {
+    width: 80px;
+}
+
+section[aria-labelledby="incident-members-heading"] th:nth-child(4),
+section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
+    padding-right: 16px;
+}
+
+/* Timeline identifier line at the shared secondary metadata size. */
+.m3-timeline-event > span {
+    font-size: 12px;
+}

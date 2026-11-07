@@ -93,7 +93,11 @@ export function AnswerView({
                 </div>
                 {question && (
                     <p className="original-question">
-                        <strong>{t("originalQuestion")}:</strong> {question}
+                        <strong>
+                            {t("originalQuestion")}
+                            <span className="sr-only">:</span>
+                        </strong>{" "}
+                        <span>{question}</span>
                     </p>
                 )}
                 {parentQuestion && onOpenParent && (

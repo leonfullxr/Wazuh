@@ -3053,3 +3053,41 @@ main.workspace > .page-description {
 .field-chips code {
     font-family: var(--font-ui);
 }
+/* Answer metadata: two columns that read as two columns (140px labels, 48px gutter), and the
+   original question in the same label/value grammar as the rows above it. */
+@media (min-width: 701px) {
+    .ids-row {
+        column-gap: 48px;
+    }
+    .ids-row > span {
+        grid-template-columns: 140px auto auto;
+    }
+    .answer-summary .original-question {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr);
+        gap: 6px;
+        color: var(--text);
+        font-size: 13px;
+    }
+    .answer-summary .original-question strong {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+}
+/* Numeric-only columns right-align with their headers everywhere. */
+.fetch-table th.numeric,
+.fetch-table td.numeric {
+    text-align: right;
+}
+.fetch-table th.numeric .sort-button {
+    margin-left: auto;
+}
+/* Dashboard banner copy runs to the button instead of wrapping early. */
+.dashboard-v2-available p {
+    max-width: 80ch;
+    text-wrap: pretty;
+}
+/* Ask is the last control in the composer row; the hint sits beside the timezone. */
+.composer-controls .submit-hint {
+    margin-left: 4px;
+}

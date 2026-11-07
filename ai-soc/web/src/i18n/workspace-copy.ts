@@ -301,6 +301,7 @@ const en = {
     m3History: "Work history",
     m3HistoryDetails: "View recorded change",
     m3Narrative: "AI narrative",
+    m3Decision: "Decision",
     m3NarrativeTrust:
         "Unvalidated AI summary. Use the cited frozen evidence to verify every statement; this text does not rank or change incident workflow.",
     m3NarrativeStatus: "Generation status",
@@ -686,6 +687,7 @@ const es = {
     m3History: "Historial de trabajo",
     m3HistoryDetails: "Ver cambio registrado",
     m3Narrative: "Narrativa de IA",
+    m3Decision: "Decisi\u00f3n",
     m3NarrativeTrust:
         "Resumen de IA no validado. Verifica cada afirmación con la evidencia congelada citada; este texto no clasifica ni cambia el flujo de trabajo del incidente.",
     m3NarrativeStatus: "Estado de generación",

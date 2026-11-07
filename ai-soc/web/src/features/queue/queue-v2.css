@@ -544,3 +544,15 @@
 .queue-v2-drawer-score {
     overflow: hidden;
 }
+
+/* Filter cards share the standard card surface on Alerts and Queue. */
+.queue-v2-filters {
+    background: var(--surface);
+}
+
+/* Load more sits on the right like every other drawer action. */
+.queue-v2-drawer .load-more {
+    align-self: flex-end;
+    justify-self: end;
+    margin-left: auto;
+}

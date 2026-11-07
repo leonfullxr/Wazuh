@@ -108,7 +108,9 @@ export function NarrativePanel({
                     )}
                     {summary && (
                         <section aria-label={locale === "es" ? summary.label_es : summary.label_en}>
-                            <h5>{locale === "es" ? summary.label_es : summary.label_en}</h5>
+                            <h5 className="sr-only">
+                                {locale === "es" ? summary.label_es : summary.label_en}
+                            </h5>
                             {summary.status === "all_removed" ? (
                                 <p className="muted">{t("m3NarrativeAllRemoved")}</p>
                             ) : summary.status === "invalid_structure" ? (

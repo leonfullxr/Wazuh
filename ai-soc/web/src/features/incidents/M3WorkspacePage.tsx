@@ -567,22 +567,7 @@ function ChainDetailView({
             </section>
             {detail.state === "open" && (
                 <div className="m3-actions">
-                    <form
-                        id="chain-promote-form"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            onPromote(title.trim());
-                        }}
-                    >
-                        <label>
-                            {t("m3TitleOverride")}
-                            <input
-                                maxLength={240}
-                                value={title}
-                                onChange={(event) => setTitle(event.target.value)}
-                            />
-                        </label>
-                    </form>
+                    <h4 className="m3-actions-title">{t("m3Decision")}</h4>
                     <form
                         id="chain-dismiss-form"
                         onSubmit={(event) => {
@@ -597,6 +582,22 @@ function ChainDetailView({
                                 maxLength={512}
                                 value={reason}
                                 onChange={(event) => setReason(event.target.value)}
+                            />
+                        </label>
+                    </form>
+                    <form
+                        id="chain-promote-form"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            onPromote(title.trim());
+                        }}
+                    >
+                        <label>
+                            {t("m3TitleOverride")}
+                            <input
+                                maxLength={240}
+                                value={title}
+                                onChange={(event) => setTitle(event.target.value)}
                             />
                         </label>
                     </form>

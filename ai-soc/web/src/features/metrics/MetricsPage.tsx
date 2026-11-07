@@ -314,7 +314,7 @@ export function MetricsPage({
                     </div>
                 </div>
                 <div className="table-scroll">
-                    <table className="workspace-table metrics-v2-table">
+                    <table className="workspace-table metrics-v2-table metrics-v2-assets">
                         <thead>
                             <tr>
                                 <th>{t("agent")}</th>

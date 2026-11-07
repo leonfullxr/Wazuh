@@ -929,7 +929,7 @@ function GroupDrawer({
             </section>
             {group.members.next_cursor && (
                 <button
-                    className="btn outline"
+                    className="btn outline load-more"
                     type="button"
                     disabled={membersLoading}
                     onClick={onLoadMoreMembers}
@@ -982,7 +982,8 @@ function GroupDrawer({
             <section className="drawer-section">
                 <h3>{t("disposition")}</h3>
                 <label>
-                    {t("disposition")}
+                    {/* The section title already names this field; the label stays for screen readers. */}
+                    <span className="sr-only">{t("disposition")}</span>
                     <select
                         aria-label={t("disposition")}
                         value={label}
