@@ -168,7 +168,8 @@ export function AlertsPage({
               activeFilters: "Filtros activos",
               removeFilter: "Quitar filtro",
               results: "Resultados",
-              loadedRows: "Filas cargadas en esta página",
+              loadedRow: "fila cargada en esta página",
+              loadedRows: "filas cargadas en esta página",
               description: "Descripción",
               fields: "Campos",
               json: "JSON",
@@ -183,7 +184,8 @@ export function AlertsPage({
               activeFilters: "Active filters",
               removeFilter: "Remove filter",
               results: "Results",
-              loadedRows: "Rows loaded on this page",
+              loadedRow: "row loaded on this page",
+              loadedRows: "rows loaded on this page",
               description: "Description",
               fields: "Fields",
               json: "JSON",
@@ -397,9 +399,11 @@ export function AlertsPage({
                     <div className="alerts-v2-results-heading">
                         <div>
                             <h3>{copy.results}</h3>
-                            <p>{copy.loadedRows}</p>
+                            <p>
+                                {page.data.items.length.toLocaleString()}{" "}
+                                {page.data.items.length === 1 ? copy.loadedRow : copy.loadedRows}
+                            </p>
                         </div>
-                        <strong>{page.data.items.length.toLocaleString()}</strong>
                     </div>
                     {page.data.items.length === 0 ? (
                         health.isLoading ? (

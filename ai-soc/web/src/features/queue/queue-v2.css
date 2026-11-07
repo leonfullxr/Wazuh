@@ -556,3 +556,8 @@
     justify-self: end;
     margin-left: auto;
 }
+
+/* Load more sits 12px under the member list it extends. */
+.queue-v2-drawer .load-more {
+    margin-top: -6px;
+}

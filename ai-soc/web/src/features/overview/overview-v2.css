@@ -609,3 +609,20 @@
 .overview-v2-lists {
     gap: 20px;
 }
+
+/* Heatmap axis labels match the chart ticks. */
+.overview-v2-heatmap-hour,
+.overview-v2-heatmap-day {
+    font-size: 12px;
+}
+/* The selected hour band reads in dark as clearly as in light. */
+.dark .overview-v2-chart .recharts-reference-area-rect {
+    fill-opacity: 0.16;
+}
+@media (max-width: 700px) {
+    .overview-v2-metric,
+    .overview-v2-metric:nth-child(3) {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}

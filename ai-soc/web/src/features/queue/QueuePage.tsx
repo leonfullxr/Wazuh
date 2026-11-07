@@ -434,9 +434,11 @@ export function QueuePage({
                     <div className="queue-v2-results-heading">
                         <div>
                             <h3>{t("groupsTitle")}</h3>
-                            <p>{t("rowsLoaded")}</p>
+                            <p>
+                                {rows.length.toLocaleString()}{" "}
+                                {t(rows.length === 1 ? "rowLoaded" : "rowsLoaded")}
+                            </p>
                         </div>
-                        <strong>{rows.length.toLocaleString()}</strong>
                     </div>
                     <div className="table-scroll">
                         <table className="workspace-table queue-table">

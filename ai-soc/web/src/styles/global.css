@@ -3153,3 +3153,22 @@ main.workspace > .page-description {
 .status-build p > strong.mono {
     margin-right: 19px;
 }
+
+@media (min-width: 1100px) {
+    .checks th:nth-child(2) {
+        width: 240px;
+    }
+    .checks th:nth-child(4) {
+        width: 184px;
+    }
+}
+/* Phones: one card padding on every page. */
+@media (max-width: 700px) {
+    main .rounded-panel {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+.status-grid h3.status-subhead {
+    font-size: 13px;
+}
