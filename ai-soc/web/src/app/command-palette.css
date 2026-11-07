@@ -155,3 +155,8 @@
 .command-search-label {
     min-width: 100px;
 }
+
+.command-results button > code {
+    color: var(--text);
+    font-size: 13px;
+}

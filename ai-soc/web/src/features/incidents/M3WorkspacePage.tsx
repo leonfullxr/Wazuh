@@ -530,9 +530,12 @@ function ChainDetailView({
                     <p className="muted">{t("m3NoStageEvidence")}</p>
                 )}
                 {Array.isArray(missing) && missing.length > 0 && (
-                    <p className="m3-missing">
-                        {t("m3MissingStages")}: {missing.map((item) => printable(item)).join(", ")}
-                    </p>
+                    <dl className="m3-evidence-fields m3-missing-row">
+                        <div>
+                            <dt>{t("m3MissingStages")}</dt>
+                            <dd>{missing.map((item) => printable(item)).join(", ")}</dd>
+                        </div>
+                    </dl>
                 )}
                 {(reasonItems.length > 0 || orderToleranceApplied) && (
                     <div>
@@ -985,37 +988,6 @@ function IncidentDetailView({
                 </section>
                 <section aria-labelledby="incident-disposition-heading">
                     <h4 id="incident-disposition-heading">{t("m3Disposition")}</h4>
-                    {data.dispositions.length ? (
-                        <ol className="m3-history">
-                            {data.dispositions.map((item) => (
-                                <li key={item.disposition_id}>
-                                    <strong>{t(`m3Disposition_${item.label}`)}</strong>
-                                    <span>
-                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
-                                        v{item.work_version}
-                                    </span>
-                                    {item.reason_code && (
-                                        <p>
-                                            {t("m3FpReason")}: {item.reason_code}
-                                        </p>
-                                    )}
-                                    {item.note && <p>{item.note}</p>}
-                                </li>
-                            ))}
-                        </ol>
-                    ) : (
-                        <p className="muted">{t("m3NoDispositions")}</p>
-                    )}
-                    {data.next_cursors.dispositions && (
-                        <button
-                            className="btn outline"
-                            onClick={() =>
-                                onMoreDetail("dispositions", data.next_cursors.dispositions ?? "")
-                            }
-                        >
-                            {t("nextPage")}
-                        </button>
-                    )}
                     <form
                         className="m3-inline-form"
                         onSubmit={(event) => {
@@ -1093,6 +1065,38 @@ function IncidentDetailView({
                             {t("m3SaveDisposition")}
                         </button>
                     </form>
+                    <h5>{t("m3DispositionHistory")}</h5>
+                    {data.dispositions.length ? (
+                        <ol className="m3-history">
+                            {data.dispositions.map((item) => (
+                                <li key={item.disposition_id}>
+                                    <strong>{t(`m3Disposition_${item.label}`)}</strong>
+                                    <span>
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
+                                    </span>
+                                    {item.reason_code && (
+                                        <p>
+                                            {t("m3FpReason")}: {item.reason_code}
+                                        </p>
+                                    )}
+                                    {item.note && <p>{item.note}</p>}
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p className="muted">{t("m3NoDispositions")}</p>
+                    )}
+                    {data.next_cursors.dispositions && (
+                        <button
+                            className="btn outline"
+                            onClick={() =>
+                                onMoreDetail("dispositions", data.next_cursors.dispositions ?? "")
+                            }
+                        >
+                            {t("nextPage")}
+                        </button>
+                    )}
                 </section>
             </div>
         </>
@@ -1265,24 +1269,26 @@ function FlatEvidence({
     return (
         <>
             {staged && (
-                <div className="m3-stage-head">
-                    {ordinal !== undefined && ordinal !== null && (
-                        <span className="m3-stage-ordinal">{String(ordinal)}</span>
-                    )}
-                    <code>{String(stage)}</code>
-                    {outcome !== undefined && outcome !== null && (
-                        <Tag
-                            tone={
-                                outcome === "matched"
-                                    ? "green"
-                                    : outcome === "missing"
-                                      ? "amber"
-                                      : "neutral"
-                            }
-                        >
-                            {String(outcome)}
-                        </Tag>
-                    )}
+                <div className={inline ? "m3-stage-head m3-stage-row" : "m3-stage-head"}>
+                    <span className="m3-stage-lead">
+                        {ordinal !== undefined && ordinal !== null && (
+                            <span className="m3-stage-ordinal">{String(ordinal)}</span>
+                        )}
+                        <code>{String(stage)}</code>
+                        {outcome !== undefined && outcome !== null && (
+                            <Tag
+                                tone={
+                                    outcome === "matched"
+                                        ? "green"
+                                        : outcome === "missing"
+                                          ? "amber"
+                                          : "neutral"
+                                }
+                            >
+                                {String(outcome)}
+                            </Tag>
+                        )}
+                    </span>
                     {inline && (
                         <span className="m3-stage-field">
                             <span>{humanizeKey(inline[0])}</span>

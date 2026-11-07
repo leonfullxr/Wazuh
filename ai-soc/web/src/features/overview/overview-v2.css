@@ -154,7 +154,7 @@
 .overview-v2-chart .recharts-cartesian-axis-tick text {
     fill: var(--text-muted);
     font-family: var(--font-ui);
-    font-size: 11px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-chart .recharts-rectangle {
@@ -603,4 +603,9 @@
 /* Secondary rule and agent ids in top lists read at 12px. */
 .overview-v2-list li > button > code:not(.overview-v2-list-id) {
     font-size: 12px;
+}
+
+/* Top-list cards use the page card gap in both directions. */
+.overview-v2-lists {
+    gap: 20px;
 }

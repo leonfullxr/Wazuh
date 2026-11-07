@@ -3143,3 +3143,13 @@ main.workspace > .page-description {
     color: var(--text-2);
     font-weight: 400;
 }
+
+/* Composer metadata shares one size. */
+.composer-controls .timezone,
+.composer-controls .submit-hint {
+    font-size: 12px;
+}
+/* Short build values keep the copy-icon slot so the right edge stays even. */
+.status-build p > strong.mono {
+    margin-right: 19px;
+}

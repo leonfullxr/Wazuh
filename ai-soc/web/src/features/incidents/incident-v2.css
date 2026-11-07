@@ -423,7 +423,7 @@
     margin-bottom: 6px;
 }
 
-.m3-stage-head > code {
+:is(.m3-stage-head, .m3-stage-lead) > code {
     color: var(--text);
     font-size: 13px;
     font-weight: 600;
@@ -574,7 +574,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-.m3-stage-head > code {
+:is(.m3-stage-head, .m3-stage-lead) > code {
     font-size: 13px;
     font-weight: 500;
 }
@@ -669,7 +669,7 @@
     vertical-align: top;
 }
 
-.m3-detail .m3-stage-head > code {
+.m3-detail :is(.m3-stage-head, .m3-stage-lead) > code {
     font-size: 12.5px;
 }
 
@@ -811,7 +811,7 @@
     text-align: left;
 }
 
-.m3-timeline .m3-stage-head > code {
+.m3-timeline :is(.m3-stage-head, .m3-stage-lead) > code {
     color: var(--text-2);
     font-size: 12px;
     font-weight: 400;
@@ -1086,4 +1086,46 @@ section[aria-labelledby="chain-links-heading"] > h5 {
 /* Both decision buttons share one width, so the two inputs match. */
 .m3-actions form > .btn {
     min-width: 152px;
+}
+
+/* Single-field stage rows put the field at the shared value column (202px + 12px). */
+.m3-stage-row {
+    display: grid;
+    grid-template-columns: 202px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+}
+
+.m3-stage-lead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.m3-stage-row > .m3-stage-field {
+    margin-left: 0;
+}
+
+.m3-stage-row > .m3-stage-field > :last-child {
+    min-width: 0;
+}
+
+/* Missing stages read as one more label/value row. */
+.m3-missing-row {
+    margin: 10px 0 0;
+}
+
+.m3-detail > section > .m3-missing-row > div {
+    grid-template-columns: 202px minmax(0, 1fr);
+}
+
+/* Event names in work history stay below their section title. */
+.m3-work-history li > strong {
+    font-weight: 400;
+}
+
+/* Resting list items show their row box; selection adds the tint and accent. */
+.m3-list-item {
+    border-color: var(--border-row);
 }
