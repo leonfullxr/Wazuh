@@ -10,9 +10,11 @@
 
 .queue-v2-intro {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: var(--space-3, 12px);
+    margin-top: -8px;
 }
 
 .queue-v2-intro .page-description {
@@ -20,7 +22,7 @@
 }
 
 .queue-v2-filters {
-    padding: 12px;
+    padding: 16px 20px;
     background: var(--surface-2, var(--surface-subtle));
 }
 
@@ -34,9 +36,9 @@
 
 .queue-v2 .queue-filter-row input,
 .queue-v2 .queue-filter-row select,
-.queue-v2 .bulk-toolbar input,
+.queue-v2 .bulk-toolbar input:not([type="checkbox"]),
 .queue-v2 .bulk-toolbar select,
-.queue-v2-drawer input,
+.queue-v2-drawer input:not([type="checkbox"]),
 .queue-v2-drawer select {
     min-height: var(--control-height, 32px);
 }
@@ -69,7 +71,8 @@
 
 .queue-v2 .queue-table td {
     height: var(--table-row-height, 42px);
-    vertical-align: middle;
+    padding-top: 12px;
+    vertical-align: top;
 }
 
 .queue-v2 .queue-table tbody tr:hover {
@@ -77,7 +80,22 @@
 }
 
 .queue-v2 .queue-table td:nth-child(2) {
-    min-width: 300px;
+    min-width: 260px;
+}
+
+.queue-v2 .queue-table th:first-child,
+.queue-v2 .queue-table td:first-child {
+    width: 36px;
+    padding-right: 0;
+}
+
+.queue-v2 .queue-table td:nth-child(5) {
+    white-space: nowrap;
+}
+
+.queue-v2 .queue-table td:first-child {
+    vertical-align: top;
+    padding-top: 13px;
 }
 
 .queue-v2 .group-link {
@@ -123,9 +141,18 @@
 }
 
 .queue-v2-score > strong {
-    font-family: var(--font-code);
-    font-size: 13px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 650;
     font-variant-numeric: tabular-nums;
+}
+
+.queue-v2-score > strong[data-pending] {
+    color: var(--text-2);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .queue-v2-score-track,
@@ -173,9 +200,11 @@
 }
 
 .queue-v2-drawer .group-score-card strong {
-    font-family: var(--font-code);
-    font-size: 24px;
-    font-weight: 600;
+    font-family: var(--font-ui);
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
 .queue-v2-drawer-score {
@@ -196,10 +225,14 @@
     padding: 10px 12px;
 }
 
-.queue-v2-drawer .score-components li code {
+.queue-v2-drawer .score-components li > code {
     color: var(--text);
-    font-family: var(--font-code);
+    font-family: var(--font-ui);
     font-variant-numeric: tabular-nums;
+}
+
+.queue-v2-drawer .score-components li > code[data-unavailable] {
+    color: var(--text-muted);
 }
 
 @media (max-width: 760px) {
@@ -212,10 +245,96 @@
         position: static;
     }
 
-    .queue-v2 .queue-filter-row,
     .queue-v2 .bulk-toolbar {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .queue-v2 .queue-filter-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .queue-v2 .queue-filter-row label {
+        min-width: 0;
+    }
+
+    /* Phones keep group, score and status; the drawer holds the rest. */
+    .queue-v2 .queue-table {
+        min-width: 0;
+    }
+
+    .queue-v2 .queue-table td:nth-child(2) {
+        min-width: 0;
+    }
+
+    .queue-v2 .queue-table th:nth-child(4),
+    .queue-v2 .queue-table td:nth-child(4),
+    .queue-v2 .queue-table th:nth-child(5),
+    .queue-v2 .queue-table td:nth-child(5),
+    .queue-v2 .queue-table th:nth-child(6),
+    .queue-v2 .queue-table td:nth-child(6),
+    .queue-v2 .queue-table th:nth-child(8),
+    .queue-v2 .queue-table td:nth-child(8) {
+        display: none;
+    }
+
+    .queue-v2-score {
+        grid-template-columns: auto;
+    }
+
+    .queue-v2-table-panel,
+    .queue-v2-filters {
+        padding: 12px;
+    }
+
+    .queue-v2 .queue-table th,
+    .queue-v2 .queue-table td {
+        padding: 8px 6px;
+    }
+
+    .queue-v2 .queue-table th {
+        font-size: 11px;
+        line-height: 14px;
+        letter-spacing: 0.02em;
+        vertical-align: bottom;
+    }
+
+    .queue-v2 .queue-table th:nth-child(3) {
+        white-space: normal;
+    }
+
+    .queue-v2-score > strong[data-pending] {
+        white-space: normal;
+    }
+
+    .queue-v2 .queue-table td:nth-child(3) {
+        width: 60px;
+    }
+
+    .queue-v2 .queue-table th:first-child,
+    .queue-v2 .queue-table td:first-child {
+        width: 28px;
+        padding-inline: 4px 0;
+    }
+
+    .queue-v2 .queue-table th,
+    .queue-v2 .queue-table td {
+        padding-inline: 8px 4px;
+    }
+
+    .queue-v2 .queue-table td:nth-child(7) {
+        width: 88px;
+    }
+
+    .queue-v2-reasons,
+    .queue-v2-score + .table-secondary {
+        display: none !important;
+    }
+
+    .queue-v2-score-track {
+        display: none !important;
     }
 
     .queue-v2 .queue-filter-row label,
@@ -235,4 +354,270 @@
     .queue-v2-drawer-meta > div {
         justify-content: flex-start;
     }
+}
+
+/* Narrow phones: each group is a stacked row (title, then score; status on the right). */
+/* Phone-only label; the desktop table has a Priority score column header. */
+.queue-v2 .queue-table .queue-v2-score-label {
+    display: none;
+}
+
+@media (max-width: 480px) {
+    .queue-v2 .queue-table,
+    .queue-v2 .queue-table tbody {
+        display: block;
+    }
+
+    .queue-v2 .queue-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .queue-v2 .queue-table tbody tr {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) auto;
+        grid-template-areas:
+            "check group status"
+            "check score status";
+        align-items: start;
+        gap: 4px 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-row);
+    }
+
+    .queue-v2 .queue-table tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .queue-v2 .queue-table tbody td,
+    .queue-v2 .queue-table tbody td:first-child {
+        display: block;
+        width: auto;
+        height: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .queue-v2 .queue-table td:nth-child(1) {
+        grid-area: check;
+        padding-top: 2px;
+    }
+
+    .queue-v2 .queue-table td:nth-child(2) {
+        grid-area: group;
+    }
+
+    .queue-v2 .queue-table td:nth-child(3) {
+        grid-area: score;
+        width: auto;
+    }
+
+    /* Stacked rows have no column header, so the score carries its label. */
+    .queue-v2 .queue-table td:nth-child(3):has(.queue-v2-score-label) {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .queue-v2 .queue-table .queue-v2-score-label {
+        display: inline;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    .queue-v2 .queue-table td:nth-child(7) {
+        grid-area: status;
+        width: auto;
+    }
+
+    .queue-v2-score > strong[data-pending] {
+        white-space: nowrap;
+    }
+}
+
+/* Same card grammar as Alerts: titled table card with a count badge, filters across the card. */
+.queue-v2-results-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.queue-v2-results-heading h3 {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+}
+
+.queue-v2-results-heading p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.queue-v2-results-heading > strong {
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 600 12px/20px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 761px) {
+    .queue-v2 .queue-filter-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .queue-v2 .queue-filter-row label,
+    .queue-v2 .queue-filter-row input,
+    .queue-v2 .queue-filter-row select {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .queue-v2-results-heading {
+        margin-bottom: 0;
+    }
+}
+
+/* One border level in the drawer: items inside a section are rows with hairline dividers,
+   not bordered cards; the score hero keeps only a background tint. */
+.queue-v2-drawer .score-components li,
+.queue-v2-drawer .provenance-row,
+.queue-v2-drawer .member-link {
+    padding: 10px 0;
+    border: 0;
+    border-bottom: 1px solid var(--border-row);
+    border-radius: 0;
+    background: transparent;
+}
+
+.queue-v2-drawer .score-components li:last-child,
+.queue-v2-drawer .provenance-row:last-child,
+.queue-v2-drawer .member-link:last-of-type {
+    border-bottom: 0;
+}
+
+.queue-v2-drawer .member-link:hover {
+    background: transparent;
+}
+
+.queue-v2-drawer .member-link:hover > span:first-child {
+    color: var(--accent-text);
+}
+
+.queue-v2-drawer .group-score-card {
+    border: 0;
+    background: var(--surface-tile);
+}
+
+/* Enrichment provenance values share the drawer's value column (156px label + 12px gap). */
+.queue-v2-drawer .provenance-fields > div {
+    grid-template-columns: 156px minmax(0, 1fr);
+}
+
+/* Alerts-in-group is a count, so it right-aligns like other numeric columns. */
+.queue-v2 .queue-table th:nth-child(4),
+.queue-v2 .queue-table td:nth-child(4) {
+    text-align: right;
+}
+
+.queue-v2-drawer-score,
+.queue-v2-drawer-score > span {
+    border-radius: 999px;
+}
+
+.queue-v2-drawer-score {
+    overflow: hidden;
+}
+
+/* Filter cards share the standard card surface on Alerts and Queue. */
+.queue-v2-filters {
+    background: var(--surface);
+}
+
+/* Load more sits on the right like every other drawer action. */
+.queue-v2-drawer .load-more {
+    align-self: flex-end;
+    justify-self: end;
+    margin-left: auto;
+}
+
+/* Load more sits 12px under the member list it extends. */
+.queue-v2-drawer .load-more {
+    margin-top: -6px;
+}
+
+/* The drawer's group id reads at the shared 12px secondary-id size. */
+.queue-v2-drawer-meta > code {
+    font-size: 12px;
+}
+
+/* One key-value pitch (27px) and one 13px value size across the drawer. */
+.queue-v2-drawer .provenance-fields {
+    row-gap: 6px;
+}
+
+.queue-v2-drawer .provenance-fields dd code {
+    font-size: 13px;
+}
+
+/* Score components follow the drawer's label/value grammar: name in the label column, value on
+   the value column, explanation and evidence full width beneath. */
+.queue-v2-drawer .score-components li {
+    grid-template-columns: minmax(156px, 0.7fr) minmax(0, 1.3fr);
+    column-gap: 12px;
+    row-gap: 2px;
+}
+
+.queue-v2-drawer .score-components li > div {
+    display: contents;
+}
+
+.queue-v2-drawer .score-components li > div > strong {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.queue-v2-drawer .score-components li > code {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+}
+
+.queue-v2-drawer .score-components li > div > span,
+.queue-v2-drawer .score-components li > small {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Load more sits 12px under the last member row. */
+.queue-v2-drawer .load-more {
+    margin-top: -14px;
+}
+
+/* Component names use the drawer's label style; the value carries the emphasis. */
+.queue-v2-drawer .score-components li > div > strong {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.queue-v2-drawer .score-components li {
+    row-gap: 4px;
 }

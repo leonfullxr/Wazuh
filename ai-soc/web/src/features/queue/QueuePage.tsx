@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Panel } from "../../components/ui/panel";
-import { Sheet, SheetClose, SheetContent } from "../../components/ui/sheet";
+import { Sheet, SheetContent } from "../../components/ui/sheet";
 import { Tag } from "../../components/ui/tag";
 import { dispositionTags, statusTags } from "../../lib/semantic";
+import { humanizeKey, isFlatRecord } from "../../lib/utils";
 import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates";
 import * as api from "../../api/workspace";
 import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/workspace";
@@ -270,6 +271,7 @@ export function QueuePage({
                     <label>
                         {t("owner")}
                         <input
+                            className="id-input"
                             key={`owner-${filters.ownerKey ?? ""}`}
                             aria-label={t("owner")}
                             defaultValue={filters.ownerKey ?? ""}
@@ -300,6 +302,7 @@ export function QueuePage({
                     <label>
                         {t("filterRule")}
                         <input
+                            className="id-input"
                             key={`rule-${filters.ruleId ?? ""}`}
                             aria-label={t("filterRule")}
                             defaultValue={filters.ruleId ?? ""}
@@ -320,6 +323,7 @@ export function QueuePage({
                     <label>
                         {t("owner")}
                         <input
+                            className="id-input"
                             aria-label={t("owner")}
                             value={ownerDraft}
                             onChange={(event) => setOwnerDraft(event.target.value)}
@@ -427,6 +431,15 @@ export function QueuePage({
                 />
             ) : (
                 <Panel className="workspace-panel table-panel queue-v2-table-panel">
+                    <div className="queue-v2-results-heading">
+                        <div>
+                            <h3>{t("groupsTitle")}</h3>
+                            <p>
+                                {rows.length.toLocaleString()}{" "}
+                                {t(rows.length === 1 ? "rowLoaded" : "rowsLoaded")}
+                            </p>
+                        </div>
+                    </div>
                     <div className="table-scroll">
                         <table className="workspace-table queue-table">
                             <thead>
@@ -488,8 +501,20 @@ export function QueuePage({
                                                 )}
                                             </td>
                                             <td>
+                                                {group.score !== null && (
+                                                    <span
+                                                        className="queue-v2-score-label"
+                                                        aria-hidden="true"
+                                                    >
+                                                        {t("score")}
+                                                    </span>
+                                                )}
                                                 <div className="queue-v2-score">
-                                                    <strong>
+                                                    <strong
+                                                        data-pending={
+                                                            group.score === null || undefined
+                                                        }
+                                                    >
                                                         {group.score === null
                                                             ? t("scorePending")
                                                             : group.score.toFixed(1)}
@@ -507,14 +532,27 @@ export function QueuePage({
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="table-secondary">
-                                                    {group.computation_version?.split(":")[0] ??
-                                                        t("scorePending")}
-                                                </span>
+                                                {group.computation_version && (
+                                                    <span className="table-secondary">
+                                                        <code>
+                                                            {
+                                                                group.computation_version.split(
+                                                                    ":",
+                                                                )[0]
+                                                            }
+                                                        </code>
+                                                    </span>
+                                                )}
                                             </td>
                                             <td>{group.alert_count.toLocaleString()}</td>
                                             <td>{formatTime(group.last_ts)}</td>
-                                            <td>{workState.owner_key ?? t("unassigned")}</td>
+                                            <td>
+                                                {workState.owner_key ? (
+                                                    <code>{workState.owner_key}</code>
+                                                ) : (
+                                                    t("unassigned")
+                                                )}
+                                            </td>
                                             <td>
                                                 <div>
                                                     <Tag {...statusTags[workState.status]}>
@@ -723,9 +761,13 @@ function GroupDrawer({
                 <strong>{group.score === null ? t("scorePending") : group.score.toFixed(1)}</strong>
                 <span>{t("score")}</span>
                 <small>
-                    {group.computation_version
-                        ? `${t("uncalibratedShort")} · ${group.computation_version}`
-                        : t("scorePendingDescription")}
+                    {group.computation_version ? (
+                        <>
+                            {t("uncalibratedShort")} · <code>{group.computation_version}</code>
+                        </>
+                    ) : (
+                        t("scorePendingDescription")
+                    )}
                 </small>
                 {group.score !== null && (
                     <span className="queue-v2-drawer-score" aria-hidden="true">
@@ -749,7 +791,13 @@ function GroupDrawer({
                 <dt>{t("groupLast")}</dt>
                 <dd>{formatTime(group.last_ts)}</dd>
                 <dt>{t("scoreVersion")}</dt>
-                <dd>{group.computation_version ?? "—"}</dd>
+                <dd>
+                    {group.computation_version ? (
+                        <code>{group.computation_version}</code>
+                    ) : (
+                        <span className="null-value">{"\u2014"}</span>
+                    )}
+                </dd>
                 <dt>{t("scoreDigest")}</dt>
                 <dd>
                     <code>{group.input_digest ?? "—"}</code>
@@ -761,7 +809,7 @@ function GroupDrawer({
                 </dd>
                 {group.primary_entity && (
                     <>
-                        <dt>{group.primary_entity.kind}</dt>
+                        <dt>{humanizeKey(group.primary_entity.kind)}</dt>
                         <dd>
                             <code>{group.primary_entity.value}</code>
                         </dd>
@@ -777,14 +825,23 @@ function GroupDrawer({
                                 <strong>{component.name}</strong>
                                 <span>{component.explanation}</span>
                             </div>
-                            <code>
-                                {component.available
-                                    ? component.contribution.toFixed(1)
-                                    : t("unavailableScore")}
-                            </code>
+                            {/* Every card keeps a value in the top-right slot; missing ones show the dash. */}
+                            {component.available ? (
+                                <code>{component.contribution.toFixed(1)}</code>
+                            ) : (
+                                <>
+                                    <code data-unavailable="true">
+                                        <span className="null-value" aria-hidden="true">
+                                            {"\u2014"}
+                                        </span>
+                                    </code>
+                                    <small>{t("unavailableScore")}</small>
+                                </>
+                            )}
                             {component.evidence_ids.length > 0 && (
                                 <small>
-                                    {t("evidenceLabel")}: {component.evidence_ids.join(", ")}
+                                    {t("evidenceLabel")}:{" "}
+                                    <code>{component.evidence_ids.join(", ")}</code>
                                 </small>
                             )}
                         </li>
@@ -799,23 +856,53 @@ function GroupDrawer({
                     group.enrichments.map((item) => (
                         <div className="provenance-row" key={item.enrichment_id}>
                             <strong>{item.source}</strong>
-                            <span>
-                                {t("sourceVersion")}: {item.source_version}
-                            </span>
-                            <span>
-                                {t("fetchedAt")}: {formatTime(item.fetched_at)}
-                            </span>
-                            <span>
-                                {t("expiresAt")}:{" "}
-                                {item.expires_at ? formatTime(item.expires_at) : "—"}
-                            </span>
-                            <pre
-                                tabIndex={0}
-                                role="group"
-                                aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
-                            >
-                                {JSON.stringify(item.value, null, 2)}
-                            </pre>
+                            <dl className="provenance-fields">
+                                <div>
+                                    <dt>{t("sourceVersion")}</dt>
+                                    <dd>
+                                        <code>{item.source_version}</code>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>{t("fetchedAt")}</dt>
+                                    <dd>{formatTime(item.fetched_at)}</dd>
+                                </div>
+                                <div>
+                                    <dt>{t("expiresAt")}</dt>
+                                    <dd>
+                                        {item.expires_at ? (
+                                            formatTime(item.expires_at)
+                                        ) : (
+                                            <span className="null-value">{"\u2014"}</span>
+                                        )}
+                                    </dd>
+                                </div>
+                            </dl>
+                            {isFlatRecord(item.value) ? (
+                                <dl
+                                    className="provenance-fields"
+                                    aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
+                                >
+                                    {Object.entries(item.value).map(([key, field]) => (
+                                        <div key={key}>
+                                            <dt>{humanizeKey(key)}</dt>
+                                            <dd>
+                                                {Array.isArray(field)
+                                                    ? field.join(", ")
+                                                    : String(field)}
+                                            </dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            ) : (
+                                <pre
+                                    tabIndex={0}
+                                    role="group"
+                                    aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
+                                >
+                                    {JSON.stringify(item.value, null, 2)}
+                                </pre>
+                            )}
                         </div>
                     ))
                 )}
@@ -832,15 +919,19 @@ function GroupDrawer({
                         <span>{alert.rule_description ?? alert.rule_id ?? "Alert"}</span>
                         <code>{alert.alert_key}</code>
                         <small>
-                            {alert.agent_name ?? alert.agent_id ?? "—"} ·{" "}
-                            {formatTime(alert.event_ts)}
+                            {(alert.agent_name ?? alert.agent_id) ? (
+                                <code>{alert.agent_name ?? alert.agent_id}</code>
+                            ) : (
+                                <span className="null-value">{"\u2014"}</span>
+                            )}{" "}
+                            · {formatTime(alert.event_ts)}
                         </small>
                     </button>
                 ))}
             </section>
             {group.members.next_cursor && (
                 <button
-                    className="btn outline"
+                    className="btn outline load-more"
                     type="button"
                     disabled={membersLoading}
                     onClick={onLoadMoreMembers}
@@ -849,18 +940,17 @@ function GroupDrawer({
                 </button>
             )}
             <section className="drawer-section">
-                <h3>
-                    {t("owner")} / {t("statusLabel")}
-                </h3>
-                <label>
-                    {t("owner")}
-                    <input
-                        aria-label={t("owner")}
-                        value={owner}
-                        onChange={(event) => setOwner(event.target.value)}
-                    />
-                </label>
-                <div className="drawer-actions">
+                <h3>{t("ownerAndStatus")}</h3>
+                <div className="queue-v2-field-row">
+                    <label>
+                        {t("owner")}
+                        <input
+                            className="id-input"
+                            aria-label={t("owner")}
+                            value={owner}
+                            onChange={(event) => setOwner(event.target.value)}
+                        />
+                    </label>
                     <button
                         className="btn outline"
                         type="button"
@@ -869,6 +959,9 @@ function GroupDrawer({
                     >
                         {owner.trim() ? t("assign") : t("unassign")}
                     </button>
+                </div>
+                <label>
+                    {t("statusLabel")}
                     <select
                         aria-label={t("statusLabel")}
                         disabled={busy}
@@ -884,12 +977,13 @@ function GroupDrawer({
                             </option>
                         ))}
                     </select>
-                </div>
+                </label>
             </section>
             <section className="drawer-section">
                 <h3>{t("disposition")}</h3>
                 <label>
-                    {t("disposition")}
+                    {/* The section title already names this field; the label stays for screen readers. */}
+                    <span className="sr-only">{t("disposition")}</span>
                     <select
                         aria-label={t("disposition")}
                         value={label}
@@ -952,11 +1046,6 @@ function GroupDrawer({
                     {t("saveDisposition")}
                 </button>
             </section>
-            <SheetClose asChild>
-                <button className="btn outline" type="button">
-                    {t("detailsClose")}
-                </button>
-            </SheetClose>
         </div>
     );
 }

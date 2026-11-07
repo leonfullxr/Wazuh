@@ -1,5 +1,5 @@
 .m3-page {
-    --m3-section-gap: 24px;
+    --m3-section-gap: 32px;
 }
 
 .m3-grid {
@@ -14,6 +14,42 @@
 
 .m3-list {
     gap: 4px;
+    margin-inline: -12px;
+}
+
+.m3-create > .btn.primary {
+    justify-self: end;
+}
+
+.m3-empty-detail {
+    min-height: 264px;
+}
+
+.m3-page .panel-head h3 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.m3-detail > .panel-head + .m3-meta,
+.m3-detail > h3 + .m3-meta {
+    margin-top: 14px;
+}
+
+.m3-detail > .panel-head h3,
+.m3-detail > h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.m3-detail h4 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.m3-create h4 {
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .m3-list-item {
@@ -46,7 +82,6 @@
 .m3-meta code,
 .m3-detail td code {
     font-family: var(--font-code);
-    font-variant-numeric: tabular-nums;
 }
 
 .m3-meta {
@@ -67,7 +102,7 @@
 
 .m3-graph-empty {
     position: relative;
-    min-height: 300px;
+    min-height: 96px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);
@@ -86,10 +121,9 @@
 .m3-graph-empty-copy {
     position: absolute;
     inset: 50% auto auto 50%;
-    width: min(420px, calc(100% - 40px));
-    padding: 16px;
-    border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-panel);
+    width: min(460px, calc(100% - 40px));
+    padding: 10px 14px;
+    border-radius: var(--radius-control);
     background: var(--surface);
     text-align: center;
     transform: translate(-50%, -50%);
@@ -99,6 +133,14 @@
     margin: 0 0 4px;
     font-size: 13px;
     font-weight: 600;
+}
+
+.m3-actions form > .btn {
+    justify-self: start;
+}
+
+.m3-detail > .m3-two-column {
+    column-gap: 32px;
 }
 
 .m3-graph-empty-copy p {
@@ -122,6 +164,10 @@
     gap: 8px;
     min-width: 0;
     padding: 0 0 20px;
+}
+
+.m3-timeline > li:last-child {
+    padding-bottom: 0;
 }
 
 .m3-timeline time {
@@ -180,7 +226,9 @@
 }
 
 .m3-timeline-event > span {
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--text-muted);
     font: 11px/18px var(--font-code);
 }
@@ -189,9 +237,10 @@
     margin-top: 8px;
 }
 
+/* Detail tables sit directly on the card like every other table (no second border level). */
 .m3-detail .table-wrap {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-panel);
+    border: 0;
+    border-radius: 0;
 }
 
 .m3-detail table {
@@ -217,19 +266,105 @@
     font-weight: 500;
 }
 
-.m3-inline-form {
-    border-color: var(--border);
-    border-radius: var(--radius-panel);
-    background: var(--surface-2);
+/* Single-field forms sit on one row; forms with a textarea stack with the action on the right. */
+.m3-page .m3-inline-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px 10px;
+    margin: 10px 0 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.m3-page .m3-inline-form:has(textarea),
+.m3-page .m3-inline-form:has(label + label) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.m3-page .m3-inline-form > .btn {
+    justify-self: end;
+}
+
+/* The timeline grid must not reach evidence items nested inside an event. */
+.m3-timeline .m3-evidence li {
+    display: block;
+    padding: 10px 12px;
+}
+
+.m3-page .m3-narrative {
+    margin: var(--m3-section-gap) 0 0;
+    padding: 20px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+}
+
+.m3-page .m3-trust-note {
+    font-size: 13px;
+    font-weight: 550;
+    line-height: 20px;
+}
+
+.m3-list-item small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Long digests and IDs stay on one line; the full value stays selectable. */
+.m3-meta dd code {
+    color: var(--text);
+    font-size: 12.5px;
+}
+
+.m3-meta + .m3-meta {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.m3-meta dd code,
+.m3-evidence-fields dd code {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: bottom;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.m3-evidence-fields {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+}
+
+.m3-evidence-fields > div {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+    font-size: 12px;
+}
+
+.m3-evidence-fields dt {
+    color: var(--text-muted);
+}
+
+.m3-evidence-fields dd {
+    min-width: 0;
+    margin: 0;
+}
+
+.m3-evidence-fields dd code {
+    color: var(--text);
+    font-size: 12.5px;
 }
 
 @media (max-width: 1000px) {
     .m3-grid {
         grid-template-columns: 1fr;
-    }
-
-    .m3-graph-empty {
-        min-height: 260px;
     }
 }
 
@@ -253,7 +388,7 @@
     }
 
     .m3-graph-empty {
-        min-height: 230px;
+        min-height: 150px;
         overflow-x: auto;
     }
 
@@ -261,4 +396,929 @@
         grid-template-columns: 54px 14px minmax(0, 1fr);
         gap: 6px;
     }
+}
+
+.m3-list-item .m3-list-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.m3-list-item .m3-list-meta code {
+    margin-left: -2px;
+    color: var(--text-2);
+    font-family: var(--font-code);
+    font-size: 12px;
+}
+
+.m3-meta dd .tag {
+    vertical-align: middle;
+}
+
+.m3-stage-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+:is(.m3-stage-head, .m3-stage-lead) > code {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.m3-stage-ordinal {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--text-2);
+    font: 600 11px/1 var(--font-ui);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Narrative provenance: short fields pair up in two columns, digests take a full row. */
+.m3-provenance > .m3-meta {
+    grid-template-columns:
+        minmax(150px, max-content) minmax(0, 1fr)
+        minmax(150px, max-content) minmax(0, 1fr);
+    gap: 4px 16px;
+    line-height: 20px;
+}
+
+.m3-provenance > .m3-meta dt:has(+ dd > code),
+.m3-provenance > .m3-meta dt:has(+ dd > .copy-value) {
+    grid-column: 1;
+}
+
+.m3-provenance > .m3-meta dd:has(> code),
+.m3-provenance > .m3-meta dd:has(> .copy-value) {
+    grid-column: 2 / -1;
+}
+
+@media (max-width: 1200px) {
+    .m3-provenance > .m3-meta {
+        grid-template-columns: minmax(110px, 0.35fr) minmax(0, 1fr);
+    }
+}
+
+/* One rhythm for detail sections: a hairline with 20px either side. */
+.m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
+.m3-detail > .m3-two-column,
+.m3-detail > .m3-actions {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-row);
+}
+
+.m3-detail > section > h4:first-child,
+.m3-detail > .m3-two-column h4 {
+    margin-top: 0;
+}
+
+/* Evidence groups: one-line ids, wider group column, top-aligned cells. */
+.m3-detail td {
+    vertical-align: top;
+}
+
+.m3-detail td:first-child {
+    min-width: 220px;
+}
+
+.m3-detail td:nth-child(2) code {
+    max-width: 18ch;
+}
+
+.m3-detail td:last-child {
+    white-space: nowrap;
+}
+
+.m3-detail td small,
+.m3-detail td code {
+    display: block;
+    max-width: 30ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Membership edits: add and remove side by side, action below. */
+.m3-page .m3-inline-form:has(label + label):not(:has(select)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.m3-page .m3-inline-form:has(label + label):not(:has(select)) > .btn {
+    grid-column: 1 / -1;
+}
+
+.m3-graph-empty-copy p {
+    text-wrap: balance;
+}
+
+.m3-grid > .panel > .m3-list:last-child {
+    margin-bottom: 0;
+}
+
+/* Membership history and other evidence rows: null values recede. */
+.m3-evidence-fields dd code:empty,
+.m3-evidence-fields dd code[data-null] {
+    color: var(--text-muted);
+}
+
+/* Prose values (they contain spaces) read in the UI font; ids and keys stay mono. */
+.m3-evidence-fields dd code[data-prose] {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    white-space: normal;
+}
+
+/* One label column (200px) for every key/value list on a detail page; inset cards subtract
+   their 12px padding so values line up with the outer column. */
+.m3-detail .m3-meta {
+    grid-template-columns: 200px minmax(0, 1fr);
+}
+
+.m3-provenance > .m3-meta {
+    grid-template-columns: 200px minmax(0, 1fr) 200px minmax(0, 1fr);
+}
+
+.m3-provenance > .m3-meta dt:last-of-type {
+    grid-column: 1;
+}
+
+.m3-provenance > .m3-meta dd:last-of-type {
+    grid-column: 2 / -1;
+}
+
+/* Full-width section cards align with the meta value column (200px + 14px gap); narrow cards keep a short one. */
+.m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
+    grid-template-columns: 202px minmax(0, 1fr);
+}
+
+.m3-timeline .m3-evidence-fields > div,
+.m3-two-column .m3-evidence-fields > div {
+    grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.m3-evidence-fields dd > span,
+.m3-evidence-fields dd .field-number {
+    font-family: var(--font-ui);
+    font-size: 13px;
+}
+
+.field-number {
+    font-variant-numeric: tabular-nums;
+}
+
+:is(.m3-stage-head, .m3-stage-lead) > code {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.m3-stage-ordinal {
+    width: 20px;
+    height: 20px;
+}
+
+.m3-timeline time {
+    font-family: var(--font-ui);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1200px) {
+    .m3-provenance > .m3-meta {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .m3-detail .m3-meta,
+    .m3-provenance > .m3-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .m3-provenance > .m3-meta dt:last-of-type,
+    .m3-provenance > .m3-meta dd:last-of-type {
+        grid-column: auto;
+    }
+
+    .m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
+        grid-template-columns: 96px minmax(0, 1fr);
+    }
+}
+
+.m3-evidence-fields dt {
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+/* An id followed by more text (rule plus version, owner) stays inline. */
+.m3-meta dd > code:not(:only-child) {
+    display: inline;
+}
+
+.m3-list-item[aria-current="true"] {
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.m3-timeline .m3-evidence li {
+    padding: 8px 0 0;
+}
+
+/* Compact hashes with copy share the value column of code ids. */
+.m3-meta .copy-value,
+.m3-evidence-fields .copy-value {
+    max-width: 100%;
+    color: var(--text);
+    font-size: 12.5px;
+}
+
+.m3-provenance > .m3-meta .copy-value {
+    max-width: 100%;
+    color: var(--text);
+    font-size: 12.5px;
+}
+
+.m3-timeline-event > strong > code {
+    font-family: var(--font-code);
+    font-weight: 600;
+}
+
+/* The next section draws the divider, so the narrative's last block does not. */
+.m3-provenance > .m3-meta:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.m3-timeline-event > .m3-evidence {
+    margin-top: 6px;
+}
+
+.m3-timeline-event .m3-evidence > li {
+    padding-top: 0;
+}
+
+.m3-timeline-event > span .copy-value {
+    color: inherit;
+    font-size: 11px;
+    line-height: 18px;
+    vertical-align: top;
+}
+
+.m3-detail :is(.m3-stage-head, .m3-stage-lead) > code {
+    font-size: 12.5px;
+}
+
+.m3-missing {
+    margin: 4px 0 0;
+    color: var(--text-2);
+    font-size: 13px;
+}
+
+.m3-detail td .copy-value {
+    max-width: 100%;
+    color: inherit;
+    font-size: 12px;
+}
+
+.m3-list-item > strong > code {
+    display: block;
+    overflow: hidden;
+    font-family: var(--font-code);
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.m3-narrative-text .copy-value {
+    color: var(--text);
+    font-size: 12.5px;
+    vertical-align: baseline;
+}
+
+/* Narrow side cards (membership history): label left, value right like the header block;
+   identifiers are compacted so they fit on one line. */
+.m3-two-column .m3-evidence-fields > div {
+    grid-template-columns: 40% minmax(0, 1fr);
+    gap: 12px;
+}
+
+.m3-provenance {
+    margin-top: 12px;
+    border-top: 1px solid var(--border-row);
+}
+
+.m3-provenance > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 550;
+    cursor: pointer;
+}
+
+.m3-provenance > summary:hover {
+    color: var(--text);
+}
+
+.m3-provenance[open] > summary {
+    margin-bottom: 4px;
+}
+
+.m3-provenance > .m3-meta:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+
+/* Provenance rows share the header block's rhythm and value column. */
+.m3-provenance > .m3-meta {
+    gap: 8px 14px;
+    margin-bottom: 0;
+    line-height: normal;
+}
+
+.m3-provenance > .m3-meta + .m3-meta {
+    margin-top: 8px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+/* Empty graph: a quiet dashed placeholder (the partial dot field read as an artifact). */
+.m3-graph-empty {
+    min-height: 72px;
+    border-style: dashed;
+}
+
+.m3-graph-grid {
+    display: none;
+}
+
+.m3-graph-empty-copy {
+    width: min(680px, calc(100% - 40px));
+    padding: 0;
+    background: transparent;
+}
+
+.m3-provenance[open] > .m3-meta:first-of-type {
+    padding-top: 4px;
+}
+
+/* Timeline: no trailing band after the last event. */
+.m3-timeline {
+    margin: 10px 0 0;
+}
+
+/* Work history entries sit flush with their heading, like membership history. */
+.m3-history {
+    padding-left: 0;
+}
+
+/* Narrative header: heading and Refresh share one centred row, and the heading keeps the same
+   distance from the divider as the other section headings. */
+.m3-narrative > .panel-head {
+    margin: -6px 0 10px;
+}
+
+.m3-narrative > .panel-head h4 {
+    margin: 0;
+}
+
+.m3-narrative > .panel-head .btn {
+    height: 28px;
+    padding: 0 10px;
+}
+
+/* Timeline times use the shared 13px secondary style. */
+.m3-timeline time {
+    color: var(--text-2);
+    font-size: 13px;
+}
+
+/* Timeline starts at the section edge; the stage chip is quieter than its event. */
+.m3-timeline li {
+    grid-template-columns: 44px 16px minmax(0, 1fr);
+}
+
+.m3-timeline time {
+    text-align: left;
+}
+
+.m3-timeline :is(.m3-stage-head, .m3-stage-lead) > code {
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* Empty entity graph: one left-aligned muted line, like the other detail-page notes. */
+.m3-graph-empty {
+    min-height: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--border-row);
+    border-radius: var(--radius-control);
+}
+
+.m3-graph-empty-copy {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    width: auto;
+    text-align: left;
+    transform: none;
+}
+
+.m3-graph-empty-copy h4 {
+    margin: 0;
+}
+
+/* Trust note: regular weight with a bold lead sentence; narrative prose at body size. */
+.m3-page .m3-trust-note {
+    font-weight: 400;
+}
+
+.m3-page .m3-trust-note strong {
+    font-weight: 600;
+}
+
+.m3-narrative-text {
+    font-size: 14px;
+    line-height: 22px;
+}
+
+/* Empty entity graph: a plain muted line flush with the section, like other empty notes. */
+.m3-graph-empty {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.m3-graph-empty-copy h4,
+.m3-graph-empty-copy p {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* Detail tables use the 13px body size; only the hash sub-line stays small. */
+.m3-detail td {
+    font-size: 13px;
+}
+
+.m3-detail td > strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Timeline marker: a solid dot, not a ring (the rail between events stays). */
+.m3-timeline-marker::before {
+    top: 5px;
+    left: 4px;
+    width: 8px;
+    height: 8px;
+    border: 0;
+    background: var(--text-muted);
+    box-shadow: none;
+}
+
+/* Evidence groups: auto column sizing with tighter cells; the group name keeps one line. */
+section[aria-labelledby="incident-members-heading"] th,
+section[aria-labelledby="incident-members-heading"] td {
+    padding-right: 10px;
+    padding-left: 10px;
+}
+
+section[aria-labelledby="incident-members-heading"] td > strong {
+    display: block;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+section[aria-labelledby="incident-members-heading"] > h5 {
+    margin: 20px 0 8px;
+}
+
+/* Empty entity graph: a primary label, then the muted sentence after a 12px gap. */
+.m3-graph-empty-copy {
+    column-gap: 12px;
+}
+
+.m3-graph-empty-copy h4 {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Wide screens: the list column stays in view while the detail scrolls. */
+@media (min-width: 1201px) {
+    .m3-grid {
+        align-items: start;
+    }
+
+    .m3-grid > .panel:first-child {
+        position: sticky;
+        top: calc(var(--header-height) + 16px);
+    }
+}
+
+/* Detail tables start and end on the same edges as the label column and section headings. */
+.m3-detail section table th:first-child,
+.m3-detail section table td:first-child {
+    padding-left: 0;
+}
+
+.m3-detail section table th:last-child,
+.m3-detail section table td:last-child {
+    padding-right: 0;
+}
+
+/* Record names that are identifiers (history actions) are mono, like every other id. */
+.m3-work-history li > strong {
+    font-family: var(--font-code);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Chain decisions: both fields side by side, then one right-aligned action row. */
+.m3-actions-row {
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Mono subheadings (history actions) stay below their sans section titles. */
+.m3-work-history li > strong {
+    color: var(--text-2);
+    font-weight: 500;
+}
+
+/* Evidence group counts right-align like every numeric column. */
+section[aria-labelledby="incident-members-heading"] th:nth-child(3),
+section[aria-labelledby="incident-members-heading"] td:nth-child(3),
+section[aria-labelledby="incident-members-heading"] th:nth-child(4),
+section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
+    text-align: right;
+}
+
+/* Every form action is auto-width and right-aligned, including Create incident. */
+.m3-create > .btn,
+.m3-create .btn[type="submit"] {
+    justify-self: end;
+    width: auto;
+}
+
+.m3-actions-title {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+/* Evidence group counts get fixed columns and room before the event time. */
+section[aria-labelledby="incident-members-heading"] th:nth-child(3),
+section[aria-labelledby="incident-members-heading"] th:nth-child(4) {
+    width: 80px;
+}
+
+section[aria-labelledby="incident-members-heading"] th:nth-child(4),
+section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
+    padding-right: 16px;
+}
+
+/* Timeline identifier line at the shared secondary metadata size. */
+.m3-timeline-event > span {
+    font-size: 12px;
+}
+
+/* List cards: the page title names the list; the head is a toolbar with a count and Refresh. */
+.m3-grid > .panel:first-child > .panel-head {
+    justify-content: space-between;
+    align-items: center;
+}
+
+.m3-list-count {
+    color: var(--text-2);
+    font-size: 13px;
+}
+
+/* Chain decisions: each button sits inline after its own field, like Owner and Save owner. */
+.m3-actions form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    column-gap: 8px;
+}
+
+.m3-actions form > .btn {
+    justify-self: auto;
+}
+
+.m3-detail > .m3-actions {
+    padding-top: 20px;
+}
+
+.m3-detail > .m3-actions > .m3-actions-title {
+    margin: 0;
+}
+
+/* Narrative: a clear gap after the trust note; inline mono ids keep the prose line height. */
+.m3-narrative .m3-trust-note {
+    margin-bottom: 12px;
+}
+
+.m3-narrative-text code,
+.m3-narrative-text .copy-value {
+    font-size: 0.92em;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+
+/* Stage rows: a single field shares the stage header line, right-aligned. */
+.m3-stage-field {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.m3-stage-field .copy-value {
+    max-width: none;
+}
+
+.m3-stage-head:only-child {
+    margin-bottom: 0;
+}
+
+.m3-stage-field > span:first-child {
+    color: var(--text-2);
+    font-size: 13px;
+}
+
+.m3-missing {
+    margin-top: 0;
+}
+
+/* The weak-links subheading sits closer to the list above it. */
+section[aria-labelledby="chain-links-heading"] > h5 {
+    margin-top: 12px;
+}
+
+/* The two decision pairs sit further apart than a field and its button. */
+.m3-detail > .m3-actions {
+    column-gap: 32px;
+}
+
+/* Single-field stage values share a fixed slot, so the labels stack in one column. */
+.m3-stage-field > :last-child {
+    min-width: 168px;
+    text-align: left;
+}
+
+/* Both decision buttons share one width, so the two inputs match. */
+.m3-actions form > .btn {
+    min-width: 152px;
+}
+
+/* Single-field stage rows put the field at the shared value column (202px + 12px). */
+.m3-stage-row {
+    display: grid;
+    grid-template-columns: 202px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+}
+
+.m3-stage-lead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.m3-stage-row > .m3-stage-field {
+    margin-left: 0;
+}
+
+.m3-stage-row > .m3-stage-field > :last-child {
+    min-width: 0;
+}
+
+/* Missing stages read as one more label/value row. */
+.m3-missing-row {
+    margin: 10px 0 0;
+}
+
+.m3-detail > section > .m3-missing-row > div {
+    grid-template-columns: 202px minmax(0, 1fr);
+}
+
+/* Event names in work history stay below their section title. */
+.m3-work-history li > strong {
+    font-weight: 400;
+}
+
+/* Resting list items show their row box; selection adds the tint and accent. */
+.m3-list-item {
+    border-color: var(--border-row);
+}
+
+/* Top-level detail sections: 32px above the hairline, 20px below; headings step 18 / 16 / 12px. */
+.m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
+.m3-detail > .m3-two-column,
+.m3-detail > .m3-actions {
+    margin-top: var(--m3-section-gap);
+}
+
+.m3-detail .panel-head > h3 {
+    font-size: 18px;
+}
+
+.m3-detail > section > h4,
+.m3-detail > .m3-two-column > section > h4,
+.m3-detail > .m3-actions > .m3-actions-title,
+.m3-narrative > .panel-head h4 {
+    font-size: 16px;
+}
+
+/* Missing stages close the stage list behind the same hairline as the rows. */
+.m3-detail .m3-evidence:has(+ .m3-missing-row) {
+    margin-bottom: 0;
+}
+
+.m3-detail .m3-missing-row {
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-row);
+}
+
+/* Wrapped list titles take less room. */
+.m3-list-item strong {
+    line-height: 18px;
+}
+
+/* One row pitch for every label/value list on detail pages (29px, like the meta block). */
+.m3-detail > section .m3-evidence-fields {
+    display: grid;
+    row-gap: 8px;
+}
+
+.m3-detail .m3-timeline .m3-evidence-fields {
+    row-gap: 4px;
+}
+
+/* Stage rows: 40px, pill centred; the Missing stages row matches. */
+section[aria-labelledby="chain-stages-heading"] .m3-evidence > li {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+section[aria-labelledby="chain-stages-heading"] .m3-evidence > li > .m3-stage-row {
+    flex: 1;
+}
+
+.m3-detail .m3-missing-row {
+    padding-top: 0;
+}
+
+.m3-detail .m3-missing-row > div {
+    min-height: 40px;
+    align-items: center;
+}
+
+/* The graph notice closes the key-value block instead of taking a section slot. */
+.m3-detail > .m3-meta:has(+ .m3-graph-empty) {
+    border-bottom: 0;
+}
+
+.m3-detail > .m3-meta + .m3-graph-empty {
+    margin-top: 4px;
+}
+
+/* A date line opens each day of the timeline. */
+.m3-timeline > li.m3-timeline-day {
+    display: block;
+    padding: 0 0 8px;
+    color: var(--text-2);
+    font-size: 13px;
+}
+
+/* The weak-links subheading groups with its rows: about 20px above, 8px below. */
+section[aria-labelledby="chain-links-heading"] > h5 {
+    margin: 10px 0 8px;
+}
+
+section[aria-labelledby="chain-stages-heading"] .m3-evidence {
+    gap: 0;
+}
+
+/* The graph notice is one more key-value row: label column, muted value, 29px pitch. */
+.m3-detail > .m3-meta:has(+ .m3-graph-empty) {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.m3-detail > .m3-meta + .m3-graph-empty {
+    min-height: 0;
+    margin-top: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.m3-detail > .m3-graph-empty .m3-graph-empty-copy {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    column-gap: 14px;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.m3-detail > .m3-graph-empty .m3-graph-empty-copy h4,
+.m3-detail > .m3-graph-empty .m3-graph-empty-copy p {
+    margin: 0;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 21px;
+}
+
+.m3-detail > .m3-graph-empty .m3-graph-empty-copy p {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* Stage pills share one edge at the end of the label column. */
+.m3-stage-row > .m3-stage-lead > code + * {
+    margin-left: auto;
+}
+
+.m3-missing-row dd > code {
+    font-family: var(--font-code);
+    font-size: 12.5px;
+}
+
+/* Missing stages: a 10px inset under the closing hairline, no reserved height, so the
+   standard 32px reaches the next section. */
+.m3-detail .m3-missing-row {
+    padding-top: 10px;
+}
+
+.m3-detail .m3-missing-row > div {
+    min-height: 0;
+}
+
+/* "Candidate evidence" is a section name, not a record title: section size, no rule under it. */
+#chain-detail-heading {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+section[aria-labelledby="chain-detail-heading"] > .m3-meta {
+    padding-top: 0;
+    border-top: 0;
+}
+
+/* Every section closes 32px above the next hairline: the last list, row or disclosure adds no
+   trailing space of its own. */
+.m3-detail > section > .m3-evidence:last-child,
+.m3-detail > section > .m3-timeline:last-child,
+.m3-detail > section > details:last-child,
+.m3-detail > .m3-narrative > :last-child {
+    margin-bottom: 0;
+}
+
+.m3-detail > section > .m3-evidence:last-child > li:last-child {
+    padding-bottom: 0;
+}
+
+.m3-detail .m3-timeline > li:last-child .m3-evidence {
+    margin-bottom: 0;
+}
+
+/* The trust note sits 16px above the prose it qualifies. */
+.m3-narrative .m3-trust-note {
+    margin-bottom: 16px;
+}
+
+/* Timeline rule ids read as mono at the row size. */
+.m3-timeline-event > strong > code {
+    font-size: 13px;
+}
+
+/* Stage pills share both edges. */
+.m3-stage-row > .m3-stage-lead > code + * {
+    min-width: 64px;
+    justify-content: center;
 }

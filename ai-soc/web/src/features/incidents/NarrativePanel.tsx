@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { components } from "../../../../contracts/workspace/v1/types.ts";
 import { getIncidentNarrative } from "../../api/workspace-m3";
 import { WorkspaceRequestError } from "../../api/workspace";
+import { fmt } from "../../i18n/answer-copy";
+import { CopyValue } from "../investigate/CopyValue";
+import { fmtDate } from "./M3WorkspacePage";
 
 type Locale = "en" | "es";
 type Translate = (key: string) => string;
@@ -68,59 +71,9 @@ export function NarrativePanel({
                             {t("m3NarrativeHistorical")}
                         </p>
                     )}
-                    <p className="m3-trust-note">{t("m3NarrativeTrust")}</p>
-                    <dl className="m3-meta">
-                        <dt>{t("m3EvidenceRevision")}</dt>
-                        <dd>
-                            <code>{data.evidence_revision}</code>
-                        </dd>
-                        <dt>{t("m3NarrativeStatus")}</dt>
-                        <dd>{t(`m3Narrative_${data.status}`)}</dd>
-                        <dt>{t("m3NarrativeGeneration")}</dt>
-                        <dd>
-                            <code>{data.generation_id ?? t("m3NotReported")}</code>
-                        </dd>
-                        <dt>{t("m3NarrativeGenerationDigest")}</dt>
-                        <dd>
-                            <code>{data.generation_digest ?? t("m3NotReported")}</code>
-                        </dd>
-                        <dt>{t("m3NarrativePackDigest")}</dt>
-                        <dd>
-                            <code>{data.pack_digest ?? t("m3NotReported")}</code>
-                        </dd>
-                        {data.evidence && (
-                            <>
-                                <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
-                                <dd>
-                                    <code>{data.evidence.content_digest}</code>
-                                </dd>
-                            </>
-                        )}
-                        {summary && (
-                            <>
-                                <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
-                                <dd>
-                                    <code>{summary.pack_digest}</code>
-                                </dd>
-                            </>
-                        )}
-                        <dt>{t("m3NarrativeCompleted")}</dt>
-                        <dd>
-                            {data.completed_at
-                                ? new Date(data.completed_at).toLocaleString(locale)
-                                : t("m3NotReported")}
-                        </dd>
-                        <dt>{t("m3NarrativeUsage")}</dt>
-                        <dd>
-                            {tokenUsage(data.usage.input_tokens, t("m3NarrativeInput"), t)} ·{" "}
-                            {tokenUsage(
-                                data.usage.cached_input_tokens,
-                                t("m3NarrativeCachedInput"),
-                                t,
-                            )}{" "}
-                            · {tokenUsage(data.usage.output_tokens, t("m3NarrativeOutput"), t)}
-                        </dd>
-                    </dl>
+                    <p className="m3-trust-note">
+                        <TrustNote text={t("m3NarrativeTrust")} />
+                    </p>
                     {removals.length > 0 && (
                         <div>
                             <h5>{t("m3NarrativeRemovals")}</h5>
@@ -155,14 +108,23 @@ export function NarrativePanel({
                     )}
                     {summary && (
                         <section aria-label={locale === "es" ? summary.label_es : summary.label_en}>
-                            <h5>{locale === "es" ? summary.label_es : summary.label_en}</h5>
+                            <h5 className="sr-only">
+                                {locale === "es" ? summary.label_es : summary.label_en}
+                            </h5>
                             {summary.status === "all_removed" ? (
                                 <p className="muted">{t("m3NarrativeAllRemoved")}</p>
                             ) : summary.status === "invalid_structure" ? (
                                 <p className="muted">{t("m3NarrativeInvalid")}</p>
                             ) : (
                                 <p className="m3-narrative-text">
-                                    {locale === "es" ? summary.rendered_es : summary.rendered_en}
+                                    <HashText
+                                        text={
+                                            locale === "es"
+                                                ? summary.rendered_es
+                                                : summary.rendered_en
+                                        }
+                                        locale={locale}
+                                    />
                                 </p>
                             )}
                             {summary.static_error && (
@@ -186,7 +148,9 @@ export function NarrativePanel({
                                                     onClick={() => setSelectedCitation(citation)}
                                                 >
                                                     {t(`m3Citation_${citation.kind}`)} ·{" "}
-                                                    <code>{citation.fact_id}</code>
+                                                    <code title={citation.fact_id}>
+                                                        {compactId(citation.fact_id)}
+                                                    </code>
                                                 </button>
                                             </li>
                                         ))}
@@ -209,12 +173,88 @@ export function NarrativePanel({
                             )}
                         </section>
                     )}
-                    {data.evidence && (
-                        <p className="muted">
-                            {t("m3NarrativeFrozenPack")}:{" "}
-                            <code>{data.evidence.content_digest}</code>
-                        </p>
-                    )}
+                    {/* Generation provenance is secondary to the summary and evidence, so it starts folded. */}
+                    <details className="m3-provenance disclosure">
+                        <summary>{t("m3NarrativeProvenance")}</summary>
+                        <dl className="m3-meta">
+                            <dt>{t("m3EvidenceRevision")}</dt>
+                            <dd>
+                                <IdValue value={data.evidence_revision} locale={locale} />
+                            </dd>
+                            <dt>{t("m3NarrativeStatus")}</dt>
+                            <dd>{t(`m3Narrative_${data.status}`)}</dd>
+                            <dt>{t("m3NarrativeGeneration")}</dt>
+                            <dd>
+                                {data.generation_id ? (
+                                    <IdValue value={data.generation_id} locale={locale} />
+                                ) : (
+                                    <code>{t("m3NotReported")}</code>
+                                )}
+                            </dd>
+                            <dt>{t("m3NarrativeGenerationDigest")}</dt>
+                            <dd>
+                                {data.generation_digest ? (
+                                    <IdValue value={data.generation_digest} locale={locale} />
+                                ) : (
+                                    <code>{t("m3NotReported")}</code>
+                                )}
+                            </dd>
+                            <dt>{t("m3NarrativePackDigest")}</dt>
+                            <dd>
+                                {data.pack_digest ? (
+                                    <IdValue value={data.pack_digest} locale={locale} />
+                                ) : (
+                                    <code>{t("m3NotReported")}</code>
+                                )}
+                            </dd>
+                            {data.evidence && (
+                                <>
+                                    <dt>{t("m3NarrativeFrozenPackDigest")}</dt>
+                                    <dd>
+                                        <IdValue
+                                            value={data.evidence.content_digest}
+                                            locale={locale}
+                                        />
+                                    </dd>
+                                </>
+                            )}
+                            {summary && (
+                                <>
+                                    <dt>{t("m3NarrativeValidatedPackDigest")}</dt>
+                                    <dd>
+                                        <IdValue value={summary.pack_digest} locale={locale} />
+                                    </dd>
+                                </>
+                            )}
+                            <dt>{t("m3NarrativeCompleted")}</dt>
+                            <dd>
+                                {data.completed_at
+                                    ? new Intl.DateTimeFormat(undefined, {
+                                          dateStyle: "medium",
+                                          timeStyle: "short",
+                                      }).format(new Date(data.completed_at))
+                                    : t("m3NotReported")}
+                            </dd>
+                            <dt>{t("m3NarrativeUsage")}</dt>
+                            <dd>
+                                {tokenUsage(data.usage.input_tokens, t("m3NarrativeInput"), t)} ·{" "}
+                                {tokenUsage(
+                                    data.usage.cached_input_tokens,
+                                    t("m3NarrativeCachedInput"),
+                                    t,
+                                )}{" "}
+                                · {tokenUsage(data.usage.output_tokens, t("m3NarrativeOutput"), t)}
+                            </dd>
+                        </dl>
+                        {data.evidence && (
+                            <dl className="m3-meta">
+                                <dt>{t("m3NarrativeFrozenPack")}</dt>
+                                <dd>
+                                    <IdValue value={data.evidence.content_digest} locale={locale} />
+                                </dd>
+                            </dl>
+                        )}
+                    </details>
                 </>
             )}
         </section>
@@ -316,4 +356,75 @@ function narrativeFailure(error: unknown, t: Translate): string {
         return error.message;
     }
     return error instanceof Error ? error.message : t("m3Unavailable");
+}
+
+/** Long ids keep their head and tail; the full value stays in the title. */
+export function compactId(value: string): string {
+    return value.length > 24 ? `${value.slice(0, 12)}\u2026${value.slice(-8)}` : value;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Identifiers (hashes, UUIDs, or `copy`) get a trailing copy button; long hashes show head and
+ * tail with the full value in the title. Short scalars stay plain code. */
+export function IdValue({
+    value,
+    locale,
+    copy = false,
+    compact = false,
+}: {
+    value: string;
+    locale: Locale;
+    copy?: boolean;
+    compact?: boolean;
+}) {
+    const long = value.length > (compact ? 24 : 40) && !value.includes("://");
+    if (!long && !copy && !UUID.test(value)) return <code>{value}</code>;
+    return (
+        <CopyValue
+            value={value}
+            displayValue={long ? compactId(value) : value}
+            t={(key) => fmt(locale, key)}
+        />
+    );
+}
+
+// Long hex hashes, ISO times, and lowercase hyphenated host ids such as agent-042 or web-01.
+const PROSE_TOKEN =
+    /\b[0-9a-f]{32,}\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?|\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+\b|(?<=\b(?:[Rr]ule|[Rr]egla) )\d+\b/g;
+
+/** Prose keeps its words; hashes become compact ids with copy, ISO times read as dates and host
+ * ids are mono, matching the rest of the console. */
+export function HashText({ text, locale }: { text: string; locale: Locale }) {
+    const parts: ReactNode[] = [];
+    let last = 0;
+    for (const match of text.matchAll(PROSE_TOKEN)) {
+        const start = match.index ?? 0;
+        if (start > last) parts.push(text.slice(last, start));
+        parts.push(
+            /^\d{4}-/.test(match[0]) ? (
+                <time key={start} dateTime={match[0]}>
+                    {fmtDate(match[0], locale)}
+                </time>
+            ) : /^[0-9a-f]{32,}$/.test(match[0]) ? (
+                <IdValue key={start} value={match[0]} locale={locale} />
+            ) : (
+                <code key={start}>{match[0]}</code>
+            ),
+        );
+        last = start + match[0].length;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return <>{parts}</>;
+}
+
+/** Only the lead sentence of the trust note is bold; the rest reads as normal guidance. */
+function TrustNote({ text }: { text: string }) {
+    const cut = text.indexOf(". ");
+    if (cut < 0) return <strong>{text}</strong>;
+    return (
+        <>
+            <strong>{text.slice(0, cut + 1)}</strong> {text.slice(cut + 2)}
+        </>
+    );
 }

@@ -98,6 +98,7 @@ export function Composer({
                 <span className="muted timezone">
                     {t("timezone")}: {Intl.DateTimeFormat().resolvedOptions().timeZone}
                 </span>
+                <span className="muted submit-hint">{t("submitHint")}</span>
                 <button className="btn primary" disabled={!canAsk} onClick={onSubmit}>
                     {pending ? (
                         <>
@@ -111,7 +112,6 @@ export function Composer({
                         </>
                     )}
                 </button>
-                <span className="muted submit-hint">{t("submitHint")}</span>
             </div>
             {pending && (
                 <div className="progress-line" aria-live="polite">

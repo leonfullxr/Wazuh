@@ -122,6 +122,12 @@ export function EvidenceDataTable({
     const columns = useMemo<ColumnDef<EvidenceRow>[]>(() => {
         const base: ColumnDef<EvidenceRow>[] = fetch.columns.map((column) => ({
             id: column.field,
+            // Counts right-align like every numeric column; ids stay left in mono.
+            meta: {
+                numeric:
+                    column.kind === "integer" &&
+                    !/(^|\.)id$|^(agent|manager)\.name$|hostname$/.test(column.field),
+            },
             accessorFn: (row) => row.values[column.field],
             header: ({ column: tableColumn }) => (
                 <button
@@ -139,15 +145,20 @@ export function EvidenceDataTable({
                     )}
                 </button>
             ),
-            cell: ({ row }) => (
-                <span
-                    className={
-                        column.kind === "ip" ? "mono" : column.kind === "integer" ? "numeric" : ""
-                    }
-                >
-                    {fieldValue(row.original.values[column.field], column.kind, timezone, locale)}
-                </span>
-            ),
+            cell: ({ row }) => {
+                const value = row.original.values[column.field];
+                if (value === null || value === undefined || value === "")
+                    return <span className="null-value">{"\u2014"}</span>;
+                // Identifiers (IPs, *.id fields and host names) are mono, like ids everywhere else.
+                const idLike =
+                    column.kind === "ip" ||
+                    /(^|\.)id$|^(agent|manager)\.name$|hostname$/.test(column.field);
+                return (
+                    <span className={idLike ? "mono" : column.kind === "integer" ? "numeric" : ""}>
+                        {fieldValue(value, column.kind, timezone, locale)}
+                    </span>
+                );
+            },
         }));
         if (kevSubjects.size)
             base.push({
@@ -203,6 +214,12 @@ export function EvidenceDataTable({
                             {group.headers.map((header) => (
                                 <th
                                     key={header.id}
+                                    className={
+                                        (header.column.columnDef.meta as { numeric?: boolean })
+                                            ?.numeric
+                                            ? "numeric"
+                                            : undefined
+                                    }
                                     scope="col"
                                     aria-sort={
                                         header.column.getIsSorted() === "asc"
@@ -242,7 +259,15 @@ export function EvidenceDataTable({
                             }}
                         >
                             {row.getVisibleCells().map((cell) => (
-                                <td key={cell.id}>
+                                <td
+                                    key={cell.id}
+                                    className={
+                                        (cell.column.columnDef.meta as { numeric?: boolean })
+                                            ?.numeric
+                                            ? "numeric"
+                                            : undefined
+                                    }
+                                >
                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </td>
                             ))}
@@ -315,7 +340,7 @@ export function EvidenceChip({
     if (!item && isCheckRecord)
         return (
             <span className="citation check-reference" title={id}>
-                <code>{id.slice(0, 14)}...</code>
+                <code>{id.slice(0, 16)}</code>
                 <CopyValue value={id} displayValue="" t={t} />
                 <small>{t("checkNotIncluded")}</small>
             </span>

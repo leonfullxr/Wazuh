@@ -3,7 +3,6 @@
     gap: var(--space-5, 20px);
 }
 
-.dashboard-v2 > .page-description,
 .dashboard-v2 > .workspace-panel {
     margin: 0;
 }
@@ -13,8 +12,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 16px 18px;
-    background: var(--surface-2, var(--surface-subtle));
+    padding: 18px 20px;
 }
 
 .dashboard-v2-available h2,
@@ -45,7 +43,7 @@
 }
 
 .dashboard-v2-widget {
-    min-height: 190px;
+    min-height: 0;
     padding: 0;
     overflow: hidden;
 }
@@ -55,9 +53,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    min-height: 48px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border, var(--stroke-subtle));
+    min-height: 0;
+    padding: 18px 20px 0;
 }
 
 .dashboard-v2-widget-heading > span {
@@ -69,9 +66,9 @@
 .dashboard-v2-empty {
     display: grid;
     align-content: center;
-    min-height: 140px;
-    padding: 24px;
-    background: var(--surface-2, var(--surface-subtle));
+    min-height: 96px;
+    margin: 6px 0 0;
+    padding: 0 20px 22px;
 }
 
 .dashboard-v2-empty strong {
@@ -132,4 +129,15 @@
     .dashboard-v2-grid {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+/* The banner copy runs to the button instead of wrapping early. */
+.dashboard-v2-available > div,
+.dashboard-v2-available > div > p {
+    max-width: 900px;
+}
+
+/* An odd last card spans both columns instead of leaving a hole. */
+.dashboard-v2-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
 }

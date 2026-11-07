@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 const themeModes = ["system", "light", "dark"] as const;
 export type ThemeMode = (typeof themeModes)[number];
@@ -85,9 +86,16 @@ export function ThemeMenu({ locale }: { locale: "en" | "es" }) {
                     type="button"
                     aria-pressed={mode === item}
                     aria-label={names[item]}
+                    title={names[item]}
                     onClick={() => setMode(item)}
                 >
-                    {names[item][0]}
+                    {item === "system" ? (
+                        <Monitor size={14} aria-hidden="true" />
+                    ) : item === "light" ? (
+                        <Sun size={14} aria-hidden="true" />
+                    ) : (
+                        <Moon size={14} aria-hidden="true" />
+                    )}
                 </button>
             ))}
         </fieldset>

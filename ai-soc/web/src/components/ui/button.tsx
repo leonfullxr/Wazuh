@@ -3,14 +3,14 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./cn";
 const styles = cva(
-    "inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-control border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-control border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-50",
     {
         variants: {
             variant: {
                 primary:
-                    "border-[var(--text-tertiary)] bg-[var(--text)] text-[var(--bg)] hover:bg-[var(--text-tertiary)]",
+                    "border-transparent bg-[var(--primary-button)] text-[var(--primary-button-foreground)] hover:bg-[var(--primary-button-hover)]",
                 outline:
-                    "border-[var(--stroke-strong)] bg-[var(--bg)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]",
+                    "border-[var(--control-border)] bg-[var(--control-bg)] text-[var(--text)] hover:border-[var(--control-border-hover)] hover:bg-[var(--hover)]",
                 ghost: "border-transparent bg-transparent text-ink hover:bg-surface-subtle",
             },
         },

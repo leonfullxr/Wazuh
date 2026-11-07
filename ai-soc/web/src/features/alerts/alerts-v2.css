@@ -5,7 +5,6 @@
     gap: var(--space-5, 20px);
 }
 
-.alerts-v2 > .page-description,
 .alerts-v2 > .workspace-panel {
     margin: 0;
 }
@@ -37,27 +36,28 @@
 
 .alerts-v2-capability {
     display: grid;
-    max-width: 360px;
-    gap: 2px;
-    padding: 8px 10px;
-    border: 1px dashed var(--border-strong, var(--stroke-strong));
-    border-radius: var(--radius-control);
-    background: var(--surface-2, var(--surface-subtle));
-    color: var(--text-2, var(--text-tertiary));
+    grid-template-columns: auto minmax(0, 1fr);
+    max-width: 420px;
+    gap: 0 6px;
+    color: var(--text-muted);
     font-size: 12px;
     line-height: 18px;
 }
 
+.alerts-v2-capability > svg {
+    grid-row: span 2;
+    margin-top: 2px;
+    color: var(--text-muted);
+}
+
 .alerts-v2-capability strong {
-    color: var(--text);
+    color: var(--text-2);
     font-size: 12px;
     font-weight: 600;
 }
 
 .alerts-v2 .alert-filter-form {
-    padding: 12px;
-    border-radius: var(--radius-panel, var(--radius-card));
-    background: var(--surface-2, var(--surface-subtle));
+    padding: 0;
 }
 
 .alerts-v2-active-filters {
@@ -71,7 +71,7 @@
 }
 
 .alerts-v2-active-filters > span:first-child {
-    margin-right: 2px;
+    margin-right: 6px;
 }
 
 .alerts-v2-active-filters button {
@@ -94,10 +94,14 @@
 }
 
 .alerts-v2-results-heading > strong {
-    font-family: var(--font-code);
-    font-size: 20px;
-    line-height: 28px;
-    font-weight: 600;
+    align-self: flex-start;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 600 12px/20px var(--font-ui);
     font-variant-numeric: tabular-nums;
 }
 
@@ -120,11 +124,15 @@
     vertical-align: middle;
 }
 
-.alerts-v2 .workspace-table code,
-.alerts-v2-time {
+.alerts-v2 .workspace-table code {
     font-family: var(--font-code);
     font-size: 12px;
+}
+
+.alerts-v2-time {
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .alerts-v2-view-toggle {
@@ -164,10 +172,289 @@
         max-width: none;
     }
 
+    /* Phones keep time, level, description and the details action. */
+    .alerts-v2 .workspace-table {
+        min-width: 0;
+    }
+
+    .alerts-v2 .workspace-table th:nth-child(3),
+    .alerts-v2 .workspace-table td:nth-child(3),
+    .alerts-v2 .workspace-table th:nth-child(5),
+    .alerts-v2 .workspace-table td:nth-child(5),
+    .alerts-v2 .workspace-table th:nth-child(6),
+    .alerts-v2 .workspace-table td:nth-child(6),
+    .alerts-v2 .workspace-table th:nth-child(7),
+    .alerts-v2 .workspace-table td:nth-child(7),
+    .alerts-v2 .workspace-table th:nth-child(8),
+    .alerts-v2 .workspace-table td:nth-child(8) {
+        display: none;
+    }
+
+    .alerts-v2 .workspace-table th,
+    .alerts-v2 .workspace-table td {
+        padding: 8px 6px;
+        white-space: normal;
+    }
+
+    .alerts-v2 .workspace-table td:nth-child(1) {
+        min-width: 86px;
+        font-size: 11px;
+    }
+
+    .alerts-v2 > .workspace-panel:last-of-type {
+        padding: 16px 12px;
+    }
+
+    .alerts-v2 .workspace-table td:nth-child(2) {
+        white-space: nowrap;
+    }
+
+    .alerts-v2 .workspace-table th:last-child,
+    .alerts-v2 .workspace-table td:last-child {
+        width: 44px;
+    }
+
+    /* The header text stays for screen readers; the chevron column needs no label. */
+    .alerts-v2 .workspace-table th:last-child {
+        font-size: 0;
+        color: transparent;
+    }
+
+    /* The details action becomes a chevron; its text stays as the accessible name. */
+    .alerts-v2 .workspace-table td:last-child .text-link {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        overflow: hidden;
+        border: 0;
+        border-radius: var(--radius-control);
+        color: transparent;
+        white-space: nowrap;
+    }
+
+    .alerts-v2 .workspace-table td:last-child .text-link::after {
+        position: absolute;
+        top: 15px;
+        left: 14px;
+        width: 7px;
+        height: 7px;
+        border-top: 2px solid var(--text-muted);
+        border-right: 2px solid var(--text-muted);
+        transform: rotate(45deg);
+        content: "";
+    }
+
+    .alerts-v2 > .workspace-panel:first-of-type {
+        padding: 12px;
+    }
+
+    .alerts-v2-panel-heading {
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        row-gap: 8px;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .alerts-v2 .alert-filter-form > .filter-actions {
+        grid-column: 1 / -1;
+    }
+
     .alerts-v2 .alert-filter-form > label,
     .alerts-v2 .alert-filter-form input,
     .alerts-v2 .alert-filter-form select {
         width: 100%;
         max-width: none;
+    }
+}
+
+/* Narrow phones: each alert is a stacked row (description, then level and time; action on the right). */
+@media (max-width: 480px) {
+    .alerts-v2 .workspace-table,
+    .alerts-v2 .workspace-table tbody {
+        display: block;
+    }
+
+    .alerts-v2 .workspace-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .alerts-v2 .workspace-table tbody tr {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) 40px;
+        grid-template-areas:
+            "desc desc action"
+            "level time action";
+        align-items: center;
+        gap: 6px 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-row);
+    }
+
+    .alerts-v2 .workspace-table tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .alerts-v2 .workspace-table tbody td {
+        display: block;
+        height: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .alerts-v2 .workspace-table td:nth-child(4) {
+        grid-area: desc;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 20px;
+    }
+
+    .alerts-v2 .workspace-table td:nth-child(2) {
+        grid-area: level;
+    }
+
+    .alerts-v2 .workspace-table td:nth-child(1) {
+        grid-area: time;
+        min-width: 0;
+        color: var(--text-muted);
+        font-size: 12.5px;
+        white-space: nowrap;
+    }
+
+    .alerts-v2 .workspace-table td:last-child {
+        grid-area: action;
+        width: auto;
+    }
+}
+
+/* Phones: a tighter filter card and results lead-in so the first alert shows sooner. */
+@media (max-width: 480px) {
+    .alerts-v2 {
+        gap: 12px;
+    }
+
+    .alerts-v2-panel-heading {
+        margin-bottom: 8px;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        gap: 8px;
+    }
+
+    .alerts-v2 .alert-filter-form > label {
+        gap: 4px;
+    }
+
+    .alerts-v2-results-heading {
+        margin-bottom: 4px;
+    }
+
+    .alerts-v2 .workspace-table tbody tr:first-child {
+        padding-top: 4px;
+    }
+}
+
+
+
+/* Desktop filter card matches Queue: no visible card title, four equal fields with the actions
+   on the same row, and the search notice as one muted line under the fields. The title stays
+   for screen readers. */
+@media (min-width: 761px) {
+    .alerts-v2 > .workspace-panel:first-of-type {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .alerts-v2-panel-heading {
+        display: contents;
+    }
+
+    .alerts-v2-panel-heading > div:first-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .alerts-v2-capability {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        order: 2;
+        gap: 4px 6px;
+        max-width: none;
+        margin-top: 10px;
+    }
+
+    .alerts-v2-capability > svg {
+        margin-top: 0;
+    }
+
+    .alerts-v2 .alert-filter-form {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+        align-items: end;
+        gap: 12px;
+    }
+
+    .alerts-v2 .alert-filter-form > label,
+    .alerts-v2 .alert-filter-form input,
+    .alerts-v2 .alert-filter-form select {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .alerts-v2 .alert-filter-form > .filter-actions {
+        flex-wrap: nowrap;
+    }
+}
+
+/* Phones match phone Queue too: no visible filter-card title, the notice under the fields. */
+@media (max-width: 760px) {
+    .alerts-v2 > .workspace-panel:first-of-type {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .alerts-v2-panel-heading {
+        display: contents;
+    }
+
+    .alerts-v2-panel-heading > div:first-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .alerts-v2-capability {
+        order: 2;
+        margin-top: 10px;
+    }
+}
+
+/* The Alerts filter card starts at the same inset as Queue's. */
+@media (min-width: 761px) {
+    .alerts-v2 > .workspace-panel:first-of-type {
+        padding-top: 16px;
+        padding-bottom: 16px;
     }
 }

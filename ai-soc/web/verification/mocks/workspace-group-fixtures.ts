@@ -8,6 +8,9 @@ type Asset = components["schemas"]["AssetTag"];
 type WorkState = components["schemas"]["WorkState"];
 const now = Date.now();
 const timestamp = (offset: number) => new Date(now - offset).toISOString();
+/** Volume buckets start on the hour, as the backend's hourly aggregation does. */
+const hourBucket = (hoursAgo: number) =>
+    new Date((Math.floor(now / 3_600_000) - hoursAgo) * 3_600_000).toISOString();
 const alertOne = workspaceAlerts[0];
 const alertTwo = workspaceAlerts[1];
 const alertThree = workspaceAlerts[2];
@@ -153,8 +156,8 @@ export const assetTags: Asset[] = [
 export const opsMetrics: components["schemas"]["OpsMetricsResponse"] = {
     window: { from: timestamp(86_400_000), to: timestamp(0), preset: "24h" },
     volume: [
-        { hour: timestamp(3_600_000), level_band: "high", count: 12 },
-        { hour: timestamp(7_200_000), level_band: "medium", count: 31 },
+        { hour: hourBucket(1), level_band: "high", count: 12 },
+        { hour: hourBucket(2), level_band: "medium", count: 31 },
     ],
     ingest_lag_seconds: { p50: 38, p90: 95, p95: 120, max: 240, sample_count: 144 },
     queue_age_seconds: { p50: 480, p90: 1800, p95: 3200, max: 5400, sample_count: 21 },

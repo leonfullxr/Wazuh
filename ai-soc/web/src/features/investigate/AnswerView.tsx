@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import type { Answer, EvidenceItem } from "../../../../contracts/v1/generated/types.ts";
 import { Tag } from "../../components/ui/tag";
@@ -46,6 +46,7 @@ export function AnswerView({
     questionPending: boolean;
     headingRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
+    const activeTopic = useActiveTopic(answer);
     return (
         <>
             <section className="answer-summary panel" aria-live="polite">
@@ -66,24 +67,37 @@ export function AnswerView({
                 </div>
                 <div className="ids-row">
                     <span>
-                        {t("environment")}: <code>{answer.environment_id}</code>
+                        <span className="ids-label">
+                            {t("environment")}
+                            <span className="sr-only">:</span>
+                        </span>{" "}
+                        <code>{answer.environment_id}</code>
                     </span>
                     <span>
-                        {t("questionId")} <code>{answer.question_id}</code>
+                        <span className="ids-label">{t("questionId")}</span>{" "}
+                        <code>{answer.question_id}</code>
                         <CopyButton value={answer.question_id} t={t} />
                     </span>
                     <span>
-                        {t("traceId")} <code>{answer.trace_id}</code>
+                        <span className="ids-label">{t("traceId")}</span>{" "}
+                        <code>{answer.trace_id}</code>
                         <CopyButton value={answer.trace_id} t={t} />
                     </span>
-                    <a href="#status">
-                        {t("provenance")}: {answer.provenance.content_sha.slice(0, 8)} /{" "}
-                        {answer.provenance.pack_sha256.slice(0, 8)}
-                    </a>
+                    <span>
+                        <span className="ids-label">{t("provenance")}</span>{" "}
+                        <a href="#status" className="ids-link">
+                            <code>{answer.provenance.content_sha.slice(0, 8)}</code> /{" "}
+                            <code>{answer.provenance.pack_sha256.slice(0, 8)}</code>
+                        </a>
+                    </span>
                 </div>
                 {question && (
                     <p className="original-question">
-                        <strong>{t("originalQuestion")}:</strong> {question}
+                        <strong>
+                            {t("originalQuestion")}
+                            <span className="sr-only">:</span>
+                        </strong>{" "}
+                        <span>{question}</span>
                     </p>
                 )}
                 {parentQuestion && onOpenParent && (
@@ -165,7 +179,15 @@ export function AnswerView({
                             .slice()
                             .sort((a, b) => a.ordinal - b.ordinal)
                             .map((b) => (
-                                <a key={b.topic_id} href={`#topic-${CSS.escape(b.topic_id)}`}>
+                                <a
+                                    key={b.topic_id}
+                                    href={`#topic-${CSS.escape(b.topic_id)}`}
+                                    aria-current={
+                                        activeTopic === `topic-${CSS.escape(b.topic_id)}`
+                                            ? "location"
+                                            : undefined
+                                    }
+                                >
                                     <span>{b.ordinal + 1}</span>
                                     {b.document?.heading ?? (
                                         <code className="mono">{b.topic_id}</code>
@@ -217,4 +239,24 @@ function CopyButton({ value, t }: { value: string; t: (k: keyof typeof words.en)
             </span>
         </button>
     );
+}
+
+/** The topic whose card has scrolled under the sticky strip, so the strip can mark it. */
+function useActiveTopic(answer: Answer): string | null {
+    const [active, setActive] = useState<string | null>(null);
+    useEffect(() => {
+        const update = () => {
+            const strip = document.querySelector(".topic-jump")?.getBoundingClientRect();
+            const line = (strip?.bottom ?? 0) + 24;
+            let current: string | null = null;
+            for (const section of document.querySelectorAll<HTMLElement>(".topic-section")) {
+                if (section.getBoundingClientRect().top <= line) current = section.id;
+            }
+            setActive(current);
+        };
+        update();
+        document.addEventListener("scroll", update, { passive: true, capture: true });
+        return () => document.removeEventListener("scroll", update, { capture: true });
+    }, [answer]);
+    return active;
 }

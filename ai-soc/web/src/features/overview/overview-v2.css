@@ -13,15 +13,20 @@
 }
 .overview-v2-metric {
     min-width: 0;
-    min-height: 94px;
+    min-height: 88px;
     display: flex;
-    flex-direction: column;
-    gap: 7px;
-    padding: 16px 18px;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 16px 20px;
     border-right: 1px solid var(--border, var(--stroke-subtle));
 }
 .overview-v2-metric:last-child {
     border-right: 0;
+}
+.overview-v2-metric > span {
+    flex-basis: 100%;
 }
 .overview-v2-metric > span,
 .overview-v2-panel-head p {
@@ -29,10 +34,14 @@
     font-size: 12px;
     line-height: 18px;
 }
+.overview-v2-metric > strong[data-empty] {
+    color: var(--text-muted);
+    font-size: 20px;
+    font-weight: 400;
+}
 .overview-v2-metric > strong {
-    margin-top: auto;
-    font: 600 22px/28px var(--font-ui);
-    font-variant-numeric: tabular-nums;
+    font: 650 24px/32px var(--font-ui);
+    letter-spacing: -0.02em;
 }
 .overview-v2-metric > small {
     width: fit-content;
@@ -80,11 +89,22 @@
 .overview-v2-volume {
     padding: 18px 20px 16px;
 }
+.overview-v2-chart-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: -4px 0 14px;
+}
+.overview-v2-chart-toolbar .overview-v2-hour-select {
+    margin: 0;
+}
 .overview-v2-legend {
     display: flex;
     flex-wrap: wrap;
     gap: 8px 18px;
-    margin: -3px 0 16px;
+    margin: 0;
     color: var(--text-2, var(--text-muted));
     font-size: 12px;
 }
@@ -100,11 +120,11 @@
 }
 .overview-v2-legend strong {
     color: var(--text);
-    font-family: var(--font-code);
-    font-weight: 500;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 .overview-v2-hour-select {
-    width: min(100%, 360px);
+    width: min(100%, 280px);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
@@ -118,10 +138,24 @@
     max-width: none;
 }
 .overview-v2-chart {
-    height: 190px;
+    height: 212px;
     min-width: 0;
     padding: 8px 4px 0;
-    border-bottom: 1px solid var(--border-strong, var(--stroke));
+}
+.dark .overview-v2-chart .recharts-reference-area-rect {
+    fill-opacity: 0.1;
+}
+.dark .overview-v2-chart path[fill-opacity="0.72"] {
+    fill-opacity: 0.76;
+}
+.overview-v2-chart .recharts-cartesian-grid line {
+    stroke: var(--border);
+}
+.overview-v2-chart .recharts-cartesian-axis-tick text {
+    fill: var(--text-muted);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
 }
 .overview-v2-chart .recharts-rectangle {
     cursor: pointer;
@@ -145,7 +179,7 @@
 .overview-v2-axis {
     display: flex;
     justify-content: space-between;
-    padding-top: 7px;
+    padding: 7px 0 0 26px;
     color: var(--text-muted);
     font-size: 11px;
 }
@@ -202,7 +236,8 @@
 }
 .overview-v2-breakdown-actions strong {
     color: var(--text);
-    font: 500 11px/1 var(--font-code);
+    font: 600 12px/1 var(--font-ui);
+    font-variant-numeric: tabular-nums;
 }
 .overview-v2-breakdown-disabled {
     border-style: dashed;
@@ -243,15 +278,21 @@
 }
 .overview-v2-heatmap-cell {
     min-width: 0;
-    height: 38px;
+    height: 34px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2px;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 4px;
     background: var(--heat-1);
+}
+.overview-v2-heatmap-cell[data-coverage="uncovered"] > small {
+    display: none;
+}
+.overview-v2-heatmap-cell[data-coverage="uncovered"] > strong {
+    visibility: hidden;
 }
 .overview-v2-heatmap-cell > strong,
 .overview-v2-heatmap-cell > small {
@@ -259,7 +300,6 @@
     overflow: hidden;
     padding: 1px 2px;
     border-radius: 2px;
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
     color: var(--text);
     font-family: var(--font-code);
     line-height: 1;
@@ -267,12 +307,30 @@
     white-space: nowrap;
 }
 .overview-v2-heatmap-cell > strong {
-    font-size: 10px;
+    font-family: var(--font-ui);
+    font-size: 11px;
     font-weight: 600;
 }
+/* Coverage hours live in the tooltip; empty and zero cells stay blank. */
 .overview-v2-heatmap-cell > small {
-    font-size: 8px;
+    display: none;
+}
+.overview-v2-heatmap-cell[data-empty] {
+    background: var(--surface-2);
+}
+.overview-v2-heatmap-cell[data-empty] > strong {
+    visibility: hidden;
+}
+.overview-v2-heatmap-cell > small {
+    font-size: 9px;
     font-weight: 500;
+}
+:root:not(.dark) .overview-v2-heatmap-cell[data-intensity="5"] > *,
+:root:not(.dark) .overview-v2-heatmap-cell[data-intensity="6"] > * {
+    color: #ffffff;
+}
+.dark .overview-v2-heatmap-cell[data-intensity="6"] > * {
+    color: #0b1220;
 }
 .overview-v2-heatmap-cell[data-intensity="2"] {
     background: var(--heat-2);
@@ -290,14 +348,8 @@
     background: var(--heat-6);
 }
 .overview-v2-heatmap-cell[data-coverage="uncovered"] {
-    border-color: var(--border-row);
-    background: repeating-linear-gradient(
-        135deg,
-        var(--surface-2),
-        var(--surface-2) 3px,
-        var(--surface) 3px,
-        var(--surface) 6px
-    );
+    border-color: transparent;
+    background: var(--surface-2);
 }
 .overview-v2-lists {
     display: grid;
@@ -306,6 +358,14 @@
 }
 .overview-v2-list:last-child {
     grid-column: 1 / -1;
+}
+@media (min-width: 1280px) {
+    .overview-v2-lists {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .overview-v2-list:last-child {
+        grid-column: auto;
+    }
 }
 .overview-v2-list ol {
     display: grid;
@@ -354,7 +414,7 @@
     font-size: 11px;
 }
 .overview-v2-list li > strong {
-    font: 500 12px/1 var(--font-code);
+    font: 600 13px/1 var(--font-ui);
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-empty {
@@ -385,30 +445,42 @@
     }
 }
 @media (max-width: 700px) {
-    .overview-v2-summary,
+    .overview-v2-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .overview-v2-lists {
         grid-template-columns: 1fr;
     }
     .overview-v2-metric,
     .overview-v2-metric:nth-child(3) {
-        min-height: 76px;
+        min-height: 64px;
+        padding: 10px 14px;
         border-right: 0;
+        border-top: 0;
         border-bottom: 1px solid var(--border, var(--stroke-subtle));
     }
-    .overview-v2-metric:nth-child(n + 4) {
-        border-top: 0;
+    .overview-v2-metric:nth-child(odd) {
+        border-right: 1px solid var(--border, var(--stroke-subtle));
     }
     .overview-v2-metric:last-child {
+        grid-column: 1 / -1;
+        border-right: 0;
         border-bottom: 0;
+    }
+    .overview-v2-metric > strong {
+        font-size: 20px;
+        line-height: 26px;
     }
     .overview-v2-list:last-child {
         grid-column: auto;
     }
     .overview-v2-chart {
-        min-width: 560px;
+        height: 200px;
     }
-    .overview-v2-volume {
-        overflow-x: auto;
+    .overview-v2-axis {
+        gap: 12px;
+        padding-left: 0;
+        font-size: 10px;
     }
     .overview-v2-heatmap-panel {
         padding-right: 12px;
@@ -420,7 +492,6 @@
     }
     .overview-v2-breakdown {
         grid-template-columns: 1fr;
-        min-width: 560px;
     }
     .overview-v2-breakdown-actions {
         justify-content: flex-start;
@@ -430,4 +501,138 @@
     .overview-v2-chart .recharts-rectangle {
         transition: none;
     }
+}
+
+.overview-v2-list li > button > code.overview-v2-list-id {
+    color: var(--text);
+    font-size: 13px;
+}
+.overview-v2-list {
+    padding-bottom: 16px;
+}
+
+.overview-v2-lists {
+    align-items: stretch;
+}
+/* Wide screens: three equal lists, then two equal halves (six-column track). */
+@media (min-width: 1280px) {
+    .overview-v2-lists {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .overview-v2-list,
+    .overview-v2-list:last-child {
+        grid-column: span 2;
+    }
+    .overview-v2-list:nth-child(n + 4) {
+        grid-column: span 3;
+    }
+}
+
+/* Wide screens: legend and hour picker share the title row, and the card loses its slack,
+   so the plot keeps its height while the card gets shorter. */
+@media (min-width: 1100px) {
+    .overview-v2-volume {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        column-gap: 24px;
+    }
+
+    .overview-v2-volume > :not(.overview-v2-panel-head):not(.overview-v2-chart-toolbar) {
+        grid-column: 1 / -1;
+    }
+
+    .overview-v2-volume > .overview-v2-panel-head {
+        margin-bottom: 8px;
+    }
+
+    .overview-v2-volume > .overview-v2-chart-toolbar {
+        align-self: center;
+        margin: 0 0 8px;
+        flex-wrap: nowrap;
+    }
+
+    .overview-v2-volume .overview-v2-hour-select {
+        margin: 0;
+    }
+}
+
+.overview-v2-chart {
+    padding-top: 4px;
+}
+
+.overview-v2-breakdown {
+    margin-top: 10px;
+    padding-top: 12px;
+}
+
+.overview-v2-legend li,
+.overview-v2-legend > * {
+    white-space: nowrap;
+}
+
+/* Heatmap: shorter cells and quieter empty slots, so the hours with alerts carry the signal. */
+.overview-v2-heatmap {
+    gap: 3px;
+}
+
+.overview-v2-heatmap-cell {
+    height: 24px;
+}
+
+.overview-v2-heatmap-cell[data-empty] {
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+/* Top lists: cards in a row share one height and every list row shares one type style. */
+.overview-v2-lists {
+    align-items: stretch;
+}
+
+.overview-v2-list .panel-heading,
+.overview-v2-list > header {
+    margin-bottom: 4px;
+}
+
+.overview-v2-list li > button > span,
+.overview-v2-list li > button > code.overview-v2-list-id {
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* Secondary rule and agent ids in top lists read at 12px. */
+.overview-v2-list li > button > code:not(.overview-v2-list-id) {
+    font-size: 12px;
+}
+
+/* Top-list cards use the page card gap in both directions. */
+.overview-v2-lists {
+    gap: 20px;
+}
+
+/* Heatmap axis labels match the chart ticks. */
+.overview-v2-heatmap-hour,
+.overview-v2-heatmap-day {
+    font-size: 12px;
+}
+/* The selected hour band reads in dark as clearly as in light. */
+.dark .overview-v2-chart .recharts-reference-area-rect {
+    fill-opacity: 0.16;
+}
+@media (max-width: 700px) {
+    .overview-v2-metric,
+    .overview-v2-metric:nth-child(3) {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
+/* Empty heatmap cells keep the grid visible in dark. */
+.dark .overview-v2-heatmap-cell[data-empty] {
+    background: color-mix(in srgb, var(--surface-2), white 3%);
+}
+
+/* Light theme: empty heatmap cells one step darker so the grid holds. */
+html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
+    background: color-mix(in srgb, var(--surface-2), black 3%);
 }
