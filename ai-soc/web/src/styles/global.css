@@ -474,7 +474,7 @@ select {
     top: -24px;
     z-index: 5;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
     margin: -24px -24px 16px;
@@ -3006,13 +3006,31 @@ input[type="checkbox"]:not(:checked) {
 .topic-header > div:first-child > .eyebrow {
     flex-basis: 100%;
 }
-/* Every page keeps the same header block height: routes without a description reserve its
-   slot, so the first card does not jump when switching tabs. */
-@media (min-width: 701px) {
-    main.workspace:not(:has(.page-description)) > .page-head {
-        margin-bottom: 53px;
-    }
-}
 main.workspace > .page-description {
     margin-bottom: 20px;
+}
+/* Service status: the answer mode is a pill in the card head; sub-lists get a quiet subheading. */
+.status-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.status-card-head h2 {
+    margin: 0;
+}
+.status-grid h3.status-subhead {
+    margin: 16px 0 4px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+}
+/* Light theme: the active rail item carries the same accent edge as selected list items. */
+.rail nav a[aria-current="page"] {
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+/* The first title line centres on the 32px close button; longer titles wrap below it. */
+.sheet-head > :first-child {
+    margin-top: 4px;
 }

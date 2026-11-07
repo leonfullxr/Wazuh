@@ -1,6 +1,7 @@
 import type { Answer, BootstrapResponse } from "../../../../contracts/v1/generated/types.ts";
 import type { Locale } from "../../i18n";
 import { words } from "../../i18n/answer-copy";
+import { Tag } from "../../components/ui/tag";
 import { KevFreshnessNote } from "./EvidenceDataTable";
 import { date } from "../../app/state/answer-format";
 import { CopyValue } from "./CopyValue";
@@ -22,9 +23,14 @@ export function StatusScreen({
         <div className="status-grid">
             <div className="status-col">
                 <section className="panel">
-                    <h2>{t("answerStatus")}</h2>
-                    <p>{bootstrap.mode === "live" ? t("live") : t("mode")}</p>
-                    <h3>{t("sites")}</h3>
+                    {/* The answer mode is a status, so it sits as a pill beside the card title. */}
+                    <div className="status-card-head">
+                        <h2>{t("answerStatus")}</h2>
+                        <Tag tone={bootstrap.mode === "live" ? "green" : "amber"}>
+                            {bootstrap.mode === "live" ? t("live") : t("mode")}
+                        </Tag>
+                    </div>
+                    <h3 className="status-subhead">{t("sites")}</h3>
                     {bootstrap.sites.map((s) => (
                         <p key={s.id}>
                             {s.label} <code>{s.id}</code>

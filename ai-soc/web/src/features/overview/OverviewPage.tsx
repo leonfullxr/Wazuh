@@ -169,7 +169,12 @@ export function OverviewPage({
                                             {chart.groups.map((group) => (
                                                 <option key={group.hour} value={group.hour}>
                                                     {formatTime(group.hour, timezone)} ·{" "}
-                                                    {group.total.toLocaleString()}
+                                                    {group.total.toLocaleString()}{" "}
+                                                    {t(
+                                                        group.total === 1
+                                                            ? "alertSingular"
+                                                            : "alerts",
+                                                    ).toLocaleLowerCase()}
                                                 </option>
                                             ))}
                                         </select>

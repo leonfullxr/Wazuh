@@ -522,5 +522,10 @@
 
 .queue-v2-drawer .group-score-card {
     border: 0;
-    background: var(--surface-2);
+    background: var(--surface-tile);
+}
+
+/* Enrichment provenance values share the drawer's value column (156px label + 12px gap). */
+.queue-v2-drawer .provenance-fields > div {
+    grid-template-columns: 156px minmax(0, 1fr);
 }

@@ -706,7 +706,7 @@ function IncidentDetailView({
                                 {data.members.map((member) => (
                                     <tr key={member.group_id}>
                                         <td>
-                                            <strong>{member.title}</strong>
+                                            <strong title={member.title}>{member.title}</strong>
                                             <small>
                                                 <IdValue value={member.group_id} locale={locale} />
                                             </small>
@@ -731,6 +731,22 @@ function IncidentDetailView({
                     </div>
                 ) : (
                     <p className="muted">{t("m3NoMembers")}</p>
+                )}
+                <h5>{t("m3MembershipHistory")}</h5>
+                {data.membership_intervals.length ? (
+                    <EvidenceRows values={data.membership_intervals} locale={locale} />
+                ) : (
+                    <p className="muted">{t("m3NoMembershipHistory")}</p>
+                )}
+                {data.next_cursors.membership && (
+                    <button
+                        className="btn outline"
+                        onClick={() =>
+                            onMoreDetail("membership", data.next_cursors.membership ?? "")
+                        }
+                    >
+                        {t("nextPage")}
+                    </button>
                 )}
                 <form
                     className="m3-inline-form"
@@ -779,22 +795,6 @@ function IncidentDetailView({
                         {t("m3UpdateMembership")}
                     </button>
                 </form>
-                <h5>{t("m3MembershipHistory")}</h5>
-                {data.membership_intervals.length ? (
-                    <EvidenceRows values={data.membership_intervals} locale={locale} />
-                ) : (
-                    <p className="muted">{t("m3NoMembershipHistory")}</p>
-                )}
-                {data.next_cursors.membership && (
-                    <button
-                        className="btn outline"
-                        onClick={() =>
-                            onMoreDetail("membership", data.next_cursors.membership ?? "")
-                        }
-                    >
-                        {t("nextPage")}
-                    </button>
-                )}
             </section>
             <section aria-labelledby="incident-timeline-heading">
                 <h4 id="incident-timeline-heading">{t("m3Timeline")}</h4>

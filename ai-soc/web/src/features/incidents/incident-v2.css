@@ -898,6 +898,10 @@ section[aria-labelledby="incident-members-heading"] td {
 }
 
 section[aria-labelledby="incident-members-heading"] td > strong {
+    display: block;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

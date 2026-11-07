@@ -124,7 +124,7 @@
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-hour-select {
-    width: min(100%, 290px);
+    width: min(100%, 330px);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
@@ -547,8 +547,13 @@
     }
 
     .overview-v2-volume > .overview-v2-chart-toolbar {
+        align-self: center;
         margin: 0 0 8px;
         flex-wrap: nowrap;
+    }
+
+    .overview-v2-volume .overview-v2-hour-select {
+        margin: 0;
     }
 }
 
