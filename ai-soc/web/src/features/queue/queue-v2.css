@@ -610,3 +610,14 @@
 .queue-v2-drawer .load-more {
     margin-top: -14px;
 }
+
+/* Component names use the drawer's label style; the value carries the emphasis. */
+.queue-v2-drawer .score-components li > div > strong {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.queue-v2-drawer .score-components li {
+    row-gap: 4px;
+}

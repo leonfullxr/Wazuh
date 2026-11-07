@@ -1289,3 +1289,36 @@ section[aria-labelledby="chain-detail-heading"] > .m3-meta {
     padding-top: 0;
     border-top: 0;
 }
+
+/* Every section closes 32px above the next hairline: the last list, row or disclosure adds no
+   trailing space of its own. */
+.m3-detail > section > .m3-evidence:last-child,
+.m3-detail > section > .m3-timeline:last-child,
+.m3-detail > section > details:last-child,
+.m3-detail > .m3-narrative > :last-child {
+    margin-bottom: 0;
+}
+
+.m3-detail > section > .m3-evidence:last-child > li:last-child {
+    padding-bottom: 0;
+}
+
+.m3-detail .m3-timeline > li:last-child .m3-evidence {
+    margin-bottom: 0;
+}
+
+/* The trust note sits 16px above the prose it qualifies. */
+.m3-narrative .m3-trust-note {
+    margin-bottom: 16px;
+}
+
+/* Timeline rule ids read as mono at the row size. */
+.m3-timeline-event > strong > code {
+    font-size: 13px;
+}
+
+/* Stage pills share both edges. */
+.m3-stage-row > .m3-stage-lead > code + * {
+    min-width: 64px;
+    justify-content: center;
+}

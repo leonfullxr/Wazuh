@@ -3194,3 +3194,7 @@ main.workspace > .page-description {
     opacity: 1;
     color: var(--text-muted);
 }
+
+.btn.outline:disabled {
+    border-color: var(--border-row);
+}
