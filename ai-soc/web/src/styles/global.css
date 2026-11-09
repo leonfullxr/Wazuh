@@ -3219,3 +3219,34 @@ main.workspace > .page-description {
     border-radius: var(--radius-tag);
     line-height: 1;
 }
+
+/* Numeric answer columns: the header label ends on the values' edge, its sort icon before it. */
+.fetch-table th.numeric .sort-button {
+    display: flex;
+    width: 100%;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+/* Cited frozen facts read like every other citation: a muted label and a mono link. */
+.m3-citations {
+    gap: 16px;
+}
+.m3-citations .btn {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 400;
+}
+.m3-citations .btn code {
+    color: var(--accent);
+    font-family: var(--font-code);
+    font-size: 12.5px;
+}
+.m3-citations .btn[aria-pressed="true"] code {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

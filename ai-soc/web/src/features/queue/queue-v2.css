@@ -641,3 +641,12 @@
     padding: 0;
     border-bottom: 0;
 }
+
+/* Enrichment provenance opens like Score components: subheading under the heading, rows 8px below. */
+.queue-v2-drawer .drawer-section > .provenance-row:first-of-type {
+    padding-top: 0;
+}
+
+.queue-v2-drawer .provenance-row > .provenance-fields:first-of-type {
+    margin-top: 4px;
+}

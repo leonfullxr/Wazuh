@@ -982,10 +982,8 @@ function GroupDrawer({
             <section className="drawer-section">
                 <h3>{t("disposition")}</h3>
                 <label>
-                    {/* The section title already names this field; the label stays for screen readers. */}
-                    <span className="sr-only">{t("disposition")}</span>
+                    {t("dispositionField")}
                     <select
-                        aria-label={t("disposition")}
                         value={label}
                         disabled={busy}
                         onChange={(event) => {
