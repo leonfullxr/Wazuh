@@ -1388,3 +1388,17 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head {
 .m3-membership-edit > summary:hover {
     color: var(--text);
 }
+
+/* Both detail heads: a 32px row with the title centred, then 12px to the first row. */
+#chain-detail-heading {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    margin: 0 0 12px;
+}
+
+section[aria-labelledby="incident-detail-heading"] > .panel-head {
+    align-items: center;
+    min-height: 32px;
+    margin: 0 0 12px;
+}

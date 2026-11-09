@@ -3255,3 +3255,8 @@ main.workspace > .page-description {
     align-items: center;
     gap: 6px;
 }
+
+/* The compacted one-line composer has no resize grip. */
+main:has(.answer-summary) .composer textarea {
+    resize: none;
+}

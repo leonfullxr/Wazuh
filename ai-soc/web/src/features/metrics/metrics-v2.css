@@ -409,3 +409,13 @@
 .metrics-v2-assets td:nth-child(2) {
     text-align: right;
 }
+
+/* Section titles sit one step above the cards inside them, like the detail pages. */
+.metrics-v2-panel-head h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.metrics-v2-panel-head {
+    align-items: baseline;
+}

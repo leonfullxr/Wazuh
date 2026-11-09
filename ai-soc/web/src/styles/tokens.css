@@ -184,9 +184,9 @@
     --tag-green-bg: rgb(52 190 110 / 12%);
     --tag-green-border: rgb(52 190 110 / 28%);
     --tag-green-text: #84dca5;
-    --tag-amber-bg: rgb(242 181 34 / 11%);
-    --tag-amber-border: rgb(242 181 34 / 26%);
-    --tag-amber-text: #f2cc6b;
+    --tag-amber-bg: rgb(242 181 34 / 9%);
+    --tag-amber-border: rgb(242 181 34 / 22%);
+    --tag-amber-text: #dcb662;
     --tag-orange-bg: rgb(245 125 40 / 12%);
     --tag-orange-border: rgb(245 125 40 / 28%);
     --tag-orange-text: #ffb27d;

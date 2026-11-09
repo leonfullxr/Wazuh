@@ -655,3 +655,13 @@
 .queue-v2-score {
     justify-content: start;
 }
+
+/* Score component values use the grid's regular weight; a missing one is muted sans. */
+.queue-v2-drawer .score-components li > code {
+    font-weight: 400;
+}
+
+.queue-v2-drawer .score-components li > code[data-unavailable] {
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+}
