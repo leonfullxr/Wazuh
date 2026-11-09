@@ -947,7 +947,7 @@ function GroupDrawer({
                     <button
                         className="btn outline"
                         type="button"
-                        disabled={busy}
+                        disabled={busy || (!owner.trim() && !group.owner_key)}
                         onClick={() => onAssign(owner.trim() || null)}
                     >
                         {owner.trim() ? t("assign") : t("unassign")}

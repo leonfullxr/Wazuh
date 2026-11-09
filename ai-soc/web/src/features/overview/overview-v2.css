@@ -679,3 +679,11 @@ html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
 .dark .overview-v2-chart .recharts-reference-area-rect {
     fill-opacity: 0.08;
 }
+
+/* Phone KPI grid: bottom and right hairlines only, so every inner line is 1px. */
+@media (max-width: 700px) {
+    .overview-v2-summary > .overview-v2-metric {
+        border-top: 0;
+        border-left: 0;
+    }
+}

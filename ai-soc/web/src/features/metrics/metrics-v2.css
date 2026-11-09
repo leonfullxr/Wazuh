@@ -449,3 +449,8 @@
 .metrics-v2-distribution > div:last-child i {
     opacity: 0.5;
 }
+
+/* The de-emphasised Maximum row keeps a regular-weight value. */
+.metrics-v2-distribution > div:last-child dd {
+    font-weight: 400;
+}

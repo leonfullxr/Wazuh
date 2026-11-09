@@ -6,7 +6,7 @@ import type { TagTone } from "../../lib/semantic";
 // Only states that matter get colour (good, warning, bad, and the accent for "new/info").
 const toneDots = {
     neutral: null,
-    blue: "bg-[var(--accent)]",
+    blue: "bg-[var(--text-2)]",
     green: "bg-[var(--dot-good)]",
     amber: "bg-[var(--dot-warn)]",
     orange: "bg-[var(--dot-warn)]",
