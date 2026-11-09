@@ -3354,3 +3354,34 @@ main:has(.answer-summary) .composer textarea {
 .status-pill-warning::before {
     background: var(--dot-warn);
 }
+
+/* Bad outcomes stand out without a new hue: strong text and an 8px dot. */
+.status-pill-negative,
+.fetch-check-outcome[data-outcome="failed"] {
+    color: var(--text);
+    font-weight: 600;
+}
+.status-pill-negative::before,
+.fetch-check-outcome[data-outcome="failed"]::before {
+    width: 8px;
+    height: 8px;
+}
+/* The status-only answer tag has no empty message slot beside it, so it sits on the content edge. */
+.answer-status > span:empty {
+    display: none;
+}
+/* Topic strip chips show their state as dot and text, with no nested pill box. */
+.topic-jump .tag {
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+/* Page title icons are decoration: the accent stays for actions and selection. */
+.page-icon {
+    color: var(--text-2);
+}
+/* The trust note rule uses the warning dot colour. */
+.m3-trust-note {
+    border-left-color: var(--dot-warn);
+}

@@ -236,6 +236,11 @@ export function OverviewPage({
                                                         return (
                                                             <Cell
                                                                 key={`${series.band}-${datum.hour}`}
+                                                                fill={
+                                                                    selected
+                                                                        ? "var(--accent)"
+                                                                        : `var(--${bandVariable(series.band)})`
+                                                                }
                                                                 fillOpacity={selected ? 1 : 0.72}
                                                                 stroke="none"
                                                             />

@@ -673,3 +673,9 @@ html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
 .overview-v2-metric > small[data-state="warning"]::before {
     background: var(--dot-warn);
 }
+
+/* The selected hour is the one blue mark: an accent bar in a faint accent band. */
+.overview-v2-chart .recharts-reference-area-rect,
+.dark .overview-v2-chart .recharts-reference-area-rect {
+    fill-opacity: 0.08;
+}

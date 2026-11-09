@@ -26,7 +26,7 @@ export function StatusScreen({
                     {/* The answer mode is a status, so it sits as a pill beside the card title. */}
                     <div className="status-card-head">
                         <h2>{t("answerStatus")}</h2>
-                        <Tag tone={bootstrap.mode === "live" ? "green" : "amber"}>
+                        <Tag tone={bootstrap.mode === "live" ? "green" : "neutral"} dot>
                             {bootstrap.mode === "live" ? t("live") : t("mode")}
                         </Tag>
                     </div>

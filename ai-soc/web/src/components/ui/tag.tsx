@@ -31,10 +31,12 @@ export function Tag({
     ...props
 }: TagProps) {
     const dotClass = toneDots[tone] ?? (dot ? "bg-[var(--text-muted)]" : null);
+    const bad = tone === "red";
     return (
         <span
             className={cn(
                 "tag inline-flex h-[20px] max-w-full shrink-0 items-center gap-[6px] whitespace-nowrap rounded-[var(--radius-tag)] border border-[var(--tag-neutral-border)] bg-[var(--tag-neutral-bg)] px-[7px] text-[12px] font-medium leading-none text-[var(--tag-neutral-text)]",
+                bad && "font-semibold text-[var(--text)]",
                 mono && "font-mono",
                 className,
             )}
@@ -42,7 +44,10 @@ export function Tag({
             {...props}
         >
             {dotClass && (
-                <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", dotClass)} />
+                <span
+                    aria-hidden="true"
+                    className={cn("shrink-0 rounded-full", bad ? "size-2" : "size-1.5", dotClass)}
+                />
             )}
             {children}
         </span>

@@ -444,3 +444,8 @@
 .metrics-v2-assets td:nth-child(3) {
     padding-left: 40px;
 }
+
+/* The Maximum row is always full width; it sits at half strength so the page is not a wall of blue. */
+.metrics-v2-distribution > div:last-child i {
+    opacity: 0.5;
+}
