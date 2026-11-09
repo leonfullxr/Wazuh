@@ -141,3 +141,8 @@
 .dashboard-v2-grid > :last-child:nth-child(odd) {
     grid-column: 1 / -1;
 }
+
+/* Dashboard cards use the 20px page rhythm in both directions. */
+.dashboard-v2-grid {
+    gap: 20px;
+}

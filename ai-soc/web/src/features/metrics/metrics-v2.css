@@ -428,3 +428,12 @@
 .workspace-panel .metrics-v2-section-head h3 {
     font-size: 14px;
 }
+
+/* Section heads: 4px from title to subtitle, then a fixed 24px to the first row. */
+.workspace-panel .metrics-v2-panel-head p {
+    margin-top: 4px;
+}
+
+.workspace-panel .metrics-v2-panel-head {
+    margin-bottom: 24px;
+}

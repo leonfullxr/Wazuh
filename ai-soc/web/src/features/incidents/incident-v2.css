@@ -1408,3 +1408,10 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head {
     margin: -6px 0 0;
     font-size: 12px;
 }
+
+/* The detail entity title sits one step above the 16px section heads. */
+#chain-detail-heading,
+section[aria-labelledby="incident-detail-heading"] > .panel-head > h3 {
+    font-size: 20px;
+    line-height: 28px;
+}

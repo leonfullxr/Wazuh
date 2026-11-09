@@ -3265,3 +3265,31 @@ main:has(.answer-summary) .composer textarea {
 .removed {
     color: var(--text-2);
 }
+
+/* One status-pill spec: 20px, 12px text, tag radius, tone only (no glyph). */
+.status-pill {
+    box-sizing: border-box;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: var(--radius-tag);
+    font-size: 12px;
+}
+.status-pill > svg,
+.finding-kind > svg {
+    display: none;
+}
+/* Topic cards: only the head rule runs edge to edge; inner separators sit on the 20px content edges. */
+.topic-section > :not(.topic-header) {
+    margin-inline: 20px;
+    padding-inline: 0;
+}
+/* Phone list screens share one rhythm: 16px between cards, 14px/600 row titles. */
+@media (max-width: 760px) {
+    .workspace-page.alerts-v2,
+    .workspace-page.queue-v2 {
+        row-gap: 16px;
+    }
+    .queue-v2 .queue-table .group-link {
+        font-size: 14px;
+    }
+}
