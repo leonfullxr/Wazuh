@@ -1343,3 +1343,9 @@ section[aria-labelledby="chain-links-heading"] > h5 {
 .m3-work-history .disclosure > summary {
     color: var(--text-muted);
 }
+
+/* The closing disclosure ends at its text, so the section closes at 32px like the others. */
+.m3-narrative > details:last-child > summary {
+    min-height: 0;
+    padding-top: 10px;
+}

@@ -3198,3 +3198,24 @@ main.workspace > .page-description {
 .btn.outline:disabled {
     border-color: var(--border-row);
 }
+
+/* Table identifiers match the sans x-height of their row: 13px mono. */
+.workspace-table td code,
+.fetch-table td .mono {
+    font-size: 13px;
+}
+/* A cited evidence id reads as a link, not a boxed chip. */
+.finding .citation {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+}
+/* The finding kind uses the shared tag shape and height. */
+.finding-kind {
+    box-sizing: border-box;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: var(--radius-tag);
+    line-height: 1;
+}

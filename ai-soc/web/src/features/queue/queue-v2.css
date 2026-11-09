@@ -631,3 +631,13 @@
 .queue-v2-drawer .provenance-row {
     row-gap: 6px;
 }
+
+/* Score components are one group: 16px apart, hairlines only between drawer sections. */
+.queue-v2-drawer .score-components {
+    gap: 16px;
+}
+
+.queue-v2-drawer .score-components li {
+    padding: 0;
+    border-bottom: 0;
+}
