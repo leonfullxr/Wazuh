@@ -636,3 +636,14 @@
 html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
     background: color-mix(in srgb, var(--surface-2), black 3%);
 }
+
+/* The freshness pill follows the shared 20px pill spec and centres on the value line. */
+.overview-v2-metric > small {
+    box-sizing: border-box;
+    height: 20px;
+    min-height: 0;
+    padding: 0 7px;
+    line-height: 1;
+    font-size: 12px;
+    align-self: center;
+}

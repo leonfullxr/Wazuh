@@ -435,5 +435,6 @@
 }
 
 .workspace-panel .metrics-v2-panel-head {
-    margin-bottom: 24px;
+    /* The panel grid already adds 20px; together they make the 24px to the first row. */
+    margin-bottom: 4px;
 }

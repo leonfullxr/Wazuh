@@ -1415,3 +1415,8 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h3 {
     font-size: 20px;
     line-height: 28px;
 }
+
+/* Save owner and Save status share one width so their fields end on one edge. */
+.m3-two-column .m3-inline-form > .btn {
+    min-width: 100px;
+}
