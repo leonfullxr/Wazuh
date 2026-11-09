@@ -1355,3 +1355,36 @@ section[aria-labelledby="chain-links-heading"] > h5 {
 .m3-stage-field .copy-value {
     font-size: 12.5px;
 }
+
+/* Both detail pages open the same way: heading, then rows, no rule between. */
+section[aria-labelledby="incident-detail-heading"] > .m3-meta {
+    padding-top: 0;
+    border-top: 0;
+}
+
+section[aria-labelledby="incident-detail-heading"] > .panel-head {
+    margin-bottom: 10px;
+}
+
+/* The membership editor folds away like the other secondary disclosures. */
+.m3-membership-edit {
+    margin-top: 16px;
+}
+
+.m3-membership-edit[open] > summary {
+    margin-bottom: 12px;
+}
+
+.m3-membership-edit > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 550;
+    cursor: pointer;
+}
+
+.m3-membership-edit > summary:hover {
+    color: var(--text);
+}

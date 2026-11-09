@@ -829,14 +829,7 @@ function GroupDrawer({
                             {component.available ? (
                                 <code>{component.contribution.toFixed(1)}</code>
                             ) : (
-                                <>
-                                    <code data-unavailable="true">
-                                        <span className="null-value" aria-hidden="true">
-                                            {"\u2014"}
-                                        </span>
-                                    </code>
-                                    <small>{t("unavailableScore")}</small>
-                                </>
+                                <code data-unavailable="true">{t("unavailableValue")}</code>
                             )}
                             {component.evidence_ids.length > 0 && (
                                 <small>

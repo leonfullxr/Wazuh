@@ -770,53 +770,56 @@ function IncidentDetailView({
                         {t("nextPage")}
                     </button>
                 )}
-                <form
-                    className="m3-inline-form"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        const add = groupIds(addGroups);
-                        const remove = groupIds(removeGroups);
-                        if (!add.length && !remove.length) return;
-                        if (
-                            add.length > 100 ||
-                            remove.length > 100 ||
-                            [...add, ...remove].some((id) => !isGroupId(id))
-                        ) {
-                            setMembershipError(t("m3InvalidGroups"));
-                            return;
-                        }
-                        setMembershipError("");
-                        onAction({
-                            kind: "members",
-                            body: { ...work, add_group_ids: add, remove_group_ids: remove },
-                        });
-                        setAddGroups("");
-                        setRemoveGroups("");
-                    }}
-                >
-                    {membershipError && <p role="alert">{membershipError}</p>}
-                    <label>
-                        {t("m3AddGroups")}
-                        <textarea
-                            className="id-input"
-                            value={addGroups}
-                            onChange={(event) => setAddGroups(event.target.value)}
-                            placeholder={t("m3GroupIdsHint")}
-                        />
-                    </label>
-                    <label>
-                        {t("m3RemoveGroups")}
-                        <textarea
-                            className="id-input"
-                            value={removeGroups}
-                            onChange={(event) => setRemoveGroups(event.target.value)}
-                            placeholder={t("m3GroupIdsHint")}
-                        />
-                    </label>
-                    <button className="btn outline" type="submit">
-                        {t("m3UpdateMembership")}
-                    </button>
-                </form>
+                <details className="disclosure m3-membership-edit">
+                    <summary>{t("m3EditMembership")}</summary>
+                    <form
+                        className="m3-inline-form"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            const add = groupIds(addGroups);
+                            const remove = groupIds(removeGroups);
+                            if (!add.length && !remove.length) return;
+                            if (
+                                add.length > 100 ||
+                                remove.length > 100 ||
+                                [...add, ...remove].some((id) => !isGroupId(id))
+                            ) {
+                                setMembershipError(t("m3InvalidGroups"));
+                                return;
+                            }
+                            setMembershipError("");
+                            onAction({
+                                kind: "members",
+                                body: { ...work, add_group_ids: add, remove_group_ids: remove },
+                            });
+                            setAddGroups("");
+                            setRemoveGroups("");
+                        }}
+                    >
+                        {membershipError && <p role="alert">{membershipError}</p>}
+                        <label>
+                            {t("m3AddGroups")}
+                            <textarea
+                                className="id-input"
+                                value={addGroups}
+                                onChange={(event) => setAddGroups(event.target.value)}
+                                placeholder={t("m3GroupIdsHint")}
+                            />
+                        </label>
+                        <label>
+                            {t("m3RemoveGroups")}
+                            <textarea
+                                className="id-input"
+                                value={removeGroups}
+                                onChange={(event) => setRemoveGroups(event.target.value)}
+                                placeholder={t("m3GroupIdsHint")}
+                            />
+                        </label>
+                        <button className="btn outline" type="submit">
+                            {t("m3UpdateMembership")}
+                        </button>
+                    </form>
+                </details>
             </section>
             <section aria-labelledby="incident-timeline-heading">
                 <h4 id="incident-timeline-heading">{t("m3Timeline")}</h4>

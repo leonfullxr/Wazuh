@@ -650,3 +650,8 @@
 .queue-v2-drawer .provenance-row > .provenance-fields:first-of-type {
     margin-top: 4px;
 }
+
+/* The score bar sits 8px after its number; the cell reads as one unit. */
+.queue-v2-score {
+    justify-content: start;
+}

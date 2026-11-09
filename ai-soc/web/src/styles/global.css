@@ -3250,3 +3250,8 @@ main.workspace > .page-description {
     text-decoration: underline;
     text-underline-offset: 3px;
 }
+
+.fetch-table th.numeric .sort-button {
+    align-items: center;
+    gap: 6px;
+}
