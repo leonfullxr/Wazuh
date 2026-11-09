@@ -951,10 +951,10 @@ function bandClass(band: string): string {
     return "unknown";
 }
 function bandVariable(band: string): string {
-    if (band === "13-15") return "series-blue";
-    if (band === "10-12") return "series-orange";
-    if (band === "7-9") return "series-teal";
-    if (band === "0-6") return "series-purple";
+    if (band === "13-15") return "series-sev4";
+    if (band === "10-12") return "series-sev3";
+    if (band === "7-9") return "series-sev2";
+    if (band === "0-6") return "series-sev1";
     return "series-other";
 }
 function levelRange(band: string): { min: number; max: number } | null {

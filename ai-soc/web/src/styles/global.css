@@ -3319,3 +3319,38 @@ main:has(.answer-summary) .composer textarea {
 .btn.primary {
     transition-property: border-color, box-shadow;
 }
+
+/* Restrained palette: status pills, check outcomes and the freshness pill are neutral surfaces;
+   a 6px dot carries the state (good, warning, bad), so screens stop reading as a rainbow. */
+.status-pill,
+.status-pill-positive,
+.status-pill-negative,
+.status-pill-warning,
+.status-pill-neutral,
+.fetch-check-outcome,
+.fetch-check-outcome[data-outcome="failed"] {
+    gap: 6px;
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
+}
+.status-pill::before,
+.fetch-check-outcome::before {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--text-muted);
+    content: "";
+}
+.status-pill-positive::before,
+.fetch-check-outcome::before {
+    background: var(--dot-good);
+}
+.status-pill-negative::before,
+.fetch-check-outcome[data-outcome="failed"]::before {
+    background: var(--dot-bad);
+}
+.status-pill-warning::before {
+    background: var(--dot-warn);
+}

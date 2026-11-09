@@ -156,7 +156,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--series-blue);
+    background: var(--accent);
 }
 
 .metrics-v2-volume {

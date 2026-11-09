@@ -162,16 +162,16 @@
     transition: fill-opacity var(--time-hover) var(--ease-controls);
 }
 .overview-v2-band-series-one {
-    background: var(--series-blue);
+    background: var(--series-sev4);
 }
 .overview-v2-band-series-two {
-    background: var(--series-orange);
+    background: var(--series-sev3);
 }
 .overview-v2-band-series-three {
-    background: var(--series-teal);
+    background: var(--series-sev2);
 }
 .overview-v2-band-series-four {
-    background: var(--series-purple);
+    background: var(--series-sev1);
 }
 .overview-v2-band-unknown {
     background: var(--series-other);
@@ -646,4 +646,30 @@ html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
     line-height: 1;
     font-size: 12px;
     align-self: center;
+}
+
+/* The freshness pill is neutral; its dot carries the state. */
+.overview-v2-metric > small,
+.overview-v2-metric > small[data-state="good"],
+.overview-v2-metric > small[data-state="warning"] {
+    gap: 6px;
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
+}
+
+.overview-v2-metric > small[data-state]::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    content: "";
+}
+
+.overview-v2-metric > small[data-state="good"]::before {
+    background: var(--dot-good);
+}
+
+.overview-v2-metric > small[data-state="warning"]::before {
+    background: var(--dot-warn);
 }
