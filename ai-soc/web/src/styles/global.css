@@ -3293,3 +3293,29 @@ main:has(.answer-summary) .composer textarea {
         font-size: 14px;
     }
 }
+
+/* A status-only answer state sits in the metadata card's top-right corner, not on its own row. */
+.answer-summary {
+    position: relative;
+}
+.answer-summary > .answer-status:has(> span:empty) {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    margin: 0;
+}
+.answer-summary > .answer-status:has(> span:empty) + .ids-row {
+    margin-top: 0;
+}
+/* Disabled primary buttons use the neutral disabled style, like the pagers. */
+.btn.primary:disabled,
+.btn.primary:disabled:hover {
+    border-color: var(--border-row);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    opacity: 1;
+}
+/* Primary buttons switch background instantly, so enabling one never passes through a low-contrast blend. */
+.btn.primary {
+    transition-property: border-color, box-shadow;
+}

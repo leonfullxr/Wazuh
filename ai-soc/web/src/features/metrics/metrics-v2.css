@@ -438,3 +438,9 @@
     /* The panel grid already adds 20px; together they make the 24px to the first row. */
     margin-bottom: 4px;
 }
+
+/* Host table: a clear gutter between the right-aligned criticality and the tags. */
+.metrics-v2-assets th:nth-child(3),
+.metrics-v2-assets td:nth-child(3) {
+    padding-left: 40px;
+}

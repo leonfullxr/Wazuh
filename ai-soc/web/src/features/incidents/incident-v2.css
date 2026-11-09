@@ -1420,3 +1420,21 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h3 {
 .m3-two-column .m3-inline-form > .btn {
     min-width: 100px;
 }
+
+/* Idle master/detail: the list card and the empty detail card share one height. */
+.m3-grid:has(.m3-empty-detail) {
+    align-items: stretch;
+}
+
+.m3-grid:has(.m3-empty-detail) > .panel:first-child {
+    align-self: stretch;
+}
+
+.m3-grid > .m3-detail:has(> .m3-empty-detail) {
+    display: flex;
+    flex-direction: column;
+}
+
+.m3-detail > .m3-empty-detail {
+    flex: 1;
+}

@@ -665,3 +665,30 @@
     color: var(--text-muted);
     font-family: var(--font-ui);
 }
+
+/* Score component notes sit under the value they explain (value column). */
+.queue-v2-drawer .score-components li > div > span,
+.queue-v2-drawer .score-components li > small {
+    grid-column: 2;
+}
+
+/* Owner and status share one grid: both fields end on the same edge, Unassign in the trailing slot. */
+.queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: 10px;
+    align-items: end;
+}
+
+.queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > :not(.queue-v2-field-row):not(label) {
+    grid-column: 1 / -1;
+}
+
+.queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > .queue-v2-field-row {
+    display: contents;
+}
+
+.queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > label,
+.queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > .queue-v2-field-row > label {
+    grid-column: 1;
+}
