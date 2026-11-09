@@ -1402,3 +1402,9 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head {
     min-height: 32px;
     margin: 0 0 12px;
 }
+
+/* A field hint sits 4px under its control, in the 12px muted style. */
+.m3-inline-form > .m3-field-hint {
+    margin: -6px 0 0;
+    font-size: 12px;
+}

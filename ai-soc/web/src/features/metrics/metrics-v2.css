@@ -419,3 +419,12 @@
 .metrics-v2-panel-head {
     align-items: baseline;
 }
+
+/* Beat the generic 14px workspace-panel heading: section titles are 18px, card titles 14px. */
+.workspace-panel .metrics-v2-panel-head h2 {
+    font-size: 18px;
+}
+
+.workspace-panel .metrics-v2-section-head h3 {
+    font-size: 14px;
+}

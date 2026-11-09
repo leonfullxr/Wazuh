@@ -1042,6 +1042,7 @@ function IncidentDetailView({
                                 <option value="undetermined">{t("m3Undetermined")}</option>
                             </select>
                         </label>
+                        <p className="muted m3-field-hint">{t("m3IncidentDispositionScope")}</p>
                         {disposition === "false_positive" && (
                             <label>
                                 {t("m3FpReason")}
@@ -1076,7 +1077,6 @@ function IncidentDetailView({
                                 maxLength={2000}
                             />
                         </label>
-                        <p className="muted">{t("m3IncidentDispositionScope")}</p>
                         <button className="btn primary" type="submit">
                             {t("m3SaveDisposition")}
                         </button>

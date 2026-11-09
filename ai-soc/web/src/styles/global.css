@@ -3260,3 +3260,8 @@ main.workspace > .page-description {
 main:has(.answer-summary) .composer textarea {
     resize: none;
 }
+
+/* Removed findings use the shared neutral disclosure colour. */
+.removed {
+    color: var(--text-2);
+}
