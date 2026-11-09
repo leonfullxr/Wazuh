@@ -1322,3 +1322,24 @@ section[aria-labelledby="chain-detail-heading"] > .m3-meta {
     min-width: 64px;
     justify-content: center;
 }
+
+/* Strong and weak link groups read as siblings: a hairline with 16px either side. */
+section[aria-labelledby="chain-links-heading"] > h5 {
+    margin: 16px 0 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-row);
+}
+
+/* Stage pills: one fixed box, so both edges align for every tone. */
+.m3-stage-row > .m3-stage-lead > code + * {
+    box-sizing: border-box;
+    width: 68px;
+    min-width: 68px;
+    padding-inline: 0;
+    justify-content: center;
+}
+
+/* A disclosure under a quiet entry stays quieter than the entry. */
+.m3-work-history .disclosure > summary {
+    color: var(--text-muted);
+}

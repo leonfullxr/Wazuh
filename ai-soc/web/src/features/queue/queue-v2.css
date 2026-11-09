@@ -621,3 +621,13 @@
 .queue-v2-drawer .score-components li {
     row-gap: 4px;
 }
+
+/* Member titles sit one step under the drawer section heading. */
+.queue-v2-drawer .member-link > span:first-child {
+    font-weight: 500;
+}
+
+/* Every provenance row keeps the 27px pitch, including the last one. */
+.queue-v2-drawer .provenance-row {
+    row-gap: 6px;
+}

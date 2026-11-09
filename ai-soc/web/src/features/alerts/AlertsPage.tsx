@@ -486,7 +486,13 @@ export function AlertsPage({
                                                     <NullValue />
                                                 )}
                                             </td>
-                                            <td>{alert.mitre_tactics[0] ?? <NullValue />}</td>
+                                            <td>
+                                                {alert.mitre_tactics[0] ? (
+                                                    <code>{alert.mitre_tactics[0]}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
+                                            </td>
                                             <td>
                                                 <SheetTrigger asChild>
                                                     <button

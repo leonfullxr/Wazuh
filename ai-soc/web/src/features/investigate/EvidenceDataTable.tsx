@@ -149,10 +149,13 @@ export function EvidenceDataTable({
                 const value = row.original.values[column.field];
                 if (value === null || value === undefined || value === "")
                     return <span className="null-value">{"\u2014"}</span>;
-                // Identifiers (IPs, *.id fields and host names) are mono, like ids everywhere else.
+                // Identifiers (IPs, *.id fields, host names, rule groups and MITRE slugs) are mono,
+                // like ids everywhere else.
                 const idLike =
                     column.kind === "ip" ||
-                    /(^|\.)id$|^(agent|manager)\.name$|hostname$/.test(column.field);
+                    /(^|\.)id$|^(agent|manager)\.name$|hostname$|^rule\.groups$|mitre/.test(
+                        column.field,
+                    );
                 return (
                     <span className={idLike ? "mono" : column.kind === "integer" ? "numeric" : ""}>
                         {fieldValue(value, column.kind, timezone, locale)}
