@@ -18,13 +18,14 @@ import {
 import { judgments, removed } from "../../i18n/answer-enums";
 import {
     countLabel,
-    date,
+    dateShort,
     emptyProofQualified,
     formatVisibility,
     resolveCitation,
     safeDocumentUrl,
 } from "../../app/state/answer-format";
 import { pageStateKey } from "../../app/state/answer-session";
+import { HashText } from "../incidents/NarrativePanel";
 import {
     EmptyExplanation,
     EvidenceChip,
@@ -163,7 +164,7 @@ export function TopicSection({
                 </div>
             )}
             {block.judgment.removed.length > 0 && (
-                <details className="removed">
+                <details className="removed disclosure">
                     <summary>{removedFindingsCopy(block.judgment.removed.length, locale)}</summary>
                     <ul>
                         {block.judgment.removed.map((r, i) => (
@@ -205,7 +206,9 @@ export function TopicSection({
                                             <OutcomePill outcome={c.outcome} locale={locale} />
                                         </td>
                                         <td>{c.label}</td>
-                                        <td>{c.message}</td>
+                                        <td>
+                                            <HashText text={c.message} locale={locale} />
+                                        </td>
                                         <td>
                                             {c.evidence_ids.map((id) => (
                                                 <EvidenceChip
@@ -223,6 +226,9 @@ export function TopicSection({
                             </tbody>
                         </table>
                     </div>
+                    {block.checks.some((c) => c.evidence_ids.some((id) => !mapped.has(id))) && (
+                        <p className="checks-note">{t("checkNotIncluded")}</p>
+                    )}
                 </div>
             )}
             {block.tables.map((fetch) => (
@@ -244,6 +250,8 @@ export function TopicSection({
                         <span>{stateWord(fetch.state, locale)}</span>
                         <span>{countLabel(fetch, locale)}</span>
                         {fetch.count?.approximate && <span>{t("approx")}</span>}
+                        {/* Second row: visibility, window and scope sit under the dataset name. */}
+                        <span className="fetch-summary-break" aria-hidden="true" />
                         <span>
                             {t("visibility")}: {formatVisibility(fetch.scope.visibility, locale)}
                         </span>
@@ -261,11 +269,12 @@ export function TopicSection({
                             </span>
                         )}
                         <span>
-                            {date(fetch.window.start, timezone, locale)} -{" "}
-                            {date(fetch.window.end, timezone, locale)} ({fetch.window.source_text})
+                            {dateShort(fetch.window.start, timezone, locale)} -{" "}
+                            {dateShort(fetch.window.end, timezone, locale)} (
+                            {fetch.window.source_text})
                         </span>
                         <span>
-                            {date(fetch.snapshot_at ?? fetch.snapshot.at, timezone, locale)}
+                            {dateShort(fetch.snapshot_at ?? fetch.snapshot.at, timezone, locale)}
                         </span>
                         {(fetch.snapshot.kind === "first_page_only" || fetch.next_cursor) && (
                             <span>{t("firstPage")}</span>
@@ -278,26 +287,7 @@ export function TopicSection({
                         >
                             {fetch.checks.map((check) => (
                                 <div className="fetch-check" key={`${check.code}:${check.name}`}>
-                                    <span className="fetch-check-outcome">
-                                        {check.outcome === "passed" ? (
-                                            <Check size={14} aria-hidden="true" />
-                                        ) : check.outcome === "failed" ? (
-                                            <AlertCircle size={14} aria-hidden="true" />
-                                        ) : (
-                                            <CircleHelp size={14} aria-hidden="true" />
-                                        )}
-                                        {locale === "en"
-                                            ? check.outcome === "passed"
-                                                ? "Passed"
-                                                : check.outcome === "failed"
-                                                  ? "Failed"
-                                                  : "Unknown"
-                                            : check.outcome === "passed"
-                                              ? "Superada"
-                                              : check.outcome === "failed"
-                                                ? "Fallida"
-                                                : "Desconocida"}
-                                    </span>
+                                    <OutcomePill outcome={check.outcome} locale={locale} />
                                     <span>
                                         {localeEnum(evidenceCheckNames, check.name, locale)}
                                     </span>

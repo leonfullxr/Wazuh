@@ -35,9 +35,12 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 21px;
-    font-feature-settings: "tnum" on;
+    font-feature-settings: "cv11" on;
     color: var(--text);
-    background: var(--bg);
+    background: var(--canvas);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 * {
     box-sizing: border-box;
@@ -59,11 +62,76 @@ textarea {
 }
 :focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline-offset: 2px;
 }
 ::selection {
     color: var(--text);
     background: var(--accent-soft);
+}
+::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+/* Shared form controls. Feature rules may still set size, never the look. */
+select,
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+textarea {
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background-color: var(--control-bg);
+    color: var(--text);
+    box-shadow: var(--control-shadow);
+    transition:
+        border-color var(--time-control) var(--ease-controls),
+        box-shadow var(--time-control) var(--ease-controls);
+}
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]) {
+    height: var(--control-height);
+    padding-block: 0;
+    font-size: 13px;
+}
+select:hover,
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):hover,
+textarea:hover {
+    border-color: var(--control-border-hover);
+}
+select:focus-visible,
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+textarea:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: var(--focus-halo);
+}
+select:disabled,
+input:disabled,
+textarea:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+input[type="checkbox"],
+input[type="radio"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+}
+select {
+    height: var(--control-height);
+    max-width: 190px;
+    padding: 0 30px 0 10px;
+    /* A CSS-drawn chevron keeps the strict CSP (no data: images). */
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
+        linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+    background-position:
+        calc(100% - 15px) 52%,
+        calc(100% - 11px) 52%;
+    background-size: 4px 4px;
+    background-repeat: no-repeat;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    appearance: none;
+    cursor: pointer;
 }
 .sr-only {
     position: absolute;
@@ -81,7 +149,7 @@ textarea {
     left: -999px;
     top: 8px;
     z-index: 200;
-    background: var(--bg);
+    background: var(--surface);
     padding: 8px;
 }
 .skip-link:focus {
@@ -90,25 +158,43 @@ textarea {
 .app-shell {
     min-height: 100vh;
     display: flex;
-    background: var(--bg);
+    background: var(--canvas);
     color: var(--text);
 }
+/* Paint the rail column on the shell so it spans pages taller than the sticky rail. */
+@media (min-width: 1024px) {
+    .app-shell {
+        background: linear-gradient(
+            to right,
+            var(--rail) calc(var(--rail-width) - 1px),
+            var(--border) calc(var(--rail-width) - 1px) var(--rail-width),
+            var(--canvas) var(--rail-width)
+        );
+    }
+}
 .rail {
+    position: sticky;
+    top: 0;
     width: var(--rail-width);
+    height: 100vh;
     flex: none;
     display: flex;
     flex-direction: column;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--stroke-subtle);
+    overflow-y: auto;
+    background: var(--rail);
+    border-right: 1px solid var(--border);
 }
 .brand {
     height: var(--header-height);
+    flex: none;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 20px;
+    padding: 0 18px;
+    font-size: 14px;
     font-weight: 650;
-    border-bottom: 1px solid var(--stroke-subtle);
+    letter-spacing: -0.01em;
 }
 .brand-mark {
     display: grid;
@@ -116,37 +202,59 @@ textarea {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: var(--text);
-    color: var(--bg);
+    background: linear-gradient(160deg, #3b7cf0, #1f4fb8);
+    color: #ffffff;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 22%),
+        0 1px 2px rgb(16 24 40 / 20%);
+}
+.brand small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    letter-spacing: 0;
 }
 .rail-caption {
-    padding: 20px 20px 8px;
+    padding: 20px 20px 6px;
+    color: var(--text-muted);
     font-size: 11px;
-    color: var(--text-2);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 .rail nav {
     padding: 0 10px;
     display: grid;
-    gap: 3px;
+    gap: 1px;
 }
 .rail nav a,
 .mobile-nav a {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 10px;
     height: 32px;
-    padding: 0 11px;
+    padding: 0 10px;
     border-radius: var(--radius-control);
-    color: var(--text-tertiary);
+    color: var(--text-2);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13.5px;
+    font-weight: 450;
     transition:
         background-color var(--time-control) var(--ease-controls),
         color var(--time-control) var(--ease-controls);
 }
+.rail nav a svg,
+.mobile-rail-section a svg {
+    flex: none;
+    color: var(--text-muted);
+    transition: color var(--time-control) var(--ease-controls);
+}
 .rail nav a:hover,
 .mobile-nav a:hover {
-    background: var(--surface-subtle);
+    background: var(--hover);
     color: var(--text);
     transition-duration: var(--time-hover);
 }
@@ -155,12 +263,44 @@ textarea {
     background: var(--selected);
     color: var(--text);
     box-shadow: none;
-    font-weight: 500;
+    font-weight: 550;
+}
+.rail nav a[aria-current="page"] svg,
+.mobile-rail-section a[aria-current="page"] svg {
+    color: var(--accent);
 }
 .rail-bottom {
     margin-top: auto;
-    padding: 16px 20px;
-    border-top: 1px solid var(--stroke-subtle);
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+}
+.shell-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.shell-dev {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border: 1px dashed var(--tag-amber-border);
+    border-radius: var(--radius-panel);
+    background: var(--tag-amber-bg);
+}
+.shell-dev label {
+    display: grid;
+    gap: 4px;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 500;
+}
+.shell-dev select {
+    width: 100%;
+    max-width: none;
+    height: 28px;
+    font-size: 12px;
 }
 .app-main {
     flex: 1;
@@ -174,20 +314,33 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    padding: 8px 24px;
-    border-bottom: 1px solid var(--stroke-subtle);
-    background: var(--bg);
+    gap: 16px;
+    padding: 10px 28px;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--canvas) 96%, transparent);
+    backdrop-filter: saturate(160%) blur(12px);
 }
-.top-title span,
+.top-title {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.top-title > span,
 .eyebrow {
     font-size: 12px;
     color: var(--text-muted);
 }
+.top-title > span[aria-hidden="true"] {
+    color: var(--border-strong);
+}
 .top-title h1 {
     margin: 0;
-    font-size: 20px;
-    line-height: 28px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 20px;
     font-weight: 600;
 }
 .top-controls {
@@ -197,6 +350,12 @@ textarea {
     gap: 8px;
     flex-wrap: wrap;
 }
+.top-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 2px;
+    background: var(--border);
+}
 .top-controls label,
 .composer-controls label {
     display: flex;
@@ -205,15 +364,20 @@ textarea {
     font-size: 12px;
     color: var(--text-muted);
 }
-select {
-    height: var(--control-height);
-    max-width: 190px;
-    padding: 0 28px 0 10px;
-    border: 1px solid var(--stroke-control);
-    border-radius: var(--radius-control);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 13px;
+.top-site {
+    position: relative;
+}
+.top-site > svg {
+    position: absolute;
+    left: 10px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.top-site select {
+    padding-left: 30px;
+}
+.language-control select {
+    width: 64px;
 }
 .mobile-nav {
     display: none;
@@ -222,7 +386,7 @@ select {
     width: 100%;
     max-width: 1440px;
     margin: 0 auto;
-    padding: 24px 24px 48px;
+    padding: 28px 28px 56px;
     outline: none;
 }
 .page-head {
@@ -230,17 +394,29 @@ select {
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    margin: 0 0 22px;
+    margin: 0 0 20px;
 }
 .page-head > div {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+}
+.page-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--shadow-panel);
 }
 .page-head h2 {
     margin: 0;
-    font: 600 20px/28px var(--font-display);
-    letter-spacing: -0.02em;
+    font: 650 22px/30px var(--font-display);
+    letter-spacing: -0.022em;
 }
 .muted {
     color: var(--text-muted);
@@ -248,8 +424,9 @@ select {
 }
 .panel {
     background: var(--surface);
-    border: 1px solid var(--stroke-subtle);
+    border: 1px solid var(--border);
     border-radius: var(--radius-card);
+    box-shadow: var(--shadow-panel);
     padding: 20px;
     margin-bottom: 16px;
     min-width: 0;
@@ -261,18 +438,18 @@ select {
     padding: 2px;
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
-    background: var(--hover);
+    background: var(--surface-2);
 }
 .theme-menu button {
-    min-width: 28px;
-    height: var(--control-height-compact);
-    padding: 0 8px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 26px;
+    padding: 0;
     border: 0;
-    border-radius: var(--radius-tag);
+    border-radius: calc(var(--radius-control) - 2px);
     background: transparent;
-    color: var(--text-2);
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--text-muted);
     cursor: pointer;
     transition:
         color var(--time-hover) var(--ease-controls),
@@ -286,15 +463,32 @@ select {
     background: var(--surface);
     box-shadow: var(--shadow-active);
 }
+.dark .theme-menu button[aria-pressed="true"],
+.dark .range-segment button[aria-pressed="true"],
+.dark .range-segment button[aria-selected="true"] {
+    background: var(--selected);
+}
+/* Drawer title and close stay pinned while the drawer scrolls (content pads 24px). */
+.sheet-head {
+    position: sticky;
+    top: -24px;
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -24px -24px 16px;
+    padding: 16px 16px 12px 24px;
+    border-bottom: 1px solid var(--border-row);
+    background: var(--surface);
+}
 .sheet-close {
-    position: absolute;
-    top: 16px;
-    right: 16px;
+    flex: none;
     display: grid;
     place-items: center;
     width: 32px;
     height: 32px;
-    border: 1px solid var(--stroke-control);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-control);
     background: var(--surface);
     color: var(--text);
@@ -309,19 +503,27 @@ select {
     align-items: center;
     gap: 2px;
     padding: 2px;
+    border: 1px solid var(--border);
     border-radius: var(--radius-control);
-    background: var(--hover);
+    background: var(--surface-2);
 }
 .range-segment button {
-    height: var(--control-height-compact);
-    padding: 0 8px;
+    height: 26px;
+    min-width: 38px;
+    padding: 0 9px;
     border: 0;
-    border-radius: var(--radius-tag);
+    border-radius: calc(var(--radius-control) - 2px);
     background: transparent;
     color: var(--text-2);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 550;
     cursor: pointer;
+    transition:
+        color var(--time-hover) var(--ease-controls),
+        background-color var(--time-hover) var(--ease-controls);
+}
+.range-segment button:hover {
+    color: var(--text);
 }
 .range-segment button[aria-pressed="true"],
 .range-segment button[aria-selected="true"] {
@@ -334,7 +536,7 @@ select {
 }
 .m3-grid {
     display: grid;
-    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.7fr);
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
 }
@@ -353,9 +555,12 @@ select {
     margin: 22px 0 10px;
     font-size: 15px;
 }
-.m3-detail h5 {
+.m3-detail h5,
+.m3-detail h6 {
     margin: 16px 0 8px;
-    font-size: 13px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .m3-narrative {
@@ -368,7 +573,9 @@ select {
 
 .m3-narrative-text {
     max-width: 76ch;
-    line-height: 1.65;
+    margin: 0;
+    font-size: 14px;
+    line-height: 22px;
     white-space: pre-wrap;
 }
 
@@ -381,9 +588,15 @@ select {
 .m3-citations {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 8px;
+    margin: 0 0 12px;
     list-style: none;
     padding: 0;
+}
+.m3-citations .btn {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .m3-citation-detail {
@@ -425,7 +638,7 @@ select {
     border-color: var(--stroke-control);
     background: var(--bg-secondary);
 }
-.m3-list-item span,
+.m3-list-item > span,
 .m3-list-item small,
 .m3-list-item em {
     color: var(--text-muted);
@@ -455,10 +668,15 @@ select {
 }
 .m3-evidence li {
     min-width: 0;
-    padding: 10px;
-    border: 1px solid var(--stroke-subtle);
-    border-radius: 8px;
-    background: var(--bg-secondary);
+    padding: 10px 0;
+    border: 0;
+    border-top: 1px solid var(--border-row);
+    border-radius: 0;
+    background: none;
+}
+.m3-evidence li:first-child {
+    border-top: 0;
+    padding-top: 0;
 }
 .m3-evidence pre {
     margin: 0;
@@ -501,15 +719,20 @@ select {
 .m3-actions input {
     width: 100%;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 0 10px;
     border: 1px solid var(--stroke-control);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     color: var(--text);
-    background: var(--bg);
+    background-color: var(--control-bg);
+}
+.m3-inline-form select {
+    max-width: none;
+    padding-right: 30px;
 }
 .m3-inline-form textarea,
 .m3-create textarea {
     min-height: 70px;
+    padding: 8px 10px;
     resize: vertical;
 }
 .m3-check {
@@ -555,6 +778,22 @@ select {
 .m3-detail td small {
     display: block;
     color: var(--text-muted);
+}
+.mobile-rail-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.mobile-rail-footer {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
 }
 @media (max-width: 1023px) {
     .rail {
@@ -602,18 +841,19 @@ select {
     margin-bottom: 12px;
 }
 .section-title h2 {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 600;
 }
 .composer textarea,
 .feedback textarea {
     width: 100%;
-    min-height: 106px;
+    min-height: 76px;
     padding: 12px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
     resize: vertical;
     color: var(--text);
-    background: var(--bg);
+    background-color: var(--control-bg);
 }
 .composer-controls {
     display: flex;
@@ -629,38 +869,49 @@ select {
     margin-left: auto;
 }
 .btn {
-    min-height: 36px;
+    min-height: var(--control-height);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
     padding: 0 12px;
-    border: 1px solid var(--stroke-strong);
+    border: 1px solid var(--control-border);
     border-radius: var(--radius-control);
-    background: var(--bg);
-    color: var(--text-secondary);
-    font-size: 14px;
+    background: var(--control-bg);
+    color: var(--text);
+    box-shadow: var(--control-shadow);
+    font-size: 13px;
     font-weight: 550;
+    line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
     transition:
         background-color var(--time-control) var(--ease-controls),
         border-color var(--time-control) var(--ease-controls),
         color var(--time-control) var(--ease-controls);
 }
+/* "outline" is also a Tailwind utility; keep it from drawing a second border. */
+.btn.outline:not(:focus-visible) {
+    outline: none;
+}
 .btn:hover {
-    background: var(--surface-subtle);
-    border-color: var(--text-muted);
+    background: var(--hover);
+    border-color: var(--control-border-hover);
     transition-duration: var(--time-hover);
 }
 .btn.primary {
-    background: var(--text);
-    border-color: var(--text-tertiary);
-    color: var(--bg);
+    background: var(--primary-button);
+    border-color: transparent;
+    color: var(--primary-button-foreground);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 14%),
+        0 1px 2px rgb(16 24 40 / 14%);
 }
 .btn.primary:hover {
-    background: var(--text-tertiary);
+    background: var(--primary-button-hover);
 }
-.btn:disabled {
+.btn:disabled,
+.btn:disabled:hover {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -730,42 +981,67 @@ select {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 3px 8px;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--tag-neutral-border);
     border-radius: 999px;
-    background: var(--surface-subtle);
-    color: var(--text-secondary);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
     font-size: 12px;
+    font-weight: 550;
     white-space: nowrap;
 }
 .status-pill-positive {
-    background: var(--positive-soft);
-    color: var(--positive-text);
+    border-color: var(--tag-green-border);
+    background: var(--tag-green-bg);
+    color: var(--tag-green-text);
+}
+.status-pill-negative {
+    border-color: var(--tag-red-border);
+    background: var(--tag-red-bg);
+    color: var(--tag-red-text);
 }
 .status-pill-warning {
-    background: var(--warning-soft);
-    color: var(--warning-text);
+    border-color: var(--tag-amber-border);
+    background: var(--tag-amber-bg);
+    color: var(--tag-amber-text);
 }
 .status-pill-neutral {
-    background: var(--surface-subtle);
-    color: var(--text-secondary);
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
 }
 .empty-state {
-    min-height: 210px;
+    min-height: 220px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     text-align: center;
     color: var(--text-muted);
 }
+.empty-state > svg {
+    width: 44px;
+    height: 44px;
+    padding: 11px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--text-2);
+}
 .empty-state h2 {
-    margin: 10px 0 2px;
-    font-size: 16px;
+    margin: 4px 0 2px;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--text);
 }
 .empty-state p {
-    max-width: 520px;
+    max-width: 460px;
+    margin: 4px 0 0;
     font-size: 13px;
+    line-height: 20px;
 }
 .answer-summary {
     padding: 16px 20px;
@@ -776,10 +1052,10 @@ select {
     gap: 12px;
 }
 .ids-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 18px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    align-items: baseline;
+    gap: 6px 32px;
     margin-top: 12px;
     font-size: 12px;
     color: var(--text-muted);
@@ -821,8 +1097,14 @@ code,
 }
 .topic-jump {
     position: sticky;
-    top: var(--header-height);
+    top: calc(var(--header-height) + 8px);
     z-index: 10;
+    /* Canvas rings hide card edges behind the stuck bar and keep 8px clear below it. */
+    box-shadow:
+        0 -9px 0 0 var(--canvas),
+        0 0 0 2px var(--canvas),
+        0 14px 0 0 var(--canvas),
+        0 20px 12px -12px rgb(0 0 0 / 22%);
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -850,8 +1132,22 @@ code,
     background: var(--surface);
     font-size: 11px;
 }
+.topic-jump a {
+    padding: 2px 8px 2px 2px;
+    border-radius: 999px;
+}
+.topic-jump a[aria-current="location"] {
+    background: var(--accent-wash);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+    color: var(--text);
+    font-weight: 550;
+}
+.topic-jump a[aria-current="location"] > span:first-child {
+    background: var(--accent);
+    color: var(--primary-button-foreground);
+}
 .topic-section {
-    scroll-margin-top: calc(var(--header-height) + 64px);
+    scroll-margin-top: calc(var(--header-height) + 72px);
     padding: 0;
     overflow: hidden;
 }
@@ -859,7 +1155,7 @@ code,
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 18px 20px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--stroke-subtle);
     flex-wrap: wrap;
 }
@@ -868,8 +1164,10 @@ code,
 }
 .topic-header h2 {
     margin: 2px 0;
-    font-size: 19px;
+    font-size: 18px;
+    font-weight: 600;
     line-height: 25px;
+    letter-spacing: -0.012em;
 }
 .topic-header code {
     color: var(--text-muted);
@@ -885,7 +1183,8 @@ code,
 .findings h3,
 .checks h3 {
     margin: 0 0 12px;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
 }
 .checks table {
     width: 100%;
@@ -893,10 +1192,29 @@ code,
 }
 .checks td {
     overflow-wrap: anywhere;
+    vertical-align: top;
+}
+.checks th:nth-child(1) {
+    width: 118px;
+}
+.checks th:nth-child(2) {
+    width: 24%;
+}
+@media (min-width: 1100px) {
+    .checks th:nth-child(2) {
+        width: 260px;
+    }
+}
+.checks th:nth-child(4) {
+    width: 23%;
+}
+.checks td:nth-child(3) {
+    font-size: 13px;
+    line-height: 20px;
 }
 .finding {
     display: grid;
-    grid-template-columns: 150px 1fr;
+    grid-template-columns: 124px 1fr;
     gap: 8px 12px;
     padding: 11px 0;
     border-top: 1px solid var(--stroke-weak);
@@ -966,25 +1284,31 @@ table {
     font-size: 13px;
 }
 th {
-    padding: 8px 10px;
+    height: 36px;
+    padding: 8px 12px;
     text-align: left;
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 600;
-    border-bottom: 1px solid var(--stroke);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
 td {
-    padding: 9px 10px;
+    padding: 10px 12px;
     text-align: left;
-    border-bottom: 1px solid var(--stroke-weak);
+    border-bottom: 1px solid var(--border-row);
+}
+tbody tr:last-child td {
+    border-bottom: 0;
 }
 tbody tr {
     cursor: pointer;
-    transition: background-color 300ms var(--ease-controls);
+    transition: background-color var(--time-control) var(--ease-controls);
 }
 tbody tr:hover {
-    background: var(--bg-secondary);
+    background: var(--hover);
 }
 .numeric {
     font-variant-numeric: tabular-nums;
@@ -1000,10 +1324,10 @@ tbody tr:hover {
 .fetch-table > summary {
     display: flex;
     align-items: center;
-    gap: 11px;
+    flex-wrap: wrap;
+    gap: 4px 14px;
     min-height: 48px;
-    overflow-x: auto;
-    white-space: nowrap;
+    padding: 10px 0;
     cursor: pointer;
     font-size: 12px;
     color: var(--text-tertiary);
@@ -1011,6 +1335,71 @@ tbody tr:hover {
 .fetch-table > summary strong {
     color: var(--text);
     font-family: var(--font-code);
+}
+.fetch-table > summary {
+    font-size: 13px;
+}
+.fetch-table > summary > strong {
+    font-size: 13px;
+}
+.fetch-summary-break {
+    flex-basis: 100%;
+    height: 0;
+}
+/* Second-row facts are joined by muted separators so they read as a list, not a sentence. */
+.fetch-table > summary {
+    column-gap: 8px;
+}
+.fetch-table > summary > strong {
+    margin-right: 6px;
+}
+.fetch-summary-break ~ span:not(.fetch-summary-break + span)::before {
+    margin-right: 8px;
+    color: var(--text-muted);
+    content: "\00b7";
+}
+.fetch-checks {
+    display: grid;
+    gap: 6px;
+    padding: 4px 0 12px;
+}
+.fetch-check {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+    color: var(--text-2);
+}
+.fetch-check-outcome {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 7px;
+    border: 1px solid var(--tag-green-border);
+    border-radius: 999px;
+    background: var(--tag-green-bg);
+    color: var(--tag-green-text);
+    font-weight: 550;
+}
+.fetch-check-outcome[data-outcome="failed"] {
+    border-color: var(--tag-red-border);
+    background: var(--tag-red-bg);
+    color: var(--tag-red-text);
+}
+.fetch-check-outcome[data-outcome="unknown"] {
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
+}
+.fetch-check code {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.fetch-check p {
+    flex-basis: 100%;
+    margin: 0;
 }
 .fetch-table .table-note {
     padding-top: 8px;
@@ -1052,11 +1441,17 @@ tbody tr:hover {
     max-width: 100%;
     flex-wrap: wrap;
     align-items: center;
-    gap: 7px;
+    gap: 2px 7px;
+    padding: 0;
+    border: 0;
     white-space: normal;
-    background: var(--surface-subtle);
+    background: none;
     color: var(--text-tertiary);
     cursor: default;
+}
+.check-reference small {
+    color: var(--text-muted);
+    font-size: 11px;
 }
 .check-reference small {
     font: inherit;
@@ -1070,8 +1465,13 @@ tbody tr:hover {
 .judgment-meta,
 .fetch-message,
 .original-question {
-    color: var(--text-tertiary);
+    margin: 8px 0 0;
+    color: var(--text-muted);
     font-size: 12px;
+}
+.original-question strong {
+    color: var(--text-muted);
+    font-weight: 400;
 }
 .fetch-message {
     padding: 8px 10px;
@@ -1182,8 +1582,12 @@ tbody tr:hover {
     background: none;
     color: var(--accent-text);
     text-align: left;
-    text-decoration: underline;
+    text-decoration: none;
+    text-underline-offset: 3px;
     cursor: pointer;
+}
+.text-link:hover {
+    text-decoration: underline;
 }
 .history-open {
     flex: 1;
@@ -1237,47 +1641,90 @@ tbody tr:hover {
 .topic-list-row a {
     max-width: 240px;
 }
+/* Two independent columns so short cards do not leave holes. */
 .status-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    align-items: start;
+    gap: 16px;
+}
+.status-col {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
 }
 .status-grid .panel {
     margin: 0;
 }
+.status-grid .panel > h3 {
+    margin: 14px 0 4px;
+}
 .status-grid h2 {
-    margin-bottom: 14px;
-    font-size: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
 }
 .status-grid h3 {
     margin: 8px 0;
-    font-size: 14px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+}
+.status-grid h3 code {
+    margin-left: 6px;
+    color: var(--text-muted);
+    font-weight: 400;
 }
 .status-grid p {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
     padding: 7px 0;
     border-bottom: 1px solid var(--stroke-weak);
     font-size: 13px;
     margin: 0;
 }
-.model-row {
-    padding: 10px 0;
-    border-top: 1px solid var(--stroke-weak);
+/* Build provenance reads like the other status cards: label left, value right,
+   copy icons trailing on one edge. */
+
+/* One key-value style on the page: muted labels, regular-weight values. */
+.status-grid p > span:first-child {
+    color: var(--text-2);
 }
-.model-row p {
-    display: block;
+.status-grid p > strong {
+    font-weight: 500;
+}
+.model-row {
+    padding: 10px 0 0;
+}
+.model-row + .model-row {
+    margin-top: 10px;
+}
+.model-row:first-of-type {
+    padding-top: 0;
+    border-top: 0;
 }
 .copy-value {
-    max-width: 70%;
+    min-width: 0;
+    max-width: 62%;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
+}
+.copy-value-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.copy-value > svg {
+    flex: none;
+    color: var(--text-muted);
+}
+.copy-value:hover > svg {
+    color: var(--accent);
 }
 .drawer-backdrop {
     position: fixed;
@@ -1332,13 +1779,15 @@ tbody tr:hover {
     gap: 16px;
 }
 .page-description {
-    margin: -10px 0 2px;
-    color: var(--text-muted);
-    font-size: 13px;
+    max-width: 80ch;
+    margin: -8px 0 0;
+    color: var(--text-2);
+    font-size: 13.5px;
+    line-height: 21px;
 }
 .workspace-panel {
     margin: 0;
-    padding: 18px;
+    padding: 20px;
 }
 .workspace-panel h2,
 .workspace-panel h3 {
@@ -1367,7 +1816,6 @@ tbody tr:hover {
 .backlog-strip > div > strong {
     font-size: 22px;
     line-height: 1.2;
-    font-variant-numeric: tabular-nums;
 }
 .ingestion-alert {
     align-items: center;
@@ -1450,7 +1898,7 @@ tbody tr:hover {
 .table-secondary,
 .top-count {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
 }
 .top-count {
     color: var(--text);
@@ -1462,7 +1910,7 @@ tbody tr:hover {
     flex-wrap: wrap;
     gap: 8px;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
 }
 .alert-filter-form,
 .queue-filter-row,
@@ -1488,12 +1936,12 @@ tbody tr:hover {
 .group-drawer-body input,
 .group-drawer-body textarea,
 .asset-edit input {
-    min-height: 36px;
+    min-height: var(--control-height);
     padding: 6px 9px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
     color: var(--text);
-    background: var(--bg);
+    background-color: var(--control-bg);
 }
 .alert-filter-form select,
 .queue-filter-row select,
@@ -1517,7 +1965,7 @@ tbody tr:hover {
     vertical-align: top;
 }
 .workspace-table td > strong,
-.workspace-table td > span {
+.workspace-table td > span:not(.tag) {
     display: block;
 }
 .workspace-table tr {
@@ -1525,13 +1973,16 @@ tbody tr:hover {
 }
 .level-badge {
     display: inline-flex !important;
-    min-width: 28px;
+    min-width: 30px;
+    height: 22px;
+    align-items: center;
     justify-content: center;
-    padding: 2px 5px;
-    border-radius: 5px;
+    padding: 0 6px;
+    border: 1px solid var(--tag-amber-border);
+    border-radius: var(--radius-tag);
     background: var(--warning-soft);
     color: var(--warning-text);
-    font-weight: 650;
+    font: 600 12px/1 var(--font-code);
     font-variant-numeric: tabular-nums;
 }
 .alert-drawer-body,
@@ -1539,6 +1990,32 @@ tbody tr:hover {
     display: grid;
     gap: 18px;
     padding-bottom: 22px;
+}
+.group-drawer-body .propagate-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+}
+.group-drawer-body .drawer-section > .btn.primary {
+    justify-self: end;
+}
+.group-drawer-body > .btn {
+    align-self: flex-start;
+}
+.group-drawer-body .drawer-section > label > select,
+.group-drawer-body .drawer-section > label > textarea {
+    width: 100%;
+    max-width: none;
+}
+.queue-v2-field-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+}
+.queue-v2-field-row input {
+    width: 100%;
 }
 .drawer-alert-title {
     margin: 0;
@@ -1548,10 +2025,11 @@ tbody tr:hover {
 .alert-detail-list,
 .stats-list {
     display: grid;
-    grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
+    grid-template-columns: minmax(156px, 0.7fr) minmax(0, 1.3fr);
     gap: 8px 12px;
     margin: 0;
-    font-size: 12px;
+    font-size: 13px;
+    line-height: 19px;
 }
 .alert-detail-list dt,
 .stats-list dt {
@@ -1561,7 +2039,6 @@ tbody tr:hover {
 .stats-list dd {
     margin: 0;
     overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums;
 }
 .drawer-section {
     display: grid;
@@ -1571,12 +2048,37 @@ tbody tr:hover {
 }
 .drawer-section h3 {
     margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+/* Sheet content pads 24px and sticky offsets start inside that padding, so the footer uses -24px. */
+.alert-drawer-body,
+.group-drawer-body {
+    min-height: calc(100vh - 88px);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+}
+.alert-drawer-body > .drawer-actions,
+.group-drawer-body > .drawer-actions {
+    position: sticky;
+    bottom: -24px;
+    justify-content: flex-end;
+    margin: auto -24px -24px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+.score-components li strong {
+    font-size: 13px;
+    font-weight: 550;
 }
 .drawer-section p,
 .drawer-section ul {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 13px;
+    line-height: 19px;
 }
 .raw-json,
 .provenance-row pre {
@@ -1666,8 +2168,8 @@ tbody tr:hover {
 .provenance-row {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 5px 12px;
-    padding: 10px;
+    gap: 4px 12px;
+    padding: 12px;
     border: 1px solid var(--stroke-subtle);
     border-radius: 8px;
 }
@@ -1679,13 +2181,26 @@ tbody tr:hover {
 .score-components li small,
 .provenance-row span {
     display: block;
-    margin-top: 4px;
-    color: var(--text-muted);
-    font-size: 11px;
+    margin-top: 2px;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 18px;
 }
-.score-components li code {
+.score-components li > code {
     align-self: start;
-    font-size: 11px;
+    color: var(--text);
+    font: 600 13px/18px var(--font-ui);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+.score-components li > code[data-unavailable] {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+.provenance-row > strong {
+    font-size: 13px;
+    font-weight: 550;
 }
 .score-components li small,
 .provenance-row pre {
@@ -1711,7 +2226,7 @@ tbody tr:hover {
 .member-link code,
 .member-link small {
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 12px;
     overflow-wrap: anywhere;
 }
 .workspace-action-message {
@@ -1855,16 +2370,44 @@ tbody tr:hover {
         display: none;
     }
     .topbar {
-        gap: 8px;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+    .top-title {
+        flex: 1;
+    }
+    .top-title > span {
+        display: none;
+    }
+    .top-title h1 {
+        font-size: 15px;
     }
     .top-controls {
-        gap: 5px;
+        width: 100%;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 6px;
+        margin-left: 0;
+    }
+    .top-controls > .language-control,
+    .top-controls > .theme-menu,
+    .top-controls > .top-divider {
+        display: none;
     }
     .top-controls label {
         font-size: 0;
     }
-    .top-controls label select {
-        max-width: 90px;
+    .top-site {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .top-controls .top-site select {
+        width: 100%;
+        max-width: none;
+    }
+    .range-segment button {
+        min-width: 0;
+        padding: 0 7px;
     }
     .top-controls .status-pill {
         display: inline-flex;
@@ -1908,6 +2451,7 @@ tbody tr:hover {
     }
     .ids-row {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px;
     }
     .finding {
@@ -2042,4 +2586,818 @@ tbody tr:hover {
     border: 0;
     background: transparent;
     text-align: left;
+}
+
+/* One card-title scale across pages; .workspace outranks the feature sheets. */
+.workspace .overview-v2-panel-head h2,
+.workspace .alerts-v2-panel-heading h3,
+.workspace .alerts-v2-results-heading h3,
+.workspace .metrics-v2-panel-head h2,
+.workspace .dashboard-v2-available h2,
+.workspace .dashboard-v2-widget h2,
+.workspace .section-title h2,
+.workspace .status-grid h2 {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+}
+.topics-panel {
+    margin-top: 20px;
+}
+.status-grid .panel > p:last-child,
+.model-row:last-child p:last-child {
+    border-bottom: 0;
+}
+.model-row:last-child {
+    padding-bottom: 0;
+}
+.provenance-fields {
+    display: grid;
+    gap: 4px;
+    margin: 6px 0 0;
+    font-size: 13px;
+}
+.provenance-fields > div {
+    display: grid;
+    grid-template-columns: 144px minmax(0, 1fr);
+    gap: 12px;
+}
+.provenance-fields dt {
+    color: var(--text-muted);
+}
+.provenance-fields dd {
+    margin: 0;
+    color: var(--text);
+}
+.provenance-row > .provenance-fields + .provenance-fields {
+    margin-top: 0;
+}
+/* Answered state: keep the composer and answer header compact so findings start sooner. */
+.composer {
+    padding: 16px 20px;
+}
+.composer .section-title {
+    margin-bottom: 10px !important;
+}
+.composer textarea {
+    min-height: 56px;
+    padding: 10px 12px;
+}
+.composer-controls {
+    margin-top: 10px;
+}
+.answer-summary {
+    padding: 14px 20px;
+}
+.answer-summary .ids-row {
+    margin-top: 8px;
+    row-gap: 4px;
+}
+.topic-header {
+    padding: 14px 20px;
+}
+.findings,
+.checks {
+    padding: 16px 20px;
+}
+/* One rendering for missing values across the app. */
+.null-value {
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+}
+/* Answer metadata: label column plus value, one baseline per row. */
+.ids-row > span {
+    display: grid;
+    grid-template-columns: 200px auto auto;
+    align-items: center;
+    gap: 6px;
+}
+.ids-label {
+    color: var(--text-muted);
+}
+/* The check-record note is said once under the table; rows keep it for screen readers. */
+.checks .check-reference small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+.field-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.field-chips code {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-tag);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 12px;
+}
+@media (max-width: 700px) {
+    .ids-row > span {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .ids-row > span > .ids-label {
+        grid-column: 1 / -1;
+    }
+    .ids-row > span > code {
+        overflow-wrap: anywhere;
+    }
+}
+.checks-note {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.checks-note::first-letter {
+    text-transform: uppercase;
+}
+.check-reference code {
+    color: var(--text);
+    font-size: 12.5px;
+}
+/* Phones: comfortable 40px controls. */
+@media (max-width: 700px) {
+    :root {
+        --control-height: 40px;
+    }
+    .alerts-v2 .workspace-table td:last-child .text-link {
+        width: 40px;
+        height: 40px;
+    }
+    .alerts-v2 .workspace-table td:last-child .text-link::after {
+        top: 15px;
+        left: 14px;
+    }
+    .queue-table input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+    }
+    .range-segment button {
+        height: 34px;
+    }
+    .theme-menu button {
+        height: 34px;
+    }
+}
+.check-reference > code {
+    display: inline-block;
+    max-width: 17ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+.score-components li small code {
+    font-size: 12px;
+    font-weight: 400;
+}
+/* Phones: the top bar already names the page, so the heading stays for screen readers only. */
+@media (max-width: 700px) {
+    .page-head {
+        margin: 0;
+    }
+    .page-head .page-icon {
+        display: none;
+    }
+    .page-head h2 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+    .page-head > .muted {
+        margin-bottom: 12px;
+    }
+}
+/* Phones: the site picker joins the title row so the site name stays readable;
+   search, range and custom fill the second row. */
+@media (max-width: 480px) {
+    .topbar {
+        row-gap: 5px;
+    }
+    .topbar::after {
+        content: "";
+        order: 3;
+        flex-basis: 100%;
+        height: 0;
+    }
+    .top-controls {
+        display: contents;
+    }
+    .top-controls > .top-site {
+        order: 2;
+        flex: 0 1 auto;
+        max-width: 55%;
+    }
+    .top-controls > :not(.top-site) {
+        order: 4;
+    }
+    .top-controls > .range-segment {
+        flex: 1 1 auto;
+    }
+    .top-controls > .range-segment button {
+        flex: 1 1 0;
+    }
+}
+/* A topic without a document heading shows its id at title size, so every topic header has a title row. */
+.topic-header h2 > code {
+    color: var(--text);
+    font-size: 0.9em;
+    font-weight: 600;
+}
+/* One disclosure marker everywhere: a muted chevron that turns down when open. */
+details.disclosure > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    cursor: pointer;
+}
+details.disclosure > summary::-webkit-details-marker {
+    display: none;
+}
+details.disclosure > summary::before {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin: 0 3px 1px 1px;
+    border-right: 1.5px solid var(--text-muted);
+    border-bottom: 1.5px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform var(--time-hover, 120ms) ease;
+    content: "";
+}
+details.disclosure[open] > summary::before {
+    margin-bottom: 4px;
+    transform: rotate(45deg);
+}
+/* Drawer values: mono sized to sit on the same baseline as the 13px sans values. */
+.alert-detail-list dd code {
+    font-size: 12.5px;
+    line-height: inherit;
+}
+/* Secondary metadata reads as content, not fine print: 13px in the secondary text colour. */
+.ids-row {
+    color: var(--text-2);
+    font-size: 13px;
+}
+.ids-row code {
+    font-size: 12.5px;
+}
+.status-grid h3 {
+    font-size: 13px;
+}
+.status-grid h3 code {
+    color: var(--text-2);
+    font-size: 12.5px;
+}
+.group-score-card span,
+.group-score-card small {
+    color: var(--text-2);
+    font-size: 12.5px;
+}
+/* Checkboxes: one drawn control in both themes (native ones render as solid grey squares in
+   dark mode). The input stays native; the tick is a CSS border, so no image is needed. */
+input[type="checkbox"] {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--control-bg);
+    cursor: pointer;
+    transition:
+        background-color var(--time-hover, 120ms) ease,
+        border-color var(--time-hover, 120ms) ease;
+}
+input[type="checkbox"]::before {
+    width: 8px;
+    height: 4px;
+    margin-top: -2px;
+    border-bottom: 2px solid var(--primary-button-foreground);
+    border-left: 2px solid var(--primary-button-foreground);
+    opacity: 0;
+    transform: rotate(-45deg);
+    content: "";
+}
+input[type="checkbox"]:hover:not(:disabled) {
+    border-color: var(--text-muted);
+}
+input[type="checkbox"]:checked {
+    border-color: var(--primary-button);
+    background: var(--primary-button);
+}
+input[type="checkbox"]:checked::before {
+    opacity: 1;
+}
+input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+input[type="checkbox"]:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+/* One row-action style: accent, 13px medium, underline on hover (Alerts, Metrics, Investigate). */
+.workspace-table td .text-link:not(.group-link),
+.topic-header a {
+    font-size: 13px;
+    font-weight: 500;
+}
+/* Dark theme: unchecked boxes keep a 3:1 outline against the row. */
+.dark input[type="checkbox"]:not(:checked) {
+    border-color: var(--text-muted);
+}
+/* Group member cards use the drawer card title style and the shared 12px card padding. */
+.member-link {
+    padding: 12px;
+}
+.member-link > span:first-child {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}
+/* Separator glyphs inside a value (source to destination) are quieter than the values. */
+.kv-sep {
+    margin: 0 6px;
+    color: var(--text-muted);
+}
+/* Inputs that hold identifiers (owners, group and rule ids) use the mono face, like the values. */
+input.id-input,
+textarea.id-input {
+    font-family: var(--font-code);
+    font-size: 12.5px;
+}
+input.id-input::placeholder,
+textarea.id-input::placeholder {
+    font-family: var(--font-ui);
+    font-size: 13px;
+}
+/* Answer data tables: field-name headers are identifiers, so mono; sort glyphs stay quiet
+   until hovered or active. */
+.fetch-table th .sort-button {
+    color: var(--text-2);
+    font: 400 12px var(--font-code);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.fetch-table th .sort-button svg {
+    opacity: 0.4;
+}
+.fetch-table th .sort-button:hover svg,
+.fetch-table th[aria-sort="ascending"] .sort-button svg,
+.fetch-table th[aria-sort="descending"] .sort-button svg {
+    opacity: 1;
+}
+.ids-link code {
+    color: inherit;
+}
+/* Answered Investigate: a shorter composer and tighter answer header so findings start higher. */
+main:has(.answer-summary) .composer {
+    padding: 14px 20px;
+}
+main:has(.answer-summary) .composer .section-title {
+    margin-bottom: 8px !important;
+}
+main:has(.answer-summary) .composer textarea {
+    height: 44px;
+    min-height: 44px;
+}
+main:has(.answer-summary) .composer-controls {
+    margin-top: 8px;
+}
+.answer-summary {
+    padding: 12px 20px;
+}
+.answer-summary .original-question {
+    margin-top: 6px;
+}
+.topic-header {
+    padding: 12px 20px;
+}
+/* Light theme: unchecked boxes get the same 3:1 outline as dark. */
+input[type="checkbox"]:not(:checked) {
+    border-color: var(--text-muted);
+}
+/* Topic header: the topic id sits on the title line, after the title. */
+.topic-header > div:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+}
+.topic-header > div:first-child > .eyebrow {
+    flex-basis: 100%;
+}
+main.workspace > .page-description {
+    margin-bottom: 20px;
+}
+/* Service status: the answer mode is a pill in the card head; sub-lists get a quiet subheading. */
+.status-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.status-card-head h2 {
+    margin: 0;
+}
+.status-grid h3.status-subhead {
+    margin: 16px 0 4px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+}
+/* Light theme: the active rail item carries the same accent edge as selected list items. */
+.rail nav a[aria-current="page"] {
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+/* The first title line centres on the 32px close button; longer titles wrap below it. */
+.sheet-head > :first-child {
+    margin-top: 4px;
+}
+/* Enrichment source names are identifiers: mono, like the source version beside them. */
+.provenance-row > strong {
+    font-family: var(--font-code);
+    font-size: 13px;
+    font-weight: 600;
+}
+/* Topic header: the status, model and document link sit on the title line, not mid-block. */
+.topic-header {
+    align-items: flex-end;
+}
+/* Enrichment source names: mono, but lighter than the section title above them. */
+.provenance-row > strong {
+    color: var(--text-2);
+    font-weight: 500;
+}
+/* Wazuh group and tactic tokens are labels, so the drawer chips use the UI face like the tables. */
+.field-chips code {
+    font-family: var(--font-ui);
+}
+/* Answer metadata: two columns that read as two columns (140px labels, 48px gutter), and the
+   original question in the same label/value grammar as the rows above it. */
+@media (min-width: 701px) {
+    .ids-row {
+        column-gap: 48px;
+    }
+    .ids-row > span {
+        grid-template-columns: 140px auto auto;
+    }
+    .answer-summary .original-question {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr);
+        gap: 6px;
+        color: var(--text);
+        font-size: 13px;
+    }
+    .answer-summary .original-question strong {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+}
+/* Numeric-only columns right-align with their headers everywhere. */
+.fetch-table th.numeric,
+.fetch-table td.numeric {
+    text-align: right;
+}
+.fetch-table th.numeric .sort-button {
+    margin-left: auto;
+}
+/* Dashboard banner copy runs to the button instead of wrapping early. */
+.dashboard-v2-available p {
+    max-width: 80ch;
+    text-wrap: pretty;
+}
+/* Ask is the last control in the composer row; the hint sits beside the timezone. */
+.composer-controls .submit-hint {
+    margin-left: 4px;
+}
+/* One empty-state pattern: icon tile, a 14px semibold primary line, an optional muted line. */
+.empty-state {
+    padding: 48px 16px;
+}
+.empty-state h2,
+.empty-state > svg + p {
+    margin: 4px 0 2px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+/* Banner and panel copy wraps evenly instead of leaving one-word orphans. */
+.dashboard-v2-available p {
+    max-width: 900px;
+}
+.panel p,
+.workspace-panel p {
+    text-wrap: pretty;
+}
+.fetch-table th .sort-button {
+    gap: 7px;
+}
+
+/* Page-level empty cards share one height and centre their content. */
+.panel:has(> .empty-state:only-child) {
+    padding: 0;
+}
+.empty-state,
+.m3-empty-detail {
+    min-height: 264px;
+}
+/* An empty status card leads with the same 14px semibold line as the dashboards. */
+.status-grid .freshness-empty {
+    padding-bottom: 2px;
+    border-bottom: 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+.status-grid .freshness-empty + p {
+    padding-top: 0;
+    border-bottom: 0;
+}
+.panel.empty-state {
+    min-height: 266px;
+}
+
+/* A single-sentence empty state is a hint, not a title: regular weight, secondary colour. */
+.empty-state > svg + :last-child {
+    color: var(--text-2);
+    font-weight: 400;
+}
+
+/* Composer metadata shares one size. */
+.composer-controls .timezone,
+.composer-controls .submit-hint {
+    font-size: 12px;
+}
+/* Short build values keep the copy-icon slot so the right edge stays even. */
+.status-build p > strong.mono {
+    margin-right: 19px;
+}
+
+@media (min-width: 1100px) {
+    .checks th:nth-child(2) {
+        width: 240px;
+    }
+    .checks th:nth-child(4) {
+        width: 184px;
+    }
+}
+/* Phones: one card padding on every page. */
+@media (max-width: 700px) {
+    main .rounded-panel {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+.status-grid h3.status-subhead {
+    font-size: 13px;
+}
+
+/* Topic strip destinations sit further apart so each scans as one unit. */
+.topic-jump {
+    gap: 16px;
+}
+
+/* The active topic outline leaves room after its status pill. */
+.topic-jump a[aria-current="location"] {
+    padding-right: 4px;
+}
+
+/* Normalized fields are identifiers: 12px mono inside the chip. */
+.field-chips code {
+    font-family: var(--font-code);
+    font-size: 12px;
+}
+/* Disabled outline buttons (pagers) stay legible: muted text at full opacity, border kept. */
+.btn.outline:disabled,
+.btn.outline:disabled:hover {
+    opacity: 1;
+    color: var(--text-muted);
+}
+
+.btn.outline:disabled {
+    border-color: var(--border-row);
+}
+
+/* Table identifiers match the sans x-height of their row: 13px mono. */
+.workspace-table td code,
+.fetch-table td .mono {
+    font-size: 13px;
+}
+/* A cited evidence id reads as a link, not a boxed chip. */
+.finding .citation {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+}
+/* The finding kind uses the shared tag shape and height. */
+.finding-kind {
+    box-sizing: border-box;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: var(--radius-tag);
+    line-height: 1;
+}
+
+/* Numeric answer columns: the header label ends on the values' edge, its sort icon before it. */
+.fetch-table th.numeric .sort-button {
+    display: flex;
+    width: 100%;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+/* Cited frozen facts read like every other citation: a muted label and a mono link. */
+.m3-citations {
+    gap: 16px;
+}
+.m3-citations .btn {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 400;
+}
+.m3-citations .btn code {
+    color: var(--accent);
+    font-family: var(--font-code);
+    font-size: 12.5px;
+}
+.m3-citations .btn[aria-pressed="true"] code {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.fetch-table th.numeric .sort-button {
+    align-items: center;
+    gap: 6px;
+}
+
+/* The compacted one-line composer has no resize grip. */
+main:has(.answer-summary) .composer textarea {
+    resize: none;
+}
+
+/* Removed findings use the shared neutral disclosure colour. */
+.removed {
+    color: var(--text-2);
+}
+
+/* One status-pill spec: 20px, 12px text, tag radius, tone only (no glyph). */
+.status-pill {
+    box-sizing: border-box;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: var(--radius-tag);
+    font-size: 12px;
+}
+.status-pill > svg,
+.finding-kind > svg {
+    display: none;
+}
+/* Topic cards: only the head rule runs edge to edge; inner separators sit on the 20px content edges. */
+.topic-section > :not(.topic-header) {
+    margin-inline: 20px;
+    padding-inline: 0;
+}
+/* Phone list screens share one rhythm: 16px between cards, 14px/600 row titles. */
+@media (max-width: 760px) {
+    .workspace-page.alerts-v2,
+    .workspace-page.queue-v2 {
+        row-gap: 16px;
+    }
+    .queue-v2 .queue-table .group-link {
+        font-size: 14px;
+    }
+}
+
+/* A status-only answer state sits in the metadata card's top-right corner, not on its own row. */
+.answer-summary {
+    position: relative;
+}
+.answer-summary > .answer-status:has(> span:empty) {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    margin: 0;
+}
+.answer-summary > .answer-status:has(> span:empty) + .ids-row {
+    margin-top: 0;
+}
+/* Disabled primary buttons use the neutral disabled style, like the pagers. */
+.btn.primary:disabled,
+.btn.primary:disabled:hover {
+    border-color: var(--border-row);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    opacity: 1;
+}
+/* Primary buttons switch background instantly, so enabling one never passes through a low-contrast blend. */
+.btn.primary {
+    transition-property: border-color, box-shadow;
+}
+
+/* Restrained palette: status pills, check outcomes and the freshness pill are neutral surfaces;
+   a 6px dot carries the state (good, warning, bad), so screens stop reading as a rainbow. */
+.status-pill,
+.status-pill-positive,
+.status-pill-negative,
+.status-pill-warning,
+.status-pill-neutral,
+.fetch-check-outcome,
+.fetch-check-outcome[data-outcome="failed"] {
+    gap: 6px;
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
+}
+.status-pill::before,
+.fetch-check-outcome::before {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--text-muted);
+    content: "";
+}
+.status-pill-positive::before,
+.fetch-check-outcome::before {
+    background: var(--dot-good);
+}
+.status-pill-negative::before,
+.fetch-check-outcome[data-outcome="failed"]::before {
+    background: var(--dot-bad);
+}
+.status-pill-warning::before {
+    background: var(--dot-warn);
+}
+
+/* Bad outcomes stand out without a new hue: strong text and an 8px dot. */
+.status-pill-negative,
+.fetch-check-outcome[data-outcome="failed"] {
+    color: var(--text);
+    font-weight: 600;
+}
+.status-pill-negative::before,
+.fetch-check-outcome[data-outcome="failed"]::before {
+    width: 8px;
+    height: 8px;
+}
+/* The status-only answer tag has no empty message slot beside it, so it sits on the content edge. */
+.answer-status > span:empty {
+    display: none;
+}
+/* Topic strip chips show their state as dot and text, with no nested pill box. */
+.topic-jump .tag {
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+/* Page title icons are decoration: the accent stays for actions and selection. */
+.page-icon {
+    color: var(--text-2);
+}
+/* The trust note rule uses the warning dot colour. */
+.m3-trust-note {
+    border-left-color: var(--dot-warn);
+}
+
+/* Topic strip: the state reads as its own part, 10px after the title. */
+.topic-jump .tag {
+    margin-left: 4px;
+}
+
+/* Topic strip: selection is the tint and the filled number disc only; idle numbers sit in a hairline disc. */
+.topic-jump a[aria-current="location"] {
+    box-shadow: none;
+}
+.topic-jump a > span:first-child {
+    box-shadow: inset 0 0 0 1px var(--border);
+}
+.topic-jump a[aria-current="location"] > span:first-child {
+    box-shadow: none;
 }

@@ -6,7 +6,9 @@ type SitePage = components["schemas"]["Page_SiteSummary_"];
 type IngestionHealth = components["schemas"]["IngestionHealthResponse"];
 
 const now = Date.now();
-const hour = (offset: number) => new Date(now - offset * 3_600_000).toISOString();
+// Histogram buckets start on the hour, as the backend's hourly aggregation does.
+const hourStart = Math.floor(now / 3_600_000) * 3_600_000;
+const hour = (offset: number) => new Date(hourStart - offset * 3_600_000).toISOString();
 const site = {
     site_id: "synthetic",
     label: "Synthetic site",

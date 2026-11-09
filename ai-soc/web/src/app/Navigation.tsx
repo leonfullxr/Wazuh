@@ -10,9 +10,11 @@ import {
     ListTodo,
     Menu,
     Search,
+    Server,
     Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import type { BootstrapResponse } from "../../../contracts/v1/generated/types.ts";
 import type { Locale } from "../i18n";
 import { StatusPill } from "../components/ui/status-pill";
@@ -34,7 +36,7 @@ export const dashboardNav = [
     { id: "soc_operations", icon: BriefcaseBusiness },
     { id: "metrics", icon: BarChart3 },
 ] as const;
-const secondaryNav = [
+export const secondaryNav = [
     { id: "investigate", icon: Search },
     { id: "history", icon: Clock3 },
     { id: "topics", icon: Files },
@@ -58,10 +60,12 @@ type Translate = (key: string) => string;
 export function NavigationRail({
     route,
     setRoute,
+    footer,
     t,
 }: {
     route: Route;
     setRoute: (route: Route) => void;
+    footer: ReactNode;
     t: Translate;
 }) {
     return (
@@ -118,9 +122,7 @@ export function NavigationRail({
                         </a>
                     ))}
                 </nav>
-                <div className="rail-bottom">
-                    <StatusPill tone="neutral">{t("readOnly")}</StatusPill>
-                </div>
+                <div className="rail-bottom">{footer}</div>
             </aside>
         </>
     );
@@ -140,10 +142,7 @@ export function ContextHeader({
     windowFrom,
     windowTo,
     onCustomRange,
-    modeState,
-    isMock,
-    scenario,
-    setScenario,
+    footer,
     onNavigate,
     onSearch,
     t,
@@ -153,7 +152,6 @@ export function ContextHeader({
     setLocale: (locale: Locale) => void;
     bootstrap: BootstrapResponse | undefined;
     sites: { site_id: string; label: string }[];
-    modeState: "loading" | "unavailable" | null;
     selectedSite: string;
     setSelectedSite: (site: string) => void;
     timeRange: "24h" | "7d" | "30d";
@@ -162,9 +160,7 @@ export function ContextHeader({
     windowFrom: string;
     windowTo: string;
     onCustomRange: (range: { from: string; to: string }) => void;
-    isMock: boolean;
-    scenario: string;
-    setScenario: (scenario: string) => void;
+    footer: ReactNode;
     onNavigate: (route: Route) => void;
     onSearch: (filters: AlertDrilldown) => void;
     t: Translate;
@@ -205,10 +201,26 @@ export function ContextHeader({
                             t={t}
                         />
                     </nav>
+                    <div className="mobile-rail-settings">
+                        <label className="language-control">
+                            <span className="sr-only">{t("language")}</span>
+                            <select
+                                value={locale}
+                                onChange={(event) => setLocale(event.target.value as Locale)}
+                                aria-label={t("language")}
+                            >
+                                <option value="en">EN</option>
+                                <option value="es">ES</option>
+                            </select>
+                        </label>
+                        <ThemeMenu locale={locale} />
+                    </div>
+                    <div className="mobile-rail-footer">{footer}</div>
                 </SheetContent>
             </Sheet>
             <div className="top-title">
-                <span>AI SOC / {t(route)}</span>
+                <span>AI SOC</span>
+                <span aria-hidden="true">/</span>
                 <h1>{t(route)}</h1>
             </div>
             <div className="top-controls">
@@ -219,8 +231,9 @@ export function ContextHeader({
                     onNavigate={onNavigate}
                     onSearch={onSearch}
                 />
-                <label>
-                    {t("site")}
+                <label className="top-site">
+                    <span className="sr-only">{t("site")}</span>
+                    <Server size={14} aria-hidden="true" />
                     <select
                         aria-label={t("site")}
                         value={selectedSite}
@@ -258,6 +271,7 @@ export function ContextHeader({
                     active={customRange}
                     onApply={onCustomRange}
                 />
+                <span className="top-divider" aria-hidden="true" />
                 <label className="language-control">
                     <span className="sr-only">{t("language")}</span>
                     <select
@@ -270,53 +284,79 @@ export function ContextHeader({
                     </select>
                 </label>
                 <ThemeMenu locale={locale} />
-                <StatusPill tone="neutral">
+            </div>
+        </header>
+    );
+}
+
+const scenarios = [
+    "auto",
+    "answered",
+    "partial",
+    "clarify",
+    "clarify_model",
+    "refused",
+    "filtered",
+    "paged",
+    "page_unavailable",
+    "audit_unavailable",
+    "bootstrap_unavailable",
+    "feedback_unavailable",
+    "busy",
+    "kev",
+    "workspace_quiet",
+    "workspace_stalled",
+    "workspace_error",
+    "workspace_denied",
+] as const;
+
+export function ShellStatus({
+    bootstrap,
+    modeState,
+    isMock,
+    scenario,
+    setScenario,
+    t,
+}: {
+    bootstrap: BootstrapResponse | undefined;
+    modeState: "loading" | "unavailable" | null;
+    isMock: boolean;
+    scenario: string;
+    setScenario: (scenario: string) => void;
+    t: Translate;
+}) {
+    return (
+        <>
+            <div className="shell-status">
+                <StatusPill tone={bootstrap?.mode === "live" ? "positive" : "neutral"}>
                     {bootstrap
                         ? bootstrap.mode === "live"
                             ? t("live")
                             : t(isMock ? "mode" : "localQualification")
                         : t(modeState === "loading" ? "modeLoading" : "modeUnavailable")}
                 </StatusPill>
-                {isMock && (
-                    <>
-                        <StatusPill tone="warning">{t("synthetic")}</StatusPill>
-                        <label>
-                            {t("scenario")}
-                            <select
-                                aria-label={t("scenario")}
-                                value={scenario}
-                                onChange={(event) => setScenario(event.target.value)}
-                            >
-                                {[
-                                    "auto",
-                                    "answered",
-                                    "partial",
-                                    "clarify",
-                                    "clarify_model",
-                                    "refused",
-                                    "filtered",
-                                    "paged",
-                                    "page_unavailable",
-                                    "audit_unavailable",
-                                    "bootstrap_unavailable",
-                                    "feedback_unavailable",
-                                    "busy",
-                                    "kev",
-                                    "workspace_quiet",
-                                    "workspace_stalled",
-                                    "workspace_error",
-                                    "workspace_denied",
-                                ].map((item) => (
-                                    <option key={item} value={item}>
-                                        {item === "auto" ? t("autoScenario") : item}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </>
-                )}
+                <StatusPill tone="neutral">{t("readOnly")}</StatusPill>
             </div>
-        </header>
+            {isMock && (
+                <div className="shell-dev">
+                    <StatusPill tone="warning">{t("synthetic")}</StatusPill>
+                    <label>
+                        {t("scenario")}
+                        <select
+                            aria-label={t("scenario")}
+                            value={scenario}
+                            onChange={(event) => setScenario(event.target.value)}
+                        >
+                            {scenarios.map((item) => (
+                                <option key={item} value={item}>
+                                    {item === "auto" ? t("autoScenario") : item}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            )}
+        </>
     );
 }
 

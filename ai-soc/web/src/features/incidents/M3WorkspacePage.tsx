@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { MousePointerClick } from "lucide-react";
 import type { components } from "../../../../contracts/workspace/v1/types.ts";
 import {
     createIncident,
@@ -15,7 +16,10 @@ import {
     type IncidentActionCommand,
 } from "../../api/workspace-m3";
 import { WorkspaceRequestError } from "../../api/workspace";
-import { NarrativePanel } from "./NarrativePanel";
+import { Tag } from "../../components/ui/tag";
+import { statusTags, type WorkStatus } from "../../lib/semantic";
+import { humanizeKey, isFlatRecord } from "../../lib/utils";
+import { IdValue, NarrativePanel, compactId } from "./NarrativePanel";
 import "./incident-v2.css";
 
 type Locale = "en" | "es";
@@ -162,7 +166,14 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="chain-list-heading">
                         <div className="panel-head">
-                            <h3 id="chain-list-heading">{t("m3Candidates")}</h3>
+                            <h3 id="chain-list-heading" className="sr-only">
+                                {t("m3Candidates")}
+                            </h3>
+                            <ListCount
+                                count={chains.data?.items.length}
+                                one={t("m3CandidateOne")}
+                                many={t("m3CandidateMany")}
+                            />
                             <button className="btn outline" onClick={() => void chains.refetch()}>
                                 {t("refresh")}
                             </button>
@@ -193,9 +204,11 @@ export function M3WorkspacePage({
                                             setSelection({ kind: "chain", id: item.chain_id })
                                         }
                                     >
-                                        <strong>{item.rule_id}</strong>
-                                        <span>
-                                            {item.state} · {t("m3Score")}:{" "}
+                                        <strong>
+                                            <code title={item.rule_id}>{item.rule_id}</code>
+                                        </strong>
+                                        <span className="m3-list-meta">
+                                            <StateTag value={item.state} /> {t("m3Score")}:{" "}
                                             {item.score_available
                                                 ? formatScore(item.score)
                                                 : t("m3ScoreUnavailable")}
@@ -264,7 +277,14 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="incident-list-heading">
                         <div className="panel-head">
-                            <h3 id="incident-list-heading">{t("m3Incidents")}</h3>
+                            <h3 id="incident-list-heading" className="sr-only">
+                                {t("m3Incidents")}
+                            </h3>
+                            <ListCount
+                                count={incidents.data?.items.length}
+                                one={t("m3IncidentOne")}
+                                many={t("m3IncidentMany")}
+                            />
                             <button
                                 className="btn outline"
                                 onClick={() => void incidents.refetch()}
@@ -307,13 +327,17 @@ export function M3WorkspacePage({
                                             }
                                         >
                                             <strong>{item.title}</strong>
-                                            <span>
-                                                {item.status} · {t("m3Owner")}:{" "}
-                                                {item.owner_key ?? t("m3Unassigned")}
+                                            <span className="m3-list-meta">
+                                                <StateTag value={item.status} /> {t("m3Owner")}:{" "}
+                                                {item.owner_key ? (
+                                                    <code>{item.owner_key}</code>
+                                                ) : (
+                                                    t("m3Unassigned")
+                                                )}
                                             </span>
-                                            <small>
-                                                {item.incident_id} · v{item.work_version} · r
-                                                {item.revision_seq}
+                                            <small title={item.incident_id}>
+                                                {compactId(item.incident_id)} · v{item.work_version}{" "}
+                                                · r{item.revision_seq}
                                             </small>
                                         </button>
                                     </li>
@@ -472,24 +496,28 @@ function ChainDetailView({
             <h3 id="chain-detail-heading">{t("m3CandidateDetail")}</h3>
             <dl className="m3-meta">
                 <dt>{t("m3CandidateId")}</dt>
-                <dd>{detail.chain_id}</dd>
+                <dd>
+                    <IdValue value={detail.chain_id} locale={locale} copy />
+                </dd>
                 <dt>{t("m3Rule")}</dt>
                 <dd>
-                    {detail.rule_id} · {detail.rule_version}
+                    <code>{detail.rule_id}</code> · <code>{detail.rule_version}</code>
                 </dd>
                 <dt>{t("m3CandidateState")}</dt>
-                <dd>{detail.state}</dd>
+                <dd>
+                    <StateTag value={detail.state} />
+                </dd>
                 <dt>{t("m3Score")}</dt>
                 <dd>
                     {detail.score_available ? formatScore(detail.score) : t("m3ScoreUnavailable")}
                 </dd>
                 <dt>{t("m3Manifest")}</dt>
                 <dd>
-                    <code>{detail.manifest_id}</code>
+                    <IdValue value={detail.manifest_id} locale={locale} />
                 </dd>
                 <dt>{t("m3Revision")}</dt>
                 <dd>
-                    <code>{detail.revision_digest}</code>
+                    <IdValue value={detail.revision_digest} locale={locale} />
                 </dd>
             </dl>
             {detail.weak_heuristic && <p className="alert warning">{t("m3WeakEvidence")}</p>}
@@ -497,14 +525,19 @@ function ChainDetailView({
             <section aria-labelledby="chain-stages-heading">
                 <h4 id="chain-stages-heading">{t("m3OrderedStages")}</h4>
                 {detail.stages.length ? (
-                    <EvidenceRows values={detail.stages} />
+                    <EvidenceRows values={detail.stages} locale={locale} />
                 ) : (
                     <p className="muted">{t("m3NoStageEvidence")}</p>
                 )}
                 {Array.isArray(missing) && missing.length > 0 && (
-                    <p>
-                        {t("m3MissingStages")}: {missing.map((item) => printable(item)).join(", ")}
-                    </p>
+                    <dl className="m3-evidence-fields m3-missing-row">
+                        <div>
+                            <dt>{t("m3MissingStages")}</dt>
+                            <dd>
+                                <code>{missing.map((item) => printable(item)).join(", ")}</code>
+                            </dd>
+                        </div>
+                    </dl>
                 )}
                 {(reasonItems.length > 0 || orderToleranceApplied) && (
                     <div>
@@ -531,46 +564,30 @@ function ChainDetailView({
             <section aria-labelledby="chain-links-heading">
                 <h4 id="chain-links-heading">{t("m3Links")}</h4>
                 {detail.edges.length ? (
-                    <EvidenceRows values={detail.edges} />
+                    <EvidenceRows values={detail.edges} locale={locale} />
                 ) : (
                     <p className="muted">{t("m3NoLinks")}</p>
                 )}
                 {detail.weak_edges.length > 0 && (
                     <>
                         <h5>{t("m3WeakLinks")}</h5>
-                        <EvidenceRows values={detail.weak_edges} />
+                        <EvidenceRows values={detail.weak_edges} locale={locale} />
                     </>
                 )}
             </section>
             <section aria-labelledby="chain-pins-heading">
                 <h4 id="chain-pins-heading">{t("m3ScorePins")}</h4>
                 {detail.score_pins.length ? (
-                    <EvidenceRows values={detail.score_pins} />
+                    <EvidenceRows values={detail.score_pins} locale={locale} />
                 ) : (
                     <p className="muted">{t("m3NoScorePins")}</p>
                 )}
             </section>
             {detail.state === "open" && (
                 <div className="m3-actions">
+                    <h4 className="m3-actions-title">{t("m3Decision")}</h4>
                     <form
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            onPromote(title.trim());
-                        }}
-                    >
-                        <label>
-                            {t("m3TitleOverride")}
-                            <input
-                                maxLength={240}
-                                value={title}
-                                onChange={(event) => setTitle(event.target.value)}
-                            />
-                        </label>
-                        <button className="btn primary" type="submit">
-                            {t("m3Promote")}
-                        </button>
-                    </form>
-                    <form
+                        id="chain-dismiss-form"
                         onSubmit={(event) => {
                             event.preventDefault();
                             if (reason.trim()) onDismiss(reason.trim());
@@ -587,6 +604,25 @@ function ChainDetailView({
                         </label>
                         <button className="btn outline" type="submit">
                             {t("m3Dismiss")}
+                        </button>
+                    </form>
+                    <form
+                        id="chain-promote-form"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            onPromote(title.trim());
+                        }}
+                    >
+                        <label>
+                            {t("m3TitleOverride")}
+                            <input
+                                maxLength={240}
+                                value={title}
+                                onChange={(event) => setTitle(event.target.value)}
+                            />
+                        </label>
+                        <button className="btn primary" type="submit">
+                            {t("m3Promote")}
                         </button>
                     </form>
                 </div>
@@ -647,16 +683,22 @@ function IncidentDetailView({
             </div>
             <dl className="m3-meta">
                 <dt>{t("m3IncidentId")}</dt>
-                <dd>{incident.incident_id}</dd>
+                <dd>
+                    <IdValue value={incident.incident_id} locale={locale} />
+                </dd>
                 <dt>{t("m3Status")}</dt>
-                <dd>{incident.status}</dd>
+                <dd>
+                    <StateTag value={incident.status} />
+                </dd>
                 <dt>{t("m3Owner")}</dt>
-                <dd>{incident.owner_key ?? t("m3Unassigned")}</dd>
+                <dd>
+                    {incident.owner_key ? <code>{incident.owner_key}</code> : t("m3Unassigned")}
+                </dd>
                 <dt>{t("m3WorkVersion")}</dt>
                 <dd>{incident.work_version}</dd>
                 <dt>{t("m3EvidenceRevision")}</dt>
                 <dd>
-                    <code>{incident.evidence_head}</code>
+                    <IdValue value={incident.evidence_head} locale={locale} />
                 </dd>
             </dl>
             <GraphUnavailable kind="incident" locale={locale} />
@@ -686,11 +728,16 @@ function IncidentDetailView({
                                 {data.members.map((member) => (
                                     <tr key={member.group_id}>
                                         <td>
-                                            <strong>{member.title}</strong>
-                                            <small>{member.group_id}</small>
+                                            <strong title={member.title}>{member.title}</strong>
+                                            <small>
+                                                <IdValue value={member.group_id} locale={locale} />
+                                            </small>
                                         </td>
                                         <td>
-                                            <code>{member.group_revision}</code>
+                                            <IdValue
+                                                value={member.group_revision}
+                                                locale={locale}
+                                            />
                                         </td>
                                         <td>{member.alert_count}</td>
                                         <td>
@@ -698,10 +745,7 @@ function IncidentDetailView({
                                                 ? t("m3ScoreUnavailable")
                                                 : formatScore(member.score)}
                                         </td>
-                                        <td>
-                                            {fmtDate(member.first_ts, locale)} –{" "}
-                                            {fmtDate(member.last_ts, locale)}
-                                        </td>
+                                        <td>{fmtRange(member.first_ts, member.last_ts)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -710,51 +754,72 @@ function IncidentDetailView({
                 ) : (
                     <p className="muted">{t("m3NoMembers")}</p>
                 )}
-                <form
-                    className="m3-inline-form"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        const add = groupIds(addGroups);
-                        const remove = groupIds(removeGroups);
-                        if (!add.length && !remove.length) return;
-                        if (
-                            add.length > 100 ||
-                            remove.length > 100 ||
-                            [...add, ...remove].some((id) => !isGroupId(id))
-                        ) {
-                            setMembershipError(t("m3InvalidGroups"));
-                            return;
+                <h5>{t("m3MembershipHistory")}</h5>
+                {data.membership_intervals.length ? (
+                    <EvidenceRows values={data.membership_intervals} locale={locale} />
+                ) : (
+                    <p className="muted">{t("m3NoMembershipHistory")}</p>
+                )}
+                {data.next_cursors.membership && (
+                    <button
+                        className="btn outline"
+                        onClick={() =>
+                            onMoreDetail("membership", data.next_cursors.membership ?? "")
                         }
-                        setMembershipError("");
-                        onAction({
-                            kind: "members",
-                            body: { ...work, add_group_ids: add, remove_group_ids: remove },
-                        });
-                        setAddGroups("");
-                        setRemoveGroups("");
-                    }}
-                >
-                    {membershipError && <p role="alert">{membershipError}</p>}
-                    <label>
-                        {t("m3AddGroups")}
-                        <textarea
-                            value={addGroups}
-                            onChange={(event) => setAddGroups(event.target.value)}
-                            placeholder={t("m3GroupIdsHint")}
-                        />
-                    </label>
-                    <label>
-                        {t("m3RemoveGroups")}
-                        <textarea
-                            value={removeGroups}
-                            onChange={(event) => setRemoveGroups(event.target.value)}
-                            placeholder={t("m3GroupIdsHint")}
-                        />
-                    </label>
-                    <button className="btn outline" type="submit">
-                        {t("m3UpdateMembership")}
+                    >
+                        {t("nextPage")}
                     </button>
-                </form>
+                )}
+                <details className="disclosure m3-membership-edit">
+                    <summary>{t("m3EditMembership")}</summary>
+                    <form
+                        className="m3-inline-form"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            const add = groupIds(addGroups);
+                            const remove = groupIds(removeGroups);
+                            if (!add.length && !remove.length) return;
+                            if (
+                                add.length > 100 ||
+                                remove.length > 100 ||
+                                [...add, ...remove].some((id) => !isGroupId(id))
+                            ) {
+                                setMembershipError(t("m3InvalidGroups"));
+                                return;
+                            }
+                            setMembershipError("");
+                            onAction({
+                                kind: "members",
+                                body: { ...work, add_group_ids: add, remove_group_ids: remove },
+                            });
+                            setAddGroups("");
+                            setRemoveGroups("");
+                        }}
+                    >
+                        {membershipError && <p role="alert">{membershipError}</p>}
+                        <label>
+                            {t("m3AddGroups")}
+                            <textarea
+                                className="id-input"
+                                value={addGroups}
+                                onChange={(event) => setAddGroups(event.target.value)}
+                                placeholder={t("m3GroupIdsHint")}
+                            />
+                        </label>
+                        <label>
+                            {t("m3RemoveGroups")}
+                            <textarea
+                                className="id-input"
+                                value={removeGroups}
+                                onChange={(event) => setRemoveGroups(event.target.value)}
+                                placeholder={t("m3GroupIdsHint")}
+                            />
+                        </label>
+                        <button className="btn outline" type="submit">
+                            {t("m3UpdateMembership")}
+                        </button>
+                    </form>
+                </details>
             </section>
             <section aria-labelledby="incident-timeline-heading">
                 <h4 id="incident-timeline-heading">{t("m3Timeline")}</h4>
@@ -764,24 +829,40 @@ function IncidentDetailView({
                     <p className="muted">{t("m3NoEvents")}</p>
                 )}
                 <ol className="m3-timeline">
-                    {events.map((event) => (
-                        <li key={event.event_id}>
-                            <time
-                                dateTime={event.event_ts}
-                                title={fmtDate(event.event_ts, locale)}
-                                aria-label={fmtDate(event.event_ts, locale)}
-                            >
-                                {fmtTime(event.event_ts, locale)}
-                            </time>
-                            <span className="m3-timeline-marker" aria-hidden="true" />
-                            <div className="m3-timeline-event">
-                                <strong>{event.rule_id ?? t("m3Alert")}</strong>
-                                <span>
-                                    {event.alert_key} · {event.group_id}
-                                </span>
-                                {event.stages.length > 0 && <EvidenceRows values={event.stages} />}
-                            </div>
-                        </li>
+                    {events.map((event, index) => (
+                        <Fragment key={event.event_id}>
+                            {(index === 0 ||
+                                event.event_ts.slice(0, 10) !==
+                                    events[index - 1].event_ts.slice(0, 10)) && (
+                                <li className="m3-timeline-day">{fmtDay(event.event_ts)}</li>
+                            )}
+                            <li>
+                                <time
+                                    dateTime={event.event_ts}
+                                    title={fmtDate(event.event_ts, locale)}
+                                    aria-label={fmtDate(event.event_ts, locale)}
+                                >
+                                    {fmtTime(event.event_ts, locale)}
+                                </time>
+                                <span className="m3-timeline-marker" aria-hidden="true" />
+                                <div className="m3-timeline-event">
+                                    <strong>
+                                        {event.rule_id ? (
+                                            <code>{event.rule_id}</code>
+                                        ) : (
+                                            t("m3Alert")
+                                        )}
+                                    </strong>
+                                    <span>
+                                        {event.alert_key} ·{" "}
+                                        <IdValue value={event.group_id} locale={locale} />
+                                    </span>
+                                    {event.stages.length > 0 && (
+                                        <EvidenceRows values={event.stages} locale={locale} />
+                                    )}
+                                </div>
+                            </li>
+                        </Fragment>
                     ))}
                 </ol>
                 {eventsNext && (
@@ -806,6 +887,7 @@ function IncidentDetailView({
                         <label>
                             {t("m3Owner")}
                             <input
+                                className="id-input"
                                 maxLength={256}
                                 value={owner}
                                 onChange={(event) => setOwner(event.target.value)}
@@ -864,17 +946,20 @@ function IncidentDetailView({
                     </form>
                     <h5>{t("m3History")}</h5>
                     {data.history.length ? (
-                        <ol className="m3-history">
+                        <ol className="m3-history m3-work-history">
                             {data.history.map((item) => (
                                 <li key={item.history_id}>
                                     <strong>{item.action}</strong>
                                     <span>
-                                        {item.actor_key} · {fmtDate(item.at, locale)} · v
-                                        {item.work_version}
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
                                     </span>
-                                    <details>
+                                    <details className="disclosure">
                                         <summary>{t("m3HistoryDetails")}</summary>
-                                        <EvidenceRows values={[item.before, item.after]} />
+                                        <EvidenceRows
+                                            values={[item.before, item.after]}
+                                            locale={locale}
+                                        />
                                     </details>
                                 </li>
                             ))}
@@ -897,8 +982,8 @@ function IncidentDetailView({
                                 <li key={item.comment_id}>
                                     <p>{item.body}</p>
                                     <span>
-                                        {item.actor_key} · {fmtDate(item.at, locale)} · v
-                                        {item.work_version}
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
                                     </span>
                                 </li>
                             ))}
@@ -957,6 +1042,7 @@ function IncidentDetailView({
                                 <option value="undetermined">{t("m3Undetermined")}</option>
                             </select>
                         </label>
+                        <p className="muted m3-field-hint">{t("m3IncidentDispositionScope")}</p>
                         {disposition === "false_positive" && (
                             <label>
                                 {t("m3FpReason")}
@@ -991,19 +1077,19 @@ function IncidentDetailView({
                                 maxLength={2000}
                             />
                         </label>
-                        <p className="muted">{t("m3IncidentDispositionScope")}</p>
-                        <button className="btn outline" type="submit">
+                        <button className="btn primary" type="submit">
                             {t("m3SaveDisposition")}
                         </button>
                     </form>
+                    <h5>{t("m3DispositionHistory")}</h5>
                     {data.dispositions.length ? (
                         <ol className="m3-history">
                             {data.dispositions.map((item) => (
                                 <li key={item.disposition_id}>
                                     <strong>{t(`m3Disposition_${item.label}`)}</strong>
                                     <span>
-                                        {item.actor_key} · {fmtDate(item.at, locale)} · v
-                                        {item.work_version}
+                                        <code>{item.actor_key}</code> · {fmtDate(item.at, locale)} ·
+                                        v{item.work_version}
                                     </span>
                                     {item.reason_code && (
                                         <p>
@@ -1022,22 +1108,6 @@ function IncidentDetailView({
                             className="btn outline"
                             onClick={() =>
                                 onMoreDetail("dispositions", data.next_cursors.dispositions ?? "")
-                            }
-                        >
-                            {t("nextPage")}
-                        </button>
-                    )}
-                    <h5>{t("m3MembershipHistory")}</h5>
-                    {data.membership_intervals.length ? (
-                        <EvidenceRows values={data.membership_intervals} />
-                    ) : (
-                        <p className="muted">{t("m3NoMembershipHistory")}</p>
-                    )}
-                    {data.next_cursors.membership && (
-                        <button
-                            className="btn outline"
-                            onClick={() =>
-                                onMoreDetail("membership", data.next_cursors.membership ?? "")
                             }
                         >
                             {t("nextPage")}
@@ -1083,6 +1153,7 @@ function CreateIncidentForm({
     siteId: string;
     t: Translate;
     onCreate: (body: components["schemas"]["IncidentCreateRequest"]) => void;
+    /** While an incident is open its own actions are primary, so this one steps back. */
 }) {
     const [groupIdsText, setGroupIdsText] = useState("");
     const [title, setTitle] = useState("");
@@ -1116,6 +1187,7 @@ function CreateIncidentForm({
             <label>
                 {t("m3GroupIds")}
                 <textarea
+                    className="id-input"
                     required
                     value={groupIdsText}
                     onChange={(event) => setGroupIdsText(event.target.value)}
@@ -1133,27 +1205,143 @@ function CreateIncidentForm({
             <label>
                 {t("m3Owner")}
                 <input
+                    className="id-input"
                     maxLength={256}
                     value={owner}
                     onChange={(event) => setOwner(event.target.value)}
                 />
             </label>
-            <button className="btn primary" type="submit">
+            <button className="btn outline" type="submit">
                 {t("m3Create")}
             </button>
         </form>
     );
 }
 
-function EvidenceRows({ values }: { values: unknown[] }) {
+/** `compact` shortens every long identifier, for narrow side cards. */
+function EvidenceRows({
+    values,
+    locale,
+    compact = false,
+}: {
+    values: unknown[];
+    locale: Locale;
+    compact?: boolean;
+}) {
     return (
         <ul className="m3-evidence">
             {values.map((value, index) => (
                 <li key={index}>
-                    <pre>{printable(value)}</pre>
+                    {isFlatRecord(value) ? (
+                        <FlatEvidence value={value} locale={locale} compact={compact} />
+                    ) : (
+                        <pre>{printable(value)}</pre>
+                    )}
                 </li>
             ))}
         </ul>
+    );
+}
+
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+/** One rendering per kind: muted dash for null, sans for numbers, prose and times, mono for ids. */
+function FieldValue({
+    value,
+    locale,
+    compact,
+}: {
+    value: string | number | boolean | null;
+    locale: Locale;
+    compact?: boolean;
+}) {
+    if (value === null) return <span className="null-value">{"\u2014"}</span>;
+    if (typeof value !== "string") return <span className="field-number">{String(value)}</span>;
+    if (ISO_TIMESTAMP.test(value)) return <span>{fmtDate(value)}</span>;
+    if (/\s/.test(value)) return <span>{value}</span>;
+    return <IdValue value={value} locale={locale} compact={compact} />;
+}
+
+/** Stage records lead with ordinal, stage and outcome; other fields follow as rows. */
+type FlatField = string | number | boolean | null | Array<string | number | boolean | null>;
+
+function FlatEvidence({
+    value,
+    locale,
+    compact,
+}: {
+    value: Record<string, FlatField>;
+    locale: Locale;
+    compact?: boolean;
+}) {
+    const { ordinal, stage_id: stage, outcome, ...rest } = value;
+    const staged = stage !== undefined && stage !== null;
+    const restEntries = Object.entries(rest);
+    const inline =
+        staged && restEntries.length === 1 && !Array.isArray(restEntries[0][1])
+            ? restEntries[0]
+            : undefined;
+    const fields = inline ? [] : Object.entries(staged ? rest : value);
+    return (
+        <>
+            {staged && (
+                <div className={inline ? "m3-stage-head m3-stage-row" : "m3-stage-head"}>
+                    <span className="m3-stage-lead">
+                        {ordinal !== undefined && ordinal !== null && (
+                            <span className="m3-stage-ordinal">{String(ordinal)}</span>
+                        )}
+                        <code>{String(stage)}</code>
+                        {outcome !== undefined && outcome !== null && (
+                            <Tag
+                                tone={
+                                    outcome === "matched"
+                                        ? "green"
+                                        : outcome === "missing"
+                                          ? "amber"
+                                          : "neutral"
+                                }
+                            >
+                                {String(outcome)}
+                            </Tag>
+                        )}
+                    </span>
+                    {inline && (
+                        <span className="m3-stage-field">
+                            <span className="sr-only">{humanizeKey(inline[0])}</span>
+                            <FieldValue
+                                value={inline[1] as Exclude<FlatField, unknown[]>}
+                                locale={locale}
+                                compact={compact}
+                            />
+                        </span>
+                    )}
+                </div>
+            )}
+            {fields.length > 0 && (
+                <dl className="m3-evidence-fields">
+                    {fields.map(([key, field]) => (
+                        <div key={key}>
+                            <dt>{humanizeKey(key)}</dt>
+                            <dd>
+                                {Array.isArray(field) ? (
+                                    field.map((item, index) => (
+                                        <div key={index}>
+                                            <FieldValue
+                                                value={item}
+                                                locale={locale}
+                                                compact={compact}
+                                            />
+                                        </div>
+                                    ))
+                                ) : (
+                                    <FieldValue value={field} locale={locale} compact={compact} />
+                                )}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
+        </>
     );
 }
 
@@ -1177,9 +1365,19 @@ function failureMessage(error: unknown, t: Translate): string {
     return error instanceof Error ? error.message : t("m3Unavailable");
 }
 
+function ListCount({ count, one, many }: { count?: number; one: string; many: string }) {
+    if (count === undefined) return <span />;
+    return (
+        <span className="m3-list-count">
+            {count} {count === 1 ? one : many}
+        </span>
+    );
+}
+
 function EmptyDetail({ text }: { text: string }) {
     return (
-        <div className="empty-state">
+        <div className="empty-state m3-empty-detail">
+            <MousePointerClick aria-hidden="true" />
             <p>{text}</p>
         </div>
     );
@@ -1225,6 +1423,15 @@ function parseDispositionLabel(value: string): DispositionLabel | undefined {
     }
 }
 
+function StateTag({ value }: { value: string }) {
+    const tone = Object.hasOwn(statusTags, value)
+        ? statusTags[value as WorkStatus]
+        : value === "open"
+          ? { tone: "blue" as const, dot: false }
+          : { tone: "neutral" as const, dot: false };
+    return <Tag {...tone}>{value}</Tag>;
+}
+
 function printable(value: unknown): string {
     if (typeof value === "string") return value;
     try {
@@ -1238,26 +1445,43 @@ function formatScore(score: number | null): string {
     return score === null ? "—" : score.toString();
 }
 
-function fmtDate(value: string, locale: Locale): string {
+// Same browser-locale format as Alerts and Queue; incident evidence stays in UTC.
+export function fmtDate(value: string, _locale?: Locale): string {
     const date = new Date(value);
     return Number.isNaN(date.getTime())
         ? value
-        : new Intl.DateTimeFormat(locale, {
+        : new Intl.DateTimeFormat(undefined, {
               dateStyle: "medium",
               timeStyle: "short",
               timeZone: "UTC",
           }).format(date);
 }
 
-function fmtTime(value: string, locale: Locale): string {
+/** A first/last pair; a same-day range shows the date once and only the end time. */
+export function fmtRange(first: string, last: string): string {
+    const start = new Date(first);
+    const end = new Date(last);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
+        return `${fmtDate(first)} – ${fmtDate(last)}`;
+    if (start.toISOString().slice(0, 10) !== end.toISOString().slice(0, 10))
+        return `${fmtDate(first)} – ${fmtDate(last)}`;
+    const clock = new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: "UTC" });
+    return `${fmtDate(first)} – ${clock.format(end)}`;
+}
+
+function fmtDay(value: string): string {
     const date = new Date(value);
     return Number.isNaN(date.getTime())
         ? value
-        : new Intl.DateTimeFormat(locale, {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
+        : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" }).format(date);
+}
+
+function fmtTime(value: string, _locale?: Locale): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              timeStyle: "short",
               timeZone: "UTC",
           }).format(date);
 }

@@ -24,8 +24,7 @@ const tag = (tone: TagTone, dot = false): SemanticTag => ({ tone, dot });
 
 export function severityTag(level: number | "info"): SemanticTag {
     if (level === "info") return tag("neutral");
-    if (level >= 15) return tag("red", true);
-    if (level >= 12) return tag("orange", true);
+    if (level >= 12) return tag("red", true);
     if (level >= 7) return tag("amber", true);
     return tag("neutral", true);
 }

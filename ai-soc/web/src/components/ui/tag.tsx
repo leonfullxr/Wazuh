@@ -2,17 +2,18 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
 import type { TagTone } from "../../lib/semantic";
 
-const toneClasses = {
-    neutral:
-        "border-[var(--tag-neutral-border)] bg-[var(--tag-neutral-bg)] text-[var(--tag-neutral-text)]",
-    blue: "border-[var(--tag-blue-border)] bg-[var(--tag-blue-bg)] text-[var(--tag-blue-text)]",
-    green: "border-[var(--tag-green-border)] bg-[var(--tag-green-bg)] text-[var(--tag-green-text)]",
-    amber: "border-[var(--tag-amber-border)] bg-[var(--tag-amber-bg)] text-[var(--tag-amber-text)]",
-    orange: "border-[var(--tag-orange-border)] bg-[var(--tag-orange-bg)] text-[var(--tag-orange-text)]",
-    red: "border-[var(--tag-red-border)] bg-[var(--tag-red-bg)] text-[var(--tag-red-text)]",
-    purple: "border-[var(--tag-purple-border)] bg-[var(--tag-purple-bg)] text-[var(--tag-purple-text)]",
-    teal: "border-[var(--tag-teal-border)] bg-[var(--tag-teal-bg)] text-[var(--tag-teal-text)]",
-} satisfies Record<TagTone, string>;
+// One quiet pill for every tone: neutral surface and text, with a small dot carrying the state.
+// Only states that matter get colour (good, warning, bad, and the accent for "new/info").
+const toneDots = {
+    neutral: null,
+    blue: "bg-[var(--text-2)]",
+    green: "bg-[var(--dot-good)]",
+    amber: "bg-[var(--dot-warn)]",
+    orange: "bg-[var(--dot-warn)]",
+    red: "bg-[var(--dot-bad)]",
+    purple: null,
+    teal: null,
+} satisfies Record<TagTone, string | null>;
 
 export type TagProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
     children: ReactNode;
@@ -29,17 +30,26 @@ export function Tag({
     className,
     ...props
 }: TagProps) {
+    void dot;
+    const dotClass = toneDots[tone] ?? "bg-[var(--text-muted)]";
+    const bad = tone === "red";
     return (
         <span
             className={cn(
-                "inline-flex h-5 max-w-full shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-tag)] border px-1.5 text-xs font-medium leading-none",
-                toneClasses[tone],
+                "tag inline-flex h-[20px] max-w-full shrink-0 items-center gap-[6px] whitespace-nowrap rounded-[var(--radius-tag)] border border-[var(--tag-neutral-border)] bg-[var(--tag-neutral-bg)] px-[7px] text-[12px] font-medium leading-none text-[var(--tag-neutral-text)]",
+                bad && "font-semibold text-[var(--text)]",
                 mono && "font-mono",
                 className,
             )}
+            data-tone={tone}
             {...props}
         >
-            {dot && <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />}
+            {dotClass && (
+                <span
+                    aria-hidden="true"
+                    className={cn("shrink-0 rounded-full", bad ? "size-2" : "size-1.5", dotClass)}
+                />
+            )}
             {children}
         </span>
     );

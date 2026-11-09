@@ -3,12 +3,45 @@
 }
 .command-trigger {
     min-width: 40px;
-    height: 32px;
-    border: 1px solid var(--stroke-control);
+    height: var(--control-height);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--control-border);
     border-radius: var(--radius-control);
-    background: var(--surface);
-    color: var(--text-2);
+    background: var(--control-bg);
+    color: var(--text-muted);
+    box-shadow: var(--control-shadow);
+    font-size: 13px;
     cursor: pointer;
+    transition: border-color var(--time-control) var(--ease-controls);
+}
+.command-trigger:hover {
+    border-color: var(--control-border-hover);
+    color: var(--text-2);
+}
+.command-trigger > span {
+    min-width: 96px;
+    text-align: left;
+}
+.command-trigger kbd,
+.command-dialog kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 500 11px/1 var(--font-ui);
+}
+@media (max-width: 1279px) {
+    .command-trigger > span,
+    .command-trigger kbd {
+        display: none;
+    }
 }
 .command-dialog {
     position: fixed;
@@ -28,15 +61,17 @@
 }
 .command-dialog h2 {
     margin: 0 40px 12px 0;
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 600;
 }
 .command-dialog input {
     width: 100%;
-    min-height: 36px;
-    padding: 0 10px;
+    min-height: 40px;
+    font-size: 14px;
+    padding: 0 64px 0 12px;
     border: 1px solid var(--stroke-control);
     border-radius: var(--radius-control);
-    background: var(--surface);
+    background-color: var(--control-bg);
     color: var(--text);
 }
 .command-results {
@@ -60,13 +95,68 @@
 }
 .command-close {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--stroke-control);
+    top: 26px;
+    right: 32px;
+    display: grid;
+    place-items: center;
+    width: auto;
+    height: 28px;
+    padding: 0;
+    border: 0;
     border-radius: var(--radius-control);
-    background: var(--surface);
+    background: transparent;
     color: var(--text);
     cursor: pointer;
+}
+
+/* Search glyph inside the input, icons on results and a quiet key-hint footer. */
+.command-input-icon {
+    position: absolute;
+    top: 32px;
+    left: 32px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.command-dialog input {
+    padding: 0 76px 0 38px;
+}
+.command-results button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.command-results button > svg {
+    flex: none;
+    color: var(--text-muted);
+}
+.command-results button[aria-selected="true"] > svg {
+    color: var(--accent);
+}
+.command-footer {
+    display: flex;
+    gap: 16px;
+    margin: 12px -20px -8px;
+    padding: 10px 20px 0;
+    border-top: 1px solid var(--border-row);
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.command-footer kbd {
+    margin-right: 2px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-row);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font: 500 11px/16px var(--font-ui);
+}
+
+/* Search actions keep their labels in one column so the query values align. */
+.command-search-label {
+    min-width: 100px;
+}
+
+.command-results button > code {
+    color: var(--text);
+    font-size: 13px;
 }

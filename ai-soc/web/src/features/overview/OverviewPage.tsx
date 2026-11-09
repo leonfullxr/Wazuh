@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    ReferenceArea,
+    ResponsiveContainer,
+    XAxis,
+    YAxis,
+} from "recharts";
 import type { OverviewResponse, SiteSummary } from "../../api/workspace";
 import { getOverview } from "../../api/workspace";
 import { Panel } from "../../components/ui/panel";
@@ -73,6 +82,7 @@ export function OverviewPage({
     const hourly = query.data?.hourly;
     const checkpoint = query.data?.freshness.checkpoint_at ?? null;
     const chart = useMemo(() => buildChart(hourly ?? []), [hourly]);
+    const yTicks = niceTicks(chart.maximum);
     const heatmap = useMemo(
         () => buildHeatmap(hourly ?? [], from, to, timezone, checkpoint),
         [checkpoint, from, hourly, timezone, to],
@@ -146,21 +156,30 @@ export function OverviewPage({
                             <EmptyPanel text={t("noData")} />
                         ) : (
                             <>
-                                <ChartLegend totals={chart.totals} t={t} />
-                                <label className="overview-v2-hour-select">
-                                    <span>{t("eventTime")}</span>
-                                    <select
-                                        value={activeHour}
-                                        onChange={(event) => setSelectedHour(event.target.value)}
-                                    >
-                                        {chart.groups.map((group) => (
-                                            <option key={group.hour} value={group.hour}>
-                                                {formatTime(group.hour, timezone)} ·{" "}
-                                                {group.total.toLocaleString()}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                <div className="overview-v2-chart-toolbar">
+                                    <ChartLegend totals={chart.totals} t={t} />
+                                    <label className="overview-v2-hour-select">
+                                        <span>{t("eventTime")}</span>
+                                        <select
+                                            value={activeHour}
+                                            onChange={(event) =>
+                                                setSelectedHour(event.target.value)
+                                            }
+                                        >
+                                            {chart.groups.map((group) => (
+                                                <option key={group.hour} value={group.hour}>
+                                                    {formatTime(group.hour, timezone)} ·{" "}
+                                                    {group.total.toLocaleString()}{" "}
+                                                    {t(
+                                                        group.total === 1
+                                                            ? "alertSingular"
+                                                            : "alerts",
+                                                    ).toLocaleLowerCase()}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
                                 <div
                                     className="overview-v2-chart"
                                     role="img"
@@ -169,12 +188,36 @@ export function OverviewPage({
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={chart.data}
-                                            margin={{ top: 4, right: 2, bottom: 0, left: 2 }}
+                                            margin={{ top: 10, right: 18, bottom: 0, left: 2 }}
                                             barCategoryGap="28%"
                                             accessibilityLayer={false}
                                         >
-                                            <XAxis dataKey="hour" hide />
-                                            <YAxis domain={[0, chart.maximum]} hide />
+                                            <XAxis
+                                                dataKey="hour"
+                                                tickFormatter={(hour: string) =>
+                                                    formatTick(hour, timezone)
+                                                }
+                                                interval="equidistantPreserveStart"
+                                                minTickGap={40}
+                                                axisLine={{ stroke: "var(--border-strong)" }}
+                                                tickLine={false}
+                                                height={22}
+                                            />
+                                            <CartesianGrid vertical={false} strokeDasharray="3 4" />
+                                            <ReferenceArea
+                                                x1={activeHour}
+                                                x2={activeHour}
+                                                fill="var(--accent)"
+                                                fillOpacity={0.1}
+                                                ifOverflow="visible"
+                                            />
+                                            <YAxis
+                                                domain={[0, yTicks.at(-1) ?? 1]}
+                                                ticks={yTicks}
+                                                width={24}
+                                                axisLine={false}
+                                                tickLine={false}
+                                            />
                                             {[...chart.series].reverse().map((series) => (
                                                 <Bar
                                                     key={series.band}
@@ -193,13 +236,13 @@ export function OverviewPage({
                                                         return (
                                                             <Cell
                                                                 key={`${series.band}-${datum.hour}`}
-                                                                fillOpacity={selected ? 1 : 0.58}
-                                                                stroke={
+                                                                fill={
                                                                     selected
                                                                         ? "var(--accent)"
-                                                                        : "none"
+                                                                        : `var(--${bandVariable(series.band)})`
                                                                 }
-                                                                strokeWidth={selected ? 1 : 0}
+                                                                fillOpacity={selected ? 1 : 0.72}
+                                                                stroke="none"
                                                             />
                                                         );
                                                     })}
@@ -207,14 +250,6 @@ export function OverviewPage({
                                             ))}
                                         </BarChart>
                                     </ResponsiveContainer>
-                                </div>
-                                <div className="overview-v2-axis" aria-hidden="true">
-                                    <span>
-                                        {formatTime(chart.groups[0]?.hour ?? from, timezone)}
-                                    </span>
-                                    <span>
-                                        {formatTime(chart.groups.at(-1)?.hour ?? to, timezone)}
-                                    </span>
                                 </div>
                                 {activeGroup && (
                                     <HourBreakdown
@@ -245,6 +280,7 @@ export function OverviewPage({
                             items={data.top_agents}
                             t={t}
                             mono
+                            monoLabel
                             onSelect={(item) => onDrilldown({ agent_id: item.key })}
                         />
                         <TopList
@@ -307,7 +343,9 @@ function Metric({
     return (
         <div className="overview-v2-metric">
             <span>{label}</span>
-            <strong>{formatted}</strong>
+            <strong data-empty={value === null || value === undefined || undefined}>
+                {formatted}
+            </strong>
             {state && <small data-state={stateKind}>{state}</small>}
         </div>
     );
@@ -345,7 +383,8 @@ function HourBreakdown({
             <div>
                 <strong>{formatTime(group.hour, timezone)}</strong>
                 <span>
-                    {group.total.toLocaleString()} {t("alerts").toLocaleLowerCase()}
+                    {group.total.toLocaleString()}{" "}
+                    {t(group.total === 1 ? "alertSingular" : "alerts").toLocaleLowerCase()}
                 </span>
             </div>
             <div className="overview-v2-breakdown-actions">
@@ -412,12 +451,15 @@ function TopList({
     items,
     t,
     mono = false,
+    monoLabel = false,
     onSelect,
 }: {
     title: string;
     items: OverviewResponse["top_rules"];
     t: Translate;
     mono?: boolean;
+    /** Labels that are identifiers themselves (host names) render in mono too. */
+    monoLabel?: boolean;
     onSelect: (item: OverviewResponse["top_rules"][number]) => void;
 }) {
     return (
@@ -433,8 +475,12 @@ function TopList({
                                 {index + 1}
                             </span>
                             <button type="button" onClick={() => onSelect(item)}>
-                                <span>{item.label}</span>
-                                {mono && <code>{item.key}</code>}
+                                {mono && (monoLabel || item.key === item.label) ? (
+                                    <code className="overview-v2-list-id">{item.label}</code>
+                                ) : (
+                                    <span>{item.label}</span>
+                                )}
+                                {mono && item.key !== item.label && <code>{item.key}</code>}
                             </button>
                             <strong>{item.count.toLocaleString()}</strong>
                         </li>
@@ -574,6 +620,7 @@ function HeatmapVisualRow({
                         className="overview-v2-heatmap-cell"
                         data-coverage={cell?.kind ?? "uncovered"}
                         data-intensity={cell?.kind === "covered" ? cell.intensity : undefined}
+                        data-empty={cell?.kind !== "covered" || cell.count === 0 || undefined}
                         key={hour}
                         title={title}
                     >
@@ -590,6 +637,17 @@ function HeatmapVisualRow({
             })}
         </>
     );
+}
+
+/** Axis ticks from 0 at a 1/2/5 x 10^n step, about three steps tall. */
+export function niceTicks(maximum: number): number[] {
+    const raw = Math.max(maximum, 1) / 3;
+    const power = 10 ** Math.floor(Math.log10(raw));
+    const scaled = raw / power;
+    const step = (scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10) * power;
+    const size = Math.max(1, Math.round(step));
+    const count = Math.max(1, Math.ceil(maximum / size));
+    return Array.from({ length: count + 1 }, (_, index) => index * size);
 }
 
 function buildChart(buckets: HourlyBucket[]): {
@@ -898,10 +956,10 @@ function bandClass(band: string): string {
     return "unknown";
 }
 function bandVariable(band: string): string {
-    if (band === "13-15") return "series-blue";
-    if (band === "10-12") return "series-orange";
-    if (band === "7-9") return "series-teal";
-    if (band === "0-6") return "series-purple";
+    if (band === "13-15") return "series-sev4";
+    if (band === "10-12") return "series-sev3";
+    if (band === "7-9") return "series-sev2";
+    if (band === "0-6") return "series-sev1";
     return "series-other";
 }
 function levelRange(band: string): { min: number; max: number } | null {
@@ -941,6 +999,13 @@ function clippedHourRange(
     const to = Math.min(hourEnd, new Date(viewTo).getTime());
     return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
 }
+/** Chart ticks: time of day only; the end labels below the chart carry the dates. */
+function formatTick(value: string, timezone: string): string {
+    return new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: timezone }).format(
+        new Date(value),
+    );
+}
+
 function formatTime(value: string | null, timezone: string): string {
     return value
         ? new Intl.DateTimeFormat(undefined, {

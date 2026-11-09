@@ -117,7 +117,6 @@ export function MetricsPage({
                 <div className="section-heading-row metrics-v2-panel-head">
                     <div>
                         <h2>{t("operationalMetrics")}</h2>
-                        <p>{t("metricsDescription")}</p>
                     </div>
                     <span className="metrics-v2-as-of">
                         {t("metricAsOf")}: {formatTime(ops.window.to)}
@@ -145,7 +144,7 @@ export function MetricsPage({
                             {ops.volume
                                 .reduce((sum, bucket) => sum + bucket.count, 0)
                                 .toLocaleString()}{" "}
-                            {t("alerts")}
+                            {t("alerts").toLocaleLowerCase()}
                         </span>
                     </div>
                     {ops.volume.length > 0 ? (
@@ -155,7 +154,7 @@ export function MetricsPage({
                                     <tr>
                                         <th>{t("eventTime")}</th>
                                         <th>{t("alertLevel")}</th>
-                                        <th>{t("alerts")}</th>
+                                        <th className="numeric">{t("alerts")}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -163,7 +162,9 @@ export function MetricsPage({
                                         <tr key={`${bucket.hour}-${bucket.level_band}-${index}`}>
                                             <td>{formatTime(bucket.hour)}</td>
                                             <td>{bucket.level_band}</td>
-                                            <td>{bucket.count.toLocaleString()}</td>
+                                            <td className="numeric">
+                                                {bucket.count.toLocaleString()}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -225,13 +226,16 @@ export function MetricsPage({
                                     <li key={item.k}>
                                         <span>Precision@{item.k}</span>
                                         <span>
-                                            {item.precision === null
-                                                ? t("emptyDenominator")
-                                                : `${(item.precision * 100).toFixed(1)}%`}
+                                            {item.precision === null ? (
+                                                <span className="null-value">{"\u2014"}</span>
+                                            ) : (
+                                                `${(item.precision * 100).toFixed(1)}%`
+                                            )}
                                         </span>
                                         <small>
-                                            {item.relevant_count} / {item.labelled_count}{" "}
-                                            {t("labelled")}
+                                            {item.precision === null
+                                                ? t("emptyDenominator")
+                                                : `${item.relevant_count} / ${item.labelled_count} ${t("labelled")}`}
                                         </small>
                                     </li>
                                 ))}
@@ -246,11 +250,11 @@ export function MetricsPage({
                         <thead>
                             <tr>
                                 <th>{t("filterRule")}</th>
-                                <th>{t("precision")}</th>
-                                <th>{t("truePositive")}</th>
-                                <th>{t("falsePositive")}</th>
-                                <th>{t("benignTruePositive")}</th>
-                                <th>{t("denominatorLabel")}</th>
+                                <th className="numeric">{t("precision")}</th>
+                                <th className="numeric">{t("truePositive")}</th>
+                                <th className="numeric">{t("falsePositive")}</th>
+                                <th className="numeric">{t("benignTruePositive")}</th>
+                                <th className="numeric">{t("denominatorLabel")}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -260,15 +264,31 @@ export function MetricsPage({
                                         <td>
                                             <code>{item.rule_id}</code>
                                         </td>
-                                        <td>
-                                            {item.precision === null
-                                                ? t("emptyDenominator")
-                                                : `${(item.precision * 100).toFixed(1)}%`}
+                                        <td className="numeric">
+                                            {item.precision === null ? (
+                                                <span
+                                                    className="null-value"
+                                                    title={t("emptyDenominator")}
+                                                >
+                                                    {"\u2014"}
+                                                    <span className="sr-only">
+                                                        {t("emptyDenominator")}
+                                                    </span>
+                                                </span>
+                                            ) : (
+                                                `${(item.precision * 100).toFixed(1)}%`
+                                            )}
                                         </td>
-                                        <td>{item.true_positive_count.toLocaleString()}</td>
-                                        <td>{item.false_positive_count.toLocaleString()}</td>
-                                        <td>{item.benign_true_positive_count.toLocaleString()}</td>
-                                        <td>
+                                        <td className="numeric">
+                                            {item.true_positive_count.toLocaleString()}
+                                        </td>
+                                        <td className="numeric">
+                                            {item.false_positive_count.toLocaleString()}
+                                        </td>
+                                        <td className="numeric">
+                                            {item.benign_true_positive_count.toLocaleString()}
+                                        </td>
+                                        <td className="numeric">
                                             {item.true_positive_count.toLocaleString()} +{" "}
                                             {item.false_positive_count.toLocaleString()} ={" "}
                                             {item.true_positive_count + item.false_positive_count}
@@ -294,7 +314,7 @@ export function MetricsPage({
                     </div>
                 </div>
                 <div className="table-scroll">
-                    <table className="workspace-table metrics-v2-table">
+                    <table className="workspace-table metrics-v2-table metrics-v2-assets">
                         <thead>
                             <tr>
                                 <th>{t("agent")}</th>
@@ -310,9 +330,9 @@ export function MetricsPage({
                                 assets.map((asset) => (
                                     <tr key={`${asset.entity_kind}-${asset.entity_id}`}>
                                         <td>
-                                            <span className="table-primary">
+                                            <code className="table-primary">
                                                 {asset.entity_value}
-                                            </span>
+                                            </code>
                                             <span className="table-secondary">
                                                 <code>#{asset.entity_id}</code> ·{" "}
                                                 {asset.entity_kind}
@@ -320,7 +340,13 @@ export function MetricsPage({
                                         </td>
                                         <td>{asset.criticality}</td>
                                         <td>{asset.tags.join(", ") || "—"}</td>
-                                        <td>{asset.set_by ?? t("unavailable")}</td>
+                                        <td>
+                                            {asset.set_by ? (
+                                                <code>{asset.set_by}</code>
+                                            ) : (
+                                                t("unavailable")
+                                            )}
+                                        </td>
                                         <td>
                                             {asset.set_at
                                                 ? formatTime(asset.set_at)

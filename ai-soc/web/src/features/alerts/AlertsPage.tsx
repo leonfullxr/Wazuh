@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { AlertDetail, AlertFilters, AlertSummary, SiteSummary } from "../../api/workspace";
 import { getAlert, getIngestionHealth, listAlerts } from "../../api/workspace";
@@ -167,7 +168,8 @@ export function AlertsPage({
               activeFilters: "Filtros activos",
               removeFilter: "Quitar filtro",
               results: "Resultados",
-              loadedRows: "Filas cargadas en esta página",
+              loadedRow: "fila cargada en esta página",
+              loadedRows: "filas cargadas en esta página",
               description: "Descripción",
               fields: "Campos",
               json: "JSON",
@@ -182,7 +184,8 @@ export function AlertsPage({
               activeFilters: "Active filters",
               removeFilter: "Remove filter",
               results: "Results",
-              loadedRows: "Rows loaded on this page",
+              loadedRow: "row loaded on this page",
+              loadedRows: "rows loaded on this page",
               description: "Description",
               fields: "Fields",
               json: "JSON",
@@ -208,6 +211,7 @@ export function AlertsPage({
                             <p>{copy.filtersHelp}</p>
                         </div>
                         <div className="alerts-v2-capability" role="note">
+                            <Info size={14} aria-hidden="true" />
                             <strong>{copy.limitedSearch}</strong>
                             <span>{copy.limitedSearchHelp}</span>
                         </div>
@@ -395,9 +399,11 @@ export function AlertsPage({
                     <div className="alerts-v2-results-heading">
                         <div>
                             <h3>{copy.results}</h3>
-                            <p>{copy.loadedRows}</p>
+                            <p>
+                                {page.data.items.length.toLocaleString()}{" "}
+                                {page.data.items.length === 1 ? copy.loadedRow : copy.loadedRows}
+                            </p>
                         </div>
-                        <strong>{page.data.items.length.toLocaleString()}</strong>
                     </div>
                     {page.data.items.length === 0 ? (
                         health.isLoading ? (
@@ -444,21 +450,49 @@ export function AlertsPage({
                                                 {alert.rule_level === null ? (
                                                     <Tag>{t("nullUnknown")}</Tag>
                                                 ) : (
-                                                    <Tag {...severityTag(alert.rule_level)} mono>
+                                                    <Tag {...severityTag(alert.rule_level)}>
                                                         {alert.rule_level}
                                                     </Tag>
                                                 )}
                                             </td>
                                             <td>
-                                                <code>{alert.rule_id ?? "—"}</code>
+                                                {alert.rule_id ? (
+                                                    <code>{alert.rule_id}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
                                             </td>
                                             <td>{alert.rule_description ?? t("nullUnknown")}</td>
-                                            <td>{alert.agent_name ?? alert.agent_id ?? "—"}</td>
                                             <td>
-                                                <code>{alert.src_ip ?? "—"}</code>
+                                                {(alert.agent_name ?? alert.agent_id) ? (
+                                                    <code>
+                                                        {alert.agent_name ?? alert.agent_id}
+                                                    </code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
                                             </td>
-                                            <td>{alert.dst_user ?? alert.src_user ?? "—"}</td>
-                                            <td>{alert.mitre_tactics[0] ?? "—"}</td>
+                                            <td>
+                                                {alert.src_ip ? (
+                                                    <code>{alert.src_ip}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
+                                            </td>
+                                            <td>
+                                                {(alert.dst_user ?? alert.src_user) ? (
+                                                    <code>{alert.dst_user ?? alert.src_user}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
+                                            </td>
+                                            <td>
+                                                {alert.mitre_tactics[0] ? (
+                                                    <code>{alert.mitre_tactics[0]}</code>
+                                                ) : (
+                                                    <NullValue />
+                                                )}
+                                            </td>
                                             <td>
                                                 <SheetTrigger asChild>
                                                     <button
@@ -511,7 +545,7 @@ export function AlertsPage({
                     </div>
                 </Panel>
                 <SheetContent
-                    title={t("alertDetails")}
+                    title={detail.data?.rule_description ?? t("alertDetails")}
                     closeLabel={t("detailsClose")}
                     restoreFocus={restoreTriggerFocus}
                 >
@@ -596,7 +630,6 @@ function AlertDrawer({
     const [view, setView] = useState<"fields" | "json">("fields");
     return (
         <div className="alert-drawer-body">
-            <p className="drawer-alert-title">{alert.rule_description ?? t("nullUnknown")}</p>
             <div className="alerts-v2-view-toggle" aria-label={copy.documentView} role="group">
                 <button
                     type="button"
@@ -620,34 +653,64 @@ function AlertDrawer({
                         <dd>{formatTime(alert.event_ts)}</dd>
                         <dt>{t("rule")}</dt>
                         <dd>
-                            {alert.rule_id ?? "—"} · {alert.rule_level ?? "—"}
+                            {alert.rule_id ? <code>{alert.rule_id}</code> : <NullValue />} ·{" "}
+                            {alert.rule_level ?? <NullValue />}
                         </dd>
                         <dt>{t("agent")}</dt>
                         <dd>
-                            {alert.agent_name ?? alert.agent_id ?? "—"} · {alert.agent_ip ?? "—"}
+                            {(alert.agent_name ?? alert.agent_id) ? (
+                                <code>{alert.agent_name ?? alert.agent_id}</code>
+                            ) : (
+                                <NullValue />
+                            )}{" "}
+                            · {alert.agent_ip ? <code>{alert.agent_ip}</code> : <NullValue />}
                         </dd>
                         <dt>{t("source")}</dt>
-                        <dd>{alert.src_ip ?? "—"}</dd>
+                        <dd>{alert.src_ip ? <code>{alert.src_ip}</code> : <NullValue />}</dd>
                         <dt>{t("destination")}</dt>
-                        <dd>{alert.dst_ip ?? "—"}</dd>
+                        <dd>{alert.dst_ip ? <code>{alert.dst_ip}</code> : <NullValue />}</dd>
                         <dt>{t("user")}</dt>
                         <dd>
-                            {alert.src_user ?? "—"} → {alert.dst_user ?? "—"}
+                            {/* Source and destination only show an arrow when both are known. */}
+                            {alert.src_user && alert.dst_user ? (
+                                <>
+                                    <code>{alert.src_user}</code>
+                                    <span className="kv-sep">{"\u2192"}</span>
+                                    <code>{alert.dst_user}</code>
+                                </>
+                            ) : alert.src_user || alert.dst_user ? (
+                                <code>{alert.src_user ?? alert.dst_user}</code>
+                            ) : (
+                                <NullValue />
+                            )}
                         </dd>
                         <dt>{t("mappingProfile")}</dt>
-                        <dd>{alert.mapping_profile}</dd>
+                        <dd>
+                            <code>{alert.mapping_profile}</code>
+                        </dd>
                         <dt>{t("ingestedAt")}</dt>
                         <dd>{formatTime(alert.ingested_at)}</dd>
                     </dl>
                     <section className="drawer-section">
                         <h3>{t("normalizedFields")}</h3>
-                        <p>
-                            {[
-                                ...alert.rule_groups,
-                                ...alert.mitre_tactics,
-                                ...alert.mitre_techniques,
-                            ].join(" · ") || "—"}
-                        </p>
+                        {[...alert.rule_groups, ...alert.mitre_tactics, ...alert.mitre_techniques]
+                            .length === 0 ? (
+                            <p>
+                                <NullValue />
+                            </p>
+                        ) : (
+                            <ul className="field-chips">
+                                {[
+                                    ...alert.rule_groups,
+                                    ...alert.mitre_tactics,
+                                    ...alert.mitre_techniques,
+                                ].map((field) => (
+                                    <li key={field}>
+                                        <code>{field}</code>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </section>
                     <section className="drawer-section">
                         <h3>{t("normalizationGaps")}</h3>
@@ -686,6 +749,10 @@ function AlertDrawer({
             </div>
         </div>
     );
+}
+
+function NullValue() {
+    return <span className="null-value">{"\u2014"}</span>;
 }
 
 function safeWazuhUrl(value: string | null | undefined): string | null {

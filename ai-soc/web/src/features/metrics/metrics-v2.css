@@ -41,18 +41,19 @@
     gap: 0;
     overflow: hidden;
     padding: 0;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: var(--radius-panel, 8px);
+    background: var(--surface-tile);
 }
 
 .metrics-v2-summary > div {
     min-height: 88px;
-    align-content: center;
-    gap: 7px;
-    padding: 14px 16px;
+    align-content: start;
+    gap: 6px;
+    padding: 16px 20px;
     border-right: 1px solid var(--border);
     border-radius: 0;
-    background: var(--surface);
+    background: transparent;
 }
 
 .metrics-v2-summary > div:last-child {
@@ -66,11 +67,11 @@
     line-height: 18px;
 }
 
-.metrics-v2-summary strong,
+.metrics-v2 .metrics-v2-summary > div > strong,
 .metrics-v2-quality-summary strong {
     color: var(--text);
-    font: 600 22px/28px var(--font-ui);
-    font-variant-numeric: tabular-nums;
+    font: 650 24px/32px var(--font-ui);
+    letter-spacing: -0.02em;
 }
 
 .metrics-v2-quality-summary small {
@@ -84,12 +85,17 @@
     gap: 12px;
 }
 
+/* Paired cards share one bottom edge, like the percentile pairs above. */
+.metrics-v2-quality-grid {
+    align-items: stretch;
+}
+
 .metrics-v2 .metric-subpanel {
     min-width: 0;
     padding: 16px;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: var(--radius-panel, 8px);
-    background: var(--surface);
+    background: var(--surface-tile);
 }
 
 .metrics-v2-stats-head,
@@ -115,7 +121,7 @@
 
 .metrics-v2-distribution > div {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-columns: 64px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 10px;
 }
@@ -131,8 +137,10 @@
 .metrics-v2-distribution dd {
     grid-column: 3;
     grid-row: 1;
+    font-size: 13px;
+    font-weight: 550;
+    text-align: right;
     color: var(--text);
-    font-family: var(--font-code);
 }
 
 .metrics-v2-distribution > div > span {
@@ -141,20 +149,22 @@
     height: 6px;
     overflow: hidden;
     border-radius: 3px;
-    background: var(--surface-2);
+    background: var(--border);
 }
 
 .metrics-v2-distribution i {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--series-blue);
+    background: var(--bar-fill);
 }
 
 .metrics-v2-volume {
     display: grid;
     gap: 12px;
-    padding-top: 2px;
+    margin-top: 4px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-row);
 }
 
 .metrics-v2-table {
@@ -162,10 +172,18 @@
 }
 
 .metrics-v2-table th {
-    color: var(--text-2);
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: none;
+    color: var(--text-muted);
+}
+
+.metrics-v2 .metric-subpanel h3 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.metrics-v2 .metric-count-list li > :nth-child(2) {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .metrics-v2-table td {
@@ -251,7 +269,7 @@
 
 .metrics-v2 .asset-edit input {
     border-color: var(--border-strong);
-    background: var(--surface);
+    background-color: var(--control-bg);
     color: var(--text);
 }
 
@@ -308,4 +326,131 @@
     .metrics-v2-quality-summary > div:last-child {
         border-bottom: 0;
     }
+}
+
+.metrics-v2-quality-summary > div {
+    align-content: start;
+}
+
+/* Both KPI strips use the same filled, borderless tiles. */
+.metrics-v2-quality-summary {
+    border: 0;
+    background: var(--surface-tile);
+}
+
+.metrics-v2-quality-summary > div {
+    min-height: 88px;
+    padding: 16px 20px;
+}
+
+/* Hourly volume: fixed time and level columns so the level sits next to its time. */
+.metrics-v2-volume .metrics-v2-table {
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.metrics-v2-volume .metrics-v2-table th:first-child {
+    width: 220px;
+}
+
+.metrics-v2-volume .metrics-v2-table th:nth-child(2) {
+    width: 160px;
+}
+
+/* Event time and level keep fixed columns; counts right-align at the card edge like the
+   precision table below. */
+
+/* The capped hourly table sits under the tiles without a full-width rule over empty space. */
+.metrics-v2-volume {
+    padding-top: 8px;
+    border-top: 0;
+}
+
+/* Two surface levels only: inner tiles and KPI strips sit on the card surface with a hairline
+   outline instead of a grey fill. */
+.metrics-v2-summary,
+.metrics-v2-quality-summary,
+.metrics-v2 .metric-subpanel {
+    border: 1px solid var(--border-row);
+    background: transparent;
+}
+
+.metrics-v2-summary > div,
+.metrics-v2-quality-summary > div {
+    border-color: var(--border-row);
+}
+
+.metrics-v2-distribution > div > span {
+    background: var(--border);
+}
+
+.metrics-v2 .metric-count-list li {
+    min-height: 30px;
+    padding: 5px 0;
+}
+
+.metrics-v2-table code.table-primary {
+    font-weight: 500;
+}
+
+/* Table edges line up with the tile content above (16px padding + 1px hairline). */
+.metrics-v2-table th:first-child,
+.metrics-v2-table td:first-child {
+    padding-left: 17px;
+}
+
+.metrics-v2-table th:last-child,
+.metrics-v2-table td:last-child {
+    padding-right: 17px;
+}
+
+/* Host criticality is a number, so it right-aligns like the rule table. */
+.metrics-v2-assets th:nth-child(2),
+.metrics-v2-assets td:nth-child(2) {
+    text-align: right;
+}
+
+/* Section titles sit one step above the cards inside them, like the detail pages. */
+.metrics-v2-panel-head h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.metrics-v2-panel-head {
+    align-items: baseline;
+}
+
+/* Beat the generic 14px workspace-panel heading: section titles are 18px, card titles 14px. */
+.workspace-panel .metrics-v2-panel-head h2 {
+    font-size: 18px;
+}
+
+.workspace-panel .metrics-v2-section-head h3 {
+    font-size: 14px;
+}
+
+/* Section heads: 4px from title to subtitle, then a fixed 24px to the first row. */
+.workspace-panel .metrics-v2-panel-head p {
+    margin-top: 4px;
+}
+
+.workspace-panel .metrics-v2-panel-head {
+    /* The panel grid already adds 20px; together they make the 24px to the first row. */
+    margin-bottom: 4px;
+}
+
+/* Host table: a clear gutter between the right-aligned criticality and the tags. */
+.metrics-v2-assets th:nth-child(3),
+.metrics-v2-assets td:nth-child(3) {
+    padding-left: 40px;
+}
+
+/* The Maximum row is always full width; it sits at half strength so the page is not a wall of blue. */
+.metrics-v2-distribution > div:last-child i {
+    opacity: 0.5;
+}
+
+/* The de-emphasised Maximum row keeps a regular-weight value. */
+.metrics-v2-distribution > div:last-child dd {
+    font-weight: 400;
 }

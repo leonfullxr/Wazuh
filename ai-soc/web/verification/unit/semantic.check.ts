@@ -6,7 +6,7 @@ describe("semantic tags", () => {
         expect([0, 6, 7, 11, 12, 14, 15].map(severityTag)).toEqual([
             { tone: "neutral", dot: true }, { tone: "neutral", dot: true },
             { tone: "amber", dot: true }, { tone: "amber", dot: true },
-            { tone: "orange", dot: true }, { tone: "orange", dot: true },
+            { tone: "red", dot: true }, { tone: "red", dot: true },
             { tone: "red", dot: true },
         ]);
         expect(severityTag("info")).toEqual({ tone: "neutral", dot: false });

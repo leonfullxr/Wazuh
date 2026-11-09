@@ -24,8 +24,8 @@ export function CopyValue({
                 setTimeout(() => setShow(false), 1000);
             }}
         >
-            {show ? t("copied") : displayValue}
-            <Copy size={13} />
+            <span className="copy-value-text">{show ? t("copied") : displayValue}</span>
+            <Copy size={13} aria-hidden="true" />
         </button>
     );
 }
