@@ -169,7 +169,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--accent);
+    background: var(--bar-fill);
 }
 
 .queue-v2-drawer-meta {
@@ -691,4 +691,14 @@
 .queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > label,
 .queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > .queue-v2-field-row > label {
     grid-column: 1;
+}
+
+/* Status runs full width; only the Owner row keeps the narrower input beside Unassign. */
+.queue-v2-drawer .drawer-section:has(> .queue-v2-field-row) > label {
+    grid-column: 1 / -1;
+}
+
+/* The page description and the calibration pill keep a 16px gap. */
+.queue-v2-intro {
+    column-gap: 16px;
 }

@@ -3385,3 +3385,8 @@ main:has(.answer-summary) .composer textarea {
 .m3-trust-note {
     border-left-color: var(--dot-warn);
 }
+
+/* Topic strip: the state reads as its own part, 10px after the title. */
+.topic-jump .tag {
+    margin-left: 4px;
+}

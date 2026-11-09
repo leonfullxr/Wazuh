@@ -30,7 +30,8 @@ export function Tag({
     className,
     ...props
 }: TagProps) {
-    const dotClass = toneDots[tone] ?? (dot ? "bg-[var(--text-muted)]" : null);
+    void dot;
+    const dotClass = toneDots[tone] ?? "bg-[var(--text-muted)]";
     const bad = tone === "red";
     return (
         <span
