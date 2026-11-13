@@ -25,7 +25,12 @@ export const demoChain: Chain = {
     updated_at: now,
     score: 0.83,
     score_available: true,
-    result: { anchor_group_id: demoGroupId, missing_stages: ["persistence"], window_start: now },
+    result: {
+        anchor_group_id: demoGroupId,
+        missing_stages: ["persistence"],
+        window_start: now,
+        order_tolerance_applied: true,
+    },
     stages: [
         { ordinal: 1, stage_id: "ssh_failure", outcome: "matched", group_id: demoGroupId },
         { ordinal: 2, stage_id: "ssh_success", outcome: "matched", group_id: secondGroupId },

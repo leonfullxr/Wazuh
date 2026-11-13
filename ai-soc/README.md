@@ -65,28 +65,37 @@ See [Architecture](docs/architecture.md) for the full request flow and how false
 | `config/` | Example service configuration and qualification IAM policies |
 | `docs/` | Architecture, specification, contracts, source capabilities and runbooks |
 
-## Requirements
+## Developer setup
 
-- Linux x86_64, Git, GNU Make, CPython 3.12.13, [uv 0.11.28](https://docs.astral.sh/uv/), Docker Engine with BuildKit.
-- bubblewrap at `/usr/bin/bwrap` with user and network namespaces (builds run with networking denied), `gcc`, `curl`, `unzip`, `tar`, `xz`, `sha256sum`.
-- At least 2 GiB free on `/dev/shm` for image builds.
-- For deployment: an AWS account with an existing VPC and private subnets, an ACM certificate, an OIDC identity provider, Bedrock model and guardrail access, and private network reachability to the Wazuh indexer.
-
-## 1. Prepare the toolchain
+For the basic checks, install Git, GNU Make, CPython 3.12.13, [uv 0.11.28](https://docs.astral.sh/uv/), and Node.js 22.23.3 with npm. Dependency installation needs network access.
 
 ```sh
-make bootstrap
+make dev-setup
+cd web
+PLAYWRIGHT_BROWSERS_PATH="$PWD/../build/tool-cache/playwright" npx playwright install --with-deps chromium
+cd ..
+make ci-check
 ```
 
-This installs the locked Python and browser dependencies and fetches the pinned Terraform, TFLint, Trivy, Node and base images listed in `dev/toolchain.lock.json`, verifying each digest. Everything after this step runs offline. The production browser application and its isolated test runner use separate pinned dependency inputs.
+On systems where Playwright's `--with-deps` cannot install OS packages, install the documented Chromium dependencies for your platform first, then run the same command without `--with-deps`. `make test` runs the public synthetic Python contract checks. `make test-web` runs the web unit checks. `make ci-check` also runs Python lint, formatting and type checks, web contract and type checks, browser and CSP tests, and the live web build. The browser tests use synthetic mocked API responses and do not qualify a deployed service. The private historical test corpus is not part of the public checkout. The production index check runs when a Git worktree is available; a source archive without Git skips that check.
 
-## 2. Build the content pack
+The [CI workflow](../.github/workflows/ai-soc-ci.yml) runs `make ci-check` on pull requests and pushes to `main` that touch `ai-soc/`. To run the same check before each local commit, install the opt-in hook with `python3 scripts/agent_checks.py install`.
+
+## Image and deployment prerequisites
+
+The image and infrastructure workflows are separate from the basic developer setup. They require Linux x86_64, Docker Engine with BuildKit, bubblewrap at `/usr/bin/bwrap` with user and network namespaces, `gcc`, `curl`, `unzip`, `tar`, `xz`, and `sha256sum`. Image builds need at least 2 GiB free on `/dev/shm`.
+
+`make bootstrap` prepares their pinned tools, browser runner, and container caches. It downloads dependencies and images, and requires the local container infrastructure. The subsequent offline image and infrastructure commands use those caches. These workflows are not included in `make ci-check`.
+
+Deployment also requires an AWS account with an existing VPC and private subnets, an ACM certificate, an OIDC identity provider, Bedrock model and guardrail access, and private network reachability to the Wazuh indexer.
+
+## Build the content pack
 
 Topics, routing cues, playbooks, finding templates and public reference pages live in a separate content repository, built and signed with the `ai-soc-content` CLI. `examples/content-seed` is a complete synthetic example; copy it into its own Git repository and replace its content with reviewed content for your site. Its [README](examples/content-seed/README.md) walks through building and verifying a pack.
 
 The playbook limits in the seed (for example the one-hour recency limit) are synthetic. Set real values from your site's ingestion behavior. [Source capabilities](docs/source-capabilities.md) lists what each Wazuh source can and cannot establish.
 
-## 3. Build the service image
+## Build the service image
 
 To validate the browser application separately, run these commands from `web/`:
 
@@ -100,7 +109,7 @@ npm test
 npm run build
 ```
 
-The build writes the static application to `web/dist/`. The type and validator checks compare generated files with the service contracts. The browser tests use the Chromium installed by `make bootstrap` and synthetic mocked API responses; they do not qualify the deployed service.
+The build writes the static application to `web/dist/`. The type and validator checks compare generated files with the service contracts. The browser tests use the Chromium installed in the developer setup and synthetic mocked API responses; they do not qualify the deployed service.
 
 Run `npm run dev` from `web/` to start the Vite development server. Run `npm run preview` to serve the built files. Both commands use live APIs and provide no authentication or API proxy. Supply an authenticated, same-origin `/v1` integration before you use the browser application with a service.
 
@@ -110,7 +119,7 @@ make image-reproducibility
 
 This builds `web/`, then makes clean linux/amd64 OCI builds with `--network=none` and `--no-cache`, and checks that two independent builds of the same commit produce identical config and layer digests. The generated files are copied into `/service/ui/dist` inside the image so the existing service mount remains stable. The content pack is a provenance input recorded in image labels, not baked into the image. Evidence and the OCI archives are written under `build/evidence/image-repro/`. Push the verified image to a private ECR repository and deploy it by digest.
 
-## 4. Deploy on AWS
+## Deploy on AWS
 
 Follow [infra/README.md](infra/README.md). In short:
 
@@ -121,7 +130,7 @@ Follow [infra/README.md](infra/README.md). In short:
 
 The module creates no VPC, public subnet or NAT gateway. Session resources (ALB, tasks, endpoints) can be switched off between use windows while keys, state, audit storage and alarms remain; `make check-session-teardown` verifies the result.
 
-## 5. Qualify the deployment
+## Qualify the deployment
 
 Offline checks do not prove a live site works. Before analysts rely on the service, run the live validation gates in the [continuity runbook](docs/operations/continuity.md): source mapping and field coverage, analyst document-level permissions, count and paging behavior, model and guardrail responses, budgets, and audit queue and archive recovery. `make staging-golden` runs the synthetic staging evaluation from the protected environment; `examples/staging-validation.manifest.example.json` shows the manifest shape. Any gate that cannot run stays `NOT_RUN` or `NOT_CONFIGURED` rather than passing.
 
@@ -133,13 +142,13 @@ Offline checks do not prove a live site works. Before analysts rely on the servi
 
 ## Analyst workspace
 
-The workspace modules provide a PostgreSQL-backed analyst workflow used by the browser application. Run `make bootstrap`, then run `make web-build` to build it. The `make ws-*` targets manage the workspace database and processes. See [Operate the analyst workspace](docs/operations/workspace.md) for setup and recovery procedures.
+The workspace modules provide a PostgreSQL-backed analyst workflow used by the browser application. Run `make dev-setup`, then `npm --prefix web run build` to build the browser application. The `make ws-*` targets manage the workspace database and processes. See [Operate the analyst workspace](docs/operations/workspace.md) for setup and recovery procedures.
 
 The workspace is an opt-in development feature. Its commands and content assets currently require a source checkout. The AWS service image serves the `web/` build, but it does not configure the workspace database or worker processes. Workspace backend packaging and production deployment have not been qualified.
 
 ## Try it locally
 
-You can run the service on loopback with synthetic data, identities and a deterministic stand-in model. It is a demonstration, not a quality signal, and it refuses live or cloud environment variables.
+After `make bootstrap`, you can run the service on loopback with synthetic data, identities and a deterministic stand-in model. It is a demonstration, not a quality signal, and it refuses live or cloud environment variables.
 
 ```sh
 make fixture   # build a pack from the synthetic content seed
@@ -155,6 +164,14 @@ Credentials are written to `build/dev-fixture/credentials.json`. Call `GET /v1/b
 - [Service specification](docs/specification.md)
 - [Service and wire contracts](docs/contracts.md)
 - [Source capabilities](docs/source-capabilities.md)
+
+## Security
+
+To report a vulnerability, follow the process in [SECURITY.md](SECURITY.md). Do not open public issues for security problems.
+
+## Disclaimer
+
+This software is provided "AS IS", without warranty of any kind. The author and contributors accept no liability for damages, data loss, missed detections, false positives, security incidents, or costs (including LLM and cloud costs). Use is at your own risk. Every AI-generated output must be reviewed by a human before you act on it. This project is not affiliated with or endorsed by Wazuh Inc. or any LLM provider.
 
 ## License
 

@@ -138,7 +138,7 @@ def run_guardian(
     cancel_event: threading.Event | None = None,
 ) -> int:
     """Execute at most one authorization. Return 1 for a call and 0 for no ready work."""
-    profile = profile or CodexProfile()
+    profile = profile if profile is not None else config.codex_profile()
     provider = provider or CodexCLIProvider(profile)
     if not 0 < heartbeat_interval <= 10:
         raise ValueError("invalid_heartbeat_interval")

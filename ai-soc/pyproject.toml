@@ -39,6 +39,10 @@ dev = [
   "ruff==0.15.5",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["verification/python"]
+pythonpath = ["."]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ai_soc"]
 include = ["src/ai_soc/workspace/migrations/*.sql"]

@@ -2,23 +2,38 @@ SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 UV ?= uv
 NODE ?= build/tool-cache/node-v22.23.3/extracted/bin/node
-NPM ?= build/tool-cache/node-v22.23.3/extracted/bin/npm
+NPM ?= npm
 OFFLINE := scripts/run-offline.sh
 PORT ?= 8000
 
-.PHONY: bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained fixture dev staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
+.PHONY: dev-setup ci-check agent-check test test-web bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained fixture dev staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
+
+dev-setup:
+	$(UV) sync --locked --all-groups
+	$(NPM) --prefix web ci --no-audit --no-fund
+
+ci-check: lint test
+	$(NPM) --prefix web run typecheck
+	$(NPM) --prefix web run validators:check
+	$(NPM) --prefix web run workspace-types:check
+	$(NPM) --prefix web run workspace-validators:check
+	$(NPM) --prefix web test
+	$(NPM) --prefix web run build
+
+agent-check:
+	$(UV) run --locked --offline python internal/tools/agent_environment/scope.py check
 
 bootstrap:
 	$(UV) sync --locked --all-groups
 	UV_CACHE_DIR=$(CURDIR)/build/private/home/.cache/uv $(UV) build --wheel --out-dir build/private/bootstrap-wheel
 	scripts/prepare-platform.sh
-	$(NODE) $(NPM) ci --prefix web --ignore-scripts --no-audit --no-fund
+	$(NODE) build/tool-cache/node-v22.23.3/extracted/bin/npm ci --prefix web --ignore-scripts --no-audit --no-fund
 	$(UV) run --locked --offline python scripts/prepare_containers.py
 	$(OFFLINE) $(UV) run --locked --offline python scripts/bootstrap.py
 	$(UV) run --locked --offline python scripts/reproducible_image.py prepare-cache --uv $(UV)
 
 web-build:
-	$(OFFLINE) $(NPM) --prefix web run build
+	$(OFFLINE) build/tool-cache/node-v22.23.3/extracted/bin/npm --prefix web run build
 
 image-cache:
 	$(UV) run --locked --offline python scripts/reproducible_image.py prepare-cache --uv $(UV)
@@ -55,11 +70,21 @@ dev:
 staging-golden:
 	$(UV) run --locked python scripts/staging_golden.py --manifest config/staging-validation.json $(STAGING_ARGS)
 
+test:
+	$(UV) run --locked python -m pytest -q
+
+test-web:
+	$(NPM) --prefix web run test:unit
+
 lint:
-	$(UV) run --locked --offline python scripts/check-production-tree.py
-	$(OFFLINE) $(UV) run --locked --offline ruff check .
-	$(OFFLINE) $(UV) run --locked --offline ruff format --check .
-	$(OFFLINE) $(UV) run --locked --offline pyright
+	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
+		$(UV) run --locked python scripts/check-production-tree.py; \
+	else \
+		echo "Skipping production index check: no Git worktree"; \
+	fi
+	$(UV) run --locked ruff check src scripts verification
+	$(UV) run --locked ruff format --check src scripts verification
+	$(UV) run --locked pyright
 
 ws-db-up:
 	$(UV) run --locked python scripts/workspace/db.py up

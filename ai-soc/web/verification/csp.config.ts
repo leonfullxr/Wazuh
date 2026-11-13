@@ -7,7 +7,7 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(
     fileURLToPath(new URL("../../build/tool-cache/playwright", import.meta.url)),
 );
 
-const port = 5186;
+const port = Number(process.env.WEB_CSP_PORT ?? 5186);
 
 export default defineConfig({
     testDir: "./browser",

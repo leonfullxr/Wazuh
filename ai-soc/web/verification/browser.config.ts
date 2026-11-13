@@ -7,11 +7,11 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(
     fileURLToPath(new URL("../../build/tool-cache/playwright", import.meta.url)),
 );
 
-const port = 5184;
+const port = Number(process.env.WEB_PORT ?? 5184);
 
 export default defineConfig({
     testDir: "./browser",
-    testMatch: ["routes.check.ts", "theme.check.ts", "investigate.check.ts"],
+    testMatch: ["routes.check.ts", "theme.check.ts", "investigate.check.ts", "m3.check.ts"],
     fullyParallel: false,
     reporter: "list",
     use: {
@@ -21,9 +21,9 @@ export default defineConfig({
         screenshot: "only-on-failure",
     },
     webServer: {
-        command: `npm run dev:verify -- --port ${port} --strictPort`,
+        command: `npm run build:verify && npm run preview:verify -- --port ${port} --strictPort`,
         url: `http://localhost:${port}`,
         reuseExistingServer: false,
-        timeout: 30_000,
+        timeout: 120_000,
     },
 });
