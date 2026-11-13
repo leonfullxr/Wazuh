@@ -192,4 +192,5 @@ PIDme=$(pgrep -x wazuh-analysisd); ps -p $PIDme -o etime=
 
 - [../server/analysisd.md](../server/analysisd.md) - confirm whether the manager itself drops events, measure EPS, and tune analysisd queues
 - [disconnections.md](disconnections.md) - flooding can precede or cause agent disconnections
+- [linux-auditd-no-alerts.md](linux-auditd-no-alerts.md) - auditd on Linux agents can be a major source of execution noise; tuning automation at the source is covered there
 - [../../scripts/EPS/](../../scripts/EPS/) - real-time EPS measurement script

@@ -39,6 +39,9 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | A handful of rules generate most of your alert volume | [agents/flooding.md](agents/flooding.md#step-2-reduce-noise-at-the-source) |
 | macOS agent collects nothing useful / needs health metrics | [agents/macos.md](agents/macos.md) |
 | Windows registry monitoring misses changes or creates noise | [agents/windows-registry.md](agents/windows-registry.md) |
+| Linux auditd records are collected but Level 7+ or attack-simulation commands raise no alerts | [agents/linux-auditd-no-alerts.md](agents/linux-auditd-no-alerts.md) |
+| `/var/log/audit/audit.log` never decoded, or the same event appears from both journald and syslog | [agents/linux-auditd-no-alerts.md](agents/linux-auditd-no-alerts.md#1-the-audit-log-is-not-collected) |
+| Linux file changes under `/etc` reported hours late, or without the user who made them | [agents/linux-auditd-no-alerts.md](agents/linux-auditd-no-alerts.md#5-fim-runs-on-a-schedule-not-in-real-time) |
 | FIM inventory stops growing on a large share, with no error in `ossec.log` | [../fim/windows-file-servers.md](../fim/windows-file-servers.md#the-symptom-the-inventory-stops-growing) |
 | File deletions on a Windows share never appear (event 4660 missing) | [../fim/windows-file-servers.md](../fim/windows-file-servers.md#event-4660-may-never-appear) |
 | Remote agent upgrade fails with WPK certificate or `Send lock restart error` | [agents/custom-wpk.md](agents/custom-wpk.md) |
@@ -51,6 +54,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 | `queue/indexer/` grows tens of GB per node and never drains (SST files pile up) | [server/indexer-connector-queue-growth.md](server/indexer-connector-queue-growth.md) |
 | `indexer-connector: The request is too large` / `was repaired because it was corrupt` | [server/indexer-connector-queue-growth.md](server/indexer-connector-queue-growth.md) |
 | `wazuh-states-inventory-packages` shows only partial agent/package coverage | [server/indexer-connector-queue-growth.md](server/indexer-connector-queue-growth.md#inventory-packages-partial-coverage-after-a-reset) |
+| Dashboards slow and events arrive late under high archive volume, or Filebeat `429`/rejected bulk requests | [../indexer/ingestion-lag-and-slow-dashboards.md](../indexer/ingestion-lag-and-slow-dashboards.md) |
 | Email alerts not delivered (Postfix / Office 365) | [server/postfix-email.md](server/postfix-email.md) |
 | Agent fails to start on a hardened host (`noexec` on `/var`) | [server/mount-permissions.md](server/mount-permissions.md) |
 | Lost the API or indexer `admin` password | [passwords-recovery.md](passwords-recovery.md) |
@@ -67,6 +71,7 @@ Operational troubleshooting guides for the Wazuh server (manager) and agents, di
 - [Flooding and noisy alerts](agents/flooding.md) - how the agent buffer works, finding the noisy source, tuning `client_buffer`, and silencing noisy rules or Windows event IDs.
 - [macOS agents](agents/macos.md) - unified log collection queries and CPU/memory/disk/network health metrics via `full_command`.
 - [Windows registry monitoring](agents/windows-registry.md) - registry FIM scope, value checks, exclusions, and verification.
+- [Linux auditd detections](agents/linux-auditd-no-alerts.md) - the auditd-to-rule chain, the seven places it breaks silently (log collection, audit-keys mapping, auid filters, builtins, FIM scheduling, duplicate ingestion, disabled rules), and writing Level 7+ rules on top of rule 80792.
 - [Syscollector network inventory](agents/syscollector-network-inventory.md) - `key 'name' not found` on a subset of hosts: a keepalived VIP with an address label that breaks interface enumeration, why this is not the 4.4 tunnel-adapter bug, and how to change the label.
 - [Custom WPK and remote upgrades](agents/custom-wpk.md) - renewing the WPK root CA on agents and recovering failed remote upgrades.
 

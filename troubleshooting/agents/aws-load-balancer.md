@@ -84,3 +84,4 @@ Enable target-group stickiness on the NLB so an agent's connection stays pinned 
 - [Certificate troubleshooting - agent TLS on 1514/1515](../../certificates/troubleshooting.md#agent-connectivity-on-15141515)
 - [Load balancing, ingress & proxies on Kubernetes](../../containerization/kubernetes/load-balancing-and-ingress.md) - the same L4-vs-L7 rules for EKS/ingress backends, plus the ALB health-check `401` gotcha
 - [NGINX stream load balancer](../../integrations/nginx/README.md) - an L4 alternative to an AWS NLB
+- [Connecting cloud and remote systems without exposing the cluster](../../upgrading/deployment-architecture.md#connecting-cloud-and-remote-systems-without-exposing-the-cluster) - where this balancer sits in the wider VPN, collector, and SOAR picture

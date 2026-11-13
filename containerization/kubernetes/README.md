@@ -38,5 +38,6 @@ Patterns for running Wazuh as StatefulSets on Kubernetes, managing config throug
 | [HAProxy and the Data Plane API](./haproxy-dataplane.md) | HAProxy as a Deployment with the Data Plane API sidecar, the helper keeping the backend in step with cluster membership, the rule that `haproxy.cfg` carries no 1514 frontend, validation, and audit export |
 | [Archives disabled after pod update](./archives-disabled-after-update.md) | `wazuh-archives-*` indices stop getting data after image upgrades because `filebeat.yml` is rewritten at pod startup; ConfigMap + `subPath` fix |
 | [Persisting configuration and custom content](./persistent-storage.md) | What lasts through a pod restart versus what the image regenerates; keeping dashboard config (RBAC `run_as`) and custom rules/decoders via ConfigMap + `subPath` |
+| [Indexer slowness and Filebeat load balancing](../../indexer/ingestion-lag-and-slow-dashboards.md) | Service versus explicit host list for Filebeat-to-indexer traffic, why the connection method rarely fixes lag, and where to look first when dashboards and ingestion are slow under high archive volume |
 
 Also see [FIM in containerized environments](../../fim/containers.md) for what file integrity monitoring can and cannot cover under each agent deployment model.

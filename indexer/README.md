@@ -98,6 +98,7 @@ out through [ISM retention](ilm-retention.md), or
 | Shards exceed 40-50 GB or recovery is slow | [Shard sizing and template changes](shard-management.md#sizing-guidelines) |
 | New indices fail at rollover or midnight | [Shard-count monitoring](shard-management.md#monitoring-shard-count) and [disk management](disk-management.md) |
 | Disk watermark or read-only indices | [Disk management](disk-management.md) |
+| Dashboards slow, events arrive late, or Filebeat shows `429`/rejections under high archive volume | [Ingestion lag and slow dashboards](ingestion-lag-and-slow-dashboards.md) |
 | Register a snapshot repository in MinIO or another S3 store | [S3 snapshot repository](snapshots-minio.md) |
 | Bucket keeps growing after snapshots are deleted | [Why MinIO disk usage does not fall](snapshots-minio.md#why-minio-disk-usage-does-not-fall) |
 | Define or verify retention | [ISM / ILM retention](ilm-retention.md) |
