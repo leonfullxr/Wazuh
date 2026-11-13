@@ -39,6 +39,7 @@ class ModelConfig:
     runtime_id: str
     slot_directory: Path
     worker_id: str = "workspace-model"
+    codex_path: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -48,8 +49,17 @@ class ModelConfig:
             or not self.runtime_id
             or not self.worker_id
             or not self.slot_directory.is_absolute()
+            or (
+                self.codex_path is not None
+                and ("\x00" in self.codex_path or not Path(self.codex_path).is_absolute())
+            )
         ):
             raise ValueError("invalid_model_configuration")
+
+    def codex_profile(self) -> CodexProfile:
+        return (
+            CodexProfile() if self.codex_path is None else CodexProfile(codex_path=self.codex_path)
+        )
 
 
 def local_host_id() -> str:
@@ -61,18 +71,28 @@ def load_config(path: Path) -> ModelConfig:
     if not isinstance(value, dict):
         raise ValueError("invalid_model_configuration")
     data = cast(dict[str, Any], value)
-    if set(data) - {"site_ids", "host_id", "runtime_id", "slot_directory", "worker_id"}:
+    if set(data) - {
+        "site_ids",
+        "host_id",
+        "runtime_id",
+        "slot_directory",
+        "worker_id",
+        "codex_path",
+    }:
         raise ValueError("unknown_model_configuration_field")
     if not isinstance(data.get("site_ids"), list) or not all(
         isinstance(site, str) for site in cast(list[object], data["site_ids"])
     ):
         raise ValueError("invalid_model_sites")
+    if "codex_path" in data and not isinstance(data["codex_path"], str):
+        raise ValueError("invalid_model_configuration")
     return ModelConfig(
         frozenset(data["site_ids"]),
         str(data["host_id"]),
         str(data["runtime_id"]),
         Path(data["slot_directory"]),
         str(data.get("worker_id", "workspace-model")),
+        data.get("codex_path"),
     )
 
 
@@ -256,7 +276,7 @@ def provision_model_role(conn: psycopg.Connection[Any], role: str) -> None:
 def model_status(
     conn: psycopg.Connection[Any], config: ModelConfig, profile: CodexProfile | None = None
 ) -> dict[str, object]:
-    profile = profile or CodexProfile()
+    profile = profile if profile is not None else config.codex_profile()
     counts = {"queued": 0, "deferred": 0, "running": 0, "dead": 0, "done": 0, "blocked": 0}
     unavailable_reason: str | None = None
     try:
@@ -377,7 +397,7 @@ def main() -> int:
                         conn,
                         worker_id=config.worker_id,
                         site_ids=config.site_ids,
-                        handler=NarrativePreparationHandler(),
+                        handler=NarrativePreparationHandler(profile=config.codex_profile()),
                         batch_size=1,
                     )
                     count += prepared

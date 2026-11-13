@@ -149,6 +149,8 @@ The command grants the narrow role and creates it as `NOLOGIN` if the role is ab
 
 Set `WS_MODEL_DATABASE_URL` through a protected runtime loader. Do not print it or commit credentials. The configuration includes `site_ids`, a `host_id` from `local_host_id()`, `runtime_id`, an absolute `slot_directory`, and an optional `worker_id`. The runtime binding is immutable. Investigate an unexpected host or directory change before you continue.
 
+An optional `codex_path` selects an absolute path to the pinned Codex executable. Omit it to use the default installation. The selected path applies to preparation, status, and the guardian; all fixed binary and runtime checks still apply. Changing the path changes the execution identity, so previously frozen generations with a different identity remain blocked rather than being rewritten or attempted. Qualify the selected runtime before use.
+
 Use these commands to operate the model process:
 
 - `make ws-model-status WS_ARGS="--config /protected/model.json"` reports queued, deferred, running, dead, and blocked counts. It also reports held capacity and observed executable availability. It does not probe an account.

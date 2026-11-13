@@ -21,6 +21,7 @@ import {
     validateAssetUpsertRequest,
     validateBulkActionRequest,
     validateDispositionRequest,
+    validateIncidentDetailResponse,
     validateStatusRequest,
 } from "../../src/api/generated/workspace-validators.js";
 import {
@@ -41,11 +42,31 @@ const chainState = {
     detail: structuredClone(demoChainDetail),
 };
 const incidentStore = new Map([[demoIncident.incident_id, structuredClone(demoIncidentDetail)]]);
+const incidentStorageKey = "ai-soc-verification-incidents";
+if (typeof sessionStorage !== "undefined") {
+    const saved = sessionStorage.getItem(incidentStorageKey);
+    if (saved) {
+        try {
+            const parsed: unknown = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.every(validateIncidentDetailResponse)) {
+                incidentStore.clear();
+                for (const item of parsed) incidentStore.set(item.incident.incident_id, item);
+            }
+        } catch {
+            sessionStorage.removeItem(incidentStorageKey);
+        }
+    }
+}
+function persistIncidents(): void {
+    if (typeof sessionStorage !== "undefined")
+        sessionStorage.setItem(incidentStorageKey, JSON.stringify([...incidentStore.values()]));
+}
 export function resetM3WorkspaceMocks(): void {
     chainState.summary = structuredClone(demoChain);
     chainState.detail = structuredClone(demoChainDetail);
     incidentStore.clear();
     incidentStore.set(demoIncident.incident_id, structuredClone(demoIncidentDetail));
+    if (typeof sessionStorage !== "undefined") sessionStorage.removeItem(incidentStorageKey);
 }
 
 const error = (status: number, code: string, message: string) =>
@@ -113,6 +134,8 @@ export const workspaceHandlers = [
         if (!hasWriteHeaders(request))
             return error(403, "CSRF_DENIED", "Write security headers are required.");
         const body = await readObject(request);
+        if (new URLSearchParams(location.search).get("scenario") === "workspace_conflict")
+            return error(409, "VERSION_CONFLICT", "Candidate evidence changed. Refresh and review.");
         if (String(params.chainId) !== chainState.detail.chain_id)
             return error(404, "RESOURCE_UNKNOWN", "Chain candidate not found.");
         if (!matchesChainPins(body))
@@ -133,6 +156,7 @@ export const workspaceHandlers = [
             null,
         );
         incidentStore.set(incidentId, created);
+        persistIncidents();
         chainState.summary = {
             ...chainState.summary,
             state: "promoted",
@@ -185,6 +209,7 @@ export const workspaceHandlers = [
         const owner = stringField(body, "owner_key");
         const created = makeIncident(incidentId, groupIds, title ?? null, owner ?? null);
         incidentStore.set(incidentId, created);
+        persistIncidents();
         return HttpResponse.json(
             {
                 incident_id: incidentId,
@@ -248,6 +273,8 @@ export const workspaceHandlers = [
                 evidence_revision: demoIds.evidenceRevision,
                 is_current: true,
             });
+        if (mode === "narrative_historical")
+            return HttpResponse.json({ ...makeNarrative(), is_current: false });
         return HttpResponse.json(
             makeNarrative({
                 evidenceRevision: requestedRevision ?? demoIds.evidenceRevision,
@@ -443,6 +470,7 @@ export const workspaceHandlers = [
             ],
         };
         incidentStore.set(incidentId, next);
+        persistIncidents();
         return HttpResponse.json({
             incident_id: incidentId,
             incident: next.incident,
