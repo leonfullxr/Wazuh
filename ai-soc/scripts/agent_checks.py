@@ -80,8 +80,8 @@ def main() -> int:
     parser.add_argument("command", choices=["install", "check", "dispatch"])
     args = parser.parse_args()
     if args.command == "dispatch":
-        worktree = Path(os.fsdecode(git(Path.cwd(), "rev-parse", "--show-toplevel")).strip())
-        return dispatch(worktree / "ai-soc")
+        repository_root = Path(os.fsdecode(git(Path.cwd(), "rev-parse", "--show-toplevel")).strip())
+        return dispatch(repository_root / "ai-soc")
     try:
         print(", ".join(install(PROJECT, PROJECT.parent, dry_run=args.command == "check")))
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:
