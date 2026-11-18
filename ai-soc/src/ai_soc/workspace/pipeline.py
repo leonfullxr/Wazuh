@@ -10,6 +10,7 @@ from typing import Any
 
 import psycopg
 
+from ai_soc.workspace.assessment.scheduling import schedule_assessment
 from ai_soc.workspace.context import load_site_context
 from ai_soc.workspace.correlate.runner import CorrelationHandler, build_correlation_config
 from ai_soc.workspace.correlate.scheduling import request_correlation
@@ -46,7 +47,13 @@ class PipelineHandler:
         }
     )
 
-    def __init__(self, config: PipelineConfig) -> None:
+    def __init__(self, config: PipelineConfig, *, synthetic_assessment_site: str | None = None):
+        self.synthetic_assessment_site = synthetic_assessment_site
+        self.assessment_sites = frozenset(
+            site.site_id
+            for site in config.sites
+            if site.lab_assessment is not None or site.site_id == synthetic_assessment_site
+        )
         self.correlation = CorrelationHandler()
         self.correlation_code_identity = self.correlation.code_identity
         self.correlation_config = build_correlation_config(
@@ -74,8 +81,12 @@ class PipelineHandler:
         self.weights = load_weights(WEIGHTS_PATH)
         self.content_hash = hashlib.sha256(WEIGHTS_PATH.read_bytes()).hexdigest()
         digest = hashlib.sha256()
-        for path in sorted(Path(__file__).parent.rglob("*.py")):
-            digest.update(str(path.relative_to(Path(__file__).parent)).encode())
+        workspace = Path(__file__).parent
+        for path in sorted(workspace.rglob("*.py")):
+            relative = path.relative_to(workspace)
+            if relative == Path("lab_check.py"):
+                continue
+            digest.update(str(relative).encode())
             digest.update(b"\0")
             digest.update(path.read_bytes())
             digest.update(b"\0")
@@ -176,6 +187,10 @@ class PipelineHandler:
             now=now,
         )
         record_score_output(conn, job=job, result=result)
+        if job.site_id in self.assessment_sites:
+            schedule_assessment(
+                conn, score=result, now=now, synthetic=job.site_id == self.synthetic_assessment_site
+            )
         request_correlation(
             conn,
             site_id=job.site_id,

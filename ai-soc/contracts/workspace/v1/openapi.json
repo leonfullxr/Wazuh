@@ -504,6 +504,353 @@
         "title": "AlertSummary",
         "type": "object"
       },
+      "AssessmentDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "gaps": {
+            "additionalProperties": {
+              "enum": [
+                "present",
+                "empty",
+                "not_configured",
+                "failed",
+                "stale"
+              ],
+              "type": "string"
+            },
+            "title": "Gaps",
+            "type": "object"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Fields",
+            "type": "array"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentProvenance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentReview"
+            },
+            "title": "Reviews",
+            "type": "array"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AssessmentSummary"
+          }
+        },
+        "required": [
+          "summary",
+          "request_id",
+          "revision",
+          "outcome",
+          "evidence",
+          "gaps",
+          "missing_fields",
+          "provenance",
+          "reviews"
+        ],
+        "title": "AssessmentDetail",
+        "type": "object"
+      },
+      "AssessmentEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "additionalProperties": true,
+            "title": "Fields",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "fields"
+        ],
+        "title": "AssessmentEvidence",
+        "type": "object"
+      },
+      "AssessmentProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "catalog_digest": {
+            "title": "Catalog Digest",
+            "type": "string"
+          },
+          "catalog_version": {
+            "title": "Catalog Version",
+            "type": "string"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "pack_digest": {
+            "title": "Pack Digest",
+            "type": "string"
+          },
+          "prompt_digest": {
+            "title": "Prompt Digest",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "prompt_digest",
+          "pack_digest",
+          "catalog_version",
+          "catalog_digest",
+          "input_tokens",
+          "output_tokens",
+          "latency_ms",
+          "finished_at"
+        ],
+        "title": "AssessmentProvenance",
+        "type": "object"
+      },
+      "AssessmentReview": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_key": {
+            "title": "Actor Key",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "agree",
+              "override"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          }
+        },
+        "required": [
+          "review_id",
+          "request_id",
+          "decision",
+          "verdict",
+          "reason",
+          "actor_key",
+          "at"
+        ],
+        "title": "AssessmentReview",
+        "type": "object"
+      },
+      "AssessmentReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "agree",
+              "override"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "site_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Site Id",
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Verdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "site_id",
+          "request_id",
+          "decision"
+        ],
+        "title": "AssessmentReviewRequest",
+        "type": "object"
+      },
+      "AssessmentState": {
+        "enum": [
+          "preview",
+          "stale",
+          "pending",
+          "shadow",
+          "disabled",
+          "not_selected",
+          "no_assessment",
+          "provider_unavailable"
+        ],
+        "type": "string"
+      },
+      "AssessmentSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Band"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/AssessmentState"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Verdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "verdict",
+          "band"
+        ],
+        "title": "AssessmentSummary",
+        "type": "object"
+      },
       "AssetTag": {
         "additionalProperties": false,
         "properties": {
@@ -662,6 +1009,14 @@
         ],
         "title": "BacklogStats",
         "type": "object"
+      },
+      "Band": {
+        "enum": [
+          "complete",
+          "partial",
+          "thin"
+        ],
+        "type": "string"
       },
       "BoundedLabel": {
         "maxLength": 256,
@@ -1268,6 +1623,10 @@
         "title": "CitationReference",
         "type": "object"
       },
+      "ContentId": {
+        "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+        "type": "string"
+      },
       "Coverage": {
         "additionalProperties": false,
         "properties": {
@@ -1585,8 +1944,20 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "EvidenceId": {
+        "pattern": "^ev1_[0-9a-f]{64}$",
+        "type": "string"
+      },
       "FactId": {
         "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "Flag": {
+        "enum": [
+          "findings_removed",
+          "disagrees_with_score",
+          "pack_trimmed"
+        ],
         "type": "string"
       },
       "FrozenIncidentPack": {
@@ -1719,6 +2090,16 @@
           "alert_count": {
             "title": "Alert Count",
             "type": "integer"
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "chain_ids": {
             "items": {
@@ -2006,6 +2387,16 @@
           "alert_count": {
             "title": "Alert Count",
             "type": "integer"
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "components": {
             "items": {
@@ -3560,6 +3951,25 @@
         "title": "LabelCount",
         "type": "object"
       },
+      "LocaleText": {
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "title": "En",
+            "type": "string"
+          },
+          "es": {
+            "title": "Es",
+            "type": "string"
+          }
+        },
+        "required": [
+          "en",
+          "es"
+        ],
+        "title": "LocaleText",
+        "type": "object"
+      },
       "MemberCountSelection": {
         "additionalProperties": false,
         "properties": {
@@ -4043,6 +4453,78 @@
         "title": "OpsMetricsResponse",
         "type": "object"
       },
+      "Outcome": {
+        "additionalProperties": false,
+        "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Band"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/RenderedFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/Flag"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "next_steps": {
+            "items": {
+              "$ref": "#/components/schemas/RenderedStep"
+            },
+            "title": "Next Steps",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "removals": {
+            "items": {
+              "$ref": "#/components/schemas/Removal"
+            },
+            "title": "Removals",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Verdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "Outcome",
+        "type": "object"
+      },
       "OverviewResponse": {
         "additionalProperties": false,
         "properties": {
@@ -4513,6 +4995,45 @@
         "title": "ReconciliationSummary",
         "type": "object"
       },
+      "Removal": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "title": "Digest",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "finding",
+              "step"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/RemovalReason"
+          }
+        },
+        "required": [
+          "kind",
+          "reason",
+          "digest"
+        ],
+        "title": "Removal",
+        "type": "object"
+      },
+      "RemovalReason": {
+        "enum": [
+          "duplicate_id",
+          "unknown_template",
+          "invalid_citations",
+          "invalid_binding",
+          "invalid_relation",
+          "unmet_precondition",
+          "unsafe_value"
+        ],
+        "type": "string"
+      },
       "RemovedSelection": {
         "additionalProperties": false,
         "properties": {
@@ -4535,6 +5056,65 @@
           "selection_digest"
         ],
         "title": "RemovedSelection",
+        "type": "object"
+      },
+      "RenderedFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceId"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "stance": {
+            "$ref": "#/components/schemas/Stance"
+          },
+          "template_id": {
+            "$ref": "#/components/schemas/ContentId"
+          },
+          "text": {
+            "$ref": "#/components/schemas/LocaleText"
+          }
+        },
+        "required": [
+          "id",
+          "template_id",
+          "text",
+          "stance",
+          "evidence_ids"
+        ],
+        "title": "RenderedFinding",
+        "type": "object"
+      },
+      "RenderedStep": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceId"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "step_id": {
+            "$ref": "#/components/schemas/ContentId"
+          },
+          "text": {
+            "$ref": "#/components/schemas/LocaleText"
+          }
+        },
+        "required": [
+          "step_id",
+          "text",
+          "evidence_ids"
+        ],
+        "title": "RenderedStep",
         "type": "object"
       },
       "RuleObservedSelection": {
@@ -4735,6 +5315,22 @@
         "title": "SiteSummary",
         "type": "object"
       },
+      "Stance": {
+        "enum": [
+          "malicious",
+          "benign"
+        ],
+        "type": "string"
+      },
+      "Status": {
+        "enum": [
+          "accepted",
+          "no_assessment",
+          "invalid_response",
+          "provider_unavailable"
+        ],
+        "type": "string"
+      },
       "StatusRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4876,6 +5472,15 @@
         ],
         "title": "ValidatedNarrative",
         "type": "object"
+      },
+      "Verdict": {
+        "enum": [
+          "benign",
+          "needs_review",
+          "likely_malicious",
+          "insufficient_evidence"
+        ],
+        "type": "string"
       },
       "Window": {
         "additionalProperties": false,
@@ -6620,6 +7225,234 @@
           }
         },
         "summary": "Group Detail"
+      }
+    },
+    "/v1/workspace/groups/{group_id}/assessment": {
+      "get": {
+        "operationId": "workspace_group_assessment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "site_id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Site Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Group Assessment"
+      }
+    },
+    "/v1/workspace/groups/{group_id}/assessment/review": {
+      "post": {
+        "operationId": "workspace_review_group_assessment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Group Assessment Review"
       }
     },
     "/v1/workspace/groups/{group_id}/assign": {

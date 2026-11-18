@@ -356,6 +356,7 @@ export function continuationFailure(
     return null;
 }
 export const handlers = [
+    http.get("/v1/local/session", () => new HttpResponse(null, { status: 404 })),
     ...workspaceHandlers,
     http.get("/v1/bootstrap", async () => {
         bootstrapRequestCount += 1;

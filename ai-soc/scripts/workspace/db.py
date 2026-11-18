@@ -113,7 +113,7 @@ def migrate() -> None:
         key, value = line.split("=", 1)
         env[key] = value
     result = subprocess.run(
-        ["uv", "run", "--locked", "python", "-m", "ai_soc.workspace.migrate"],
+        ["uv", "run", "--locked", "--no-dev", "python", "-m", "ai_soc.workspace.migrate"],
         cwd=ROOT,
         env=env,
         check=False,

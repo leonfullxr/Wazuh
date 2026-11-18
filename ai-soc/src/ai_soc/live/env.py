@@ -13,18 +13,25 @@ from typing import Final
 
 from ai_soc.live.sealed import LiveSealedDocument
 
-_ALLOWED_PREFIXES: Final = (
-    "AWS_REGION",
-    "AWS_EC2_METADATA_DISABLED",
-    "SOC_",
-    "OTEL_",
-)
+_ALLOWED_PREFIXES: Final = ("SOC_", "OTEL_")
 _ALLOWED_EXACT: Final = frozenset(
     {
         "AWS_REGION",
+        "AWS_DEFAULT_REGION",
         "AWS_EC2_METADATA_DISABLED",
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_EXECUTION_ENV",
+        "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
+        "ECS_CONTAINER_METADATA_URI",
+        "ECS_CONTAINER_METADATA_URI_V4",
+        "ECS_AGENT_URI",
+        "SOURCE_DATE_EPOCH",
+        "UV_CACHE_DIR",
+        "UV_COMPILE_BYTECODE",
+        "UV_LINK_MODE",
+        "UV_PYTHON_DOWNLOADS",
         "SOC_DYNAMODB_ENDPOINT_URL",
         "SOC_BEDROCK_ENDPOINT_URL",
         "SOC_KMS_ENDPOINT_URL",
@@ -117,14 +124,22 @@ def optional_endpoint(name: str) -> str | None:
 
 
 def assert_no_disallowed_environ(extra_allowed: frozenset[str] = frozenset()) -> None:
-    """Guard against accidental ambient configuration in tests."""
+    """Reject undeclared configuration before live boot has external effects."""
     allowed = _ALLOWED_EXACT | extra_allowed
     for key in os.environ:
         if key in allowed:
             continue
-        if any(key == prefix or key.startswith(f"{prefix}_") for prefix in _ALLOWED_PREFIXES):
+        if any(key.startswith(prefix) for prefix in _ALLOWED_PREFIXES):
             continue
-        if key.startswith("PYTHON") or key in {"PATH", "HOME", "HOSTNAME", "LANG", "LC_ALL"}:
+        if key.startswith("PYTHON") or key in {
+            "PATH",
+            "HOME",
+            "HOSTNAME",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "TZ",
+        }:
             continue
         raise ValueError(f"unexpected environment variable for live boot: {key}")
 

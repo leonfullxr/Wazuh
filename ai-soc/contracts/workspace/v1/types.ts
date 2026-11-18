@@ -175,6 +175,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspace/groups/{group_id}/assessment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Group Assessment */
+        get: operations["workspace_group_assessment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/groups/{group_id}/assessment/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Group Assessment Review */
+        post: operations["workspace_review_group_assessment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspace/groups/{group_id}/assign": {
         parameters: {
             query?: never;
@@ -620,6 +654,111 @@ export interface components {
             /** Src User */
             src_user: string | null;
         };
+        /** AssessmentDetail */
+        AssessmentDetail: {
+            /** Evidence */
+            evidence: components["schemas"]["AssessmentEvidence"][];
+            /** Gaps */
+            gaps: {
+                [key: string]: "present" | "empty" | "not_configured" | "failed" | "stale";
+            };
+            /** Missing Fields */
+            missing_fields: string[];
+            outcome: components["schemas"]["Outcome"] | null;
+            provenance: components["schemas"]["AssessmentProvenance"] | null;
+            /** Request Id */
+            request_id: string | null;
+            /** Reviews */
+            reviews: components["schemas"]["AssessmentReview"][];
+            /** Revision */
+            revision: string | null;
+            summary: components["schemas"]["AssessmentSummary"];
+        };
+        /** AssessmentEvidence */
+        AssessmentEvidence: {
+            /** Fields */
+            fields: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+        };
+        /** AssessmentProvenance */
+        AssessmentProvenance: {
+            /** Catalog Digest */
+            catalog_digest: string;
+            /** Catalog Version */
+            catalog_version: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Pack Digest */
+            pack_digest: string;
+            /** Prompt Digest */
+            prompt_digest: string;
+            /** Provider */
+            provider: string;
+        };
+        /** AssessmentReview */
+        AssessmentReview: {
+            /** Actor Key */
+            actor_key: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "agree" | "override";
+            /** Reason */
+            reason: string;
+            /** Request Id */
+            request_id: string;
+            /** Review Id */
+            review_id: string;
+            verdict: components["schemas"]["Verdict"];
+        };
+        /** AssessmentReviewRequest */
+        AssessmentReviewRequest: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "agree" | "override";
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** Request Id */
+            request_id: string;
+            /** Site Id */
+            site_id: string;
+            verdict?: components["schemas"]["Verdict"] | null;
+        };
+        /** @enum {string} */
+        AssessmentState: "preview" | "stale" | "pending" | "shadow" | "disabled" | "not_selected" | "no_assessment" | "provider_unavailable";
+        /** AssessmentSummary */
+        AssessmentSummary: {
+            band: components["schemas"]["Band"] | null;
+            state: components["schemas"]["AssessmentState"];
+            verdict: components["schemas"]["Verdict"] | null;
+        };
         /** AssetTag */
         AssetTag: {
             /** Criticality */
@@ -668,6 +807,8 @@ export interface components {
             /** Unassigned */
             unassigned: number;
         };
+        /** @enum {string} */
+        Band: "complete" | "partial" | "thin";
         BoundedLabel: string;
         /** BulkActionItem */
         BulkActionItem: {
@@ -906,6 +1047,7 @@ export interface components {
              */
             kind: "incident" | "group" | "alert";
         };
+        ContentId: string;
         /** Coverage */
         Coverage: {
             /** Alert Count */
@@ -1023,7 +1165,10 @@ export interface components {
             /** Trace Id */
             trace_id: string;
         };
+        EvidenceId: string;
         FactId: string;
+        /** @enum {string} */
+        Flag: "findings_removed" | "disagrees_with_score" | "pack_trimmed";
         /** FrozenIncidentPack */
         FrozenIncidentPack: {
             /** Alert Facts */
@@ -1077,6 +1222,7 @@ export interface components {
         GroupDetail: {
             /** Alert Count */
             alert_count: number;
+            assessment?: components["schemas"]["AssessmentSummary"] | null;
             /** Chain Ids */
             chain_ids: string[];
             /** Components */
@@ -1157,6 +1303,7 @@ export interface components {
         GroupSummary: {
             /** Alert Count */
             alert_count: number;
+            assessment?: components["schemas"]["AssessmentSummary"] | null;
             /** Components */
             components: components["schemas"]["ScoreComponent"][];
             /** Computation Version */
@@ -1663,6 +1810,13 @@ export interface components {
              */
             label: "true_positive" | "benign_true_positive" | "false_positive" | "duplicate" | "undetermined";
         };
+        /** LocaleText */
+        LocaleText: {
+            /** En */
+            en: string;
+            /** Es */
+            es: string;
+        };
         /** MemberCountSelection */
         MemberCountSelection: {
             /** Count */
@@ -1802,6 +1956,22 @@ export interface components {
             volume: components["schemas"]["HourlyBucket"][];
             window: components["schemas"]["Window"];
         };
+        /** Outcome */
+        Outcome: {
+            band?: components["schemas"]["Band"] | null;
+            /** Findings */
+            findings?: components["schemas"]["RenderedFinding"][];
+            /** Flags */
+            flags?: components["schemas"]["Flag"][];
+            /** Next Steps */
+            next_steps?: components["schemas"]["RenderedStep"][];
+            /** Reason */
+            reason?: string | null;
+            /** Removals */
+            removals?: components["schemas"]["Removal"][];
+            status: components["schemas"]["Status"];
+            verdict?: components["schemas"]["Verdict"] | null;
+        };
         /** OverviewResponse */
         OverviewResponse: {
             freshness: components["schemas"]["IngestionFreshness"];
@@ -1931,6 +2101,19 @@ export interface components {
             /** Mismatched Hours */
             mismatched_hours: number;
         };
+        /** Removal */
+        Removal: {
+            /** Digest */
+            digest: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "finding" | "step";
+            reason: components["schemas"]["RemovalReason"];
+        };
+        /** @enum {string} */
+        RemovalReason: "duplicate_id" | "unknown_template" | "invalid_citations" | "invalid_binding" | "invalid_relation" | "unmet_precondition" | "unsafe_value";
         /** RemovedSelection */
         RemovedSelection: {
             /**
@@ -1939,6 +2122,23 @@ export interface components {
              */
             reason: "invalid_selection" | "unknown_citation" | "incorrect_binding" | "duplicate_selection";
             selection_digest: components["schemas"]["Digest"];
+        };
+        /** RenderedFinding */
+        RenderedFinding: {
+            /** Evidence Ids */
+            evidence_ids: components["schemas"]["EvidenceId"][];
+            /** Id */
+            id: string;
+            stance: components["schemas"]["Stance"];
+            template_id: components["schemas"]["ContentId"];
+            text: components["schemas"]["LocaleText"];
+        };
+        /** RenderedStep */
+        RenderedStep: {
+            /** Evidence Ids */
+            evidence_ids: components["schemas"]["EvidenceId"][];
+            step_id: components["schemas"]["ContentId"];
+            text: components["schemas"]["LocaleText"];
         };
         /** RuleObservedSelection */
         RuleObservedSelection: {
@@ -2007,6 +2207,10 @@ export interface components {
             /** Wazuh Version */
             wazuh_version: string | null;
         };
+        /** @enum {string} */
+        Stance: "malicious" | "benign";
+        /** @enum {string} */
+        Status: "accepted" | "no_assessment" | "invalid_response" | "provider_unavailable";
         /** StatusRequest */
         StatusRequest: {
             /**
@@ -2062,6 +2266,8 @@ export interface components {
              */
             status: "validated" | "all_removed" | "invalid_structure";
         };
+        /** @enum {string} */
+        Verdict: "benign" | "needs_review" | "likely_malicious" | "insufficient_evidence";
         /** Window */
         Window: {
             /**
@@ -3027,6 +3233,184 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GroupDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    workspace_group_assessment: {
+        parameters: {
+            query: {
+                site_id: string;
+            };
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    workspace_review_group_assessment: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentReview"];
                 };
             };
             /** @description Bad Request */

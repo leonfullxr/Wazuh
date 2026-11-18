@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
+from ai_soc.workspace.api.assessment_models import AssessmentSummary
 from ai_soc.workspace.model.schemas import FrozenIncidentPack, RemovedSelection, ValidatedNarrative
 
 
@@ -475,6 +476,7 @@ class GroupSummary(StrictModel):
     owner_key: str | None
     disposition: Disposition | None
     pipeline_version: str
+    assessment: AssessmentSummary | None = None
 
 
 class QueueSummary(StrictModel):

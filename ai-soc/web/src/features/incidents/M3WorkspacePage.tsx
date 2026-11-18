@@ -41,7 +41,7 @@ export function M3WorkspacePage({
     siteId: string;
     locale: Locale;
     t: Translate;
-    onInvestigate: (question: string, environmentId: string) => void;
+    onInvestigate?: (question: string, environmentId: string) => void;
 }) {
     const queryClient = useQueryClient();
     const [selection, setSelection] = useState<Selection>(null);
@@ -404,59 +404,70 @@ export function M3WorkspacePage({
                                         [name]: cursor,
                                     }))
                                 }
-                                onInvestigate={async () => {
-                                    contextAbort.current?.abort();
-                                    const controller = new AbortController();
-                                    contextAbort.current = controller;
-                                    const requestedScope = activeScope.current;
-                                    try {
-                                        const context = await getIncidentContext(
-                                            {
-                                                siteId,
-                                                incidentId: incident.data!.incident.incident_id,
-                                                evidenceRevision:
-                                                    incident.data!.incident.evidence_head,
-                                            },
-                                            controller.signal,
-                                        );
-                                        if (
-                                            controller.signal.aborted ||
-                                            activeScope.current !== requestedScope
-                                        )
-                                            return;
-                                        const request = field(context.question_draft, "request");
-                                        const question = field(request, "question");
-                                        const environment = field(request, "environment_id");
-                                        if (
-                                            typeof question !== "string" ||
-                                            typeof environment !== "string" ||
-                                            environment !== siteId
-                                        ) {
-                                            setError(t("m3ContextInvalid"));
-                                            return;
-                                        }
-                                        onInvestigate(question, environment);
-                                    } catch (reason) {
-                                        if (
-                                            controller.signal.aborted ||
-                                            activeScope.current !== requestedScope
-                                        )
-                                            return;
-                                        if (
-                                            reason instanceof WorkspaceRequestError &&
-                                            reason.status === 409
-                                        ) {
-                                            setError(t("m3Stale"));
-                                            await refresh();
-                                        } else {
-                                            setError(
-                                                reason instanceof Error
-                                                    ? reason.message
-                                                    : t("m3ActionError"),
-                                            );
-                                        }
-                                    }
-                                }}
+                                onInvestigate={
+                                    onInvestigate
+                                        ? async () => {
+                                              contextAbort.current?.abort();
+                                              const controller = new AbortController();
+                                              contextAbort.current = controller;
+                                              const requestedScope = activeScope.current;
+                                              try {
+                                                  const context = await getIncidentContext(
+                                                      {
+                                                          siteId,
+                                                          incidentId:
+                                                              incident.data!.incident.incident_id,
+                                                          evidenceRevision:
+                                                              incident.data!.incident.evidence_head,
+                                                      },
+                                                      controller.signal,
+                                                  );
+                                                  if (
+                                                      controller.signal.aborted ||
+                                                      activeScope.current !== requestedScope
+                                                  )
+                                                      return;
+                                                  const request = field(
+                                                      context.question_draft,
+                                                      "request",
+                                                  );
+                                                  const question = field(request, "question");
+                                                  const environment = field(
+                                                      request,
+                                                      "environment_id",
+                                                  );
+                                                  if (
+                                                      typeof question !== "string" ||
+                                                      typeof environment !== "string" ||
+                                                      environment !== siteId
+                                                  ) {
+                                                      setError(t("m3ContextInvalid"));
+                                                      return;
+                                                  }
+                                                  onInvestigate(question, environment);
+                                              } catch (reason) {
+                                                  if (
+                                                      controller.signal.aborted ||
+                                                      activeScope.current !== requestedScope
+                                                  )
+                                                      return;
+                                                  if (
+                                                      reason instanceof WorkspaceRequestError &&
+                                                      reason.status === 409
+                                                  ) {
+                                                      setError(t("m3Stale"));
+                                                      await refresh();
+                                                  } else {
+                                                      setError(
+                                                          reason instanceof Error
+                                                              ? reason.message
+                                                              : t("m3ActionError"),
+                                                      );
+                                                  }
+                                              }
+                                          }
+                                        : undefined
+                                }
                             />
                         ) : null}
                     </section>
@@ -659,7 +670,7 @@ function IncidentDetailView({
         name: "history" | "comments" | "dispositions" | "membership",
         cursor: string,
     ) => void;
-    onInvestigate: () => Promise<void>;
+    onInvestigate?: () => Promise<void>;
 }) {
     const [owner, setOwner] = useState(data.incident.owner_key ?? "");
     const [status, setStatus] = useState<IncidentStatus>(data.incident.status);
@@ -677,9 +688,11 @@ function IncidentDetailView({
         <>
             <div className="panel-head">
                 <h3 id="incident-detail-heading">{incident.title}</h3>
-                <button className="btn outline" onClick={() => void onInvestigate()}>
-                    {t("m3Investigate")}
-                </button>
+                {onInvestigate && (
+                    <button className="btn outline" onClick={() => void onInvestigate()}>
+                        {t("m3Investigate")}
+                    </button>
+                )}
             </div>
             <dl className="m3-meta">
                 <dt>{t("m3IncidentId")}</dt>

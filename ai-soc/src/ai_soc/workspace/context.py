@@ -246,6 +246,7 @@ class _VulnerabilityContextAdapter:
                 value={"reason": state, **metadata},
                 fetched_at=self._snapshot.captured_at,
                 expires_at=self._snapshot.expires_at,
+                gap_state="stale",
             )
         facts = [fact for row in known_rows for fact in row.vulnerabilities]
         cves = sorted({fact.cve for fact in facts})
@@ -263,6 +264,7 @@ class _VulnerabilityContextAdapter:
             },
             fetched_at=self._snapshot.captured_at,
             expires_at=self._snapshot.expires_at,
+            gap_state="present" if cves else "empty",
         )
 
 

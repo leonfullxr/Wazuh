@@ -21,6 +21,7 @@ class WorkspaceAuditMessage(BaseModel):
         "group_assigned",
         "group_status_changed",
         "group_disposition_recorded",
+        "group_assessment_reviewed",
         "group_bulk_action",
         "asset_tag_changed",
         "incident_created",

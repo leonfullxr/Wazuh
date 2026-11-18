@@ -12,12 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, cast
 
-CODEX_PATH: Final = str(
-    Path.home() / ".npm-global/lib/node_modules/@openai/codex/"
-    "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex"
-)
-BWRAP_PATH: Final = "/usr/bin/bwrap"
-AUTH_PATH: Final = str(Path.home() / ".codex-leon/auth.json")
 CATALOG_PATH: Final = "content/workspace/model/codex-0.164.0-minimal.json"
 CODEX_SHA256: Final = "b93f6811d3f653f0fb83be4050d857fb9abbb111dfa2ce160563327daff7f306"
 BWRAP_SHA256: Final = "85580dd52ed366ece8844e90fa75ac7c4de8802963071344e123221fb9f6f11e"
@@ -64,9 +58,10 @@ class CallInputs:
 @dataclass(frozen=True, slots=True)
 class CodexProfile:
     project_root: Path = Path(__file__).resolve().parents[4]
-    codex_path: str = CODEX_PATH
-    bwrap_path: str = BWRAP_PATH
-    auth_path: str = AUTH_PATH
+    codex_path: str = ""
+    bwrap_path: str = ""
+    auth_path: str = ""
+    state_directory: Path = Path(__file__).resolve().parents[4] / "build/model-state"
     catalog_path: str = CATALOG_PATH
     codex_sha256: str = CODEX_SHA256
     bwrap_sha256: str = BWRAP_SHA256
@@ -78,11 +73,22 @@ class CodexProfile:
     stdout_limit: int = 262144
     stderr_limit: int = 16384
 
+    def require_configured(self) -> None:
+        if (
+            any(
+                not path or "\x00" in path or not Path(path).is_absolute()
+                for path in (self.codex_path, self.bwrap_path, self.auth_path)
+            )
+            or not self.state_directory.is_absolute()
+        ):
+            raise ProfileError("profile_unconfigured")
+
     def verify_runtime(self) -> ProfileProvenance:
         """Verify installed execution inputs without opening account material."""
         root = self.project_root
         catalog = root / self.catalog_path
         try:
+            self.require_configured()
             if (
                 not 0 < self.timeout_seconds <= 120
                 or not 0 < self.stdin_limit <= 131072

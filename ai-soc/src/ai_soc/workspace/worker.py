@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
 import sys
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import FrameType
 from typing import Any, Protocol
 
 import psycopg
@@ -154,11 +157,15 @@ def _process_batch(
 
 
 def main() -> int:
+    from ai_soc.workspace.assessment.worker import drain_assessments
+    from ai_soc.workspace.model.provider import AssessmentProvider, OpenAICompatibleProvider
     from ai_soc.workspace.pipeline import PipelineHandler
     from ai_soc.workspace.runtime import PipelineRuntime, load_pipeline_config
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--drain", action="store_true", help="process until no jobs are ready")
+    parser.add_argument("--watch", action="store_true", help="drain new work until stopped")
+    parser.add_argument("--interval", type=int, default=5, help="watch idle interval in seconds")
     parser.add_argument("--max-jobs", type=int, default=100_000)
     parser.add_argument("--batch-size", type=int, default=100)
     args = parser.parse_args()
@@ -167,44 +174,102 @@ def main() -> int:
         parser.error("WS_WORKER_CONFIG must reference the explicit pipeline configuration")
     if not 1 <= args.max_jobs <= 1_000_000:
         parser.error("--max-jobs must be in 1..1000000")
+    if args.drain and args.watch:
+        parser.error("--drain and --watch are mutually exclusive")
+    if not 1 <= args.interval <= 3600:
+        parser.error("--interval must be in 1..3600 seconds")
     config = load_pipeline_config(Path(source))
     site_ids = frozenset(site.site_id for site in config.sites)
     worker_id = os.environ.get("WS_WORKER_ID", "workspace-worker")
-    handled = 0
+    stop = threading.Event()
+
+    def stop_watching(_signum: int, _frame: FrameType | None) -> None:
+        stop.set()
+
+    if args.watch:
+        signal.signal(signal.SIGTERM, stop_watching)
+
     with PipelineRuntime(config) as runtime, runtime.connect() as conn:
         handler = PipelineHandler(config)
-        while handled < args.max_jobs:
-            count = run_once(
-                conn,
-                worker_id=worker_id,
-                site_ids=site_ids,
-                handler=handler,
-                batch_size=min(args.batch_size, args.max_jobs - handled),
+        providers: list[tuple[str, AssessmentProvider | None, bool, int, int]] | None = None
+        while True:
+            handled = 0
+            draining = args.drain or args.watch
+            while handled < args.max_jobs and not stop.is_set():
+                count = run_once(
+                    conn,
+                    worker_id=worker_id,
+                    site_ids=site_ids,
+                    handler=handler,
+                    batch_size=min(args.batch_size, args.max_jobs - handled),
+                )
+                handled += count
+                if not draining or not count:
+                    break
+
+            dead = 0
+            outstanding = 0
+            deferred = 0
+            for site_id in sorted(site_ids):
+                with site_transaction(conn, site_id, site_ids):
+                    row = conn.execute(
+                        "SELECT count(*) FILTER (WHERE state = 'dead'), "
+                        "count(*) FILTER (WHERE "
+                        "(state = 'queued' AND run_after <= now()) OR "
+                        "(state = 'running' AND locked_until <= now()) OR "
+                        "(state = 'running' AND locked_until > now())), "
+                        "count(*) FILTER (WHERE state = 'queued' AND run_after > now()) FROM jobs "
+                        "WHERE site_id = %s AND kind = ANY(%s)",
+                        (site_id, sorted(handler.job_kinds)),
+                    ).fetchone()
+                    assert row is not None
+                    dead += int(row[0])
+                    outstanding += int(row[1])
+                    deferred += int(row[2])
+
+            assessment_calls = 0
+            if not stop.is_set():
+                if providers is None:
+                    providers = []
+                    for site in config.sites:
+                        settings = site.lab_assessment
+                        enabled = settings is not None and settings.enabled
+                        provider = (
+                            OpenAICompatibleProvider(
+                                settings.base_url, settings.model, settings.credential_file
+                            )
+                            if settings is not None and enabled
+                            else None
+                        )
+                        providers.append(
+                            (
+                                site.site_id,
+                                provider,
+                                enabled,
+                                settings.max_calls_per_run if settings is not None else 1,
+                                settings.concurrency if settings is not None else 1,
+                            )
+                        )
+                for site_id, provider, enabled, max_calls, concurrency in providers:
+                    assessment_calls += drain_assessments(
+                        conn,
+                        site_id=site_id,
+                        worker_id=worker_id,
+                        provider=provider,
+                        enabled=enabled,
+                        max_calls=max_calls,
+                        concurrency=concurrency,
+                    )
+            if assessment_calls:
+                print(f"assessment_calls={assessment_calls}", flush=True)
+            print(
+                f"processed={handled} outstanding={outstanding} deferred={deferred} dead={dead}",
+                flush=True,
             )
-            handled += count
-            if not args.drain or not count:
-                break
-        dead = 0
-        outstanding = 0
-        deferred = 0
-        for site_id in sorted(site_ids):
-            with site_transaction(conn, site_id, site_ids):
-                row = conn.execute(
-                    "SELECT count(*) FILTER (WHERE state = 'dead'), "
-                    "count(*) FILTER (WHERE "
-                    "(state = 'queued' AND run_after <= now()) OR "
-                    "(state = 'running' AND locked_until <= now()) OR "
-                    "(state = 'running' AND locked_until > now())), "
-                    "count(*) FILTER (WHERE state = 'queued' AND run_after > now()) FROM jobs "
-                    "WHERE site_id = %s AND kind = ANY(%s)",
-                    (site_id, sorted(handler.job_kinds)),
-                ).fetchone()
-                assert row is not None
-                dead += int(row[0])
-                outstanding += int(row[1])
-                deferred += int(row[2])
-    print(f"processed={handled} outstanding={outstanding} deferred={deferred} dead={dead}")
-    return 1 if dead or (args.drain and outstanding) else 0
+            if not args.watch:
+                return 1 if dead or (args.drain and outstanding) else 0
+            if stop.is_set() or stop.wait(args.interval):
+                return 0
 
 
 if __name__ == "__main__":

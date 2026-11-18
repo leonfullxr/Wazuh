@@ -77,35 +77,7 @@ class FindingValidator:
         if _duplicate_template_id(context.templates):
             return _terminal(JudgmentState.invalid_output, "invalid_output")
         try:
-            encoded = raw.text.encode("utf-8", errors="strict")
-        except UnicodeEncodeError:
-            return _terminal(JudgmentState.invalid_output, "invalid_output")
-        if len(encoded) > MAX_FINDING_OUTPUT_BYTES:
-            return _terminal(JudgmentState.invalid_output, "invalid_output")
-        try:
-            if not _json_depth_valid(raw.text):
-                return _terminal(JudgmentState.invalid_output, "invalid_output")
-            member_count = 0
-
-            def parse_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
-                nonlocal member_count
-                member_count += len(pairs)
-                if member_count > _MAX_JSON_MEMBERS:
-                    raise ValueError("finding JSON member bound exceeded")
-                result: dict[str, object] = {}
-                for key, value in pairs:
-                    if key in result:
-                        raise ValueError("duplicate JSON object key")
-                    result[key] = value
-                return result
-
-            document = json.loads(
-                raw.text,
-                parse_constant=_reject_constant,
-                object_pairs_hook=parse_pairs,
-            )
-            if not _json_array_bounds(document):
-                return _terminal(JudgmentState.invalid_output, "invalid_output")
+            parse_finding_json(raw.text)
             candidate_set = FindingCandidateSet.model_validate_json(raw.text, strict=True)
         except (json.JSONDecodeError, ValidationError, ValueError, TypeError):
             return _terminal(JudgmentState.invalid_output, "invalid_output")
@@ -455,7 +427,7 @@ def _render(
         raw = _value_for(item, key)
         if raw is _MISSING_VALUE:
             raise ValueError("approved binding value is absent")
-        display_text = _bound_display_text(raw)
+        display_text = bound_display_text(raw)
         literal = html.escape(display_text, quote=True)
         field_key = key.value if isinstance(key, FieldId) else key
         if field_key in {FieldId.agent_name.value, FieldId.package_name.value}:
@@ -470,20 +442,24 @@ def _render(
 
 def _template_placeholders_valid(template: FindingTemplate) -> bool:
     expected = set(template.required_bindings)
-    for source in (template.texts.en, template.texts.es):
-        fields: set[str] = set()
-        try:
-            for _, field, format_spec, conversion in string.Formatter().parse(source):
-                if field is None:
-                    continue
-                if format_spec or conversion or "[" in field or "." in field:
-                    return False
-                fields.add(field)
-        except ValueError:
-            return False
-        if fields != expected:
-            return False
-    return True
+    return all(
+        template_placeholders_match(source, expected)
+        for source in (template.texts.en, template.texts.es)
+    )
+
+
+def template_placeholders_match(source: str, expected: set[str]) -> bool:
+    fields: set[str] = set()
+    try:
+        for _, field, format_spec, conversion in string.Formatter().parse(source):
+            if field is None:
+                continue
+            if format_spec or conversion or "[" in field or "." in field:
+                return False
+            fields.add(field)
+    except ValueError:
+        return False
+    return fields == expected
 
 
 def _display(value: object) -> str:
@@ -494,7 +470,8 @@ def _display(value: object) -> str:
     return str(value)
 
 
-def _bound_display_text(value: object) -> str:
+def bound_display_text(value: object) -> str:
+    """Validate text before inserting it into an approved template."""
     text = _display(value)
     encoded = text.encode("utf-8")
     if len(encoded) > MAX_BOUND_TEXT_UTF8_BYTES:
@@ -549,6 +526,32 @@ def _terminal(state: JudgmentState, reason: str, *, language: str = "en") -> Jud
 
 def _reject_constant(value: str) -> None:
     raise ValueError(f"nonfinite JSON token: {value}")
+
+
+def parse_finding_json(text: str) -> object:
+    """Reject oversized, deeply nested or ambiguous provider JSON before binding it."""
+    if len(text.encode("utf-8")) > MAX_FINDING_OUTPUT_BYTES or not _json_depth_valid(text):
+        raise ValueError("finding JSON size or depth bound exceeded")
+    member_count = 0
+
+    def parse_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        nonlocal member_count
+        member_count += len(pairs)
+        if member_count > _MAX_JSON_MEMBERS:
+            raise ValueError("finding JSON member bound exceeded")
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON object key")
+            result[key] = value
+        return result
+
+    document: object = json.loads(
+        text, parse_constant=_reject_constant, object_pairs_hook=parse_pairs
+    )
+    if not _json_array_bounds(document):
+        raise ValueError("finding JSON array bound exceeded")
+    return document
 
 
 def _json_depth_valid(text: str) -> bool:

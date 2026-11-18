@@ -63,6 +63,11 @@ RUNTIME_TABLES = (
     "narrative_calls",
     "narrative_outcomes",
     "incident_narrative_heads",
+    "group_assessment_sites",
+    "group_assessment_requests",
+    "group_assessment_attempts",
+    "group_assessment_outcomes",
+    "group_assessment_reviews",
 )
 RUNTIME_SEQUENCES = (
     "jobs_job_id_seq",

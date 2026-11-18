@@ -109,6 +109,8 @@ def prepare_narrative(
     conn: psycopg.Connection[Any], *, job: Job, now: datetime, profile: CodexProfile | None = None
 ) -> UUID:
     """Freeze one exact revision and atomically enqueue/target its immutable request."""
+    profile = profile or CodexProfile()
+    profile.require_configured()
     require_site_transaction(conn, job.site_id)
     if job.kind != "prepare_narrative":
         raise ValueError("unsupported_preparation_job")
@@ -121,7 +123,7 @@ def prepare_narrative(
     )
     if pack.revision_seq != job.payload["revision_seq"]:
         raise ValueError("preparation_revision_mismatch")
-    execution = freeze_execution(pack, profile or CodexProfile())
+    execution = freeze_execution(pack, profile)
     digest = execution.digest(pack.content_digest)
     prior = conn.execute(
         "SELECT generation_id FROM narrative_generations WHERE site_id=%s AND generation_digest=%s",

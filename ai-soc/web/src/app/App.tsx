@@ -26,7 +26,12 @@ export {
     resolveCitation,
     safeDocumentUrl,
 } from "./state/answer-format";
-import { ApiError, page as fetchPage, feedback as sendFeedback } from "../api/client";
+import {
+    ApiError,
+    page as fetchPage,
+    feedback as sendFeedback,
+    type RuntimeBootstrapResponse,
+} from "../api/client";
 import { makeKevAnswer } from "../api/kev-preview";
 import { AnswerView } from "../features/investigate/AnswerView";
 import { Composer } from "../features/investigate/Composer";
@@ -59,15 +64,37 @@ import { MetricsPage } from "../features/metrics/MetricsPage";
 import { DashboardPage } from "../features/dashboards/DashboardPage";
 import { M3WorkspacePage } from "../features/incidents/M3WorkspacePage";
 import { ThemeProvider } from "../components/theme/theme-menu";
+import { LocalSessionBoundary } from "../features/local/LocalSessionBoundary";
+import { LocalModelActivity } from "../features/local/LocalModelActivity";
+import type { LocalSession } from "../api/local-session";
 export function App() {
     return (
         <ThemeProvider>
-            <AppContent />
+            <LocalSessionBoundary>
+                {(localSession) => <AppContent localSession={localSession} />}
+            </LocalSessionBoundary>
         </ThemeProvider>
     );
 }
-function AppContent() {
-    const [route, setRoute] = useState<Route>(() => routeFromHash() ?? "overview");
+const localRoutes: readonly Route[] = [
+    "overview",
+    "alerts",
+    "queue",
+    "chains",
+    "incidents",
+    "metrics",
+];
+
+function isLocalRoute(route: Route): boolean {
+    return localRoutes.includes(route);
+}
+
+function AppContent({ localSession }: { localSession: LocalSession | null }) {
+    const isLocal = localSession !== null;
+    const [route, setRoute] = useState<Route>(() => {
+        const requested = routeFromHash() ?? "overview";
+        return isLocal && !isLocalRoute(requested) ? "overview" : requested;
+    });
     const [locale, setLocale] = useState<Locale>(() => initialLocale());
     const [scenario, setScenario] = useState(
         () => new URLSearchParams(location.search).get("scenario") ?? "auto",
@@ -107,7 +134,9 @@ function AppContent() {
         queryKey: ["workspace", "sites"],
         queryFn: ({ signal }) => listWorkspaceSites(signal),
     });
-    const bootstrap = boot.data as BootstrapResponse | undefined;
+    const bootstrap: RuntimeBootstrapResponse | undefined = boot.data;
+    const investigationBootstrap: BootstrapResponse | undefined =
+        bootstrap?.mode === "local" ? undefined : bootstrap;
     const isMock = import.meta.env.MODE !== "live";
     const t = (key: string) => {
         const copy: Record<string, string> = workspaceWords[locale];
@@ -124,21 +153,26 @@ function AppContent() {
     useEffect(() => {
         const change = () => {
             const next = routeFromHash();
-            if (next) setRoute(next);
+            if (next && (!isLocal || isLocalRoute(next))) setRoute(next);
+            else if (isLocal) {
+                setRoute("overview");
+                window.location.hash = "#overview";
+            }
         };
         addEventListener("hashchange", change);
         return () => removeEventListener("hashchange", change);
-    }, []);
+    }, [isLocal]);
     useEffect(() => {
         if (
             sitesQuery.error instanceof WorkspaceRequestError &&
             sitesQuery.error.status === 404 &&
+            !isLocal &&
             !window.location.hash
         ) {
             setRoute("investigate");
             window.location.hash = "#investigate";
         }
-    }, [sitesQuery.error]);
+    }, [isLocal, sitesQuery.error]);
     useEffect(() => {
         document.documentElement.lang = locale;
         saveLocale(locale);
@@ -213,8 +247,9 @@ function AppContent() {
         window.history.replaceState(null, "", u);
     }
     function navigate(next: Route) {
-        setRoute(next);
-        if (routeFromHash() !== next) location.hash = `#${next}`;
+        const destination = isLocal && !isLocalRoute(next) ? "overview" : next;
+        setRoute(destination);
+        if (routeFromHash() !== destination) location.hash = `#${destination}`;
     }
     function updateUrl(patch: Record<string, string | null | undefined>, nextRoute?: Route) {
         const u = new URL(location.href);
@@ -471,12 +506,22 @@ function AppContent() {
             scenario={scenario}
             setScenario={setScenario}
             t={t}
+            localModelEnabled={localSession?.modelEnabled}
         />
     );
     return (
         <div className="app-shell">
-            <NavigationRail route={route} setRoute={navigate} footer={shellStatus} t={t} />
+            <NavigationRail
+                route={route}
+                setRoute={navigate}
+                footer={shellStatus}
+                t={t}
+                profile={isLocal ? "local" : "full"}
+            />
             <div className="app-main">
+                {(isMock || bootstrap?.mode === "fixture") && (
+                    <div className="mobile-mock-notice">{t("synthetic")}</div>
+                )}
                 <ContextHeader
                     route={route}
                     onNavigate={navigate}
@@ -501,9 +546,13 @@ function AppContent() {
                     }}
                     footer={shellStatus}
                     t={t}
+                    profile={isLocal ? "local" : "full"}
                 />
                 <main id="main" className="workspace" tabIndex={-1}>
                     <PageHeading route={route} icon={PageIcon} t={t} />
+                    {isLocal && route === "overview" && (
+                        <LocalModelActivity siteId={selectedSite} t={t} />
+                    )}
                     {route === "overview" && (
                         <OverviewPage
                             site={site}
@@ -522,12 +571,16 @@ function AppContent() {
                             t={t}
                             onFilters={updateAlertFilters}
                             onCloseDetails={() => updateUrl({ alert_key: null })}
-                            onInvestigate={(alert) => {
-                                updateQuestion(
-                                    `${alert.rule_description ?? alert.rule_id ?? "Alert"} on ${alert.agent_name ?? alert.agent_id ?? "the selected site"}`,
-                                );
-                                navigate("investigate");
-                            }}
+                            onInvestigate={
+                                isLocal
+                                    ? undefined
+                                    : (alert) => {
+                                          updateQuestion(
+                                              `${alert.rule_description ?? alert.rule_id ?? "Alert"} on ${alert.agent_name ?? alert.agent_id ?? "the selected site"}`,
+                                          );
+                                          navigate("investigate");
+                                      }
+                            }
                         />
                     )}
                     {route === "queue" && (
@@ -536,6 +589,17 @@ function AppContent() {
                             from={from}
                             to={to}
                             t={t}
+                            locale={locale}
+                            onInvestigate={
+                                isLocal
+                                    ? undefined
+                                    : (group) => {
+                                          updateQuestion(
+                                              `${group.title} on ${group.primary_entity?.value ?? selectedSite}`,
+                                          );
+                                          navigate("investigate");
+                                      }
+                            }
                             onOpenAlert={(alertKey) => updateUrl({ alert_key: alertKey }, "alerts")}
                             onFilters={(values) => updateUrl(values, "queue")}
                         />
@@ -552,19 +616,23 @@ function AppContent() {
                             siteId={selectedSite}
                             locale={locale}
                             t={t}
-                            onInvestigate={(draft, environmentId) => {
-                                updateQuestion(draft);
-                                if (
-                                    bootstrap?.sites.some(
-                                        (candidate) => candidate.id === environmentId,
-                                    )
-                                )
-                                    setSelectedSite(environmentId);
-                                navigate("investigate");
-                            }}
+                            onInvestigate={
+                                isLocal
+                                    ? undefined
+                                    : (draft, environmentId) => {
+                                          updateQuestion(draft);
+                                          if (
+                                              bootstrap?.sites.some(
+                                                  (candidate) => candidate.id === environmentId,
+                                              )
+                                          )
+                                              setSelectedSite(environmentId);
+                                          navigate("investigate");
+                                      }
+                            }
                         />
                     )}
-                    {route === "investigate" && (
+                    {!isLocal && route === "investigate" && (
                         <>
                             {boot.isError && (
                                 <div className="alert error" role="alert">
@@ -583,7 +651,7 @@ function AppContent() {
                                 </p>
                             )}
                             <Composer
-                                bootstrap={bootstrap}
+                                bootstrap={investigationBootstrap}
                                 question={question}
                                 setQuestion={updateQuestion}
                                 model={model}
@@ -733,8 +801,13 @@ function AppContent() {
                     {route === "topics" && (
                         <TopicsScreen topics={allTopics} locale={locale} t={t} />
                     )}
-                    {route === "status" && (
-                        <StatusScreen bootstrap={bootstrap} answer={answer} locale={locale} t={t} />
+                    {!isLocal && route === "status" && (
+                        <StatusScreen
+                            bootstrap={investigationBootstrap}
+                            answer={answer}
+                            locale={locale}
+                            t={t}
+                        />
                     )}
                 </main>
             </div>

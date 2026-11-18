@@ -27,7 +27,7 @@ export function validateIncidentCommentDTO(
 export function validateIncidentDispositionDTO(
   data: unknown,
 ): data is components["schemas"]["IncidentDispositionDTO"];
-import type { components } from "../../../contracts/workspace/v1/types.ts";
+import type { components } from "../../../../contracts/workspace/v1/types.ts";
 export function validateAlertDetail(data: unknown): data is components["schemas"]["AlertDetail"];
 export function validateAlertContext(
   data: unknown,
@@ -47,6 +47,15 @@ export function validateQueuePage(
   data: unknown,
 ): data is components["schemas"]["Page_QueueSummary_"];
 export function validateGroupDetail(data: unknown): data is components["schemas"]["GroupDetail"];
+export function validateAssessmentDetail(
+  data: unknown,
+): data is components["schemas"]["AssessmentDetail"];
+export function validateAssessmentReview(
+  data: unknown,
+): data is components["schemas"]["AssessmentReview"];
+export function validateAssessmentReviewRequest(
+  data: unknown,
+): data is components["schemas"]["AssessmentReviewRequest"];
 export function validateWorkState(data: unknown): data is components["schemas"]["WorkState"];
 export function validateDisposition(data: unknown): data is components["schemas"]["Disposition"];
 export function validateBulkActionResponse(

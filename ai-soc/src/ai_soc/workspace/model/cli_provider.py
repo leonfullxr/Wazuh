@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import stat
 import tempfile
 import threading
 from dataclasses import dataclass
@@ -125,7 +127,18 @@ class CodexCLIProvider:
         schema_hash = hashlib.sha256(schema).hexdigest()
         temp_parent: Path | None = None
         try:
-            temp_parent = Path(tempfile.mkdtemp(prefix="ai-soc-codex-"))
+            self.profile.state_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            state_info = self.profile.state_directory.lstat()
+            if (
+                self.profile.state_directory != self.profile.state_directory.resolve()
+                or not stat.S_ISDIR(state_info.st_mode)
+                or state_info.st_uid != os.geteuid()
+                or state_info.st_mode & 0o077
+            ):
+                raise ProviderUnavailable("state_directory_must_be_private")
+            temp_parent = Path(
+                tempfile.mkdtemp(prefix="ai-soc-codex-", dir=self.profile.state_directory)
+            )
             input_dir = temp_parent / "inputs"
             inputs = (
                 self.profile.prepare_inputs(input_dir, prompt, schema)
