@@ -9,7 +9,7 @@ LOCAL_PORT ?= 8123
 LOCAL_DIR ?= build/local-ai-soc
 LOCAL_UV = UV_PROJECT_ENVIRONMENT="$(CURDIR)/build/local-python" $(UV) run --locked --no-dev
 
-.PHONY: dev-setup ci-check agent-check test test-web bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained local-init local local-down staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
+.PHONY: dev-setup ci-check agent-check test test-web bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained local-init local local-down staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-knowledge ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
 
 dev-setup:
 	$(UV) sync --locked --all-groups
@@ -122,6 +122,9 @@ ws-partitions:
 
 ws-audit-relay:
 	$(UV) run --locked --no-dev python -m ai_soc.workspace.audit_delivery $(WS_ARGS)
+
+ws-knowledge:
+	$(UV) run --locked --no-dev ai-soc-knowledge $(WS_ARGS)
 
 ws-model-prepare:
 	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.model.worker prepare $(WS_ARGS)

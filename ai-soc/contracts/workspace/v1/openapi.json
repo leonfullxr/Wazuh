@@ -1222,6 +1222,31 @@
         "title": "BulkStatusAction",
         "type": "object"
       },
+      "ChainAssessmentPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/AssessmentProvenance"
+          }
+        },
+        "required": [
+          "outcome",
+          "evidence",
+          "provenance"
+        ],
+        "title": "ChainAssessmentPreview",
+        "type": "object"
+      },
       "ChainCandidateDTO": {
         "additionalProperties": false,
         "properties": {
@@ -1323,6 +1348,16 @@
       "ChainCandidateDetail": {
         "additionalProperties": false,
         "properties": {
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChainAssessmentPreview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "chain_id": {
             "title": "Chain Id",
             "type": "string"
@@ -4244,6 +4279,17 @@
             "title": "Is Current",
             "type": "boolean"
           },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
           "pack_digest": {
             "anyOf": [
               {
@@ -4254,6 +4300,17 @@
               }
             ],
             "title": "Pack Digest"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id"
           },
           "reason_code": {
             "anyOf": [

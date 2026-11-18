@@ -1,6 +1,6 @@
 # Run AI SOC on your machine
 
-AI SOC polls your Wazuh Indexer with a dedicated read-only account. The local console reads the resulting alert groups, scores, chains, incidents, and analyst work from PostgreSQL. An optional Chat Completions model can assess selected groups in shadow mode.
+AI SOC polls your Wazuh Indexer with a dedicated read-only account. The local console reads the resulting alert groups, scores, chains, incidents, and analyst work from PostgreSQL. An optional Chat Completions model can assess selected groups and chain candidates in shadow mode and generate incident narratives.
 
 ## Install and configure
 
@@ -29,13 +29,18 @@ Add an `assessment` object inside the site entry in `config.json`. This example 
   "base_url": "http://127.0.0.1:11434/v1",
   "model": "your-installed-model",
   "max_calls_per_run": 20,
-  "concurrency": 1
+  "concurrency": 1,
+  "narratives_enabled": true
 }
 ```
 
 Use the endpoint and model identifier from your provider. For a hosted service, use its HTTPS base URL and add `"credential_file": "/absolute/path/to/provider-key"`. The key file contains only the bearer key and must have mode `0600`. A loopback HTTP model can run without a key. A hosted model receives the bounded evidence included in each submitted assessment.
 
 Leave `assessment` out to run the deterministic workspace alone. The model status in Overview reports attempts, completions, and failures. Assessments on real alerts run in shadow mode. The console reports model activity while the workspace continues to rank alerts and record analyst decisions independently.
+
+With `narratives_enabled` set to `true`, the worker generates a cited narrative when you freeze incident evidence. The worker uses the configured model and records its identity. Group and chain verdicts stay in shadow. Set `correlation_enabled` in the site configuration to `true` if you want the workspace to evaluate its SSH correlation rule.
+
+To load reviewed runbooks for assessments, follow the content approval and site loading procedure. [Load reviewed knowledge](operations/workspace.md#load-reviewed-knowledge)
 
 ## Start and sign in
 

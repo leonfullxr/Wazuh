@@ -17,14 +17,17 @@ from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from ai_soc.contracts.canonical import canonical_bytes, evidence_id, sha256_hex
 from ai_soc.workspace.db import require_site_transaction
+from ai_soc.workspace.knowledge import KnowledgeSubject, search_knowledge
 from ai_soc.workspace.model.pack import MAX_PACK_BYTES
 from ai_soc.workspace.triage.enrich import Availability, GapState, enrichment_gap
 from ai_soc.workspace.triage.score import ScoreResult
 
 _PACK_VERSION = "workspace.group-assessment-pack.v1"
+_CHAIN_PACK_VERSION = "workspace.chain-assessment-pack.v1"
 _MAX_MEMBER_SAMPLES = 32
 _MAX_TEXT_BYTES = 256
 _MAX_CONTEXT_VALUES = 8
+_MAX_KNOWLEDGE_KEYS = 32
 _SSH_RULES = frozenset({"5763", "5715", "40112"})
 _ALERT_FIELDS: tuple[str, ...] = (
     "rule_id",
@@ -81,8 +84,10 @@ _DISPOSITION_LABELS: tuple[str, ...] = (
     "undetermined",
 )
 _KEY_RE = re.compile(r"[0-9a-f]{64}\Z")
+_RULE_GROUP_RE = re.compile(r"[a-z0-9][a-z0-9_.-]{0,127}\Z", re.ASCII)
+_ATTACK_TECHNIQUE_RE = re.compile(r"T[0-9]{4}(?:\.[0-9]{3})?\Z", re.ASCII)
 
-type EvidenceKind = Literal["row", "aggregate", "check", "context", "history", "knowledge"]
+type EvidenceKind = Literal["row", "aggregate", "check", "context", "history", "knowledge", "stage"]
 type EvidenceValue = bool | int | float | str | tuple[str, ...]
 
 
@@ -152,11 +157,22 @@ class EvidencePack:
     items: tuple[EvidenceItem, ...]
     score: PackScore
     digest: str
+    chain_id: str | None = None
+    manifest_id: str | None = None
+
+    @property
+    def subject_kind(self) -> Literal["group", "chain"]:
+        return "chain" if self.chain_id is not None else "group"
 
     def _content(self) -> dict[str, Any]:
         return {
-            "builder_version": _PACK_VERSION,
-            "subject_kind": "group",
+            "builder_version": _CHAIN_PACK_VERSION if self.chain_id is not None else _PACK_VERSION,
+            "subject_kind": self.subject_kind,
+            **(
+                {"chain_id": self.chain_id, "manifest_id": self.manifest_id}
+                if self.chain_id is not None
+                else {}
+            ),
             "site_id": self.site_id,
             "group_id": self.group_id,
             "revision": self.revision,
@@ -180,8 +196,8 @@ class EvidencePack:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> EvidencePack:
         """Rehydrate the same pack and verify its content digest before use."""
-        if data.get("builder_version") != _PACK_VERSION or data.get("subject_kind") != "group":
-            raise ValueError("unsupported group assessment pack version")
+        if data.get("builder_version") not in {_PACK_VERSION, _CHAIN_PACK_VERSION}:
+            raise ValueError("unsupported assessment pack version")
         pack = cls(
             site_id=data["site_id"],
             group_id=data["group_id"],
@@ -196,6 +212,8 @@ class EvidencePack:
             items=tuple(EvidenceItem.from_dict(item) for item in data["items"]),
             score=PackScore.model_validate(data["score"]),
             digest=data["digest"],
+            chain_id=data.get("chain_id"),
+            manifest_id=data.get("manifest_id"),
         )
         item_ids = {item.id for item in pack.items}
         if (
@@ -203,6 +221,8 @@ class EvidencePack:
             or pack.digest != sha256_hex(pack._content())
             or len(item_ids) != len(pack.items)
             or len(canonical_bytes(data)) > MAX_PACK_BYTES
+            or (pack.chain_id is not None) != (pack.manifest_id is not None)
+            or any(item.kind == "stage" and pack.chain_id is None for item in pack.items)
         ):
             raise ValueError("invalid group assessment pack content")
         return pack
@@ -284,11 +304,24 @@ def build_pack(
         scope_id=sha256_hex((*pins, as_of, score.computation_version, score.input_digest)),
     )
     context, gaps, matched_noise_keys = _context_items(conn, subject, manifest_row[0])
-    aggregate, samples, missing_fields, is_ssh = _observations(conn, subject, matched_noise_keys)
+    aggregate, samples, missing_fields, is_ssh, knowledge_subject = _observations(
+        conn, subject, matched_noise_keys
+    )
     observed_count = aggregate.fields["observed_member_count"]
     gaps["observations"] = "present" if observed_count == subject.member_count else "failed"
     history, gaps["history"] = _history(conn, subject)
-    gaps["knowledge"] = "not_configured"
+    query_text = " ".join(
+        str(item.fields.get("rule_description", ""))
+        for item in samples
+        if item.fields.get("rule_description")
+    )
+    knowledge = _knowledge(
+        conn,
+        subject,
+        knowledge_subject=knowledge_subject,
+        query_text=query_text,
+    )
+    gaps["knowledge"] = "present" if knowledge else "not_configured"
     score_view = PackScore(
         computation_version=score.computation_version,
         input_digest=score.input_digest,
@@ -313,7 +346,51 @@ def build_pack(
         score=score_view,
         digest="0" * 64,
     )
-    return _fit_pack(pack, samples=samples, history=history, knowledge=[])
+    return _fit_pack(pack, samples=samples, history=history, knowledge=knowledge)
+
+
+def _knowledge(
+    conn: psycopg.Connection[Any],
+    subject: _Subject,
+    *,
+    knowledge_subject: KnowledgeSubject,
+    query_text: str,
+) -> list[EvidenceItem]:
+    hits = search_knowledge(
+        conn,
+        site_id=subject.site_id,
+        subject=KnowledgeSubject(
+            rule_ids=(subject.rule_id,) if subject.rule_id is not None else (),
+            rule_groups=knowledge_subject.rule_groups,
+            attack_techniques=knowledge_subject.attack_techniques,
+            cves=knowledge_subject.cves,
+            query_text=query_text,
+        ),
+        cutoff=subject.as_of,
+    )
+    return [
+        subject.item(
+            "knowledge",
+            "knowledge_chunks",
+            hit.chunk_id,
+            {
+                "chunk_id": hit.chunk_id,
+                "document_id": hit.document_id,
+                "title": hit.title,
+                "kind": hit.kind,
+                "language": hit.language,
+                "section": hit.section,
+                "text": hit.body,
+                "source": hit.source_path,
+                "version": hit.content_version,
+                "reviewer": hit.reviewer,
+                "review_date": hit.review_date,
+                "exact_match": hit.exact_match,
+                "rank": hit.rank,
+            },
+        )
+        for hit in hits
+    ]
 
 
 def _fit_pack(
@@ -343,25 +420,33 @@ def _fit_pack(
 
 def _observations(
     conn: psycopg.Connection[Any], subject: _Subject, matched_noise_keys: frozenset[str]
-) -> tuple[EvidenceItem, list[EvidenceItem], tuple[str, ...], bool]:
+) -> tuple[EvidenceItem, list[EvidenceItem], tuple[str, ...], bool, KnowledgeSubject]:
     counts = dict.fromkeys(_ALERT_FIELDS, 0)
     observed_count = brute_count = success_count = known_noise_count = 0
     is_ssh = subject.rule_id in _SSH_RULES
     first_event = last_event = None
     samples: list[EvidenceItem] = []
+    rule_groups: set[str] = set()
+    attack_techniques: set[str] = set()
     with conn.cursor(name="assessment_members") as cursor:
         cursor.execute(
             """SELECT alert_key, event_ts, normalized_snapshot -> 'rule_id',
                       normalized_snapshot -> 'rule_level', normalized_snapshot -> 'decoder',
                       normalized_snapshot -> 'src_ip', normalized_snapshot -> 'dst_user',
                       normalized_snapshot -> 'src_user', normalized_snapshot -> 'agent_id',
-                      normalized_snapshot -> 'rule_description'
+                      normalized_snapshot -> 'rule_description',
+                      normalized_snapshot -> 'rule_groups',
+                      normalized_snapshot -> 'mitre_techniques'
                FROM group_members
                WHERE site_id=%s AND group_id=%s AND group_revision=%s AND event_ts <= %s
                ORDER BY event_ts, alert_key""",
             (subject.site_id, subject.group_id, subject.revision, subject.as_of),
         )
         for alert_key, event_at, *values in cursor:
+            rule_group_values, technique_values = values[-2:]
+            values = values[:-2]
+            _collect_keys(rule_groups, rule_group_values, case="lower")
+            _collect_keys(attack_techniques, technique_values, case="upper")
             observed_count += 1
             first_event = event_at if first_event is None else first_event
             last_event = event_at
@@ -393,12 +478,52 @@ def _observations(
         aggregate["first_event_at"] = _instant(first_event)
         aggregate["last_event_at"] = _instant(last_event)
     missing_fields = tuple(field for field, count in counts.items() if count < subject.member_count)
+    cves = tuple(
+        row[0]
+        for row in conn.execute(
+            """SELECT DISTINCT e.value_norm
+               FROM group_members gm
+               JOIN alert_entities ae
+                 ON ae.site_id=gm.site_id AND ae.alert_key=gm.alert_key
+               JOIN entities e ON e.site_id=ae.site_id AND e.entity_id=ae.entity_id
+               WHERE gm.site_id=%s AND gm.group_id=%s AND gm.group_revision=%s
+                 AND gm.event_ts <= %s AND e.kind='cve'
+                 AND e.value_norm ~ '^CVE-[0-9]{4}-[0-9]{4,}$'
+                 AND octet_length(e.value_norm) <= 32
+               ORDER BY e.value_norm LIMIT %s""",
+            (
+                subject.site_id,
+                subject.group_id,
+                subject.revision,
+                subject.as_of,
+                _MAX_KNOWLEDGE_KEYS,
+            ),
+        ).fetchall()
+    )
     return (
         subject.item("aggregate", "group_members", "summary", aggregate),
         samples,
         missing_fields,
         is_ssh,
+        KnowledgeSubject(
+            rule_groups=tuple(sorted(rule_groups)),
+            attack_techniques=tuple(sorted(attack_techniques)),
+            cves=cves,
+        ),
     )
+
+
+def _collect_keys(target: set[str], value: object, *, case: Literal["lower", "upper"]) -> None:
+    if not isinstance(value, list):
+        return
+    for item in cast(list[object], value):
+        if len(target) >= _MAX_KNOWLEDGE_KEYS:
+            return
+        if isinstance(item, str) and item:
+            normalized = item.casefold() if case == "lower" else item.upper()
+            pattern = _RULE_GROUP_RE if case == "lower" else _ATTACK_TECHNIQUE_RE
+            if pattern.fullmatch(normalized):
+                target.add(normalized)
 
 
 def _alert_fields(raw: Mapping[str, object]) -> tuple[dict[str, EvidenceValue], tuple[str, ...]]:

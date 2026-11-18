@@ -153,7 +153,9 @@ def _run_claim(
             row = conn.execute(
                 """
                 SELECT r.prompt,r.prompt_digest,r.catalog,r.catalog_digest,
-                       r.evidence_pack,r.pack_digest,a.attempt,o.status,s.total
+                       r.evidence_pack,r.pack_digest,a.attempt,o.status,s.total,
+                       r.chain_id,r.chain_revision,r.chain_manifest_id,r.group_id,r.group_revision,
+                       r.computation_version,r.input_digest
                 FROM group_assessment_requests r
                 JOIN scores s USING
                   (site_id,group_id,group_revision,computation_version,input_digest)
@@ -197,6 +199,24 @@ def _run_claim(
                 row[5],
             ):
                 raise ValueError("assessment input differs from its frozen request")
+            if (
+                pack.chain_id,
+                pack.revision,
+                pack.manifest_id,
+                pack.group_id,
+                pack.score.computation_version,
+                pack.score.input_digest,
+                pack.site_id,
+            ) != (
+                row[9],
+                row[10] if row[9] is not None else row[13],
+                str(row[11]) if row[11] is not None else None,
+                row[12],
+                row[14],
+                row[15],
+                site_id,
+            ):
+                raise ValueError("assessment evidence does not match its subject pins")
             schema = output_schema(catalog)
             conn.execute(
                 """

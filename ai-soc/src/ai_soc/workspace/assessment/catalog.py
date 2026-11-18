@@ -13,7 +13,8 @@ from ai_soc.validation.findings import parse_finding_json, template_placeholders
 
 CATALOG_PATH = Path(__file__).resolve().parents[4] / "content/workspace/assessment/catalog.json"
 
-type EvidenceKind = Literal["row", "aggregate", "check", "context", "history", "knowledge"]
+type EvidenceKind = Literal["row", "aggregate", "check", "context", "history", "knowledge", "stage"]
+type SubjectKind = Literal["group", "chain"]
 type Stance = Literal["malicious", "benign"]
 type Value = str | int | FiniteFloat | bool
 
@@ -48,12 +49,18 @@ class Slot(StrictModel):
 
 
 class Relation(StrictModel):
-    kind: Literal["same_record", "same_fetch", "aggregate_scope"]
+    kind: Literal["same_record", "same_fetch", "aggregate_scope", "next_stage"]
     slots: tuple[ContentId, ...] = Field(min_length=2, max_length=8)
+
+    @model_validator(mode="after")
+    def validate_slots(self) -> "Relation":
+        if self.kind == "next_stage" and len(set(self.slots)) != len(self.slots):
+            raise ValueError("consecutive stages require distinct slots")
+        return self
 
 
 class FindingTemplate(StrictModel):
-    subjects: tuple[Literal["group"], ...] = Field(min_length=1)
+    subjects: tuple[SubjectKind, ...] = Field(min_length=1)
     stance: Stance
     evidence_kinds: tuple[EvidenceKind, ...] = Field(min_length=1)
     slots: dict[ContentId, Slot] = Field(min_length=1, max_length=8)
@@ -70,6 +77,10 @@ class FindingTemplate(StrictModel):
             raise ValueError("finding text must match declared slots")
         if any(not set(relation.slots) <= slots for relation in self.relations):
             raise ValueError("finding relation names undeclared slots")
+        if any(relation.kind == "next_stage" for relation in self.relations) and (
+            self.subjects != ("chain",) or self.evidence_kinds != ("stage",)
+        ):
+            raise ValueError("consecutive stage relations require chain stage evidence")
         if len(slots) > 1:
             connected = {next(iter(slots))}
             for _ in slots:
@@ -88,7 +99,7 @@ class FindingTemplate(StrictModel):
 
 
 class StepTemplate(StrictModel):
-    subjects: tuple[Literal["group"], ...] = Field(min_length=1)
+    subjects: tuple[SubjectKind, ...] = Field(min_length=1)
     evidence_kinds: tuple[EvidenceKind, ...] = Field(min_length=1)
     precondition: Condition
     text: LocaleText
@@ -134,8 +145,9 @@ class AssessmentCatalog(StrictModel):
         return sha256_hex(self)
 
 
-@lru_cache(maxsize=1)
-def load_catalog() -> AssessmentCatalog:
-    text = CATALOG_PATH.read_text("utf-8")
+@lru_cache(maxsize=2)
+def load_catalog(*, subject: SubjectKind = "group") -> AssessmentCatalog:
+    path = CATALOG_PATH if subject == "group" else CATALOG_PATH.with_name("chain-catalog.json")
+    text = path.read_text("utf-8")
     parse_finding_json(text)
     return AssessmentCatalog.model_validate_json(text)

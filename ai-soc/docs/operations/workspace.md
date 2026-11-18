@@ -121,6 +121,29 @@ Each completed job records `completed_at`. Historical quality queries restrict i
 
 Keep completed enrichment and rescore jobs for at least as long as their score manifests and evidence. Job history determines score authority. Before you delete jobs, preserve an equivalent immutable intent ledger.
 
+## Load reviewed knowledge
+
+Build knowledge through `ai-soc-content` from a committed external content repository and a live detached approval. Put reviewed Markdown under `knowledge/`. Each document declares its id, title, kind, language, applicability, reviewer, review date and optional expiry in front matter. The builder rejects hidden text, command instructions, duplicate ids, expired documents and documents that claim more than 32 rule ids. It stores heading-bounded chunks in the verified content pack; the workspace never reads the source folder.
+
+Load the approved pack into one configured site with the restricted workspace role:
+
+```sh
+make ws-knowledge WS_ARGS="load --config /run/secrets/workspace.json --site lab \
+  --pack /srv/ai-soc/content/release-2026-10 \
+  --expected-pack-sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+```
+
+Both `--config` and `--pack` must be absolute paths. `--expected-pack-sha256` is mandatory and must come from the independently published approval record used by the operator's release process, not from `manifest.json`, `provenance.json`, command output or another file inside the pack. Record the approval location, digest, reviewer and retrieval time in the deployment change record before loading.
+
+The command reads the restricted database reference from the protected workspace configuration, checks that the site is in that configuration, verifies the complete pack inventory once, compares its manifest digest with the independent pin, and loads that same verified byte snapshot. It also refuses fixture-approved packs. It prints only the site, public content commit, pack digest and loaded chunk count. It does not read Wazuh or contact the model provider.
+
+Before loading, run `ai-soc-content verify --pack /absolute/pack`. Compare the digest with the approval record through an independent channel. At load time, pass the same pack directory and expected digest. Record the returned site, content commit, digest, and chunk count. Real-alert assessments and their citations stay in shadow. Keep the approved pack and approval record for replay.
+
+By default, the load cutoff is the current UTC instant. For a staged replay, record and pass an explicit aware timestamp such as `--loaded-at 2026-10-21T10:00:00Z`. Retrieval uses the latest document version loaded by the assessment cutoff, evaluates expiry at that cutoff and records the selected chunk ids and ranks in the assessment evidence. Loading the same content commit again is idempotent. Load a shared pack separately into each intended site; row-level security never exposes one site's knowledge to another.
+
+Knowledge can support context and next steps. It cannot establish what happened on a host and cannot by itself support a benign verdict. Keep old approved packs and their review records for as long as stored assessments cite their versions.
+
+
 ## Ingest and process alerts
 
 With `WS_WORKER_CONFIG` set to the protected configuration path, run:
@@ -151,17 +174,18 @@ To run shadow assessments on an authorized lab site, add `lab_assessment` to tha
   "model": "lab-model",
   "credential_file": "/run/secrets/lab-model-key",
   "max_calls_per_run": 20,
-  "concurrency": 1
+  "concurrency": 1,
+  "narratives_enabled": true
 }
 ```
 
 The endpoint must support Chat Completions with structured JSON output. Put the bearer key in the credential file and restrict access to the worker account. The adapter verifies TLS and allows HTTP only on loopback.
 
-Run `make ws-worker WS_ARGS="--drain"` to process the lab assessments after deterministic work. The worker records the provider, model, and outcome for each submitted request. Lab results stay in shadow for evaluation. Use `enabled: false` to defer model work while continuing ingestion, scoring, and correlation.
+Run `make ws-worker WS_ARGS="--drain"` to process model work after deterministic work. The worker records the provider, model, and outcome for each submitted request. Lab assessment results stay in shadow for evaluation. `narratives_enabled` is false by default; setting it to true also prepares and publishes validated fixed-template incident narratives through this provider, without a personal CLI account or host-runtime binding. Assessments and narratives share `max_calls_per_run`. Use `enabled: false` to defer all configured model work while continuing ingestion, scoring, and correlation.
 
 ## Correlate alerts
 
-The main workspace queue handles deterministic ingestion, scoring, and correlation. The same worker command drains enabled group assessments in a separate pass. The incident narrative uses its dedicated process. Keep its Wazuh credential read-only and its full-site visibility attestation current.
+The main workspace queue handles deterministic ingestion, scoring, and correlation. The same worker command drains enabled group assessments and portable incident narratives in separate passes. The dedicated personal-CLI narrative process remains available only for existing deployments that intentionally retain it. Keep the Wazuh credential read-only and the site's full-visibility attestation current.
 
 Run `make ws-correlate WS_ARGS="--help"` to see the bounded historical correlation and frozen replay commands. Generic tactic progression remains disabled.
 

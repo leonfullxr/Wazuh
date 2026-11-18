@@ -7,14 +7,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Annotated, Any, NoReturn, cast
+from typing import Annotated, Any, NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Request
 from psycopg import Error as PsycopgError
 
 from ai_soc.contracts.models import VerifiedPrincipal
-from ai_soc.workspace.api.chain_queries import get_candidate, list_candidates
+from ai_soc.workspace.api.chain_queries import list_candidates
 from ai_soc.workspace.api.common import (
     ERROR_RESPONSES,
     WorkspaceApiError,
@@ -32,7 +32,6 @@ from ai_soc.workspace.api.incident_queries import incident_context, incident_eve
 from ai_soc.workspace.api.m3_repository import connect_read_repository, connect_write_repository
 from ai_soc.workspace.api.models import (
     ChainCandidateDetail,
-    ChainCandidateDTO,
     ChainDismissRequest,
     ChainDismissResponse,
     ChainPage,
@@ -54,6 +53,7 @@ from ai_soc.workspace.api.models import (
     NarrativeReadResponse,
 )
 from ai_soc.workspace.api.narrative_queries import get_incident_narrative
+from ai_soc.workspace.api.read_service import chain_projection, chain_record
 from ai_soc.workspace.api.repository import WorkspaceRepository
 from ai_soc.workspace.api.runtime import WorkspaceRuntime
 from ai_soc.workspace.correlate.repository import CorrelationConflict, dismiss_reviewed_candidate
@@ -95,81 +95,6 @@ def _snapshot(value: Any) -> IncidentSnapshotDTO:
         revision_seq=value.revision_seq,
         priority=value.priority,
     )
-
-
-def _candidate(
-    value: dict[str, Any], detail: bool = False
-) -> ChainCandidateDTO | ChainCandidateDetail:
-    stages = value.get("stages", [])
-    if stages and isinstance(stages[0], tuple):
-        stages = [
-            dict(
-                zip(
-                    (
-                        "ordinal",
-                        "stage_id",
-                        "outcome",
-                        "group_id",
-                        "group_revision",
-                        "alert_key",
-                        "event_ts",
-                        "confidence",
-                        "source_hash",
-                        "projection_availability",
-                    ),
-                    stage,
-                    strict=True,
-                )
-            )
-            for stage in stages
-        ]
-    base: dict[str, Any] = dict(
-        chain_id=str(value["chain_id"]),
-        revision_digest=str(value["revision_digest"]),
-        manifest_id=str(value["manifest_id"]),
-        rule_id=str(value["rule_id"]),
-        rule_version=str(value["rule_version"]),
-        state=str(value["state"]),
-        decision_version=int(value["decision_version"]),
-        created_at=value["created_at"],
-        updated_at=value["updated_at"],
-        score=None if value["score"] is None else float(value["score"]),
-        score_available=bool(value["score_available"]),
-        result=value["result"],
-        stages=stages,
-        weak_heuristic=bool(value["weak"]),
-    )
-    if detail:
-
-        def rows(items: object, columns: tuple[str, ...]) -> list[dict[str, Any]]:
-            return [dict(zip(columns, item, strict=True)) for item in items]  # type: ignore[arg-type]
-
-        base["edges"] = rows(
-            value.get("edges", []),
-            (
-                "edge_id",
-                "from_group",
-                "from_revision",
-                "from_alert_key",
-                "to_group",
-                "to_revision",
-                "to_alert_key",
-                "edge_type",
-                "confidence",
-                "reason",
-                "time_delta_seconds",
-                "shared_fields",
-            ),
-        )
-        base["weak_edges"] = [edge for edge in base["edges"] if edge["edge_type"] == "same_host"]
-        for edge in base["edges"]:
-            edge["weak"] = edge["edge_type"] == "same_host"
-        base["score_pins"] = rows(
-            value.get("score_pins", []),
-            ("group_id", "group_revision", "score_version", "score_digest", "score"),
-        )
-        return ChainCandidateDetail(**base)
-    return ChainCandidateDTO(**base)
 
 
 def m3_router(
@@ -322,7 +247,9 @@ def m3_router(
                     },
                 )
             return ChainPage(
-                items=[_candidate(row) for row in rows], next_cursor=next_cursor, limit=limit
+                items=[chain_projection(row) for row in rows],
+                next_cursor=next_cursor,
+                limit=limit,
             )
         finally:
             repo.close()
@@ -339,10 +266,14 @@ def m3_router(
         validate_query(request, {"site_id"})
         repo = read_repo(site_id, principal)
         try:
-            candidate = get_candidate(repo.conn, site_id=site_id, chain_id=chain_id)
-            if candidate is None:
+            detail = chain_record(
+                repo,
+                chain_id,
+                include_assessment=site_id == runtime.assessment_preview_site,
+            )
+            if detail is None:
                 raise WorkspaceApiError(404, "RESOURCE_UNKNOWN", "Candidate is unknown")
-            return cast(ChainCandidateDetail, _candidate(candidate, detail=True))
+            return detail
         finally:
             repo.close()
 

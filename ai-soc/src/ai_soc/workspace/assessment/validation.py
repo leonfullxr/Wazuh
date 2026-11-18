@@ -165,6 +165,21 @@ def _related(relation: Relation, bound: Mapping[str, EvidenceItem]) -> bool:
                 and len({item.scope_id for item in items}) == 1
                 and any(item.kind == "aggregate" for item in items)
             )
+        case "next_stage":
+            ordinals = [item.fields.get("ordinal") for item in items]
+            first = ordinals[0]
+            return (
+                type(first) is int
+                and items[0].scope_id is not None
+                and all(
+                    item.kind == "stage"
+                    and item.scope_id == items[0].scope_id
+                    and item.fields.get("outcome") == "matched"
+                    and type(ordinal) is int
+                    and ordinal == first + index
+                    for index, (item, ordinal) in enumerate(zip(items, ordinals, strict=True))
+                )
+            )
 
 
 def _finding(
@@ -253,7 +268,7 @@ def validate_assessment(
         template = catalog.findings.get(item.template_id)
         if finding_counts[item.finding_id] > 1:
             result: tuple[RenderedFinding, bool] | RemovalReason = "duplicate_id"
-        elif template is None or "group" not in template.subjects:
+        elif template is None or pack.subject_kind not in template.subjects:
             result = "unknown_template"
         else:
             result = _finding(item, template, evidence, pack.member_count)
@@ -270,7 +285,7 @@ def validate_assessment(
         ids = set(step.evidence_ids)
         if step_counts[step.step_id] > 1:
             step_error = "duplicate_id"
-        elif definition is None or "group" not in definition.subjects:
+        elif definition is None or pack.subject_kind not in definition.subjects:
             step_error = "unknown_template"
         elif len(ids) != len(step.evidence_ids) or not ids <= evidence.keys():
             step_error = "invalid_citations"

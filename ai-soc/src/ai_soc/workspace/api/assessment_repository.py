@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from psycopg.rows import dict_row
 
@@ -15,6 +15,7 @@ from ai_soc.workspace.api.assessment_models import (
     AssessmentReviewRequest,
     AssessmentState,
     AssessmentSummary,
+    ChainAssessmentPreview,
 )
 from ai_soc.workspace.api.repository import WorkspaceRepository
 from ai_soc.workspace.assessment.pack import EvidencePack
@@ -24,6 +25,49 @@ from ai_soc.workspace.audit_outbox import record_audit
 from ai_soc.workspace.feedback import FeedbackConflict, idempotent_result, save_idempotent
 
 _REVIEW_LIMIT = 50
+
+
+def chain_assessment_preview(
+    repo: WorkspaceRepository, *, chain_id: str, revision: str, manifest_id: UUID
+) -> ChainAssessmentPreview | None:
+    if not assessments_enabled(repo):
+        return None
+    with repo.conn.cursor(row_factory=dict_row) as cursor:
+        row = cursor.execute(
+            """
+            SELECT r.evidence_pack,r.pack_digest,r.prompt_digest,r.catalog_version,r.catalog_digest,
+                   a.provider,a.model,o.outcome,o.input_tokens,o.output_tokens,
+                   o.latency_ms,o.finished_at
+            FROM group_assessment_requests r
+            JOIN group_assessment_outcomes o USING (site_id,request_id)
+            JOIN group_assessment_attempts a USING (site_id,request_id,attempt)
+            WHERE r.site_id=%s AND r.chain_id=%s AND r.chain_revision=%s
+              AND r.chain_manifest_id=%s AND r.synthetic
+            ORDER BY r.created_at DESC,r.job_id DESC LIMIT 1
+            """,
+            (repo.site_id, chain_id, revision, manifest_id),
+        ).fetchone()
+    if row is None:
+        return None
+    pack = EvidencePack.from_dict(row["evidence_pack"])
+    if (pack.site_id, pack.chain_id, pack.revision, pack.manifest_id, pack.digest) != (
+        repo.site_id,
+        chain_id,
+        revision,
+        str(manifest_id),
+        row["pack_digest"],
+    ):
+        raise ValueError("assessment pack does not match its pinned chain revision")
+    return ChainAssessmentPreview(
+        outcome=Outcome.model_validate(row["outcome"]),
+        evidence=[
+            AssessmentEvidence(id=item.id, kind=item.kind, fields=item.as_dict()["fields"])
+            for item in pack.items
+        ],
+        provenance=AssessmentProvenance.model_validate(
+            {field: row[field] for field in AssessmentProvenance.model_fields}
+        ),
+    )
 
 
 def assessments_enabled(repo: WorkspaceRepository) -> bool:
@@ -61,6 +105,7 @@ def assessment_records(
                             IS TRUE AS exact
                 ) pin
                 WHERE r.site_id = %s AND r.group_id = target.group_id AND r.synthetic
+                  AND r.chain_id IS NULL
                   AND (pin.exact OR o.status = 'accepted')
                 ORDER BY CASE WHEN pin.exact AND o.status IS NOT NULL THEN 0
                               WHEN o.status = 'accepted' THEN 1 ELSE 2 END,
@@ -226,6 +271,7 @@ def review_assessment(
         """
         SELECT 1 FROM group_assessment_requests
         WHERE site_id = %s AND group_id = %s AND request_id = %s AND synthetic
+          AND chain_id IS NULL
         """,
         (repo.site_id, group_id, body.request_id),
     ).fetchone()

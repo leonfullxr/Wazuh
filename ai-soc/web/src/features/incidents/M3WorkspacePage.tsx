@@ -572,6 +572,9 @@ function ChainDetailView({
                     </div>
                 )}
             </section>
+            {detail.assessment && (
+                <ChainAssessment assessment={detail.assessment} locale={locale} t={t} />
+            )}
             <section aria-labelledby="chain-links-heading">
                 <h4 id="chain-links-heading">{t("m3Links")}</h4>
                 {detail.edges.length ? (
@@ -639,6 +642,58 @@ function ChainDetailView({
                 </div>
             )}
         </>
+    );
+}
+
+function ChainAssessment({
+    assessment,
+    locale,
+    t,
+}: {
+    assessment: components["schemas"]["ChainAssessmentPreview"];
+    locale: Locale;
+    t: Translate;
+}) {
+    const stages = new Map(assessment.evidence.map((item) => [item.id, item]));
+    const findings = assessment.outcome.findings ?? [];
+    return (
+        <section className="m3-chain-assessment" aria-labelledby="chain-assessment-heading">
+            <header>
+                <h4 id="chain-assessment-heading">{t("m3ChainAssessment")}</h4>
+                <span className="muted">{t("m3ChainAssessmentPreview")}</span>
+            </header>
+            {findings.length === 0 ? (
+                <p className="muted">{t("m3ChainAssessmentEmpty")}</p>
+            ) : (
+                <ul className="m3-chain-assessment-findings">
+                    {findings.map((finding) => (
+                        <li key={finding.id}>
+                            <p>{finding.text[locale]}</p>
+                            <ul className="m3-chain-assessment-citations" aria-label={t("m3OrderedStages")}>
+                                {finding.evidence_ids.map((id) => {
+                                    const stage = stages.get(id);
+                                    return stage && (
+                                        <li key={id}>
+                                            {humanizeKey(String(stage.fields.stage_id))}
+                                            <IdValue value={id} locale={locale} copy />
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <details>
+                <summary>{t("m3NarrativeProvenance")}</summary>
+                <dl className="m3-meta">
+                    <dt>{t("m3ChainAssessmentModel")}</dt>
+                    <dd>{assessment.provenance.provider} · {assessment.provenance.model}</dd>
+                    <dt>{t("m3NarrativePackDigest")}</dt>
+                    <dd><IdValue value={assessment.provenance.pack_digest} locale={locale} copy /></dd>
+                </dl>
+            </details>
+        </section>
     );
 }
 

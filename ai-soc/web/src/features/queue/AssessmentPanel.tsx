@@ -39,6 +39,7 @@ const words = {
         removed: "Removed",
         provenance: "Provenance",
         reviews: "Assessment history",
+        reviewed: "Reviewed",
         yourCall: "Your call",
         agree: "Agree",
         override: "Override",
@@ -109,6 +110,7 @@ const words = {
         removed: "Eliminados",
         provenance: "Procedencia",
         reviews: "Historial de evaluaciones",
+        reviewed: "Revisado",
         yourCall: "Tu decisión",
         agree: "De acuerdo",
         override: "Cambiar veredicto",
@@ -213,6 +215,10 @@ export function AssessmentPanel({
     const reasonLabels: Readonly<Record<string, string>> = copy;
     const findings = outcome?.findings ?? [];
     const evidence = new Map(detail.evidence.map((item) => [item.id, item]));
+    const fieldText = (fields: Record<string, unknown>, key: string) => {
+        const value = fields[key];
+        return typeof value === "string" || typeof value === "number" ? String(value) : null;
+    };
     const citation = (id: string) => {
         const item = evidence.get(id);
         if (!item) return null;
@@ -504,16 +510,54 @@ export function AssessmentPanel({
                 )}
             </details>
             {detail.evidence.some((item) => item.kind === "knowledge") && (
-                <details>
+                <details className="assessment-knowledge">
                     <summary>{copy.knowledge}</summary>
                     {detail.evidence
                         .filter((item) => item.kind === "knowledge")
-                        .map((item) => (
-                            <div key={item.id}>
-                                <p>{copy.reference}</p>
-                                {citation(item.id)}
-                            </div>
-                        ))}
+                        .map((item) => {
+                            const title = fieldText(item.fields, "title") ?? copy.reference;
+                            const section = fieldText(item.fields, "section");
+                            const body = fieldText(item.fields, "text");
+                            const language = fieldText(item.fields, "language");
+                            const source = fieldText(item.fields, "source");
+                            const version = fieldText(item.fields, "version");
+                            const reviewer = fieldText(item.fields, "reviewer");
+                            const reviewDate = fieldText(item.fields, "review_date");
+                            return (
+                                <article className="assessment-knowledge-card" key={item.id}>
+                                    <header>
+                                        <div>
+                                            <strong>{title}</strong>
+                                            {section && <span>{section}</span>}
+                                        </div>
+                                        <code>{fieldText(item.fields, "kind")}</code>
+                                    </header>
+                                    {body && (
+                                        <figure>
+                                            <blockquote lang={language === "es" ? "es" : "en"}>
+                                                {body}
+                                            </blockquote>
+                                            <figcaption>
+                                                <cite>{source}</cite>
+                                                {version && ` · ${version.slice(0, 12)}`}
+                                            </figcaption>
+                                        </figure>
+                                    )}
+                                    <dl>
+                                        <div>
+                                            <dt>{copy.citation}</dt>
+                                            <dd>
+                                                <code>{item.id}</code>
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>{copy.reviewed}</dt>
+                                            <dd>{[reviewer, reviewDate].filter(Boolean).join(" · ")}</dd>
+                                        </div>
+                                    </dl>
+                                </article>
+                            );
+                        })}
                 </details>
             )}
             <details>

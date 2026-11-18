@@ -701,3 +701,81 @@
 .queue-v2-intro {
     column-gap: 16px;
 }
+
+.assessment-knowledge[open] > summary {
+    margin-bottom: var(--space-3);
+}
+
+.assessment-knowledge-card {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    background: linear-gradient(145deg, var(--accent-wash), var(--surface) 42%);
+}
+
+.assessment-knowledge-card + .assessment-knowledge-card {
+    margin-top: var(--space-3);
+}
+
+.assessment-knowledge-card > header,
+.assessment-knowledge-card > header > div {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.assessment-knowledge-card > header {
+    align-items: start;
+    justify-content: space-between;
+}
+
+.assessment-knowledge-card > header > div {
+    min-width: 0;
+    flex-direction: column;
+}
+
+.assessment-knowledge-card > header span,
+.assessment-knowledge-card figcaption,
+.assessment-knowledge-card dt {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.assessment-knowledge-card figure,
+.assessment-knowledge-card blockquote,
+.assessment-knowledge-card dl,
+.assessment-knowledge-card dd {
+    margin: 0;
+}
+
+.assessment-knowledge-card blockquote {
+    max-height: 13rem;
+    overflow: auto;
+    padding: var(--space-3);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    color: var(--text-2);
+    white-space: pre-wrap;
+}
+
+.assessment-knowledge-card figcaption {
+    margin-top: var(--space-2);
+    overflow-wrap: anywhere;
+}
+
+.assessment-knowledge-card dl {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.assessment-knowledge-card dl > div {
+    display: grid;
+    grid-template-columns: minmax(5rem, 0.3fr) minmax(0, 1fr);
+    gap: var(--space-2);
+}
+
+.assessment-knowledge-card dd,
+.assessment-knowledge-card code {
+    overflow-wrap: anywhere;
+}

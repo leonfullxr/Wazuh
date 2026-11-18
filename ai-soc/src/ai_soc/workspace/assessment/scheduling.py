@@ -3,13 +3,15 @@
 from datetime import datetime
 from hashlib import sha256
 from typing import Any, Literal
+from uuid import UUID
 
 import psycopg
 from psycopg.types.json import Jsonb
 
 from ai_soc.contracts.canonical import canonical_bytes, sha256_hex
 from ai_soc.workspace.assessment.catalog import AssessmentCatalog, load_catalog
-from ai_soc.workspace.assessment.pack import build_pack
+from ai_soc.workspace.assessment.chain import ChainPin, build_chain_pack
+from ai_soc.workspace.assessment.pack import EvidencePack, build_pack
 from ai_soc.workspace.assessment.validation import build_prompt
 from ai_soc.workspace.db import require_site_transaction
 from ai_soc.workspace.jobs import Job, enqueue_job
@@ -51,7 +53,8 @@ def schedule_assessment(
         selection = "sample"
     elif conn.execute(
         "SELECT 1 WHERE EXISTS ("
-        "SELECT 1 FROM group_assessment_requests WHERE site_id=%s AND group_id=%s AND synthetic=%s"
+        "SELECT 1 FROM group_assessment_requests WHERE site_id=%s AND group_id=%s AND synthetic=%s "
+        "AND chain_id IS NULL"
         ") OR EXISTS (SELECT 1 FROM jobs WHERE site_id=%s AND kind=%s AND payload->>'group_id'=%s)",
         (site_id, group_id, synthetic, site_id, prepare_kind, group_id),
     ).fetchone():
@@ -79,6 +82,48 @@ def schedule_assessment(
     )
 
 
+def schedule_chain_assessments(
+    conn: psycopg.Connection[Any],
+    *,
+    site_id: str,
+    manifest_id: UUID,
+    now: datetime,
+    synthetic: bool,
+) -> None:
+    """Admit only candidates published by this manifest with a pinned anchor score."""
+    require_site_transaction(conn, site_id)
+    candidates = conn.execute(
+        """
+        SELECT h.chain_id, h.revision_digest
+        FROM correlation_heads h
+        JOIN correlation_chain_revisions r USING (site_id,chain_id,revision_digest,manifest_id)
+        JOIN correlation_input_groups g ON g.site_id=r.site_id AND g.manifest_id=r.manifest_id
+            AND g.group_id=r.anchor_group_id AND g.group_revision=r.anchor_group_revision
+        WHERE h.site_id=%s AND h.manifest_id=%s AND r.result->>'is_candidate'='true'
+          AND g.score IS NOT NULL
+        ORDER BY h.chain_id
+        """,
+        (site_id, manifest_id),
+    ).fetchall()
+    catalog = load_catalog(subject="chain")
+    for chain_id, revision in candidates:
+        pin = ChainPin(chain_id, revision, manifest_id)
+        enqueue_job(
+            conn,
+            site_id=site_id,
+            kind=DEMO_PREPARE_KIND if synthetic else PREPARE_KIND,
+            subject=pin.key(catalog.digest),
+            payload={
+                "chain_id": chain_id,
+                "revision": revision,
+                "manifest_id": str(manifest_id),
+                "catalog": catalog.model_dump(mode="json"),
+                "synthetic": synthetic,
+            },
+            run_after=now,
+        )
+
+
 class AssessmentPreparation:
     def __init__(self, *, synthetic: bool) -> None:
         self.job_kinds = frozenset({DEMO_PREPARE_KIND if synthetic else PREPARE_KIND})
@@ -93,19 +138,22 @@ class AssessmentPreparation:
 def _prepare(conn: psycopg.Connection[Any], job: Job, now: datetime) -> None:
     payload = job.payload
     catalog = AssessmentCatalog.model_validate_json(canonical_bytes(payload["catalog"]))
+    synthetic = job.kind == DEMO_PREPARE_KIND
+    if payload["synthetic"] is not synthetic:
+        raise ValueError("assessment preparation is outside its runtime")
+    if "chain_id" in payload:
+        _prepare_chain(conn, job, now, catalog)
+        return
     group_id = str(payload["group_id"])
     revision = str(payload["revision"])
     version = str(payload["computation_version"])
     digest = str(payload["input_digest"])
-    synthetic = job.kind == DEMO_PREPARE_KIND
-    if payload["synthetic"] is not synthetic or job.subject != prepare_key(
-        group_id, revision, version, digest, catalog.digest
-    ):
+    if job.subject != prepare_key(group_id, revision, version, digest, catalog.digest):
         raise ValueError("assessment preparation does not bind the exact score")
     prior = conn.execute(
         "SELECT 1 FROM group_assessment_requests WHERE site_id=%s AND group_id=%s "
         "AND group_revision=%s AND computation_version=%s AND input_digest=%s "
-        "AND catalog_digest=%s",
+        "AND catalog_digest=%s AND chain_id IS NULL",
         (job.site_id, group_id, revision, version, digest, catalog.digest),
     ).fetchone()
     if prior:
@@ -127,9 +175,42 @@ def _prepare(conn: psycopg.Connection[Any], job: Job, now: datetime) -> None:
     ) != (job.site_id, group_id, revision, version, digest):
         raise ValueError("assessment score does not match frozen identity")
     pack = build_pack(conn, score=score, as_of=score.inputs.as_of)
+    _freeze_request(conn, job, now, catalog, pack, revision, str(payload["selection"]))
+
+
+def _prepare_chain(
+    conn: psycopg.Connection[Any], job: Job, now: datetime, catalog: AssessmentCatalog
+) -> None:
+    payload = job.payload
+    pin = ChainPin(
+        str(payload["chain_id"]), str(payload["revision"]), UUID(str(payload["manifest_id"]))
+    )
+    if job.subject != pin.key(catalog.digest):
+        raise ValueError("assessment preparation does not bind the exact chain")
+    prior = conn.execute(
+        "SELECT 1 FROM group_assessment_requests WHERE site_id=%s AND chain_id=%s "
+        "AND chain_revision=%s AND chain_manifest_id=%s AND catalog_digest=%s",
+        (job.site_id, pin.chain_id, pin.revision, pin.manifest_id, catalog.digest),
+    ).fetchone()
+    if prior is None:
+        pack, group_revision = build_chain_pack(conn, site_id=job.site_id, pin=pin)
+        _freeze_request(conn, job, now, catalog, pack, group_revision, "chain_candidate", pin)
+
+
+def _freeze_request(
+    conn: psycopg.Connection[Any],
+    job: Job,
+    now: datetime,
+    catalog: AssessmentCatalog,
+    pack: EvidencePack,
+    group_revision: str,
+    selection: str,
+    pin: ChainPin | None = None,
+) -> None:
     prompt = build_prompt(pack, catalog)
     prompt_digest = sha256(prompt).hexdigest()
     request_id = sha256_hex([job.site_id, job.subject, pack.digest, prompt_digest])
+    synthetic = job.kind == DEMO_PREPARE_KIND
     job_id = enqueue_job(
         conn,
         site_id=job.site_id,
@@ -143,16 +224,17 @@ def _prepare(conn: psycopg.Connection[Any], job: Job, now: datetime) -> None:
         INSERT INTO group_assessment_requests
           (site_id, request_id, group_id, group_revision, computation_version, input_digest,
            pack_digest, prompt_digest, catalog_digest, catalog_version, catalog, evidence_pack,
-           prompt, job_id, selection, synthetic, created_at)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+           prompt, job_id, selection, synthetic, created_at, chain_id, chain_revision,
+           chain_manifest_id)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """,
         (
             job.site_id,
             request_id,
-            group_id,
-            revision,
-            version,
-            digest,
+            pack.group_id,
+            group_revision,
+            pack.score.computation_version,
+            pack.score.input_digest,
             pack.digest,
             prompt_digest,
             catalog.digest,
@@ -161,8 +243,11 @@ def _prepare(conn: psycopg.Connection[Any], job: Job, now: datetime) -> None:
             Jsonb(pack.as_dict()),
             prompt,
             job_id,
-            payload["selection"],
-            payload["synthetic"],
+            selection,
+            synthetic,
             now,
+            pin.chain_id if pin else None,
+            pin.revision if pin else None,
+            pin.manifest_id if pin else None,
         ),
     )

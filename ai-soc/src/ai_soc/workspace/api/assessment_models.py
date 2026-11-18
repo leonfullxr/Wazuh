@@ -84,3 +84,9 @@ class AssessmentDetail(AssessmentModel):
     missing_fields: list[str]
     provenance: AssessmentProvenance | None
     reviews: list[AssessmentReview]
+
+
+class ChainAssessmentPreview(AssessmentModel):
+    outcome: Outcome
+    evidence: list[AssessmentEvidence]
+    provenance: AssessmentProvenance

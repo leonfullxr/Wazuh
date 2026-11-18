@@ -66,11 +66,12 @@ def dispatch(project: Path) -> int:
     if not relevant(paths):
         print("ai-soc checks: skipped (unrelated changes)")
         return 0
-    status = subprocess.run(["make", "ci-check"], cwd=project, check=False).returncode
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    status = subprocess.run(["make", "ci-check"], cwd=project, env=env, check=False).returncode
     if status:
         return status
     if (project / "internal/tools/agent_environment/scope.json").is_file():
-        return subprocess.run(["make", "agent-check"], cwd=project, check=False).returncode
+        return subprocess.run(["make", "agent-check"], cwd=project, env=env, check=False).returncode
     return 0
 
 
@@ -79,7 +80,8 @@ def main() -> int:
     parser.add_argument("command", choices=["install", "check", "dispatch"])
     args = parser.parse_args()
     if args.command == "dispatch":
-        return dispatch(PROJECT)
+        worktree = Path(os.fsdecode(git(Path.cwd(), "rev-parse", "--show-toplevel")).strip())
+        return dispatch(worktree / "ai-soc")
     try:
         print(", ".join(install(PROJECT, PROJECT.parent, dry_run=args.command == "check")))
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:

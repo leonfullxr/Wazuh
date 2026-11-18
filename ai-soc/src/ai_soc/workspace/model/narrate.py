@@ -7,7 +7,7 @@ import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Protocol, cast
 from uuid import UUID, uuid4
 
 import psycopg
@@ -20,6 +20,7 @@ from ai_soc.workspace.jobs import Job, LeaseLost, complete_job, enqueue_job, fai
 from ai_soc.workspace.model.bundle import (
     FrozenExecution,
     freeze_execution,
+    freeze_provider_execution,
     rehydrate_pack,
     sha256,
     supported_execution,
@@ -28,11 +29,11 @@ from ai_soc.workspace.model.cli_profile import CodexProfile
 from ai_soc.workspace.model.cli_provider import (
     UNKNOWN_USAGE,
     GenerationProvenance,
-    GenerationResult,
     TokenUsage,
 )
 from ai_soc.workspace.model.pack import build_incident_pack
-from ai_soc.workspace.model.schemas import FrozenIncidentPack
+from ai_soc.workspace.model.provider import AssessmentProvider
+from ai_soc.workspace.model.schemas import FrozenIncidentPack, ValidatedNarrative
 
 TRANSIENT_ERRORS = frozenset(
     {
@@ -58,6 +59,17 @@ class Generation:
     generation_digest: str
     pack: FrozenIncidentPack
     execution: FrozenExecution
+
+
+class NarrativeResult(Protocol):
+    @property
+    def narrative(self) -> ValidatedNarrative: ...
+
+    @property
+    def usage(self) -> TokenUsage: ...
+
+    @property
+    def provenance(self) -> Any: ...
 
 
 def load_generation(
@@ -106,11 +118,19 @@ def load_generation(
 
 
 def prepare_narrative(
-    conn: psycopg.Connection[Any], *, job: Job, now: datetime, profile: CodexProfile | None = None
+    conn: psycopg.Connection[Any],
+    *,
+    job: Job,
+    now: datetime,
+    profile: CodexProfile | None = None,
+    provider: AssessmentProvider | None = None,
 ) -> UUID:
     """Freeze one exact revision and atomically enqueue/target its immutable request."""
-    profile = profile or CodexProfile()
-    profile.require_configured()
+    if provider is None:
+        profile = profile or CodexProfile()
+        profile.require_configured()
+    elif profile is not None:
+        raise ValueError("narrative_preparation_has_multiple_providers")
     require_site_transaction(conn, job.site_id)
     if job.kind != "prepare_narrative":
         raise ValueError("unsupported_preparation_job")
@@ -123,7 +143,13 @@ def prepare_narrative(
     )
     if pack.revision_seq != job.payload["revision_seq"]:
         raise ValueError("preparation_revision_mismatch")
-    execution = freeze_execution(pack, profile)
+    execution = (
+        freeze_execution(pack, cast(CodexProfile, profile))
+        if provider is None
+        else freeze_provider_execution(
+            pack, provider_id=provider.provider_id, model_id=provider.model_id
+        )
+    )
     digest = execution.digest(pack.content_digest)
     prior = conn.execute(
         "SELECT generation_id FROM narrative_generations WHERE site_id=%s AND generation_digest=%s",
@@ -212,6 +238,20 @@ class NarrativePreparationHandler:
         prepare_narrative(conn, job=jobs[0], now=now, profile=self.profile)
 
 
+class ProviderNarrativePreparationHandler:
+    """Freeze narrative requests for the portable, tool-free provider path."""
+
+    job_kinds = frozenset({"prepare_narrative"})
+
+    def __init__(self, provider: AssessmentProvider):
+        self.provider = provider
+
+    def __call__(self, conn: psycopg.Connection[Any], jobs: tuple[Job, ...], now: datetime) -> None:
+        if len(jobs) != 1:
+            raise ValueError("narrative_preparation_requires_single_job")
+        prepare_narrative(conn, job=jobs[0], now=now, provider=self.provider)
+
+
 def authorize_call(
     conn: psycopg.Connection[Any],
     *,
@@ -268,6 +308,60 @@ def authorize_call(
     return call_id
 
 
+def authorize_provider_call(
+    conn: psycopg.Connection[Any],
+    *,
+    job: Job,
+    worker_id: str,
+    generation: Generation,
+    provider_id: str,
+    model_id: str,
+    now: datetime,
+) -> UUID:
+    """Reserve one provider call under the same job lease fence as the guardian path."""
+    lock_live_job(conn, job=job, worker_id=worker_id, now=now)
+    if (
+        job.kind != "narrate"
+        or generation.narrate_job_id != job.job_id
+        or job.subject != generation.generation_digest
+        or job.payload != {"generation_id": str(generation.generation_id)}
+    ):
+        raise ValueError("narrative_request_identity_mismatch")
+    call_id = uuid4()
+    conn.execute(
+        "INSERT INTO narrative_calls(site_id,call_id,generation_id,job_id,producing_attempt,"
+        "producing_lease_token,worker_id,execution_path,provider_id,model_id,authorized_at) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,'provider',%s,%s,%s)",
+        (
+            job.site_id,
+            call_id,
+            generation.generation_id,
+            job.job_id,
+            job.attempts,
+            job.lease_token,
+            worker_id,
+            provider_id,
+            model_id,
+            now,
+        ),
+    )
+    record_audit(
+        conn,
+        site_id=job.site_id,
+        kind="narrative.authorized",
+        actor_key=None,
+        payload={
+            "call_id": str(call_id),
+            "generation_id": str(generation.generation_id),
+            "attempt": job.attempts,
+            "execution_path": "provider",
+            "provider_id": provider_id,
+            "model_id": model_id,
+        },
+    )
+    return call_id
+
+
 def finish_call(
     conn: psycopg.Connection[Any],
     *,
@@ -276,7 +370,7 @@ def finish_call(
     call_id: UUID,
     generation: Generation,
     now: datetime,
-    result: GenerationResult | None = None,
+    result: NarrativeResult | None = None,
     error_code: str | None = None,
     usage: TokenUsage = UNKNOWN_USAGE,
     provenance: GenerationProvenance | None = None,

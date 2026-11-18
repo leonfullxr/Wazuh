@@ -113,7 +113,8 @@ def get_incident_narrative(
     base = base.model_copy(update={"evidence": generation.pack})
     call = conn.execute(
         "SELECT c.call_id,o.status,o.error_code,o.narrative,o.input_tokens,o.cached_input_tokens,"
-        "o.output_tokens,o.finished_at FROM narrative_calls c LEFT JOIN narrative_outcomes o "
+        "o.output_tokens,o.finished_at,c.provider_id,c.model_id "
+        "FROM narrative_calls c LEFT JOIN narrative_outcomes o "
         "ON (o.site_id,o.generation_id,o.call_id)=(c.site_id,c.generation_id,c.call_id) "
         "WHERE c.site_id=%s AND c.generation_id=%s "
         "ORDER BY c.producing_attempt DESC,c.call_id DESC LIMIT 1",
@@ -124,6 +125,8 @@ def get_incident_narrative(
             update={
                 "call_id": call[0],
                 "completed_at": call[7],
+                "provider_id": call[8],
+                "model_id": call[9],
                 "usage": NarrativeUsage(
                     input_tokens=call[4], cached_input_tokens=call[5], output_tokens=call[6]
                 ),

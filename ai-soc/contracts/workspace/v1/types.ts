@@ -880,6 +880,13 @@ export interface components {
              */
             status: "new" | "in_progress" | "resolved" | "closed";
         };
+        /** ChainAssessmentPreview */
+        ChainAssessmentPreview: {
+            /** Evidence */
+            evidence: components["schemas"]["AssessmentEvidence"][];
+            outcome: components["schemas"]["Outcome"];
+            provenance: components["schemas"]["AssessmentProvenance"];
+        };
         /** ChainCandidateDTO */
         ChainCandidateDTO: {
             /** Chain Id */
@@ -926,6 +933,7 @@ export interface components {
         };
         /** ChainCandidateDetail */
         ChainCandidateDetail: {
+            assessment?: components["schemas"]["ChainAssessmentPreview"] | null;
             /** Chain Id */
             chain_id: string;
             /**
@@ -1908,8 +1916,12 @@ export interface components {
             incident_id: string;
             /** Is Current */
             is_current: boolean;
+            /** Model Id */
+            model_id?: string | null;
             /** Pack Digest */
             pack_digest?: string | null;
+            /** Provider Id */
+            provider_id?: string | null;
             /** Reason Code */
             reason_code?: string | null;
             /** Removals */

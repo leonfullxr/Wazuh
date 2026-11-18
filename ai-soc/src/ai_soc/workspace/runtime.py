@@ -39,6 +39,7 @@ class LabAssessmentSettings(BaseModel):
     credential_file: Path | None = None
     max_calls_per_run: int = Field(default=20, ge=1, le=1000, strict=True)
     concurrency: int = Field(default=1, ge=1, le=8, strict=True)
+    narratives_enabled: StrictBool = False
 
 
 class PipelineSite(BaseModel):

@@ -47,6 +47,63 @@
     font-weight: 600;
 }
 
+.m3-chain-assessment {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--border-strong);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+}
+
+.m3-chain-assessment header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 16px;
+}
+
+.m3-chain-assessment header :is(h4, span) {
+    margin: 0;
+}
+
+.m3-chain-assessment header span {
+    font-size: 0.75rem;
+}
+
+.m3-chain-assessment-findings,
+.m3-chain-assessment-citations {
+    padding: 0;
+    list-style: none;
+}
+
+.m3-chain-assessment-citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.m3-chain-assessment-citations li {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 3px 8px;
+    border: 1px solid var(--border-row);
+    border-radius: var(--radius-control);
+    font-size: 0.75rem;
+}
+
+.m3-chain-assessment details {
+    border-top: 1px solid var(--border-row);
+    padding-top: 8px;
+    font-size: 0.8125rem;
+}
+
+.m3-chain-assessment summary {
+    cursor: pointer;
+}
+
 .m3-create h4 {
     font-size: 13px;
     font-weight: 600;

@@ -451,6 +451,7 @@ def compose_soc(
             _McpIdentityAdapter(identity),
             issuer_url=mcp_issuer_url,
             resource_url=mcp_resource_url,
+            workspace_runtime=workspace_runtime,
         )
         recovery = RecoveryRunner(state, clock)
         return SocRuntime(

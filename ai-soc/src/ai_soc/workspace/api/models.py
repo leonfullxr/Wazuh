@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
-from ai_soc.workspace.api.assessment_models import AssessmentSummary
+from ai_soc.workspace.api.assessment_models import AssessmentSummary, ChainAssessmentPreview
 from ai_soc.workspace.model.schemas import FrozenIncidentPack, RemovedSelection, ValidatedNarrative
 
 
@@ -457,6 +457,7 @@ class ChainCandidateDetail(ChainCandidateDTO):
     edges: list[dict[str, Any]]
     weak_edges: list[dict[str, Any]]
     score_pins: list[dict[str, Any]]
+    assessment: ChainAssessmentPreview | None = None
 
 
 class GroupSummary(StrictModel):
@@ -669,6 +670,8 @@ class NarrativeReadResponse(StrictModel):
     generation_digest: str | None = None
     pack_digest: str | None = None
     call_id: UUID | None = None
+    provider_id: str | None = None
+    model_id: str | None = None
     completed_at: datetime | None = None
     usage: NarrativeUsage
     summary: ValidatedNarrative | None = None

@@ -7,10 +7,11 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import psycopg
 
-from ai_soc.workspace.assessment.scheduling import schedule_assessment
+from ai_soc.workspace.assessment.scheduling import schedule_assessment, schedule_chain_assessments
 from ai_soc.workspace.context import load_site_context
 from ai_soc.workspace.correlate.runner import CorrelationHandler, build_correlation_config
 from ai_soc.workspace.correlate.scheduling import request_correlation
@@ -47,12 +48,23 @@ class PipelineHandler:
         }
     )
 
-    def __init__(self, config: PipelineConfig, *, synthetic_assessment_site: str | None = None):
+    def __init__(
+        self,
+        config: PipelineConfig,
+        *,
+        synthetic_assessment_site: str | None = None,
+        synthetic_chain_assessment: bool = False,
+    ):
         self.synthetic_assessment_site = synthetic_assessment_site
         self.assessment_sites = frozenset(
             site.site_id
             for site in config.sites
             if site.lab_assessment is not None or site.site_id == synthetic_assessment_site
+        )
+        self.chain_assessment_sites = frozenset(
+            site_id
+            for site_id in self.assessment_sites
+            if site_id != synthetic_assessment_site or synthetic_chain_assessment
         )
         self.correlation = CorrelationHandler()
         self.correlation_code_identity = self.correlation.code_identity
@@ -108,6 +120,14 @@ class PipelineHandler:
                 self._score(conn, job, now)
             elif job.kind in {"prepare_correlation", "correlate_window"}:
                 self.correlation(conn, (job,), now)
+                if job.kind == "correlate_window" and job.site_id in self.chain_assessment_sites:
+                    schedule_chain_assessments(
+                        conn,
+                        site_id=job.site_id,
+                        manifest_id=UUID(_payload_text(job, "manifest_id")),
+                        now=now,
+                        synthetic=job.site_id == self.synthetic_assessment_site,
+                    )
             elif job.kind != "workspace_ping":
                 raise ValueError(f"unsupported job kind: {job.kind}")
         for site_id, keys in cohorts.items():

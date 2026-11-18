@@ -14,7 +14,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse
 from psycopg import Error as PsycopgError
-from pydantic import TypeAdapter
 
 from ai_soc.contracts.models import VerifiedPrincipal, Visibility
 from ai_soc.identity.policy import SiteAuthorizationError
@@ -22,13 +21,9 @@ from ai_soc.workspace.api.assessment_models import (
     AssessmentDetail,
     AssessmentReview,
     AssessmentReviewRequest,
-    AssessmentSummary,
 )
 from ai_soc.workspace.api.assessment_repository import (
     assessment_detail,
-    assessment_records,
-    assessment_summary,
-    assessments_enabled,
     review_assessment,
 )
 from ai_soc.workspace.api.common import (
@@ -87,7 +82,6 @@ from ai_soc.workspace.api.models import (
     ErrorResponse,
     GroupContextResponse,
     GroupDetail,
-    GroupSummary,
     HistoryEntry,
     HourlyBucket,
     IngestionCounts,
@@ -105,13 +99,13 @@ from ai_soc.workspace.api.models import (
     QueueSummary,
     ReconciliationSummary,
     RulePrecision,
-    ScoreComponent,
     SiteSummary,
     StatusRequest,
     TopCount,
     Window,
     WorkState,
 )
+from ai_soc.workspace.api.read_service import group_record, queue_records
 from ai_soc.workspace.api.repository import WorkspaceRepository
 from ai_soc.workspace.api.runtime import WorkspaceRuntime
 from ai_soc.workspace.feedback import (
@@ -123,8 +117,6 @@ from ai_soc.workspace.feedback import (
     upsert_asset_tag,
 )
 from ai_soc.workspace.metrics import ops_metrics, quality_metrics
-
-_SCORE_COMPONENT_ROWS: TypeAdapter[list[dict[str, object]]] = TypeAdapter(list[dict[str, object]])
 
 
 def _summary(row: dict[str, Any]) -> AlertSummary:
@@ -232,60 +224,6 @@ def workspace_router(
         if isinstance(error, ValueError):
             raise WorkspaceApiError(422, "BAD_FILTER", str(error)) from None
         raise error
-
-    def _disposition(row: dict[str, Any]) -> Disposition | None:
-        if row.get("disposition_id") is None:
-            return None
-        return Disposition.model_validate(
-            {
-                "disposition_id": str(row["disposition_id"]),
-                "label": row["label"],
-                "reason_code": row["reason_code"],
-                "note": row["note"],
-                "actor_key": row["actor_key"],
-                "at": row["disposition_at"],
-                "propagate_to_members": row["propagate_to_members"],
-            }
-        )
-
-    def _group_summary(
-        row: dict[str, Any], assessment: AssessmentSummary | None = None
-    ) -> GroupSummary:
-        entity = row["primary_entity"]
-        primary_entity = None
-        if entity:
-            kind, _, value = str(entity).partition(":")
-            primary_entity = EntityRef.model_validate(
-                {
-                    "kind": kind,
-                    "value": value,
-                    "role": "primary",
-                    "first_seen": row["primary_first_seen"] or row["first_ts"],
-                    "last_seen": row["primary_last_seen"] or row["last_ts"],
-                }
-            )
-        return GroupSummary(
-            group_id=str(row["group_id"]),
-            group_revision=str(row["revision"]),
-            title=str(row["title"]),
-            score=None if row["total"] is None else float(row["total"]),
-            computation_version=row["computation_version"],
-            input_digest=row["input_digest"],
-            components=[
-                ScoreComponent.model_validate(item)
-                for item in _SCORE_COMPONENT_ROWS.validate_python(row["components"] or [])
-            ],
-            alert_count=int(row["alert_count"]),
-            first_ts=row["first_ts"],
-            last_ts=row["last_ts"],
-            rule_id=row["rule_id"],
-            primary_entity=primary_entity,
-            status=str(row["status"]),
-            owner_key=row["owner_key"],
-            disposition=_disposition(row),
-            pipeline_version=str(row["pipeline_version"]),
-            assessment=assessment,
-        )
 
     def _work_state(row: dict[str, Any]) -> WorkState:
         return WorkState.model_validate(
@@ -907,16 +845,18 @@ def workspace_router(
         preview_enabled = site_id == runtime.assessment_preview_site
         repo = repository(site_id, principal, snapshot=preview_enabled)
         try:
-            rows = repo.queue_rows(
-                filters=normalized_filters, sort=sort, limit=limit + 1, after=after
+            projected = queue_records(
+                repo,
+                filters=normalized_filters,
+                sort=sort,
+                limit=limit + 1,
+                after=after,
+                include_assessments=preview_enabled,
             )
+            rows = [row for row, _ in projected]
             more = len(rows) > limit
             rows = rows[:limit]
-            records = (
-                assessment_records(repo, rows)
-                if preview_enabled and assessments_enabled(repo)
-                else {}
-            )
+            projected = projected[:limit]
         finally:
             repo.close()
         next_cursor = None
@@ -940,21 +880,7 @@ def workspace_router(
                     "exp": (runtime.now() + timedelta(minutes=15)).timestamp(),
                 },
             )
-        items: list[QueueSummary] = []
-        for row in rows:
-            record = records.get(row["group_id"])
-            group = _group_summary(row, assessment_summary(record) if record else None)
-            items.append(
-                QueueSummary(
-                    group=group,
-                    work_state=_work_state(row),
-                    queue_reasons=[
-                        component.explanation
-                        for component in group.components
-                        if component.contribution > 0
-                    ][:3],
-                )
-            )
+        items = [item for _, item in projected]
         return Page[QueueSummary](items=items, next_cursor=next_cursor, limit=limit)
 
     @router.get(
@@ -994,16 +920,12 @@ def workspace_router(
         preview_enabled = site_id == runtime.assessment_preview_site
         repo = repository(site_id, principal, snapshot=preview_enabled)
         try:
-            row = repo.group_detail(group_id)
-            if row is None:
+            record = group_record(repo, group_id, include_assessment=preview_enabled)
+            if record is None:
                 raise WorkspaceApiError(404, "RESOURCE_UNKNOWN", "Group is unknown")
+            row, summary = record
             members = repo.group_members(group_id, member_limit + 1, after)
             extras = repo.group_extras(group_id)
-            record = (
-                assessment_records(repo, [row])[group_id]
-                if preview_enabled and assessments_enabled(repo)
-                else None
-            )
         finally:
             repo.close()
         more = len(members) > member_limit
@@ -1023,7 +945,6 @@ def workspace_router(
                     "exp": (runtime.now() + timedelta(minutes=15)).timestamp(),
                 },
             )
-        summary = _group_summary(row, assessment_summary(record) if record else None)
         return GroupDetail(
             **summary.model_dump(),
             site_id=site_id,

@@ -95,6 +95,15 @@
         "en": "Review subsequent SSH login activity for the affected host.",
         "es": "Revisa la actividad posterior de inicio de sesión SSH en el equipo afectado."
       }
+    },
+    "follow_reviewed_ssh_runbook": {
+      "subjects": ["group"],
+      "evidence_kinds": ["knowledge"],
+      "precondition": {"field": "exact_match", "op": "eq", "value": true},
+      "text": {
+        "en": "Follow the cited reviewed SSH triage runbook for the next checks.",
+        "es": "Sigue el procedimiento de triaje SSH revisado y citado para las siguientes comprobaciones."
+      }
     }
   }
 }

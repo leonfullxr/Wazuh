@@ -33,6 +33,12 @@ from ai_soc.content.finding_catalog import (
     validate_references,
 )
 from ai_soc.content.kev import import_kev_catalog, normalized_digest, policy_identity
+from ai_soc.content.knowledge import (
+    KnowledgeBuildError,
+    PackedKnowledgeDocument,
+    packed_document_bytes,
+    parse_knowledge_document,
+)
 from ai_soc.contracts.canonical import canonical_bytes
 from ai_soc.contracts.models import (
     SHA256,
@@ -374,7 +380,11 @@ def _source_files(source: Path, commit: str) -> dict[str, bytes]:
         metadata, name = entry.split("\t", 1)
         mode, object_type, _object_sha = metadata.split(" ", 2)
         safe_relative_path(name)
-        if not (name.startswith("content/") or name.startswith("public-docs/")):
+        if not (
+            name.startswith("content/")
+            or name.startswith("public-docs/")
+            or name.startswith("knowledge/")
+        ):
             continue
         filename = PurePosixPath(name).name.casefold()
         if filename.startswith(".") or any(
@@ -425,6 +435,29 @@ def _source_files(source: Path, commit: str) -> dict[str, bytes]:
             raise ContentBuildError("content tree exceeds the total byte limit")
         files[name] = raw
     return files
+
+
+def _knowledge_documents(
+    files: Mapping[str, bytes], *, content_version: str, cutoff: datetime
+) -> tuple[PackedKnowledgeDocument, ...]:
+    documents: list[PackedKnowledgeDocument] = []
+    ids: set[str] = set()
+    for path, raw in sorted(files.items()):
+        if not path.startswith("knowledge/"):
+            continue
+        if PurePosixPath(path).suffix.lower() != ".md":
+            raise ContentBuildError(f"unsupported knowledge file: {path}")
+        try:
+            document = parse_knowledge_document(
+                path, raw, content_version=content_version, cutoff=cutoff
+            )
+        except KnowledgeBuildError as exc:
+            raise ContentBuildError(str(exc)) from exc
+        if document.document_id in ids:
+            raise ContentBuildError(f"duplicate knowledge id: {document.document_id}")
+        ids.add(document.document_id)
+        documents.append(document)
+    return tuple(documents)
 
 
 def _load_records(
@@ -870,6 +903,7 @@ def validate_git_content(
             "detached approval repository, commit, or tree does not match source"
         )
     verify_detached_approval(approval, trust_roots, allow_fixture=allow_fixture)
+    _knowledge_documents(files, content_version=commit, cutoff=approval.approved_at)
     _kev_snapshot(files, approval)
     _validate_cross_references(
         files, topics, cues, playbooks, expectations, templates, cases, goldens
@@ -911,6 +945,9 @@ def build_content_pack(
         goldens,
     ) = _load_records(files)
     kev_snapshot = _kev_snapshot(files, approval)
+    knowledge_documents = _knowledge_documents(
+        files, content_version=commit, cutoff=approval.approved_at
+    )
     cue_sha = _sha256(canonical_bytes(sorted(catalog.sha256 for catalog in cue_catalogs)))
     public_docs: dict[str, bytes] = {}
     contexts: list[TopicPromptPack] = []
@@ -972,6 +1009,11 @@ def build_content_pack(
             raise ContentBuildError("KEV group exceeds 131072 bytes")
         _check_kev_page_summary(kev_snapshot, commit)
         pack_items["pack/kev/cisa-kev.json"] = kev_bytes
+    for document in knowledge_documents:
+        path = f"pack/knowledge/{document.document_id}.json"
+        if path in pack_items:
+            raise ContentBuildError(f"duplicate generated content pack path: {path}")
+        pack_items[path] = packed_document_bytes(document)
     for group, records in groups.items():
         for record in records:
             if group == "finding-templates":
