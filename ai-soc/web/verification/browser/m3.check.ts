@@ -67,6 +67,36 @@ test("review chain evidence, promote the pinned version once, and find its incid
     expect(promotions).toBe(1);
 });
 
+test("incident filters narrow the list and mobile evidence can be opened and closed", async ({
+    page,
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/#incidents");
+    const status = page.getByLabel("Filter by status");
+    await status.selectOption("closed");
+    await expect(page.getByText("No incidents match these filters.")).toBeVisible();
+    await status.selectOption("in_progress");
+    const incident = page.getByRole("button", { name: /SSH access followed by privilege change/ });
+    await expect(incident).toBeVisible();
+    await page.getByLabel("Unassigned only").check();
+    await expect(page.getByText("No incidents match these filters.")).toBeVisible();
+    await page.getByLabel("Unassigned only").uncheck();
+    await incident.click();
+
+    await expect(incident).not.toBeVisible();
+    await expect(page.locator(".m3-incident-detail")).toBeFocused();
+    const timeline = page.getByRole("region", { name: "Evidence timeline" });
+    await expect(timeline.getByText("Rule 5763", { exact: true }).first()).toBeVisible();
+    await expect(timeline.getByText("Source", { exact: false }).first()).toBeVisible();
+    const event = timeline.locator("details").first();
+    await event.locator("summary").press("Enter");
+    await expect(event.getByText("Frozen group revision")).toBeVisible();
+    await page.getByRole("button", { name: "Back to incidents" }).click();
+    await expect(status).toHaveValue("in_progress");
+    await expect(incident).toBeVisible();
+    await expect(page.locator(".m3-incident-list")).toBeFocused();
+});
+
 test("incident writes use current revisions and survive reload in the synthetic API", async ({
     page,
 }) => {
@@ -86,12 +116,11 @@ test("incident writes use current revisions and survive reload in the synthetic 
             throw new Error("Invalid synthetic action response");
         evidenceRevision = result.evidence_revision;
         expect(body).toMatchObject({ site_id: "synthetic", expected_work_version: version });
-        await expect(page.locator(".m3-list-item").filter({ hasText: title })).toContainText(
-            `v${version + 1}`,
-        );
-        await expect(page.locator(".m3-detail > .m3-meta dd").nth(3)).toHaveText(
-            String(version + 1),
-        );
+        const record = page.locator(".m3-incident-record");
+        await expect(record).toBeVisible();
+        await record.locator("summary").click();
+        await expect(record.getByText(String(version + 1), { exact: true })).toBeVisible();
+        await record.locator("summary").click();
         return body;
     }
     await page

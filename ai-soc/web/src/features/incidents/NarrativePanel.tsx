@@ -53,7 +53,7 @@ export function NarrativePanel({
     return (
         <section aria-labelledby="incident-narrative-heading" className="m3-narrative">
             <div className="panel-head">
-                <h4 id="incident-narrative-heading">{t("m3Narrative")}</h4>
+                <h3 id="incident-narrative-heading">{t("m3Narrative")}</h3>
                 <button className="btn outline" onClick={() => void narrative.refetch()}>
                     {t("refresh")}
                 </button>
@@ -76,7 +76,7 @@ export function NarrativePanel({
                     </p>
                     {removals.length > 0 && (
                         <div>
-                            <h5>{t("m3NarrativeRemovals")}</h5>
+                            <h4>{t("m3NarrativeRemovals")}</h4>
                             <ul>
                                 {removals.map((removal, index) => (
                                     <li key={`${removal.selection_digest}-${index}`}>
@@ -108,9 +108,9 @@ export function NarrativePanel({
                     )}
                     {summary && (
                         <section aria-label={locale === "es" ? summary.label_es : summary.label_en}>
-                            <h5 className="sr-only">
+                            <h4 className="sr-only">
                                 {locale === "es" ? summary.label_es : summary.label_en}
-                            </h5>
+                            </h4>
                             {summary.status === "all_removed" ? (
                                 <p className="muted">{t("m3NarrativeAllRemoved")}</p>
                             ) : summary.status === "invalid_structure" ? (
@@ -135,7 +135,7 @@ export function NarrativePanel({
                             )}
                             {summary.citations.length > 0 && (
                                 <div>
-                                    <h6>{t("m3NarrativeCitations")}</h6>
+                                    <h5>{t("m3NarrativeCitations")}</h5>
                                     <ul className="m3-citations">
                                         {summary.citations.map((citation) => (
                                             <li key={`${citation.kind}:${citation.fact_id}`}>
@@ -157,7 +157,7 @@ export function NarrativePanel({
                                     </ul>
                                     {selectedCitation && (
                                         <div className="m3-citation-detail" aria-live="polite">
-                                            <h6>{t("m3CitationEvidence")}</h6>
+                                            <h5>{t("m3CitationEvidence")}</h5>
                                             {selectedFact ? (
                                                 <FactDetails
                                                     fact={selectedFact}

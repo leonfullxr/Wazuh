@@ -25,24 +25,24 @@
     min-height: 264px;
 }
 
-.m3-page .panel-head h3 {
+.m3-page .panel-head h2 {
     font-size: 14px;
     font-weight: 600;
 }
 
 .m3-detail > .panel-head + .m3-meta,
-.m3-detail > h3 + .m3-meta {
+.m3-detail > h2 + .m3-meta {
     margin-top: 14px;
 }
 
-.m3-detail > .panel-head h3,
-.m3-detail > h3 {
+.m3-detail > .panel-head h2,
+.m3-detail > h2 {
     font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
 }
 
-.m3-detail h4 {
+.m3-detail h3 {
     font-size: 14px;
     font-weight: 600;
 }
@@ -63,7 +63,7 @@
     gap: 4px 16px;
 }
 
-.m3-chain-assessment header :is(h4, span) {
+.m3-chain-assessment header :is(h3, span) {
     margin: 0;
 }
 
@@ -104,7 +104,7 @@
     cursor: pointer;
 }
 
-.m3-create h4 {
+.m3-create h3 {
     font-size: 13px;
     font-weight: 600;
 }
@@ -186,7 +186,7 @@
     transform: translate(-50%, -50%);
 }
 
-.m3-graph-empty-copy h4 {
+.m3-graph-empty-copy h3 {
     margin: 0 0 4px;
     font-size: 13px;
     font-weight: 600;
@@ -532,8 +532,8 @@
     border-top: 1px solid var(--border-row);
 }
 
-.m3-detail > section > h4:first-child,
-.m3-detail > .m3-two-column h4 {
+.m3-detail > section > h3:first-child,
+.m3-detail > .m3-two-column h3 {
     margin-top: 0;
 }
 
@@ -655,7 +655,7 @@
 @media (max-width: 640px) {
     .m3-detail .m3-meta,
     .m3-provenance > .m3-meta {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .m3-provenance > .m3-meta dt:last-of-type,
@@ -844,7 +844,7 @@
     margin: -6px 0 10px;
 }
 
-.m3-narrative > .panel-head h4 {
+.m3-narrative > .panel-head h3 {
     margin: 0;
 }
 
@@ -893,7 +893,7 @@
     transform: none;
 }
 
-.m3-graph-empty-copy h4 {
+.m3-graph-empty-copy h3 {
     margin: 0;
 }
 
@@ -919,7 +919,7 @@
     background: none;
 }
 
-.m3-graph-empty-copy h4,
+.m3-graph-empty-copy h3,
 .m3-graph-empty-copy p {
     color: var(--text-muted);
     font-size: 13px;
@@ -962,7 +962,7 @@ section[aria-labelledby="incident-members-heading"] td > strong {
     white-space: nowrap;
 }
 
-section[aria-labelledby="incident-members-heading"] > h5 {
+section[aria-labelledby="incident-members-heading"] > h4 {
     margin: 20px 0 8px;
 }
 
@@ -971,7 +971,7 @@ section[aria-labelledby="incident-members-heading"] > h5 {
     column-gap: 12px;
 }
 
-.m3-graph-empty-copy h4 {
+.m3-graph-empty-copy h3 {
     color: var(--text);
     font-weight: 600;
 }
@@ -1125,7 +1125,7 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
 }
 
 /* The weak-links subheading sits closer to the list above it. */
-section[aria-labelledby="chain-links-heading"] > h5 {
+section[aria-labelledby="chain-links-heading"] > h4 {
     margin-top: 12px;
 }
 
@@ -1194,14 +1194,14 @@ section[aria-labelledby="chain-links-heading"] > h5 {
     margin-top: var(--m3-section-gap);
 }
 
-.m3-detail .panel-head > h3 {
+.m3-detail .panel-head > h2 {
     font-size: 18px;
 }
 
-.m3-detail > section > h4,
-.m3-detail > .m3-two-column > section > h4,
+.m3-detail > section > h3,
+.m3-detail > .m3-two-column > section > h3,
 .m3-detail > .m3-actions > .m3-actions-title,
-.m3-narrative > .panel-head h4 {
+.m3-narrative > .panel-head h3 {
     font-size: 16px;
 }
 
@@ -1271,7 +1271,7 @@ section[aria-labelledby="chain-stages-heading"] .m3-evidence > li > .m3-stage-ro
 }
 
 /* The weak-links subheading groups with its rows: about 20px above, 8px below. */
-section[aria-labelledby="chain-links-heading"] > h5 {
+section[aria-labelledby="chain-links-heading"] > h4 {
     margin: 10px 0 8px;
 }
 
@@ -1295,14 +1295,15 @@ section[aria-labelledby="chain-stages-heading"] .m3-evidence {
 
 .m3-detail > .m3-graph-empty .m3-graph-empty-copy {
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: var(--m3-record-label-width) minmax(0, 1fr);
     column-gap: 14px;
+    width: 100%;
     padding: 0;
     border: 0;
     background: none;
 }
 
-.m3-detail > .m3-graph-empty .m3-graph-empty-copy h4,
+.m3-detail > .m3-graph-empty .m3-graph-empty-copy h3,
 .m3-detail > .m3-graph-empty .m3-graph-empty-copy p {
     margin: 0;
     color: var(--text-2);
@@ -1381,7 +1382,7 @@ section[aria-labelledby="chain-detail-heading"] > .m3-meta {
 }
 
 /* Strong and weak link groups read as siblings: a hairline with 16px either side. */
-section[aria-labelledby="chain-links-heading"] > h5 {
+section[aria-labelledby="chain-links-heading"] > h4 {
     margin: 16px 0 8px;
     padding-top: 16px;
     border-top: 1px solid var(--border-row);
@@ -1468,7 +1469,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head {
 
 /* The detail entity title sits one step above the 16px section heads. */
 #chain-detail-heading,
-section[aria-labelledby="incident-detail-heading"] > .panel-head > h3 {
+section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
     font-size: 20px;
     line-height: 28px;
 }
@@ -1494,4 +1495,216 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h3 {
 
 .m3-detail > .m3-empty-detail {
     flex: 1;
+}
+
+/* Keep record metadata and the graph coverage notice on the same reading surface. */
+.m3-detail {
+    --m3-record-label-width: clamp(105px, 30%, 200px);
+}
+.m3-detail > .m3-meta:has(+ .m3-graph-empty),
+.m3-detail > .m3-meta + .m3-graph-empty {
+    background: var(--surface-2);
+}
+.m3-detail > .m3-meta:has(+ .m3-graph-empty) {
+    grid-template-columns: var(--m3-record-label-width) minmax(0, 1fr);
+    padding: 14px 16px 0;
+    border-radius: var(--radius-control) var(--radius-control) 0 0;
+}
+.m3-detail > .m3-meta dd {
+    min-width: 0;
+}
+.m3-detail > .m3-meta dd > code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.m3-detail > .m3-meta + .m3-graph-empty {
+    margin-top: 0;
+    padding: 8px 16px 14px;
+    border-radius: 0 0 var(--radius-control) var(--radius-control);
+}
+.m3-detail .panel-head > h2,
+#chain-detail-heading {
+    font: 600 clamp(1.3rem, 1rem + 0.7vw, 1.8rem)/1.18 var(--font-display);
+}
+.m3-detail > section > h3,
+.m3-detail > .m3-two-column > section > h3,
+.m3-detail > .m3-actions > .m3-actions-title,
+.m3-narrative > .panel-head h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+}
+.m3-list-item[aria-current="true"] {
+    background: var(--accent-wash);
+    box-shadow: inset 2px 0 var(--accent);
+}
+.m3-create-disclosure {
+    margin-top: 16px;
+    border-top: 1px solid var(--border-row);
+}
+.m3-create-disclosure > summary {
+    min-height: var(--control-height);
+    padding-top: 8px;
+    color: var(--accent-text);
+    font-weight: 600;
+}
+.m3-create-disclosure .m3-create {
+    margin-top: 6px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+@media (max-width: 640px) {
+    .m3-detail > .m3-meta:has(+ .m3-graph-empty),
+    .m3-detail > .m3-graph-empty .m3-graph-empty-copy {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.m3-stage-outcome[data-tone="amber"] {
+    border-color: var(--dot-warn);
+    background: var(--tag-amber-bg);
+    color: var(--tag-amber-text);
+    font-weight: 650;
+}
+
+.m3-incident-filters {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0 0 12px;
+    border: 0;
+    border-bottom: 1px solid var(--border-row);
+    color: var(--text-2);
+    font-size: 13px;
+}
+.m3-incident-filters label:not(.m3-assignment-filter) {
+    display: grid;
+    gap: 4px;
+}
+.m3-incident-filters select {
+    width: 100%;
+    max-width: none;
+}
+.m3-assignment-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    cursor: pointer;
+}
+.m3-incident-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 116px), 1fr));
+    gap: 8px 16px;
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: var(--radius-control);
+    background: var(--surface-2);
+}
+.m3-incident-summary dt {
+    color: var(--text-2);
+    font-size: 13px;
+}
+.m3-incident-summary dd {
+    margin: 3px 0 0;
+    min-height: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.m3-incident-summary code {
+    overflow-wrap: anywhere;
+    font-size: 12px;
+}
+.m3-incident-record {
+    margin-top: 10px;
+}
+.m3-incident-record > summary {
+    min-height: var(--control-height);
+    color: var(--text-2);
+    font-size: 13px;
+}
+.m3-incident-record .m3-meta {
+    margin: 6px 0;
+}
+.m3-incident-record .m3-meta dd {
+    min-width: 0;
+}
+.m3-incident-detail > section[aria-labelledby="incident-timeline-heading"] {
+    margin-top: 16px;
+}
+.m3-activity-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.m3-activity-heading h3 {
+    font-size: 17px;
+    font-weight: 650;
+}
+.m3-activity-heading > span {
+    color: var(--text-muted);
+    font-family: var(--font-code);
+    font-size: 11px;
+}
+.m3-incident-detail .m3-timeline-marker::before {
+    background: var(--accent);
+}
+.m3-incident-detail .m3-timeline > li:not(.m3-timeline-day) {
+    padding-block: 5px 13px;
+}
+.m3-incident-detail .m3-timeline-marker::after {
+    bottom: -18px;
+}
+.m3-event > summary {
+    flex-wrap: wrap;
+    min-height: 28px;
+    color: var(--text);
+}
+.m3-event > summary strong {
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.m3-event .m3-meta {
+    margin: 8px 0;
+}
+.m3-event .m3-meta dd {
+    min-width: 0;
+}
+.m3-event-labels {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-inline-start: 16px;
+    color: var(--text-2);
+    font-size: 13px;
+}
+.m3-event-labels:empty {
+    display: none;
+}
+.m3-event-labels code {
+    color: var(--text);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+.m3-incident-back {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .m3-incident-layout[data-incident-selected] > .m3-incident-list,
+    .m3-incident-layout:not([data-incident-selected]) > .m3-incident-detail {
+        display: none;
+    }
+    .m3-incident-back {
+        display: inline-flex;
+        margin-bottom: 12px;
+    }
+    .m3-incident-detail > .panel-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
 }

@@ -18,8 +18,8 @@
     margin-bottom: var(--space-4, 16px);
 }
 
-.alerts-v2-panel-heading h3,
-.alerts-v2-results-heading h3 {
+.alerts-v2-panel-heading h2,
+.alerts-v2-results-heading h2 {
     margin: 0;
     font-size: 13px;
     line-height: 18px;

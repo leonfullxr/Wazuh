@@ -1,28 +1,21 @@
-import { CircleHelp, type LucideIcon } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import type { Route } from "./Navigation";
 type Translate = (key: string) => string;
 
-export function PageHeading({
-    route,
-    icon: Icon,
-    t,
-}: {
-    route: Route;
-    icon: LucideIcon;
-    t: Translate;
-}) {
+export function PageHeading({ route, t }: { route: Route; t: Translate }) {
+    const descriptions: Partial<Record<Route, string>> = {
+        overview: "overviewDescription",
+        alerts: "alertsDescription",
+        queue: "queueDescription",
+        investigate: "evidenceReview",
+    };
+    const description = descriptions[route];
+
     return (
-        <>
-            <div className="page-head">
-                <div>
-                    <span className="page-icon" aria-hidden="true">
-                        <Icon size={17} />
-                    </span>
-                    <h2>{t(route)}</h2>
-                </div>
-            </div>
-            {route === "investigate" && <p className="page-description">{t("evidenceReview")}</p>}
-        </>
+        <header className="page-head">
+            <h1>{t(route)}</h1>
+            {description && <p>{t(description)}</p>}
+        </header>
     );
 }
 

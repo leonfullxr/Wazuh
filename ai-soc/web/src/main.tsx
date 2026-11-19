@@ -1,5 +1,4 @@
-import "@fontsource-variable/inter/opsz.css";
-import "@fontsource-variable/manrope/index.css";
+import "@fontsource-variable/source-sans-3/index.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
 import "./styles/tokens.css";

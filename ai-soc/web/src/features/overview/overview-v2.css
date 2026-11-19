@@ -1,38 +1,47 @@
 .overview-v2 {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
     min-width: 0;
-    gap: var(--space-5, 20px);
+    gap: var(--space-5);
+}
+.overview-v2 > :not(.overview-v2-volume, .overview-v2-context) {
+    grid-column: 1 / -1;
 }
 .overview-v2-summary {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+    gap: 1px;
     overflow: hidden;
-    border: 1px solid var(--border, var(--stroke-subtle));
-    border-radius: var(--radius-panel, 8px);
-    background: var(--surface, var(--bg));
+    border-block: 1px solid var(--border);
+    background: var(--border);
 }
 .overview-v2-metric {
     min-width: 0;
-    min-height: 88px;
+    min-height: 96px;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
     align-items: center;
     gap: 6px 10px;
-    padding: 16px 20px;
-    border-right: 1px solid var(--border, var(--stroke-subtle));
+    padding: 17px 20px;
+    background: var(--surface);
 }
-.overview-v2-metric:last-child {
-    border-right: 0;
+.overview-v2-metric:first-child {
+    background: var(--accent-wash);
+}
+.overview-v2-metric:first-child > strong:not([data-empty]) {
+    color: var(--accent-text);
 }
 .overview-v2-metric > span {
     flex-basis: 100%;
 }
+.overview-v2-metric > .overview-v2-metric-detail {
+    flex-basis: auto;
+}
 .overview-v2-metric > span,
 .overview-v2-panel-head p {
     color: var(--text-2, var(--text-muted));
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 20px;
 }
 .overview-v2-metric > strong[data-empty] {
     color: var(--text-muted);
@@ -40,8 +49,9 @@
     font-weight: 400;
 }
 .overview-v2-metric > strong {
-    font: 650 24px/32px var(--font-ui);
-    letter-spacing: -0.02em;
+    font: 600 35px/1.1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.045em;
 }
 .overview-v2-metric > small {
     width: fit-content;
@@ -87,6 +97,7 @@
     margin: 3px 0 0;
 }
 .overview-v2-volume {
+    align-self: start;
     padding: 18px 20px 16px;
 }
 .overview-v2-chart-toolbar {
@@ -95,7 +106,7 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin: -4px 0 14px;
+    margin: 0 0 12px;
 }
 .overview-v2-chart-toolbar .overview-v2-hour-select {
     margin: 0;
@@ -138,15 +149,9 @@
     max-width: none;
 }
 .overview-v2-chart {
-    height: 212px;
+    height: 216px;
     min-width: 0;
     padding: 8px 4px 0;
-}
-.dark .overview-v2-chart .recharts-reference-area-rect {
-    fill-opacity: 0.1;
-}
-.dark .overview-v2-chart path[fill-opacity="0.72"] {
-    fill-opacity: 0.76;
 }
 .overview-v2-chart .recharts-cartesian-grid line {
     stroke: var(--border);
@@ -154,7 +159,7 @@
 .overview-v2-chart .recharts-cartesian-axis-tick text {
     fill: var(--text-muted);
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-chart .recharts-rectangle {
@@ -189,7 +194,9 @@
     gap: 16px;
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid var(--border-row);
+    padding: 12px 14px;
+    border-radius: var(--radius-control);
+    background: var(--surface-2);
 }
 .overview-v2-breakdown > div:first-child {
     display: grid;
@@ -329,6 +336,7 @@
 :root:not(.dark) .overview-v2-heatmap-cell[data-intensity="6"] > * {
     color: #ffffff;
 }
+.dark .overview-v2-heatmap-cell[data-intensity="5"] > *,
 .dark .overview-v2-heatmap-cell[data-intensity="6"] > * {
     color: #0b1220;
 }
@@ -354,18 +362,20 @@
 .overview-v2-lists {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--space-5);
 }
-.overview-v2-list:last-child {
-    grid-column: 1 / -1;
+.overview-v2-context {
+    display: grid;
+    align-content: start;
+    min-width: 0;
 }
-@media (min-width: 1280px) {
-    .overview-v2-lists {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .overview-v2-list:last-child {
-        grid-column: auto;
-    }
+.overview-v2-context .overview-v2-list {
+    padding: 16px 12px;
+    background: transparent;
+}
+.overview-v2-context .overview-v2-list + .overview-v2-list {
+    border-block-start: 1px solid var(--border);
+    border-radius: 0;
 }
 .overview-v2-list ol {
     display: grid;
@@ -376,7 +386,7 @@
 .overview-v2-list li {
     min-height: 44px;
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
     border-bottom: 1px solid var(--border-row, var(--stroke-weak));
@@ -392,9 +402,11 @@
 .overview-v2-list li > button {
     min-width: 0;
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 7px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    padding: 8px 0;
     border: 0;
     background: transparent;
     color: var(--text);
@@ -405,16 +417,20 @@
     color: var(--accent);
 }
 .overview-v2-list li > button > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 .overview-v2-list code {
     color: var(--text-muted);
     font-size: 11px;
 }
 .overview-v2-list li > strong {
-    font: 600 13px/1 var(--font-ui);
+    min-width: 30px;
+    padding: 5px 6px;
+    border-radius: var(--radius-tag);
+    color: var(--text-2);
+    text-align: center;
+    font: 650 13px/1 var(--font-ui);
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-empty {
@@ -433,15 +449,9 @@
     display: grid;
     place-items: center;
 }
-@media (max-width: 1100px) {
-    .overview-v2-summary {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .overview-v2-metric:nth-child(3) {
-        border-right: 0;
-    }
-    .overview-v2-metric:nth-child(n + 4) {
-        border-top: 1px solid var(--border, var(--stroke-subtle));
+@media (max-width: 1170px) {
+    .overview-v2 {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 @media (max-width: 700px) {
@@ -451,28 +461,20 @@
     .overview-v2-lists {
         grid-template-columns: 1fr;
     }
-    .overview-v2-metric,
-    .overview-v2-metric:nth-child(3) {
-        min-height: 64px;
-        padding: 10px 14px;
-        border-right: 0;
-        border-top: 0;
-        border-bottom: 1px solid var(--border, var(--stroke-subtle));
+    .overview-v2-metric {
+        min-height: 66px;
+        padding: 10px 12px;
     }
-    .overview-v2-metric:nth-child(odd) {
-        border-right: 1px solid var(--border, var(--stroke-subtle));
-    }
-    .overview-v2-metric:last-child {
+    .overview-v2-metric:last-child:nth-child(odd) {
         grid-column: 1 / -1;
-        border-right: 0;
-        border-bottom: 0;
+        min-height: 48px;
+    }
+    .overview-v2-metric:last-child:nth-child(odd) > span:first-child {
+        flex-basis: auto;
+        margin-inline-end: auto;
     }
     .overview-v2-metric > strong {
-        font-size: 20px;
-        line-height: 26px;
-    }
-    .overview-v2-list:last-child {
-        grid-column: auto;
+        font-size: 22px;
     }
     .overview-v2-chart {
         height: 200px;
@@ -514,56 +516,8 @@
 .overview-v2-lists {
     align-items: stretch;
 }
-/* Wide screens: three equal lists, then two equal halves (six-column track). */
-@media (min-width: 1280px) {
-    .overview-v2-lists {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-    .overview-v2-list,
-    .overview-v2-list:last-child {
-        grid-column: span 2;
-    }
-    .overview-v2-list:nth-child(n + 4) {
-        grid-column: span 3;
-    }
-}
-
-/* Wide screens: legend and hour picker share the title row, and the card loses its slack,
-   so the plot keeps its height while the card gets shorter. */
-@media (min-width: 1100px) {
-    .overview-v2-volume {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-        column-gap: 24px;
-    }
-
-    .overview-v2-volume > :not(.overview-v2-panel-head):not(.overview-v2-chart-toolbar) {
-        grid-column: 1 / -1;
-    }
-
-    .overview-v2-volume > .overview-v2-panel-head {
-        margin-bottom: 8px;
-    }
-
-    .overview-v2-volume > .overview-v2-chart-toolbar {
-        align-self: center;
-        margin: 0 0 8px;
-        flex-wrap: nowrap;
-    }
-
-    .overview-v2-volume .overview-v2-hour-select {
-        margin: 0;
-    }
-}
-
 .overview-v2-chart {
     padding-top: 4px;
-}
-
-.overview-v2-breakdown {
-    margin-top: 10px;
-    padding-top: 12px;
 }
 
 .overview-v2-legend li,
@@ -596,7 +550,7 @@
 
 .overview-v2-list li > button > span,
 .overview-v2-list li > button > code.overview-v2-list-id {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 20px;
 }
 
@@ -615,18 +569,6 @@
 .overview-v2-heatmap-day {
     font-size: 12px;
 }
-/* The selected hour band reads in dark as clearly as in light. */
-.dark .overview-v2-chart .recharts-reference-area-rect {
-    fill-opacity: 0.16;
-}
-@media (max-width: 700px) {
-    .overview-v2-metric,
-    .overview-v2-metric:nth-child(3) {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-}
-
 /* Empty heatmap cells keep the grid visible in dark. */
 .dark .overview-v2-heatmap-cell[data-empty] {
     background: color-mix(in srgb, var(--surface-2), white 3%);
@@ -672,18 +614,4 @@ html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
 
 .overview-v2-metric > small[data-state="warning"]::before {
     background: var(--dot-warn);
-}
-
-/* The selected hour is the one blue mark: an accent bar in a faint accent band. */
-.overview-v2-chart .recharts-reference-area-rect,
-.dark .overview-v2-chart .recharts-reference-area-rect {
-    fill-opacity: 0.08;
-}
-
-/* Phone KPI grid: bottom and right hairlines only, so every inner line is 1px. */
-@media (max-width: 700px) {
-    .overview-v2-summary > .overview-v2-metric {
-        border-top: 0;
-        border-left: 0;
-    }
 }

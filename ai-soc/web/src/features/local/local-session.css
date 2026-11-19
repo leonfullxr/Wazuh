@@ -1,18 +1,8 @@
 .local-login,
 .local-session-state {
-    min-height: 100vh;
+    min-height: 100dvh;
     color: var(--text);
-    background:
-        radial-gradient(
-            circle at 15% 15%,
-            color-mix(in srgb, var(--accent) 10%, transparent),
-            transparent 34rem
-        ),
-        linear-gradient(
-            135deg,
-            var(--canvas),
-            color-mix(in srgb, var(--canvas) 86%, var(--surface))
-        );
+    background: var(--canvas);
 }
 
 .local-login {
@@ -42,7 +32,6 @@
     border: 1px solid var(--border);
     border-radius: clamp(1rem, 2vw, 1.5rem);
     background: var(--surface);
-    box-shadow: 0 2rem 5rem -2.5rem rgb(15 23 42 / 35%);
 }
 
 .local-login-intro,
@@ -56,13 +45,7 @@
     flex-direction: column;
     justify-content: center;
     border-inline-end: 1px solid var(--border);
-    background:
-        linear-gradient(
-            145deg,
-            color-mix(in srgb, var(--accent-wash) 55%, transparent),
-            transparent 55%
-        ),
-        var(--surface);
+    background: var(--surface-2);
 }
 
 .local-login-brand {
