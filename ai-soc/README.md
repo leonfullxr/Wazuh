@@ -2,6 +2,20 @@
 
 Wazuh AI SOC is a self-hosted analyst workspace. It reads alerts from your Wazuh Indexer, groups and ranks them, and gives analysts a place to investigate and track the results. An optional local or hosted OpenAI-compatible model can assess selected alert groups in shadow mode.
 
+## Console preview
+
+These screenshots show the running local workspace with invented Wazuh alerts.
+
+![Workspace overview with model activity and alert volume](docs/screenshots/local-overview.png)
+
+### Alert queue
+
+![Analyst queue with a ranked group of SSH authentication alerts](docs/screenshots/local-queue.png)
+
+### Incident detail
+
+![Incident detail with a cited AI narrative](docs/screenshots/local-incident.png)
+
 ## Run your own local instance
 
 From the repository's `ai-soc` directory on Linux, install the prerequisites and create your private configuration. [Local deployment guide](docs/local-deployment.md)
