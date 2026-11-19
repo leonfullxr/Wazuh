@@ -19,16 +19,28 @@ import { WorkspaceRequestError } from "../../api/workspace";
 import { Tag } from "../../components/ui/tag";
 import { statusTags, type WorkStatus } from "../../lib/semantic";
 import { humanizeKey, isFlatRecord } from "../../lib/utils";
-import { IdValue, NarrativePanel, compactId } from "./NarrativePanel";
+import { IdValue, NarrativePanel } from "./NarrativePanel";
 import "./incident-v2.css";
 
 type Locale = "en" | "es";
 type Translate = (key: string) => string;
 type PageKind = "chains" | "incidents";
-type GraphKind = "chain" | "incident";
 type Selection = { kind: "chain"; id: string } | { kind: "incident"; id: string } | null;
 type IncidentStatus = components["schemas"]["IncidentStatusRequest"]["status"];
 type DispositionLabel = components["schemas"]["IncidentDispositionRequest"]["label"];
+
+const incidentStatusLabels = {
+    new: "newStatus",
+    in_progress: "inProgress",
+    resolved: "resolved",
+    closed: "closed",
+} satisfies Record<IncidentStatus, string>;
+
+const compactAlertFields = [
+    { key: "src_ip", label: "source" },
+    { key: "dst_user", label: "user" },
+    { key: "agent_id", label: "agent" },
+];
 
 export function M3WorkspacePage({
     kind,
@@ -48,6 +60,11 @@ export function M3WorkspacePage({
     const [error, setError] = useState("");
     const [chainCursor, setChainCursor] = useState("");
     const [incidentCursor, setIncidentCursor] = useState("");
+    const [incidentStatus, setIncidentStatus] = useState<IncidentStatus>();
+    const [unassignedOnly, setUnassignedOnly] = useState(false);
+    const incidentList = useRef<HTMLElement>(null);
+    const incidentPanel = useRef<HTMLElement>(null);
+    const selectedIncidentId = selection?.kind === "incident" ? selection.id : undefined;
     const [eventCursor, setEventCursor] = useState("");
     const [detailCursors, setDetailCursors] = useState<
         Partial<Record<"history" | "comments" | "dispositions" | "membership", string>>
@@ -59,15 +76,27 @@ export function M3WorkspacePage({
         setDetailCursors({});
         setSelection(null);
     }, [siteId]);
+    useEffect(() => {
+        if (kind === "incidents" && selectedIncidentId && matchMedia("(max-width: 700px)").matches)
+            incidentPanel.current?.focus();
+    }, [kind, selectedIncidentId]);
     const chains = useQuery({
         queryKey: ["m3", "chains", siteId, chainCursor],
         queryFn: ({ signal }) => listChains({ siteId, cursor: chainCursor || undefined }, signal),
         enabled: !!siteId && kind === "chains",
     });
     const incidents = useQuery({
-        queryKey: ["m3", "incidents", siteId, incidentCursor],
+        queryKey: ["m3", "incidents", siteId, incidentStatus, unassignedOnly, incidentCursor],
         queryFn: ({ signal }) =>
-            listIncidents({ siteId, cursor: incidentCursor || undefined }, signal),
+            listIncidents(
+                {
+                    siteId,
+                    status: incidentStatus,
+                    unassigned: unassignedOnly || undefined,
+                    cursor: incidentCursor || undefined,
+                },
+                signal,
+            ),
         enabled: !!siteId && kind === "incidents",
     });
     const chain = useQuery({
@@ -127,6 +156,11 @@ export function M3WorkspacePage({
         enabled: !!siteId && !!activeIncident,
     });
 
+    const resetIncidentSelection = () => {
+        setSelection(null);
+        setEventCursor("");
+        setDetailCursors({});
+    };
     const refresh = async () => {
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: ["m3", kind, siteId] }),
@@ -274,8 +308,16 @@ export function M3WorkspacePage({
                     </section>
                 </div>
             ) : (
-                <div className="m3-grid">
-                    <section className="panel" aria-labelledby="incident-list-heading">
+                <div
+                    className="m3-grid m3-incident-layout"
+                    data-incident-selected={!!selectedIncidentId || undefined}
+                >
+                    <section
+                        className="panel m3-incident-list"
+                        aria-labelledby="incident-list-heading"
+                        ref={incidentList}
+                        tabIndex={-1}
+                    >
                         <div className="panel-head">
                             <h2 id="incident-list-heading" className="sr-only">
                                 {t("m3Incidents")}
@@ -292,6 +334,41 @@ export function M3WorkspacePage({
                                 {t("refresh")}
                             </button>
                         </div>
+                        <fieldset
+                            className="m3-incident-filters"
+                            aria-label={t("m3IncidentFilters")}
+                        >
+                            <label>
+                                {t("m3IncidentStatusFilter")}
+                                <select
+                                    value={incidentStatus ?? ""}
+                                    onChange={(event) => {
+                                        setIncidentStatus(parseIncidentStatus(event.target.value));
+                                        setIncidentCursor("");
+                                        resetIncidentSelection();
+                                    }}
+                                >
+                                    <option value="">{t("allStatuses")}</option>
+                                    {Object.entries(incidentStatusLabels).map(([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {t(label)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="m3-assignment-filter">
+                                <input
+                                    type="checkbox"
+                                    checked={unassignedOnly}
+                                    onChange={(event) => {
+                                        setUnassignedOnly(event.target.checked);
+                                        setIncidentCursor("");
+                                        resetIncidentSelection();
+                                    }}
+                                />
+                                {t("m3UnassignedOnly")}
+                            </label>
+                        </fieldset>
                         {incidents.isLoading ? <p role="status">{t("loading")}</p> : null}
                         {incidents.isError ? (
                             <LoadError
@@ -303,7 +380,13 @@ export function M3WorkspacePage({
                         {!incidents.isLoading &&
                         !incidents.isError &&
                         incidents.data?.items.length === 0 ? (
-                            <p className="muted">{t("m3NoIncidents")}</p>
+                            <p className="muted">
+                                {t(
+                                    incidentStatus || unassignedOnly
+                                        ? "m3NoMatchingIncidents"
+                                        : "m3NoIncidents",
+                                )}
+                            </p>
                         ) : null}
                         <ul className="m3-list">
                             {(!incidents.isError ? incidents.data?.items : undefined)?.map(
@@ -328,17 +411,21 @@ export function M3WorkspacePage({
                                         >
                                             <strong>{item.title}</strong>
                                             <span className="m3-list-meta">
-                                                <StateTag value={item.status} /> {t("m3Owner")}:{" "}
+                                                <StateTag
+                                                    value={item.status}
+                                                    label={t(incidentStatusLabels[item.status])}
+                                                />
                                                 {item.owner_key ? (
                                                     <code>{item.owner_key}</code>
                                                 ) : (
                                                     t("m3Unassigned")
                                                 )}
                                             </span>
-                                            <small title={item.incident_id}>
-                                                {compactId(item.incident_id)} · v{item.work_version}{" "}
-                                                · r{item.revision_seq}
-                                            </small>
+                                            {item.priority !== null && (
+                                                <small>
+                                                    {t("m3Priority")} {formatScore(item.priority)}
+                                                </small>
+                                            )}
                                         </button>
                                     </li>
                                 ),
@@ -371,7 +458,22 @@ export function M3WorkspacePage({
                             />
                         </details>
                     </section>
-                    <section className="panel m3-detail" aria-labelledby="incident-detail-heading">
+                    <section
+                        className="panel m3-detail m3-incident-detail"
+                        aria-labelledby="incident-detail-heading"
+                        ref={incidentPanel}
+                        tabIndex={-1}
+                    >
+                        <button
+                            className="btn outline m3-incident-back"
+                            type="button"
+                            onClick={() => {
+                                resetIncidentSelection();
+                                requestAnimationFrame(() => incidentList.current?.focus());
+                            }}
+                        >
+                            {t("m3BackToIncidents")}
+                        </button>
                         {selection?.kind !== "incident" ? (
                             <EmptyDetail text={t("m3ChooseIncident")} />
                         ) : incident.isLoading ? (
@@ -538,7 +640,7 @@ function ChainDetailView({
                 </dd>
             </dl>
             {detail.weak_heuristic && <p className="alert warning">{t("m3WeakEvidence")}</p>}
-            <GraphUnavailable kind="chain" locale={locale} />
+            <ChainGraphUnavailable locale={locale} />
             <section aria-labelledby="chain-stages-heading">
                 <h3 id="chain-stages-heading">{t("m3OrderedStages")}</h3>
                 {detail.stages.length ? (
@@ -755,27 +857,153 @@ function IncidentDetailView({
                     </button>
                 )}
             </div>
-            <dl className="m3-meta">
-                <dt>{t("m3IncidentId")}</dt>
-                <dd>
-                    <IdValue value={incident.incident_id} locale={locale} />
-                </dd>
-                <dt>{t("m3Status")}</dt>
-                <dd>
-                    <StateTag value={incident.status} />
-                </dd>
-                <dt>{t("m3Owner")}</dt>
-                <dd>
-                    {incident.owner_key ? <code>{incident.owner_key}</code> : t("m3Unassigned")}
-                </dd>
-                <dt>{t("m3WorkVersion")}</dt>
-                <dd>{incident.work_version}</dd>
-                <dt>{t("m3EvidenceRevision")}</dt>
-                <dd>
-                    <IdValue value={incident.evidence_head} locale={locale} />
-                </dd>
+            <dl className="m3-incident-summary">
+                <div>
+                    <dt>{t("m3Status")}</dt>
+                    <dd>
+                        <StateTag
+                            value={incident.status}
+                            label={t(incidentStatusLabels[incident.status])}
+                        />
+                    </dd>
+                </div>
+                <div>
+                    <dt>{t("m3Priority")}</dt>
+                    <dd>
+                        {incident.priority === null
+                            ? t("scorePending")
+                            : formatScore(incident.priority)}
+                    </dd>
+                </div>
+                <div>
+                    <dt>{t("m3Owner")}</dt>
+                    <dd>
+                        {incident.owner_key ? <code>{incident.owner_key}</code> : t("m3Unassigned")}
+                    </dd>
+                </div>
+                <div>
+                    <dt>{t("m3Members")}</dt>
+                    <dd>{data.members.length.toLocaleString(locale)}</dd>
+                </div>
             </dl>
-            <GraphUnavailable kind="incident" locale={locale} />
+            <details className="disclosure m3-incident-record">
+                <summary>{t("m3RecordDetails")}</summary>
+                <dl className="m3-meta">
+                    <dt>{t("m3IncidentId")}</dt>
+                    <dd>
+                        <IdValue value={incident.incident_id} locale={locale} />
+                    </dd>
+                    <dt>{t("m3WorkVersion")}</dt>
+                    <dd>{incident.work_version}</dd>
+                    <dt>{t("m3EvidenceRevision")}</dt>
+                    <dd>
+                        <IdValue value={incident.evidence_head} locale={locale} />
+                    </dd>
+                </dl>
+            </details>
+            <section aria-labelledby="incident-timeline-heading">
+                <div className="m3-activity-heading">
+                    <h3 id="incident-timeline-heading">{t("m3Timeline")}</h3>
+                    <span>UTC</span>
+                </div>
+                {eventsLoading && <p role="status">{t("loading")}</p>}
+                {eventsError && <p role="alert">{eventsError}</p>}
+                {!eventsLoading && !eventsError && !events.length && (
+                    <p className="muted">{t("m3NoEvents")}</p>
+                )}
+                <ol className="m3-timeline">
+                    {events.map((event, index) => {
+                        const label = incidentEventLabel(event, t);
+                        return (
+                            <Fragment key={event.event_id}>
+                                {(index === 0 ||
+                                    event.event_ts.slice(0, 10) !==
+                                        events[index - 1].event_ts.slice(0, 10)) && (
+                                    <li className="m3-timeline-day">{fmtDay(event.event_ts)}</li>
+                                )}
+                                <li>
+                                    <time
+                                        dateTime={event.event_ts}
+                                        title={fmtDate(event.event_ts, locale)}
+                                        aria-label={fmtDate(event.event_ts, locale)}
+                                    >
+                                        {fmtTime(event.event_ts, locale)}
+                                    </time>
+                                    <span className="m3-timeline-marker" aria-hidden="true" />
+                                    <div className="m3-timeline-event">
+                                        <details className="disclosure m3-event">
+                                            <summary>
+                                                <strong>{label}</strong>
+                                                {event.rule_id && (
+                                                    <Tag mono>
+                                                        {t("m3Rule")} {event.rule_id}
+                                                    </Tag>
+                                                )}
+                                            </summary>
+                                            <dl className="m3-meta">
+                                                <dt>{t("m3Alert")}</dt>
+                                                <dd>
+                                                    <IdValue
+                                                        value={event.alert_key}
+                                                        locale={locale}
+                                                    />
+                                                </dd>
+                                                <dt>{t("group")}</dt>
+                                                <dd>
+                                                    <IdValue
+                                                        value={event.group_id}
+                                                        locale={locale}
+                                                    />
+                                                </dd>
+                                                <dt>{t("m3MemberRevision")}</dt>
+                                                <dd>
+                                                    <IdValue
+                                                        value={event.group_revision}
+                                                        locale={locale}
+                                                    />
+                                                </dd>
+                                            </dl>
+                                            {event.stages.length > 0 && (
+                                                <EvidenceRows
+                                                    values={event.stages}
+                                                    locale={locale}
+                                                />
+                                            )}
+                                        </details>
+                                        <div className="m3-event-labels">
+                                            {compactAlertFields.map(({ key, label }) => {
+                                                const value = event.fields[key];
+                                                return (
+                                                    typeof value === "string" &&
+                                                    value.trim() && (
+                                                        <span key={key}>
+                                                            {t(label)} <code>{value}</code>
+                                                        </span>
+                                                    )
+                                                );
+                                            })}
+                                            {event.stages.map(
+                                                (stage, index) =>
+                                                    typeof stage.stage_id === "string" &&
+                                                    humanizeKey(stage.stage_id) !== label && (
+                                                        <Tag key={`${stage.stage_id}-${index}`}>
+                                                            {humanizeKey(stage.stage_id)}
+                                                        </Tag>
+                                                    ),
+                                            )}
+                                        </div>
+                                    </div>
+                                </li>
+                            </Fragment>
+                        );
+                    })}
+                </ol>
+                {eventsNext && (
+                    <button className="btn outline" onClick={onMoreEvents}>
+                        {t("nextPage")}
+                    </button>
+                )}
+            </section>
             <NarrativePanel
                 key={`${siteId}:${incident.incident_id}:${incident.evidence_head}`}
                 siteId={siteId}
@@ -894,56 +1122,6 @@ function IncidentDetailView({
                         </button>
                     </form>
                 </details>
-            </section>
-            <section aria-labelledby="incident-timeline-heading">
-                <h3 id="incident-timeline-heading">{t("m3Timeline")}</h3>
-                {eventsLoading && <p role="status">{t("loading")}</p>}
-                {eventsError && <p role="alert">{eventsError}</p>}
-                {!eventsLoading && !eventsError && !events.length && (
-                    <p className="muted">{t("m3NoEvents")}</p>
-                )}
-                <ol className="m3-timeline">
-                    {events.map((event, index) => (
-                        <Fragment key={event.event_id}>
-                            {(index === 0 ||
-                                event.event_ts.slice(0, 10) !==
-                                    events[index - 1].event_ts.slice(0, 10)) && (
-                                <li className="m3-timeline-day">{fmtDay(event.event_ts)}</li>
-                            )}
-                            <li>
-                                <time
-                                    dateTime={event.event_ts}
-                                    title={fmtDate(event.event_ts, locale)}
-                                    aria-label={fmtDate(event.event_ts, locale)}
-                                >
-                                    {fmtTime(event.event_ts, locale)}
-                                </time>
-                                <span className="m3-timeline-marker" aria-hidden="true" />
-                                <div className="m3-timeline-event">
-                                    <strong>
-                                        {event.rule_id ? (
-                                            <code>{event.rule_id}</code>
-                                        ) : (
-                                            t("m3Alert")
-                                        )}
-                                    </strong>
-                                    <span>
-                                        {event.alert_key} ·{" "}
-                                        <IdValue value={event.group_id} locale={locale} />
-                                    </span>
-                                    {event.stages.length > 0 && (
-                                        <EvidenceRows values={event.stages} locale={locale} />
-                                    )}
-                                </div>
-                            </li>
-                        </Fragment>
-                    ))}
-                </ol>
-                {eventsNext && (
-                    <button className="btn outline" onClick={onMoreEvents}>
-                        {t("nextPage")}
-                    </button>
-                )}
             </section>
             <div className="m3-two-column">
                 <section aria-labelledby="incident-work-heading">
@@ -1193,27 +1371,25 @@ function IncidentDetailView({
     );
 }
 
-function GraphUnavailable({ kind, locale }: { kind: GraphKind; locale: Locale }) {
+function ChainGraphUnavailable({ locale }: { locale: Locale }) {
     const copy =
         locale === "es"
             ? {
                   title: "Grafo de entidades no disponible",
-                  incident:
-                      "No hay relaciones entre entidades disponibles para este incidente. La cronología de eventos aparece a continuación.",
-                  chain: "No hay relaciones entre entidades disponibles para este candidato. Las etapas y la evidencia aparecen a continuación.",
+                  description:
+                      "No hay relaciones entre entidades disponibles para este candidato. Las etapas y la evidencia aparecen a continuación.",
               }
             : {
                   title: "Entity graph unavailable",
-                  incident:
-                      "No entity relationships are available for this incident. The event timeline is below.",
-                  chain: "No entity relationships are available for this candidate. Its stages and evidence are below.",
+                  description:
+                      "No entity relationships are available for this candidate. Its stages and evidence are below.",
               };
     return (
-        <section className="m3-graph-empty" aria-labelledby={`${kind}-graph-heading`}>
+        <section className="m3-graph-empty" aria-labelledby="chain-graph-heading">
             <div className="m3-graph-grid" aria-hidden="true" />
             <div className="m3-graph-empty-copy">
-                <h3 id={`${kind}-graph-heading`}>{copy.title}</h3>
-                <p>{copy[kind]}</p>
+                <h3 id="chain-graph-heading">{copy.title}</h3>
+                <p>{copy.description}</p>
             </div>
         </section>
     );
@@ -1496,13 +1672,24 @@ function parseDispositionLabel(value: string): DispositionLabel | undefined {
     }
 }
 
-function StateTag({ value }: { value: string }) {
+function incidentEventLabel(
+    event: components["schemas"]["IncidentEventDTO"],
+    t: Translate,
+): string {
+    const description = event.fields.rule_description;
+    if (typeof description === "string" && description.trim()) return description;
+
+    const stage = event.stages.find(({ stage_id }) => typeof stage_id === "string")?.stage_id;
+    return typeof stage === "string" ? humanizeKey(stage) : t("m3Alert");
+}
+
+function StateTag({ value, label = value }: { value: string; label?: string }) {
     const tone = Object.hasOwn(statusTags, value)
         ? statusTags[value as WorkStatus]
         : value === "open"
           ? { tone: "blue" as const, dot: false }
           : { tone: "neutral" as const, dot: false };
-    return <Tag {...tone}>{value}</Tag>;
+    return <Tag {...tone}>{label}</Tag>;
 }
 
 function printable(value: unknown): string {

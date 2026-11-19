@@ -25,7 +25,7 @@ These screenshots show the workspace with synthetic Wazuh alerts.
 
 ### Incident detail
 
-![Selected incident with an AI narrative and its evidence groups](docs/screenshots/console/incident-light.png)
+![Selected incident with its priority, evidence timeline, and cited AI narrative](docs/screenshots/console/incident-light.png)
 
 </details>
 

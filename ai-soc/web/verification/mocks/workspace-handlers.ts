@@ -176,18 +176,26 @@ export const workspaceHandlers = [
         const mode = state(url);
         if (mode === "denied") return error(403, "WORKSPACE_DENIED", "Incident access is denied.");
         if (mode === "error") return error(503, "UNAVAILABLE", "Incidents are unavailable.");
-        const items = [...incidentStore.values()].map((item) => ({
-            incident_id: item.incident.incident_id,
-            title: item.incident.title,
-            owner_key: item.incident.owner_key,
-            status: item.incident.status,
-            work_version: item.incident.work_version,
-            evidence_head: item.incident.evidence_head,
-            revision_seq: item.incident.revision_seq,
-            priority: item.incident.priority,
-            created_at: demoIds.now,
-            created_by: "analyst:demo",
-        }));
+        const status = url.searchParams.get("status");
+        const unassigned = url.searchParams.get("unassigned") === "true";
+        const items = [...incidentStore.values()]
+            .filter(
+                ({ incident }) =>
+                    (!status || incident.status === status) &&
+                    (!unassigned || incident.owner_key === null),
+            )
+            .map((item) => ({
+                incident_id: item.incident.incident_id,
+                title: item.incident.title,
+                owner_key: item.incident.owner_key,
+                status: item.incident.status,
+                work_version: item.incident.work_version,
+                evidence_head: item.incident.evidence_head,
+                revision_seq: item.incident.revision_seq,
+                priority: item.incident.priority,
+                created_at: demoIds.now,
+                created_by: "analyst:demo",
+            }));
         return HttpResponse.json({ items, next_cursor: null, limit: 25 });
     }),
     http.post("/v1/workspace/incidents", async ({ request }) => {
