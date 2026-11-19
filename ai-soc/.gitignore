@@ -40,7 +40,13 @@ node_modules
 # Keep development verification local; the release contains runtime and operations.
 /tests
 /.github
-/dev
+/dev/*
+!/dev/toolchain.lock.json
+!/dev/pinned-inputs/
+/dev/pinned-inputs/*
+!/dev/pinned-inputs/b5-ui-package-lock.json
+!/dev/pinned-inputs/b5-ui-package.json
+!/dev/pinned-inputs/b6-toolchain.lock.json
 /compose.yaml
 /ui/e2e
 /ui/playwright*.config.ts

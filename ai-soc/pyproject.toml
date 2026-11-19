@@ -30,6 +30,7 @@ dependencies = [
 
 [project.scripts]
 ai-soc-content = "ai_soc.content.cli:main"
+ai-soc-knowledge = "ai_soc.workspace.knowledge_cli:main"
 
 [dependency-groups]
 dev = [

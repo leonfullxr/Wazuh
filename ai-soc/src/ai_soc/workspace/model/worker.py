@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import json
 import os
+import pwd
 import stat
 import subprocess
 import sys
@@ -29,7 +30,7 @@ from ai_soc.workspace.model.narrate import (
 )
 from ai_soc.workspace.worker import run_once
 
-DEFAULT_SLOT_DIRECTORY = Path.home() / ".local/state/ai-soc/narrative-slot"
+DEFAULT_STATE_DIRECTORY = Path(__file__).resolve().parents[4] / "build/model-state"
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +41,10 @@ class ModelConfig:
     slot_directory: Path
     worker_id: str = "workspace-model"
     codex_path: str | None = None
+    auth_path: str | None = None
+    bwrap_path: str | None = None
+    authority_path: Path | None = None
+    state_directory: Path = DEFAULT_STATE_DIRECTORY
 
     def __post_init__(self) -> None:
         if (
@@ -49,17 +54,33 @@ class ModelConfig:
             or not self.runtime_id
             or not self.worker_id
             or not self.slot_directory.is_absolute()
-            or (
-                self.codex_path is not None
-                and ("\x00" in self.codex_path or not Path(self.codex_path).is_absolute())
+            or not self.state_directory.is_absolute()
+            or any(
+                path is not None and ("\x00" in path or not Path(path).is_absolute())
+                for path in (self.codex_path, self.auth_path, self.bwrap_path)
             )
+            or (self.authority_path is not None and not self.authority_path.is_absolute())
         ):
             raise ValueError("invalid_model_configuration")
 
     def codex_profile(self) -> CodexProfile:
-        return (
-            CodexProfile() if self.codex_path is None else CodexProfile(codex_path=self.codex_path)
+        return CodexProfile(
+            codex_path=self.codex_path or "",
+            auth_path=self.auth_path or "",
+            bwrap_path=self.bwrap_path or "",
+            state_directory=self.state_directory,
         )
+
+    def require_configured(self) -> None:
+        if not all((self.codex_path, self.auth_path, self.bwrap_path, self.authority_path)):
+            raise ValueError("model_configuration_incomplete")
+        if self.authority_path != host_authority_path():
+            raise PermissionError("host_authority_path_required")
+
+
+def host_authority_path() -> Path:
+    """Pin the authority independently of checkout configuration and HOME overrides."""
+    return Path(pwd.getpwuid(os.geteuid()).pw_dir) / ".local/state/ai-soc/narrative-runtime.json"
 
 
 def local_host_id() -> str:
@@ -78,14 +99,24 @@ def load_config(path: Path) -> ModelConfig:
         "slot_directory",
         "worker_id",
         "codex_path",
+        "auth_path",
+        "bwrap_path",
+        "authority_path",
+        "state_directory",
     }:
         raise ValueError("unknown_model_configuration_field")
     if not isinstance(data.get("site_ids"), list) or not all(
         isinstance(site, str) for site in cast(list[object], data["site_ids"])
     ):
         raise ValueError("invalid_model_sites")
-    if "codex_path" in data and not isinstance(data["codex_path"], str):
-        raise ValueError("invalid_model_configuration")
+    for key in ("codex_path", "auth_path", "bwrap_path", "authority_path", "state_directory"):
+        if key in data and (
+            not isinstance(data[key], str)
+            or not data[key]
+            or "\x00" in data[key]
+            or not Path(data[key]).is_absolute()
+        ):
+            raise ValueError("invalid_model_configuration")
     return ModelConfig(
         frozenset(data["site_ids"]),
         str(data["host_id"]),
@@ -93,6 +124,10 @@ def load_config(path: Path) -> ModelConfig:
         Path(data["slot_directory"]),
         str(data.get("worker_id", "workspace-model")),
         data.get("codex_path"),
+        data.get("auth_path"),
+        data.get("bwrap_path"),
+        Path(data["authority_path"]) if "authority_path" in data else None,
+        Path(data["state_directory"]) if "state_directory" in data else DEFAULT_STATE_DIRECTORY,
     )
 
 
@@ -143,10 +178,39 @@ def acquire_slot(directory: Path) -> PhysicalSlot | None:
         raise
 
 
+def authority_material(config: ModelConfig, info: os.stat_result) -> bytes:
+    return json.dumps(
+        {
+            "host_id": config.host_id,
+            "runtime_id": config.runtime_id,
+            "slot_directory": str(config.slot_directory),
+            "device": info.st_dev,
+            "inode": info.st_ino,
+        },
+        sort_keys=True,
+    ).encode()
+
+
+def verify_authority(config: ModelConfig, info: os.stat_result) -> None:
+    assert config.authority_path is not None
+    fd = os.open(config.authority_path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    with os.fdopen(fd, "rb") as stream:
+        meta = os.fstat(stream.fileno())
+        if (
+            not stat.S_ISREG(meta.st_mode)
+            or meta.st_uid != os.geteuid()
+            or meta.st_mode & 0o077
+            or stream.read(4097) != authority_material(config, info)
+        ):
+            raise PermissionError("host_runtime_already_bound")
+
+
 def verify_binding(conn: psycopg.Connection[Any], config: ModelConfig, site_id: str) -> None:
+    config.require_configured()
     if config.host_id != local_host_id():
         raise PermissionError("configured_host_is_not_local")
     info = protected_directory(config.slot_directory)
+    verify_authority(config, info)
     row = conn.execute(
         "SELECT host_id,runtime_id,slot_directory,directory_device,directory_inode,"
         "slot_count FROM narrative_runtime_bindings WHERE site_id=%s",
@@ -165,28 +229,20 @@ def verify_binding(conn: psycopg.Connection[Any], config: ModelConfig, site_id: 
 
 
 def provision_binding(conn: psycopg.Connection[Any], config: ModelConfig, *, now: datetime) -> None:
+    config.require_configured()
     if config.host_id != local_host_id():
         raise PermissionError("configured_host_is_not_local")
     config.slot_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = protected_directory(config.slot_directory)
     # A host manifest prevents other databases and checkouts inventing a second slot.
-    manifest_path = DEFAULT_SLOT_DIRECTORY.parent / "narrative-runtime.json"
+    assert config.authority_path is not None
+    manifest_path = config.authority_path
     manifest_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    material = json.dumps(
-        {
-            "host_id": config.host_id,
-            "runtime_id": config.runtime_id,
-            "slot_directory": str(config.slot_directory),
-            "device": info.st_dev,
-            "inode": info.st_ino,
-        },
-        sort_keys=True,
-    ).encode()
+    material = authority_material(config, info)
     try:
         fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
     except FileExistsError:
-        if manifest_path.read_bytes() != material:
-            raise PermissionError("host_runtime_already_bound") from None
+        verify_authority(config, info)
     else:
         with os.fdopen(fd, "wb") as stream:
             stream.write(material)
@@ -324,6 +380,7 @@ def run_model_once(
     wait: bool = True,
 ) -> int:
     """Acquire before admission; guardian inherits ownership and performs the DB claim."""
+    config.require_configured()
     slot = acquire_slot(config.slot_directory)
     if slot is None:
         return 0
@@ -376,6 +433,7 @@ def main() -> int:
     if not 1 <= args.poll_seconds <= 300:
         parser.error("--poll-seconds must be in 1..300")
     config = load_config(args.config)
+    config.require_configured()
     dsn = os.environ.get("WS_MODEL_DATABASE_URL")
     if not dsn:
         parser.error("WS_MODEL_DATABASE_URL is required")

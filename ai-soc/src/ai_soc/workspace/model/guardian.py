@@ -139,6 +139,7 @@ def run_guardian(
 ) -> int:
     """Execute at most one authorization. Return 1 for a call and 0 for no ready work."""
     profile = profile if profile is not None else config.codex_profile()
+    injected_provider = provider is not None
     provider = provider or CodexCLIProvider(profile)
     if not 0 < heartbeat_interval <= 10:
         raise ValueError("invalid_heartbeat_interval")
@@ -174,10 +175,11 @@ def run_guardian(
                     return 0
         # Recover first, then block unavailable installed bundles before any claim/attempt.
         # This preflight checks binaries/catalog only; credentials remain broker-owned.
-        try:
-            profile.verify_runtime()
-        except ProfileError:
-            return 0
+        if not injected_provider:
+            try:
+                profile.verify_runtime()
+            except ProfileError:
+                return 0
         for site_id in sorted(config.site_ids):
             with _short_transaction(conn, site_id, config.site_ids):
                 job_and_generation = _claim_supported(conn, config, site_id, profile, _clock())

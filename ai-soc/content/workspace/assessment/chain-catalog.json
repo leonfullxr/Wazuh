@@ -1,0 +1,34 @@
+{
+  "version": "chain-assessment-v1",
+  "score_gate": 65.0,
+  "sample_basis_points": 0,
+  "sample_seed": "chain-assessment-v1",
+  "findings": {
+    "consecutive_stages": {
+      "subjects": ["chain"],
+      "stance": "malicious",
+      "evidence_kinds": ["stage"],
+      "slots": {
+        "earlier": {"fields": ["stage_id"]},
+        "later": {"fields": ["stage_id"]}
+      },
+      "relations": [{"kind": "next_stage", "slots": ["earlier", "later"]}],
+      "text": {
+        "en": "The correlation matched {earlier} followed by {later} in the next stage.",
+        "es": "La correlación detectó {earlier} seguido de {later} en la fase siguiente."
+      }
+    }
+  },
+  "next_steps": {
+    "verify_stage_events": {
+      "subjects": ["chain"],
+      "evidence_kinds": ["stage"],
+      "precondition": {"field": "outcome", "op": "eq", "value": "matched"},
+      "text": {
+        "en": "Review the cited stage events and verify that the activity came from the same host.",
+        "es": "Revisa los eventos citados y verifica que la actividad provino del mismo equipo."
+      }
+    }
+  },
+  "families": {"default": {"required": ["stages"], "optional": [], "member_fields": []}}
+}

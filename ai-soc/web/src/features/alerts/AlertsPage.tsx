@@ -37,7 +37,7 @@ export function AlertsPage({
     t: Translate;
     onFilters: (filters: AlertFilterPatch) => void;
     onCloseDetails: () => void;
-    onInvestigate: (alert: AlertDetail) => void;
+    onInvestigate?: (alert: AlertDetail) => void;
 }) {
     const [ruleId, setRuleId] = useState(filters.ruleId ?? "");
     const [agentId, setAgentId] = useState(filters.agentId ?? "");
@@ -564,7 +564,9 @@ export function AlertsPage({
                                     alert={detail.data}
                                     t={t}
                                     copy={copy}
-                                    onInvestigate={() => onInvestigate(detail.data)}
+                                    onInvestigate={
+                                        onInvestigate ? () => onInvestigate(detail.data) : undefined
+                                    }
                                 />
                             )}
                         </>
@@ -624,7 +626,7 @@ function AlertDrawer({
         json: string;
         documentView: string;
     };
-    onInvestigate: () => void;
+    onInvestigate?: () => void;
 }) {
     const wazuhUrl = safeWazuhUrl(alert.wazuh_url);
     const [view, setView] = useState<"fields" | "json">("fields");
@@ -741,11 +743,13 @@ function AlertDrawer({
                         {t("wazuhRecord")}
                     </a>
                 )}
-                <SheetClose asChild>
-                    <button className="btn primary" type="button" onClick={onInvestigate}>
-                        {t("investigateAction")}
-                    </button>
-                </SheetClose>
+                {onInvestigate && (
+                    <SheetClose asChild>
+                        <button className="btn primary" type="button" onClick={onInvestigate}>
+                            {t("investigateAction")}
+                        </button>
+                    </SheetClose>
+                )}
             </div>
         </div>
     );

@@ -14,7 +14,7 @@ from ai_soc.validation.findings import (
     BoundTextRejected,
 )
 from ai_soc.validation.findings import (
-    _bound_display_text as _shared_bound_text,  # pyright: ignore[reportPrivateUsage]
+    bound_display_text as _shared_bound_text,
 )
 from ai_soc.workspace.model.schemas import (
     NARRATIVE_SELECTION_ADAPTER,

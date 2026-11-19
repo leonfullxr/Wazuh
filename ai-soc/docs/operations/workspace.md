@@ -6,9 +6,15 @@ Run workspace commands from a source checkout. Workspace content assets are not 
 
 ## Prepare the database
 
+Install the locked Python runtime from the AI SOC project directory.
+
+```sh
+uv sync --locked --no-dev
+```
+
 The local workspace uses a private PostgreSQL 16 container. Compose binds it only to `127.0.0.1`. Each checkout gets a stable Compose project, and Docker allocates a free host port when `WS_PG_PORT` is empty. Set `WS_PG_PORT` in `.env.workspace` only when you need a fixed local port.
 
-Run these commands from the repository root:
+Run these commands from the AI SOC project directory:
 
 ```sh
 make ws-db-up
@@ -56,13 +62,16 @@ Set `WS_WORKER_CONFIG` to a protected JSON configuration with this shape:
 
 The credential file contains `username` and `password`. Never expose this file to the browser. Verify the installed Wazuh release, the trusted CA, the exact source roles, and the full visibility attestation before you connect. Unsupported mapping releases fail closed. The 4.14.7 mapping keeps its original profile identifier so existing normalized records remain reproducible. Its captured-field qualification covers only the tested release and fields.
 
-Register each configured site through the maintenance connection. Then create daily partitions for the required event dates. Supply `WS_DATABASE_URL` to the maintenance process through a protected runtime loader:
+Store the JSON in a file readable only by its owner and set `WS_WORKER_CONFIG` to that file's absolute path. For the checkout's Compose database, set `database_env_file` in the JSON to the absolute path of `build/workspace-db.env`.
+
+Register each site and prepare its daily partitions using the maintenance connection. With the checkout's Compose database, run the following from `ai-soc`. Replace `lab` with the site ID from your configuration. Replace the example dates with a UTC range covering the alerts you plan to ingest and the days you expect to collect.
 
 ```sh
-make ws-partitions WS_ARGS="--from 2026-10-21 --to 2026-10-24"
+uv run --locked --no-dev --env-file build/workspace-db.env \
+  python -m ai_soc.workspace.partitions --site lab --from 2026-10-21 --to 2026-10-24
 ```
 
-The date range is half-open. The restricted runtime cannot create partitions. A missing date fails instead of granting DDL privileges to the runtime.
+For an external PostgreSQL instance, provide `WS_DATABASE_URL` to the maintenance process through your protected runtime loader and run the same module with the same flags. An existing site ID must match the configured Wazuh version. Omit `--site` for recurring partition maintenance. The date range is half-open. Only the schema owner or a PostgreSQL superuser can prepare partitions and register sites with this command.
 
 ## Configure offline score context
 
@@ -112,6 +121,29 @@ Each completed job records `completed_at`. Historical quality queries restrict i
 
 Keep completed enrichment and rescore jobs for at least as long as their score manifests and evidence. Job history determines score authority. Before you delete jobs, preserve an equivalent immutable intent ledger.
 
+## Load reviewed knowledge
+
+Build knowledge through `ai-soc-content` from a committed external content repository and a live detached approval. Put reviewed Markdown under `knowledge/`. Each document declares its id, title, kind, language, applicability, reviewer, review date and optional expiry in front matter. The builder rejects hidden text, command instructions, duplicate ids, expired documents and documents that claim more than 32 rule ids. It stores heading-bounded chunks in the verified content pack; the workspace never reads the source folder.
+
+Load the approved pack into one configured site with the restricted workspace role:
+
+```sh
+make ws-knowledge WS_ARGS="load --config /run/secrets/workspace.json --site lab \
+  --pack /srv/ai-soc/content/release-2026-10 \
+  --expected-pack-sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+```
+
+Both `--config` and `--pack` must be absolute paths. `--expected-pack-sha256` is mandatory and must come from the independently published approval record used by the operator's release process, not from `manifest.json`, `provenance.json`, command output or another file inside the pack. Record the approval location, digest, reviewer and retrieval time in the deployment change record before loading.
+
+The command reads the restricted database reference from the protected workspace configuration, checks that the site is in that configuration, verifies the complete pack inventory once, compares its manifest digest with the independent pin, and loads that same verified byte snapshot. It also refuses fixture-approved packs. It prints only the site, public content commit, pack digest and loaded chunk count. It does not read Wazuh or contact the model provider.
+
+Before loading, run `ai-soc-content verify --pack /absolute/pack`. Compare the digest with the approval record through an independent channel. At load time, pass the same pack directory and expected digest. Record the returned site, content commit, digest, and chunk count. Real-alert assessments and their citations stay in shadow. Keep the approved pack and approval record for replay.
+
+By default, the load cutoff is the current UTC instant. For a staged replay, record and pass an explicit aware timestamp such as `--loaded-at 2026-10-21T10:00:00Z`. Retrieval uses the latest document version loaded by the assessment cutoff, evaluates expiry at that cutoff and records the selected chunk ids and ranks in the assessment evidence. Loading the same content commit again is idempotent. Load a shared pack separately into each intended site; row-level security never exposes one site's knowledge to another.
+
+Knowledge can support context and next steps. It cannot establish what happened on a host and cannot by itself support a benign verdict. Keep old approved packs and their review records for as long as stored assessments cite their versions.
+
+
 ## Ingest and process alerts
 
 With `WS_WORKER_CONFIG` set to the protected configuration path, run:
@@ -131,9 +163,29 @@ The lease remains 60 seconds. A job that exceeds the lease rolls back under the 
 
 Use `ws-backfill` with explicit `--site`, `--from`, and `--to` values for older data after you prepare the partitions. Reconciliation can discover and enqueue late missing alerts. Drain the worker before you expect normalization gates to pass. The system retains source mutations as conflicts and never overwrites them. Registry identity remains after raw retention, so rediscovery cannot restore expired payloads.
 
+## Configure lab assessments
+
+To run shadow assessments on an authorized lab site, add `lab_assessment` to that site in `WS_WORKER_CONFIG`.
+
+```json
+{
+  "enabled": true,
+  "base_url": "https://model.example.test/v1",
+  "model": "lab-model",
+  "credential_file": "/run/secrets/lab-model-key",
+  "max_calls_per_run": 20,
+  "concurrency": 1,
+  "narratives_enabled": true
+}
+```
+
+The endpoint must support Chat Completions with structured JSON output. Put the bearer key in the credential file and restrict access to the worker account. The adapter verifies TLS and allows HTTP only on loopback.
+
+Run `make ws-worker WS_ARGS="--drain"` to process model work after deterministic work. The worker records the provider, model, and outcome for each submitted request. Lab assessment results stay in shadow for evaluation. `narratives_enabled` is false by default; setting it to true also prepares and publishes validated fixed-template incident narratives through this provider, without a personal CLI account or host-runtime binding. Assessments and narratives share `max_calls_per_run`. Use `enabled: false` to defer all configured model work while continuing ingestion, scoring, and correlation.
+
 ## Correlate alerts
 
-The normal workspace worker handles deterministic ingestion, scoring, and correlation. It excludes model jobs. Keep its Wazuh credential read-only and its full-site visibility attestation current.
+The main workspace queue handles deterministic ingestion, scoring, and correlation. The same worker command drains enabled group assessments and portable incident narratives in separate passes. The dedicated personal-CLI narrative process remains available only for existing deployments that intentionally retain it. Keep the Wazuh credential read-only and the site's full-visibility attestation current.
 
 Run `make ws-correlate WS_ARGS="--help"` to see the bounded historical correlation and frozen replay commands. Generic tactic progression remains disabled.
 
@@ -149,7 +201,11 @@ The command grants the narrow role and creates it as `NOLOGIN` if the role is ab
 
 Set `WS_MODEL_DATABASE_URL` through a protected runtime loader. Do not print it or commit credentials. The configuration includes `site_ids`, a `host_id` from `local_host_id()`, `runtime_id`, an absolute `slot_directory`, and an optional `worker_id`. The runtime binding is immutable. Investigate an unexpected host or directory change before you continue.
 
-An optional `codex_path` selects an absolute path to the pinned Codex executable. Omit it to use the default installation. The selected path applies to preparation, status, and the guardian; all fixed binary and runtime checks still apply. Changing the path changes the execution identity, so previously frozen generations with a different identity remain blocked rather than being rewritten or attempted. Qualify the selected runtime before use.
+Declare absolute `codex_path`, `auth_path`, `bwrap_path` and `authority_path` values. There is no personal installation or credential default; unconfigured CLI use fails closed. The adapter retains its fixed executable hashes, versions and catalog checks. `state_directory` defaults to the project’s ignored `build/model-state`; set it explicitly for an installed package or another local state location.
+
+The `authority_path` must equal `<OS-account-home>/.local/state/ai-soc/narrative-runtime.json`, using the account home from the OS user database. This independent anchor ignores `HOME` and prevents another configuration from registering a second authority. Every participating checkout and database must declare that authority and the same physical `slot_directory`. The authority binds the host, runtime, slot path, device and inode. Use a separate `state_directory` per checkout. Moving local state does not create another inference slot; descendants retain the inherited file-descriptor lock until they exit.
+
+Existing configurations need these explicit fields before use. This change does not migrate authority files or rewrite database bindings. Preserve existing authority and physical slot identities. A changed executable path changes the execution identity, so previously frozen generations stay blocked rather than being rewritten or attempted. Qualify the selected runtime before use.
 
 Use these commands to operate the model process:
 

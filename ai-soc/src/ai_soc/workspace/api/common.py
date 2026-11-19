@@ -13,10 +13,10 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import TypeAdapter
 
-from ai_soc.contracts.models import AuthorizedSite, VerifiedPrincipal, Visibility
+from ai_soc.contracts.models import VerifiedPrincipal, Visibility
 from ai_soc.identity.policy import SiteAuthorizationError
 from ai_soc.workspace.api.models import ErrorResponse
-from ai_soc.workspace.api.runtime import WorkspaceRuntime
+from ai_soc.workspace.api.runtime import WorkspaceRuntime, WorkspaceSiteAccess
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ErrorResponse} for status in (400, 401, 403, 404, 409, 422, 503)
@@ -64,7 +64,7 @@ class WorkspaceJSONResponse(JSONResponse):
 
 def authorize_site(
     runtime: WorkspaceRuntime, principal: VerifiedPrincipal, site_id: str
-) -> AuthorizedSite:
+) -> WorkspaceSiteAccess:
     try:
         site = runtime.site_policy.authorize(principal, site_id)
     except SiteAuthorizationError:

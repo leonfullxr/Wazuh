@@ -309,6 +309,7 @@ def compose_soc(
     semantic_suggester_factory: SemanticSuggesterFactory | None = None,
     workspace_dsn_provider: Callable[[], str] | None = None,
     workspace_cursor_secret: bytes | None = None,
+    assessment_preview_site: str | None = None,
 ) -> SocRuntime:
     """Build all shared request adapters without ambient env, home or credential reads."""
     if not config.sites or not config.models:
@@ -322,6 +323,12 @@ def compose_soc(
         raise ValueError("supply a semantic suggester or factory, not both")
     if (workspace_dsn_provider is None) != (workspace_cursor_secret is None):
         raise ValueError("workspace API DSN provider and cursor secret must be supplied together")
+    if assessment_preview_site is not None and (
+        config.mode != "fixture"
+        or workspace_dsn_provider is None
+        or assessment_preview_site not in {site.environment_id for site in config.sites}
+    ):
+        raise ValueError("assessment preview requires a configured fixture workspace site")
     if config.mode == "live" and judgment_provider_factory is None:
         raise ValueError("live composition requires a model/count admission provider factory")
     if config.mode == "live" and semantic_suggester is not None:
@@ -366,6 +373,7 @@ def compose_soc(
                 policy,
                 workspace_cursor_secret,
                 clock.now,
+                assessment_preview_site=assessment_preview_site,
             )
             if workspace_dsn_provider is not None and workspace_cursor_secret is not None
             else None
@@ -443,6 +451,7 @@ def compose_soc(
             _McpIdentityAdapter(identity),
             issuer_url=mcp_issuer_url,
             resource_url=mcp_resource_url,
+            workspace_runtime=workspace_runtime,
         )
         recovery = RecoveryRunner(state, clock)
         return SocRuntime(

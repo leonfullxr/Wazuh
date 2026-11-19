@@ -7,13 +7,28 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
-from ai_soc.contracts.models import AuthorizedSite, SiteConfig, VerifiedPrincipal
+from ai_soc.contracts.models import VerifiedPrincipal, Visibility
+
+
+class WorkspaceSiteRef(Protocol):
+    @property
+    def environment_id(self) -> str: ...
+
+
+class WorkspaceSiteAccess(Protocol):
+    @property
+    def visibility(self) -> Visibility: ...
+
+    @property
+    def policy_hash(self) -> str: ...
 
 
 class SitePolicy(Protocol):
-    def authorized_sites(self, principal: VerifiedPrincipal) -> tuple[SiteConfig, ...]: ...
+    def authorized_sites(self, principal: VerifiedPrincipal) -> tuple[WorkspaceSiteRef, ...]: ...
 
-    def authorize(self, principal: VerifiedPrincipal, environment_id: str) -> AuthorizedSite: ...
+    def authorize(
+        self, principal: VerifiedPrincipal, environment_id: str
+    ) -> WorkspaceSiteAccess: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +39,7 @@ class WorkspaceRuntime:
     site_policy: SitePolicy
     cursor_secret: bytes
     now: Callable[[], datetime] = lambda: datetime.now(UTC)
+    assessment_preview_site: str | None = None
 
     def __post_init__(self) -> None:
         if not callable(self.dsn_provider) or not callable(self.now):

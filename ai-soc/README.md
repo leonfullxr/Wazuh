@@ -1,49 +1,58 @@
 # Wazuh AI SOC
 
-Wazuh AI SOC is a read-only assistant for Wazuh analysts. It plans an analyst's question by topic, gathers bounded evidence from the Wazuh indexer for each topic, and returns a separate, cited judgment for each one. It does not change Wazuh configuration or perform active response.
-
-It runs as a private HTTPS service on AWS (ECS Fargate behind an internal ALB), uses Amazon Bedrock for judgment with a pinned guardrail, and serves both a browser UI and an MCP endpoint (`soc_ask`, `soc_page`, `soc_feedback`).
+Wazuh AI SOC is a self-hosted analyst workspace. It reads alerts from your Wazuh Indexer, groups and ranks them, and gives analysts a place to investigate and track the results. An optional local or hosted OpenAI-compatible model can assess selected alert groups in shadow mode.
 
 ## Console preview
 
-These screenshots show a local **synthetic design preview**. The populated threat activity and quality dashboards, alert explorer, and incident and chain graphs include illustrative overlays that are not included in the production build. Their figures and relationships do not represent live service data.
+These screenshots show the running local workspace with invented Wazuh alerts.
 
-### Threat activity
+![Workspace overview with model activity and alert volume](docs/screenshots/local-overview.png)
 
-![Synthetic threat activity overview](docs/screenshots/overview.png)
+### Alert queue
 
-### Alerts and queue
+![Analyst queue with a ranked group of SSH authentication alerts](docs/screenshots/local-queue.png)
 
-![Synthetic alert explorer design preview](docs/screenshots/alerts.png)
+### Incident detail
 
-![Queue with synthetic groups](docs/screenshots/queue.png)
+![Incident detail with a cited AI narrative](docs/screenshots/local-incident.png)
 
-### Incident and chain investigation
+## Run your own local instance
 
-![Synthetic incident with an illustrative entity graph and timeline](docs/screenshots/incidents.png)
+From the repository's `ai-soc` directory on Linux, install the prerequisites and create your private configuration. [Local deployment guide](docs/local-deployment.md)
 
-![Synthetic chain candidate with an illustrative graph](docs/screenshots/chains.png)
+```sh
+make local-init
+```
 
-### Dashboards
+Set your Indexer URL, trusted CA, and dedicated read-only credentials in the initialized state directory. Add an assessment model if you want one. Then start the workspace.
 
-![Illustrative AI SOC quality dashboard](docs/screenshots/ai-quality.png)
+```sh
+make local
+```
 
-![Illustrative SOC operations dashboard](docs/screenshots/soc-operations.png)
+Open the loopback URL printed by the launcher and sign in with the key file it creates for that run. PostgreSQL keeps your alerts and analyst work between restarts. Stop the instance with Ctrl+C or `make local-down`.
 
-![Service metrics with synthetic data](docs/screenshots/metrics.png)
+## Run the AWS Investigate service from source
 
-<details>
-<summary>More console screens</summary>
+From the `ai-soc` directory on Linux, install Python 3.12.13, uv, GNU Make, Node.js 22.23.3, and npm. Install Docker Engine with Compose v2 if you use the workspace PostgreSQL container.
 
-![Investigation composer](docs/screenshots/investigate.png)
+```sh
+uv sync --locked --no-dev
+npm --prefix web ci --include=dev --no-audit --no-fund
+npm --prefix web run build
+```
 
-![Question history](docs/screenshots/history.png)
+The browser assets are in `web/dist`. For the PostgreSQL setup, read-only Wazuh source configuration, and workers, follow [Workspace operations](docs/operations/workspace.md).
 
-![Service status](docs/screenshots/status.png)
+The live Investigate service requires a sealed service configuration, reviewed content pack, AWS service roles, and the trusted ALB/OIDC integration. Set `SOC_SERVICE_CONFIG_PATH` and `SOC_WEB_DIST` to the sealed document and the absolute browser build path. Start the service behind the trusted proxy.
 
-</details>
+```sh
+uv run --locked --no-dev uvicorn ai_soc.live.entrypoint:create_app --factory --host 127.0.0.1 --port 8000
+```
 
-## How it works
+The live entry point currently mounts the Investigate API. The workspace runbook covers the database, ingestion, and workers.
+
+## How Investigate works
 
 1. Routing cues map the question to reviewed topics. Questions that match no topic get a clarification or a refusal, never a guess.
 2. Each topic runs a read-only playbook: allowlisted indexer queries, count and field checks, and recency checks, under the analyst's own indexer permissions.
@@ -117,7 +126,7 @@ Run `npm run dev` from `web/` to start the Vite development server. Run `npm run
 make image-reproducibility
 ```
 
-This builds `web/`, then makes clean linux/amd64 OCI builds with `--network=none` and `--no-cache`, and checks that two independent builds of the same commit produce identical config and layer digests. The generated files are copied into `/service/ui/dist` inside the image so the existing service mount remains stable. The content pack is a provenance input recorded in image labels, not baked into the image. Evidence and the OCI archives are written under `build/evidence/image-repro/`. Push the verified image to a private ECR repository and deploy it by digest.
+This builds `web/`, then makes clean linux/amd64 OCI builds with `--network=none` and `--no-cache`, and checks that two independent builds of the same commit produce identical config and layer digests. The generated files are copied into `/service/web/dist` inside the image so the existing service mount remains stable. The content pack is a provenance input recorded in image labels, not baked into the image. Evidence and the OCI archives are written under `build/evidence/image-repro/`. Push the verified image to a private ECR repository and deploy it by digest.
 
 ## Deploy on AWS
 
@@ -139,23 +148,6 @@ Offline checks do not prove a live site works. Before analysts rely on the servi
 - [Disaster recovery and live validation runbook](docs/operations/continuity.md)
 - [Telemetry and audit operations](docs/operations/telemetry.md)
 - [Bedrock capability probe](docs/operations/model-probe.md)
-
-## Analyst workspace
-
-The workspace modules provide a PostgreSQL-backed analyst workflow used by the browser application. Run `make dev-setup`, then `npm --prefix web run build` to build the browser application. The `make ws-*` targets manage the workspace database and processes. See [Operate the analyst workspace](docs/operations/workspace.md) for setup and recovery procedures.
-
-The workspace is an opt-in development feature. Its commands and content assets currently require a source checkout. The AWS service image serves the `web/` build, but it does not configure the workspace database or worker processes. Workspace backend packaging and production deployment have not been qualified.
-
-## Try it locally
-
-After `make bootstrap`, you can run the service on loopback with synthetic data, identities and a deterministic stand-in model. It is a demonstration, not a quality signal, and it refuses live or cloud environment variables.
-
-```sh
-make fixture   # build a pack from the synthetic content seed
-make dev       # serve REST and MCP on 127.0.0.1:8000 (PORT=8010 to change)
-```
-
-Credentials are written to `build/dev-fixture/credentials.json`. Call `GET /v1/bootstrap` with the ALB header from that file, then send the returned `__Host-soc-csrf` cookie and `csrf_token` (as `X-SOC-CSRF`) with `POST /v1/questions`, for example `{"question":"Investigate authentication review.","environment_id":"synthetic","timezone":"UTC","model_id":"synthetic-model"}`. The seed answers LDAP, authentication review and vulnerability review questions in English and Spanish. The browser UI needs an ALB in front of it, so it is not usable locally.
 
 ## Reference
 

@@ -21,6 +21,7 @@ class WorkspaceAuditMessage(BaseModel):
         "group_assigned",
         "group_status_changed",
         "group_disposition_recorded",
+        "group_assessment_reviewed",
         "group_bulk_action",
         "asset_tag_changed",
         "incident_created",
@@ -36,6 +37,7 @@ class WorkspaceAuditMessage(BaseModel):
         "narrative.finished",
         "narrative.abandoned",
         "correlation_candidate_dismissed",
+        "mcp_tool_called",
     ]
     actor_key: str | None = Field(max_length=256)
     payload: dict[str, object]

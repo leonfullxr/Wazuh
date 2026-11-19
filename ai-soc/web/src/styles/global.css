@@ -3401,3 +3401,17 @@ main:has(.answer-summary) .composer textarea {
 .topic-jump a[aria-current="location"] > span:first-child {
     box-shadow: none;
 }
+
+.mobile-mock-notice {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .mobile-mock-notice {
+        display: block;
+        padding: 4px 12px;
+        background: var(--tag-amber-bg);
+        color: var(--text);
+        font-size: 12px;
+    }
+}

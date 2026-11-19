@@ -9,6 +9,8 @@ import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates
 import * as api from "../../api/workspace";
 import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/workspace";
 import "./queue-v2.css";
+import { AssessmentPanel, assessmentLabel } from "./AssessmentPanel";
+import type { Locale } from "../../i18n";
 
 type Translate = (key: string) => string;
 type QueueFilterPatch = Record<string, string | null | undefined>;
@@ -33,6 +35,8 @@ export function QueuePage({
     t,
     onOpenAlert,
     onFilters,
+    locale,
+    onInvestigate,
 }: {
     siteId: string;
     from: string;
@@ -40,6 +44,8 @@ export function QueuePage({
     t: Translate;
     onOpenAlert: (alertKey: string) => void;
     onFilters: (patch: QueueFilterPatch) => void;
+    locale: Locale;
+    onInvestigate?: (group: GroupDetail) => void;
 }) {
     const queryClient = useQueryClient();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -327,7 +333,7 @@ export function QueuePage({
                             aria-label={t("owner")}
                             value={ownerDraft}
                             onChange={(event) => setOwnerDraft(event.target.value)}
-                            placeholder="analyst:leon"
+                            placeholder="analyst:example"
                         />
                     </label>
                     <button
@@ -449,11 +455,10 @@ export function QueuePage({
                                     </th>
                                     <th>{t("group")}</th>
                                     <th>{t("score")}</th>
+                                    <th>{locale === "es" ? "Evaluación" : "Assessment"}</th>
                                     <th>{t("groupCount")}</th>
-                                    <th>{t("groupLast")}</th>
                                     <th>{t("owner")}</th>
                                     <th>{t("statusLabel")}</th>
-                                    <th>{t("disposition")}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -494,6 +499,24 @@ export function QueuePage({
                                                             "—"}
                                                     </code>
                                                 </span>
+                                                {group.components
+                                                    .filter((item) => item.available)
+                                                    .sort(
+                                                        (a, b) =>
+                                                            Math.abs(b.contribution) -
+                                                            Math.abs(a.contribution),
+                                                    )
+                                                    .slice(0, 1)
+                                                    .map((item) => (
+                                                        <span
+                                                            className="table-secondary"
+                                                            key={item.name}
+                                                        >
+                                                            {item.explanation}:{" "}
+                                                            {item.contribution >= 0 ? "+" : ""}
+                                                            {item.contribution.toFixed(1)}
+                                                        </span>
+                                                    ))}
                                                 {reasons.length > 0 && (
                                                     <span className="table-secondary queue-v2-reasons">
                                                         {reasons.join(" · ")}
@@ -544,8 +567,13 @@ export function QueuePage({
                                                     </span>
                                                 )}
                                             </td>
-                                            <td>{group.alert_count.toLocaleString()}</td>
-                                            <td>{formatTime(group.last_ts)}</td>
+                                            <td>{assessmentLabel(group.assessment, locale)}</td>
+                                            <td>
+                                                {group.alert_count.toLocaleString()}
+                                                <span className="table-secondary">
+                                                    {formatTime(group.last_ts)}
+                                                </span>
+                                            </td>
                                             <td>
                                                 {workState.owner_key ? (
                                                     <code>{workState.owner_key}</code>
@@ -559,9 +587,7 @@ export function QueuePage({
                                                         {t(statusKeys[workState.status])}
                                                     </Tag>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                {group.disposition ? (
+                                                {group.disposition && (
                                                     <div>
                                                         <Tag
                                                             {...dispositionTags[
@@ -571,8 +597,6 @@ export function QueuePage({
                                                             {t(labelKey(group.disposition.label))}
                                                         </Tag>
                                                     </div>
-                                                ) : (
-                                                    "—"
                                                 )}
                                             </td>
                                         </tr>
@@ -627,6 +651,11 @@ export function QueuePage({
                             <GroupDrawer
                                 detail={detail}
                                 t={t}
+                                locale={locale}
+                                siteId={siteId}
+                                onInvestigate={
+                                    onInvestigate ? () => onInvestigate(detail) : undefined
+                                }
                                 busy={assign.isPending || status.isPending || disposition.isPending}
                                 onOpenAlert={onOpenAlert}
                                 membersLoading={memberPage.isPending}
@@ -696,6 +725,9 @@ function numericParam(value: string | null): number | undefined {
 function GroupDrawer({
     detail: group,
     t,
+    locale,
+    siteId,
+    onInvestigate,
     busy,
     membersLoading,
     onLoadMoreMembers,
@@ -706,6 +738,9 @@ function GroupDrawer({
 }: {
     detail: GroupDetail;
     t: Translate;
+    locale: Locale;
+    siteId: string;
+    onInvestigate?: () => void;
     busy: boolean;
     membersLoading: boolean;
     onLoadMoreMembers: () => void;
@@ -775,6 +810,13 @@ function GroupDrawer({
                     </span>
                 )}
             </div>
+            <AssessmentPanel
+                siteId={siteId}
+                group={group}
+                locale={locale}
+                t={t}
+                onInvestigate={onInvestigate}
+            />
             <dl className="alert-detail-list">
                 <dt>{t("group")}</dt>
                 <dd>
@@ -827,7 +869,10 @@ function GroupDrawer({
                             </div>
                             {/* Every card keeps a value in the top-right slot; missing ones show the dash. */}
                             {component.available ? (
-                                <code>{component.contribution.toFixed(1)}</code>
+                                <code>
+                                    {component.contribution >= 0 ? "+" : ""}
+                                    {component.contribution.toFixed(1)}
+                                </code>
                             ) : (
                                 <code data-unavailable="true">{t("unavailableValue")}</code>
                             )}

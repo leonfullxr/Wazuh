@@ -296,7 +296,9 @@ class McpBearerVerifier:
         key_resolver: PublicKeyResolver,
         now: Callable[[], datetime],
         allowed_origins: frozenset[str],
-        required_scope: str = "soc:ask",
+        required_scope: str | frozenset[str] = frozenset(
+            {"soc:ask", "soc:workspace.read", "soc:feedback"}
+        ),
         max_token_bytes: int = 16_384,
         clock_skew: timedelta = timedelta(seconds=30),
     ) -> None:
@@ -351,7 +353,12 @@ class McpBearerVerifier:
         if expiry <= now:
             raise IdentityError(ErrorCode.AUTH_EXPIRED)
         scopes = claims.get("scope", "")
-        if not isinstance(scopes, str) or self.required_scope not in scopes.split():
+        accepted_scopes = (
+            frozenset({self.required_scope})
+            if isinstance(self.required_scope, str)
+            else self.required_scope
+        )
+        if not isinstance(scopes, str) or not accepted_scopes.intersection(scopes.split()):
             raise IdentityError(ErrorCode.SCOPE_DENIED)
         subject = claims.get("sub")
         if not isinstance(subject, str) or not subject or len(subject.encode()) > 1024:
@@ -385,7 +392,7 @@ def protected_resource_metadata(resource: str, issuer: str) -> dict[str, object]
     return {
         "resource": resource,
         "authorization_servers": [issuer],
-        "scopes_supported": ["soc:ask"],
+        "scopes_supported": ["soc:ask", "soc:workspace.read", "soc:feedback"],
         "bearer_methods_supported": ["header"],
     }
 

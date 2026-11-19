@@ -51,7 +51,7 @@ Passing tests show that these rules hold. They do not measure detection quality.
 | `ai_soc.api`, `ai_soc.mcp` | REST and MCP interfaces over the same application |
 | `ai_soc.identity` | ALB browser assertions, MCP bearer tokens and indexer tokens |
 | `ai_soc.state`, `ai_soc.feedback`, `ai_soc.telemetry` | Durable state, feedback delivery, audit, traces and metrics |
-| `ai_soc.live`, `ai_soc.devserver` | Sealed live boot and the loopback-only synthetic dev server |
+| `ai_soc.live`, `ai_soc.local` | Sealed live boot and the loopback-only local workspace |
 
 Wire and port contracts are defined in [contracts.md](contracts.md) and the schemas under `contracts/v1/`.
 

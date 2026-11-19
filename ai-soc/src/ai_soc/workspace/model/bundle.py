@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -87,6 +88,43 @@ def freeze_execution(pack: FrozenIncidentPack, profile: CodexProfile) -> FrozenE
         INSTRUCTIONS.encode(),
         catalog,
         execution_material(profile),
+    )
+
+
+def freeze_provider_execution(
+    pack: FrozenIncidentPack, *, provider_id: str, model_id: str
+) -> FrozenExecution:
+    """Freeze a tool-free provider request without personal-account material."""
+    identity = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}")
+    if identity.fullmatch(provider_id) is None or identity.fullmatch(model_id) is None:
+        raise ValueError("invalid_narrative_provider_identity")
+    return FrozenExecution(
+        PROMPT_PREFIX + pack.canonical_bytes(),
+        canonical(provider_wire_schema()),
+        b"",
+        b"",
+        {
+            "version": "workspace.narrative-provider-execution.v1",
+            "provider_id": provider_id,
+            "model_id": model_id,
+        },
+    )
+
+
+def supported_provider_execution(
+    execution: FrozenExecution, *, provider_id: str, model_id: str
+) -> bool:
+    """Require retries to use the provider identity frozen during preparation."""
+    return (
+        execution.material
+        == {
+            "version": "workspace.narrative-provider-execution.v1",
+            "provider_id": provider_id,
+            "model_id": model_id,
+        }
+        and execution.schema == canonical(provider_wire_schema())
+        and execution.instructions == b""
+        and execution.catalog == b""
     )
 
 

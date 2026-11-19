@@ -14,10 +14,18 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse
 from psycopg import Error as PsycopgError
-from pydantic import TypeAdapter
 
 from ai_soc.contracts.models import VerifiedPrincipal, Visibility
 from ai_soc.identity.policy import SiteAuthorizationError
+from ai_soc.workspace.api.assessment_models import (
+    AssessmentDetail,
+    AssessmentReview,
+    AssessmentReviewRequest,
+)
+from ai_soc.workspace.api.assessment_repository import (
+    assessment_detail,
+    review_assessment,
+)
 from ai_soc.workspace.api.common import (
     CURSOR_VALUES,
     ERROR_RESPONSES,
@@ -57,6 +65,7 @@ from ai_soc.workspace.api.common import (
 from ai_soc.workspace.api.common import (
     window as _window,
 )
+from ai_soc.workspace.api.m3_repository import connect_read_repository
 from ai_soc.workspace.api.models import (
     AlertDetail,
     AlertSummary,
@@ -73,7 +82,6 @@ from ai_soc.workspace.api.models import (
     ErrorResponse,
     GroupContextResponse,
     GroupDetail,
-    GroupSummary,
     HistoryEntry,
     HourlyBucket,
     IngestionCounts,
@@ -91,13 +99,13 @@ from ai_soc.workspace.api.models import (
     QueueSummary,
     ReconciliationSummary,
     RulePrecision,
-    ScoreComponent,
     SiteSummary,
     StatusRequest,
     TopCount,
     Window,
     WorkState,
 )
+from ai_soc.workspace.api.read_service import group_record, queue_records
 from ai_soc.workspace.api.repository import WorkspaceRepository
 from ai_soc.workspace.api.runtime import WorkspaceRuntime
 from ai_soc.workspace.feedback import (
@@ -109,8 +117,6 @@ from ai_soc.workspace.feedback import (
     upsert_asset_tag,
 )
 from ai_soc.workspace.metrics import ops_metrics, quality_metrics
-
-_SCORE_COMPONENT_ROWS: TypeAdapter[list[dict[str, object]]] = TypeAdapter(list[dict[str, object]])
 
 
 def _summary(row: dict[str, Any]) -> AlertSummary:
@@ -183,10 +189,13 @@ def workspace_router(
             raise WorkspaceApiError(403, "WORKSPACE_DENIED", "Full site visibility is required")
         return result
 
-    def repository(site_id: str, principal: VerifiedPrincipal) -> WorkspaceRepository:
+    def repository(
+        site_id: str, principal: VerifiedPrincipal, *, snapshot: bool = False
+    ) -> WorkspaceRepository:
         authorize(principal, site_id)
         try:
-            repo = WorkspaceRepository.connect(runtime.dsn_provider(), site_id)
+            connect = connect_read_repository if snapshot else WorkspaceRepository.connect
+            repo = connect(runtime.dsn_provider(), site_id)
             if repo.site() is None:
                 repo.close()
                 raise WorkspaceApiError(404, "SITE_UNKNOWN", "Site is unknown")
@@ -215,57 +224,6 @@ def workspace_router(
         if isinstance(error, ValueError):
             raise WorkspaceApiError(422, "BAD_FILTER", str(error)) from None
         raise error
-
-    def _disposition(row: dict[str, Any]) -> Disposition | None:
-        if row.get("disposition_id") is None:
-            return None
-        return Disposition.model_validate(
-            {
-                "disposition_id": str(row["disposition_id"]),
-                "label": row["label"],
-                "reason_code": row["reason_code"],
-                "note": row["note"],
-                "actor_key": row["actor_key"],
-                "at": row["disposition_at"],
-                "propagate_to_members": row["propagate_to_members"],
-            }
-        )
-
-    def _group_summary(row: dict[str, Any]) -> GroupSummary:
-        entity = row["primary_entity"]
-        primary_entity = None
-        if entity:
-            kind, _, value = str(entity).partition(":")
-            primary_entity = EntityRef.model_validate(
-                {
-                    "kind": kind,
-                    "value": value,
-                    "role": "primary",
-                    "first_seen": row["primary_first_seen"] or row["first_ts"],
-                    "last_seen": row["primary_last_seen"] or row["last_ts"],
-                }
-            )
-        return GroupSummary(
-            group_id=str(row["group_id"]),
-            group_revision=str(row["revision"]),
-            title=str(row["title"]),
-            score=None if row["total"] is None else float(row["total"]),
-            computation_version=row["computation_version"],
-            input_digest=row["input_digest"],
-            components=[
-                ScoreComponent.model_validate(item)
-                for item in _SCORE_COMPONENT_ROWS.validate_python(row["components"] or [])
-            ],
-            alert_count=int(row["alert_count"]),
-            first_ts=row["first_ts"],
-            last_ts=row["last_ts"],
-            rule_id=row["rule_id"],
-            primary_entity=primary_entity,
-            status=str(row["status"]),
-            owner_key=row["owner_key"],
-            disposition=_disposition(row),
-            pipeline_version=str(row["pipeline_version"]),
-        )
 
     def _work_state(row: dict[str, Any]) -> WorkState:
         return WorkState.model_validate(
@@ -884,15 +842,23 @@ def workspace_router(
             start, end, _ = _window(runtime.now(), from_, to, None)
             normalized_filters = {**supplied, "from": start.isoformat(), "to": end.isoformat()}
             after = None
-        repo = repository(site_id, principal)
+        preview_enabled = site_id == runtime.assessment_preview_site
+        repo = repository(site_id, principal, snapshot=preview_enabled)
         try:
-            rows = repo.queue_rows(
-                filters=normalized_filters, sort=sort, limit=limit + 1, after=after
+            projected = queue_records(
+                repo,
+                filters=normalized_filters,
+                sort=sort,
+                limit=limit + 1,
+                after=after,
+                include_assessments=preview_enabled,
             )
+            rows = [row for row, _ in projected]
+            more = len(rows) > limit
+            rows = rows[:limit]
+            projected = projected[:limit]
         finally:
             repo.close()
-        more = len(rows) > limit
-        rows = rows[:limit]
         next_cursor = None
         if more:
             row = rows[-1]
@@ -914,22 +880,8 @@ def workspace_router(
                     "exp": (runtime.now() + timedelta(minutes=15)).timestamp(),
                 },
             )
-        return Page[QueueSummary](
-            items=[
-                QueueSummary(
-                    group=_group_summary(row),
-                    work_state=_work_state(row),
-                    queue_reasons=[
-                        component.explanation
-                        for component in _group_summary(row).components
-                        if component.contribution > 0
-                    ][:3],
-                )
-                for row in rows
-            ],
-            next_cursor=next_cursor,
-            limit=limit,
-        )
+        items = [item for _, item in projected]
+        return Page[QueueSummary](items=items, next_cursor=next_cursor, limit=limit)
 
     @router.get(
         "/groups/{group_id}",
@@ -965,11 +917,13 @@ def workspace_router(
             if not isinstance(raw_key, str):
                 raise WorkspaceApiError(400, "CURSOR_INVALID", "cursor does not match this request")
             after = (_cursor_datetime(raw_time), raw_key)
-        repo = repository(site_id, principal)
+        preview_enabled = site_id == runtime.assessment_preview_site
+        repo = repository(site_id, principal, snapshot=preview_enabled)
         try:
-            row = repo.group_detail(group_id)
-            if row is None:
+            record = group_record(repo, group_id, include_assessment=preview_enabled)
+            if record is None:
                 raise WorkspaceApiError(404, "RESOURCE_UNKNOWN", "Group is unknown")
+            row, summary = record
             members = repo.group_members(group_id, member_limit + 1, after)
             extras = repo.group_extras(group_id)
         finally:
@@ -991,7 +945,6 @@ def workspace_router(
                     "exp": (runtime.now() + timedelta(minutes=15)).timestamp(),
                 },
             )
-        summary = _group_summary(row)
         return GroupDetail(
             **summary.model_dump(),
             site_id=site_id,
@@ -1008,6 +961,74 @@ def workspace_router(
             history=[HistoryEntry.model_validate(item) for item in extras["history"]],
             work_state=_work_state(row),
         )
+
+    @router.get(
+        "/groups/{group_id}/assessment",
+        response_model=AssessmentDetail,
+        operation_id="workspace_group_assessment",
+        responses=ERROR_RESPONSES,
+    )
+    def group_assessment(
+        request: Request,
+        group_id: str,
+        site_id: str = Query(min_length=1, max_length=64),
+        principal: VerifiedPrincipal = Depends(principal_dependency),
+    ) -> AssessmentDetail:
+        _validate_query(request, {"site_id"})
+        repo = repository(site_id, principal, snapshot=True)
+        try:
+            row = repo.group_detail(group_id)
+            if row is None:
+                raise WorkspaceApiError(404, "RESOURCE_UNKNOWN", "Group is unknown")
+            return assessment_detail(
+                repo, row, preview_enabled=site_id == runtime.assessment_preview_site
+            )
+        except (PsycopgError, LookupError, ValueError):
+            raise WorkspaceApiError(
+                503,
+                "UNAVAILABLE",
+                "Workspace assessment is temporarily unavailable",
+                retryable=True,
+            ) from None
+        finally:
+            repo.close()
+
+    @router.post(
+        "/groups/{group_id}/assessment/review",
+        response_model=AssessmentReview,
+        operation_id="workspace_review_group_assessment",
+        responses=ERROR_RESPONSES,
+    )
+    def group_assessment_review(
+        request: Request,
+        group_id: str,
+        body: AssessmentReviewRequest,
+        idempotency_key: str = Header(..., alias="Idempotency-Key"),
+        principal: VerifiedPrincipal = Depends(principal_dependency),
+    ) -> AssessmentReview:
+        _validate_query(request, set())
+        verify_csrf(request, principal)
+        authorize(principal, body.site_id)
+        if body.site_id != runtime.assessment_preview_site:
+            raise WorkspaceApiError(404, "RESOURCE_UNKNOWN", "Assessment is unknown")
+        repo = write_repository(body.site_id, principal)
+        try:
+            return review_assessment(
+                repo,
+                group_id,
+                body,
+                actor_key=principal.owner_key,
+                idempotency_key=idempotency_key,
+                now=runtime.now(),
+            )
+        except PsycopgError:
+            raise WorkspaceApiError(
+                503, "UNAVAILABLE", "Workspace data is temporarily unavailable", retryable=True
+            ) from None
+        except (FeedbackConflict, LookupError, ValueError) as exc:
+            _write_error(exc)
+        finally:
+            repo.close()
 
     @router.post("/groups/{group_id}/assign", response_model=WorkState, responses=ERROR_RESPONSES)
     def group_assign(
@@ -1441,6 +1462,8 @@ def workspace_router(
         ingestion_health,
         queue,
         group_detail,
+        group_assessment,
+        group_assessment_review,
         group_assign,
         group_status,
         group_disposition,

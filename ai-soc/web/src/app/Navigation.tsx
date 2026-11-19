@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import type { BootstrapResponse } from "../../../contracts/v1/generated/types.ts";
+import type { RuntimeBootstrapResponse } from "../api/client";
 import type { Locale } from "../i18n";
 import { StatusPill } from "../components/ui/status-pill";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../components/ui/sheet";
@@ -49,6 +49,15 @@ export type Route =
 const commandRoutes: readonly Route[] = [...nav, ...dashboardNav, ...secondaryNav].map(
     (item) => item.id,
 );
+export type NavigationProfile = "full" | "local";
+const localDashboardNav = dashboardNav.filter((item) => item.id === "metrics");
+const localSecondaryNav: (typeof secondaryNav)[number][] = [];
+
+function navigationGroups(profile: NavigationProfile) {
+    return profile === "local"
+        ? { main: nav, dashboards: localDashboardNav, secondary: localSecondaryNav }
+        : { main: nav, dashboards: dashboardNav, secondary: secondaryNav };
+}
 export function routeFromHash(): Route | null {
     const hash = location.hash.replace(/^#\/?/, "");
     if (!hash) return "overview";
@@ -62,12 +71,15 @@ export function NavigationRail({
     setRoute,
     footer,
     t,
+    profile = "full",
 }: {
     route: Route;
     setRoute: (route: Route) => void;
     footer: ReactNode;
     t: Translate;
+    profile?: NavigationProfile;
 }) {
+    const groups = navigationGroups(profile);
     return (
         <>
             <a className="skip-link" href="#main">
@@ -82,7 +94,7 @@ export function NavigationRail({
                 </div>
                 <div className="rail-caption">{t("workspaceCaption")}</div>
                 <nav aria-label={t("mainNavigation")}>
-                    {nav.map((item) => (
+                    {groups.main.map((item) => (
                         <a
                             key={item.id}
                             href={`#${item.id}`}
@@ -94,34 +106,42 @@ export function NavigationRail({
                         </a>
                     ))}
                 </nav>
-                <div className="rail-caption secondary-caption">{t("dashboards")}</div>
-                <nav aria-label={t("dashboards")}>
-                    {dashboardNav.map((item) => (
-                        <a
-                            key={item.id}
-                            href={`#${item.id}`}
-                            aria-current={route === item.id ? "page" : undefined}
-                            onClick={() => setRoute(item.id)}
-                        >
-                            <item.icon size={17} />
-                            {t(item.id)}
-                        </a>
-                    ))}
-                </nav>
-                <div className="rail-caption secondary-caption">{t("secondaryTools")}</div>
-                <nav aria-label={t("secondaryTools")}>
-                    {secondaryNav.map((item) => (
-                        <a
-                            key={item.id}
-                            href={`#${item.id}`}
-                            aria-current={route === item.id ? "page" : undefined}
-                            onClick={() => setRoute(item.id)}
-                        >
-                            <item.icon size={17} />
-                            {t(item.id)}
-                        </a>
-                    ))}
-                </nav>
+                {groups.dashboards.length > 0 && (
+                    <div className="rail-caption secondary-caption">{t("dashboards")}</div>
+                )}
+                {groups.dashboards.length > 0 && (
+                    <nav aria-label={t("dashboards")}>
+                        {groups.dashboards.map((item) => (
+                            <a
+                                key={item.id}
+                                href={`#${item.id}`}
+                                aria-current={route === item.id ? "page" : undefined}
+                                onClick={() => setRoute(item.id)}
+                            >
+                                <item.icon size={17} />
+                                {t(item.id)}
+                            </a>
+                        ))}
+                    </nav>
+                )}
+                {groups.secondary.length > 0 && (
+                    <div className="rail-caption secondary-caption">{t("secondaryTools")}</div>
+                )}
+                {groups.secondary.length > 0 && (
+                    <nav aria-label={t("secondaryTools")}>
+                        {groups.secondary.map((item) => (
+                            <a
+                                key={item.id}
+                                href={`#${item.id}`}
+                                aria-current={route === item.id ? "page" : undefined}
+                                onClick={() => setRoute(item.id)}
+                            >
+                                <item.icon size={17} />
+                                {t(item.id)}
+                            </a>
+                        ))}
+                    </nav>
+                )}
                 <div className="rail-bottom">{footer}</div>
             </aside>
         </>
@@ -146,11 +166,12 @@ export function ContextHeader({
     onNavigate,
     onSearch,
     t,
+    profile = "full",
 }: {
     route: Route;
     locale: Locale;
     setLocale: (locale: Locale) => void;
-    bootstrap: BootstrapResponse | undefined;
+    bootstrap: RuntimeBootstrapResponse | undefined;
     sites: { site_id: string; label: string }[];
     selectedSite: string;
     setSelectedSite: (site: string) => void;
@@ -164,7 +185,12 @@ export function ContextHeader({
     onNavigate: (route: Route) => void;
     onSearch: (filters: AlertDrilldown) => void;
     t: Translate;
+    profile?: NavigationProfile;
 }) {
+    const groups = navigationGroups(profile);
+    const visibleCommandRoutes = [...groups.main, ...groups.dashboards, ...groups.secondary].map(
+        (item) => item.id,
+    );
     return (
         <header className="topbar">
             <Sheet>
@@ -184,22 +210,26 @@ export function ContextHeader({
                     <nav className="mobile-rail" aria-label={t("mainNavigation")}>
                         <MobileNavGroup
                             label={t("mainNavigation")}
-                            items={nav}
+                            items={groups.main}
                             route={route}
                             t={t}
                         />
-                        <MobileNavGroup
-                            label={t("dashboards")}
-                            items={dashboardNav}
-                            route={route}
-                            t={t}
-                        />
-                        <MobileNavGroup
-                            label={t("secondaryTools")}
-                            items={secondaryNav}
-                            route={route}
-                            t={t}
-                        />
+                        {groups.dashboards.length > 0 && (
+                            <MobileNavGroup
+                                label={t("dashboards")}
+                                items={groups.dashboards}
+                                route={route}
+                                t={t}
+                            />
+                        )}
+                        {groups.secondary.length > 0 && (
+                            <MobileNavGroup
+                                label={t("secondaryTools")}
+                                items={groups.secondary}
+                                route={route}
+                                t={t}
+                            />
+                        )}
                     </nav>
                     <div className="mobile-rail-settings">
                         <label className="language-control">
@@ -226,7 +256,7 @@ export function ContextHeader({
             <div className="top-controls">
                 <CommandPalette
                     locale={locale}
-                    routes={commandRoutes}
+                    routes={profile === "full" ? commandRoutes : visibleCommandRoutes}
                     t={t}
                     onNavigate={onNavigate}
                     onSearch={onSearch}
@@ -317,14 +347,30 @@ export function ShellStatus({
     scenario,
     setScenario,
     t,
+    localModelEnabled,
 }: {
-    bootstrap: BootstrapResponse | undefined;
+    bootstrap: RuntimeBootstrapResponse | undefined;
     modeState: "loading" | "unavailable" | null;
     isMock: boolean;
     scenario: string;
     setScenario: (scenario: string) => void;
     t: Translate;
+    localModelEnabled?: boolean;
 }) {
+    if (localModelEnabled !== undefined)
+        return (
+            <div className="shell-status">
+                <StatusPill tone={bootstrap?.mode === "local" ? "positive" : "neutral"}>
+                    {bootstrap?.mode === "local"
+                        ? t("localWorkspace")
+                        : t(modeState === "loading" ? "modeLoading" : "modeUnavailable")}
+                </StatusPill>
+                <StatusPill tone={localModelEnabled ? "warning" : "neutral"}>
+                    {t(localModelEnabled ? "modelShadow" : "modelOff")}
+                </StatusPill>
+                <StatusPill tone="neutral">{t("readOnly")}</StatusPill>
+            </div>
+        );
     return (
         <>
             <div className="shell-status">
@@ -337,23 +383,25 @@ export function ShellStatus({
                 </StatusPill>
                 <StatusPill tone="neutral">{t("readOnly")}</StatusPill>
             </div>
-            {isMock && (
+            {(isMock || bootstrap?.mode === "fixture") && (
                 <div className="shell-dev">
                     <StatusPill tone="warning">{t("synthetic")}</StatusPill>
-                    <label>
-                        {t("scenario")}
-                        <select
-                            aria-label={t("scenario")}
-                            value={scenario}
-                            onChange={(event) => setScenario(event.target.value)}
-                        >
-                            {scenarios.map((item) => (
-                                <option key={item} value={item}>
-                                    {item === "auto" ? t("autoScenario") : item}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    {isMock && (
+                        <label>
+                            {t("scenario")}
+                            <select
+                                aria-label={t("scenario")}
+                                value={scenario}
+                                onChange={(event) => setScenario(event.target.value)}
+                            >
+                                {scenarios.map((item) => (
+                                    <option key={item} value={item}>
+                                        {item === "auto" ? t("autoScenario") : item}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
                 </div>
             )}
         </>

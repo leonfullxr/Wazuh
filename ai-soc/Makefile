@@ -5,8 +5,11 @@ NODE ?= build/tool-cache/node-v22.23.3/extracted/bin/node
 NPM ?= npm
 OFFLINE := scripts/run-offline.sh
 PORT ?= 8000
+LOCAL_PORT ?= 8123
+LOCAL_DIR ?= build/local-ai-soc
+LOCAL_UV = UV_PROJECT_ENVIRONMENT="$(CURDIR)/build/local-python" $(UV) run --locked --no-dev
 
-.PHONY: dev-setup ci-check agent-check test test-web bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained fixture dev staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
+.PHONY: dev-setup ci-check agent-check test test-web bootstrap web-build image-cache image-inputs-offline image-reproducibility infra-check check-session-teardown check-session-teardown-preflight check-session-teardown-drained local-init local local-down staging-golden lint ws-db-up ws-db-down ws-migrate ws-provision-role ws-backfill ws-poll ws-worker ws-correlate ws-partitions ws-audit-relay ws-knowledge ws-model-prepare ws-model-drain ws-model-watch ws-model-status ws-model-provision
 
 dev-setup:
 	$(UV) sync --locked --all-groups
@@ -60,12 +63,16 @@ check-session-teardown-preflight:
 check-session-teardown-drained:
 	scripts/infra/check-session-teardown.sh drained
 
-fixture:
-	rm -rf build/dev-fixture
-	$(OFFLINE) $(UV) run --locked --offline python examples/content-seed/run_fixture_demo.py --work-dir build/dev-fixture
+local-init:
+	$(LOCAL_UV) python -m ai_soc.local.launcher init --state-dir "$(LOCAL_DIR)" --port $(LOCAL_PORT)
 
-dev:
-	$(UV) run --locked --offline python -m ai_soc.devserver --pack build/dev-fixture/build-a --credentials build/dev-fixture/credentials.json --port $(PORT)
+local:
+	$(NPM) --prefix web ci --include=dev --no-audit --no-fund
+	$(NPM) --prefix web run build
+	$(LOCAL_UV) python -m ai_soc.local.launcher up --state-dir "$(LOCAL_DIR)" --port $(LOCAL_PORT)
+
+local-down:
+	$(LOCAL_UV) python -m ai_soc.local.launcher down --state-dir "$(LOCAL_DIR)" --port $(LOCAL_PORT)
 
 staging-golden:
 	$(UV) run --locked python scripts/staging_golden.py --manifest config/staging-validation.json $(STAGING_ARGS)
@@ -87,46 +94,49 @@ lint:
 	$(UV) run --locked pyright
 
 ws-db-up:
-	$(UV) run --locked python scripts/workspace/db.py up
+	$(UV) run --locked --no-dev python scripts/workspace/db.py up
 
 ws-db-down:
-	$(UV) run --locked python scripts/workspace/db.py down
+	$(UV) run --locked --no-dev python scripts/workspace/db.py down
 
 ws-migrate:
-	$(UV) run --locked python scripts/workspace/db.py migrate
+	$(UV) run --locked --no-dev python scripts/workspace/db.py migrate
 
 ws-provision-role:
-	$(UV) run --locked python scripts/workspace/provision_role.py
+	$(UV) run --locked --no-dev python scripts/workspace/provision_role.py
 
 ws-backfill:
-	$(UV) run --locked python -m ai_soc.workspace.backfill $(WS_ARGS)
+	$(UV) run --locked --no-dev python -m ai_soc.workspace.backfill $(WS_ARGS)
 
 ws-poll:
-	$(UV) run --locked python -m ai_soc.workspace.poll $(WS_ARGS)
+	$(UV) run --locked --no-dev python -m ai_soc.workspace.poll $(WS_ARGS)
 
 ws-worker:
-	$(UV) run --locked python -m ai_soc.workspace.worker $(WS_ARGS)
+	$(UV) run --locked --no-dev python -m ai_soc.workspace.worker $(WS_ARGS)
 
 ws-correlate:
-	$(UV) run --locked --offline python -m ai_soc.workspace.correlate.runner $(WS_ARGS)
+	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.correlate.runner $(WS_ARGS)
 
 ws-partitions:
-	$(UV) run --locked python -m ai_soc.workspace.partitions $(WS_ARGS)
+	$(UV) run --locked --no-dev python -m ai_soc.workspace.partitions $(WS_ARGS)
 
 ws-audit-relay:
-	$(UV) run --locked python -m ai_soc.workspace.audit_delivery $(WS_ARGS)
+	$(UV) run --locked --no-dev python -m ai_soc.workspace.audit_delivery $(WS_ARGS)
+
+ws-knowledge:
+	$(UV) run --locked --no-dev ai-soc-knowledge $(WS_ARGS)
 
 ws-model-prepare:
-	$(UV) run --locked --offline python -m ai_soc.workspace.model.worker prepare $(WS_ARGS)
+	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.model.worker prepare $(WS_ARGS)
 
 ws-model-drain:
-	$(UV) run --locked --offline python -m ai_soc.workspace.model.worker drain $(WS_ARGS)
+	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.model.worker drain $(WS_ARGS)
 
 ws-model-status:
-	$(UV) run --locked --offline python -m ai_soc.workspace.model.worker status $(WS_ARGS)
+	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.model.worker status $(WS_ARGS)
 
 ws-model-provision:
-	$(UV) run --locked --offline python -m ai_soc.workspace.model.worker provision $(WS_ARGS)
+	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.model.worker provision $(WS_ARGS)
 
 ws-model-watch:
-	$(UV) run --locked --offline python -m ai_soc.workspace.model.worker watch $(WS_ARGS)
+	$(UV) run --locked --no-dev --offline python -m ai_soc.workspace.model.worker watch $(WS_ARGS)

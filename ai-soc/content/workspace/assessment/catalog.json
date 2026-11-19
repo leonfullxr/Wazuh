@@ -1,0 +1,109 @@
+{
+  "version": "group-assessment-v1",
+  "score_gate": 60.0,
+  "sample_basis_points": 500,
+  "sample_seed": "group-sample-v1",
+  "families": {
+    "default": {
+      "required": ["observations"],
+      "optional": ["asset", "vuln", "kev", "geoip", "prevalence", "first_seen", "privilege", "known_noise", "history", "knowledge"],
+      "member_fields": ["rule_id"]
+    },
+    "ssh": {
+      "required": ["observations", "asset"],
+      "optional": ["vuln", "kev", "geoip", "prevalence", "first_seen", "privilege", "known_noise", "history", "knowledge"],
+      "member_fields": ["src_ip", "dst_user"]
+    }
+  },
+  "findings": {
+    "ssh_brute_force": {
+      "subjects": ["group"],
+      "stance": "malicious",
+      "evidence_kinds": ["aggregate"],
+      "slots": {
+        "attempts": {
+          "fields": ["ssh_brute_force_count"],
+          "precondition": {"field": "ssh_brute_force_count", "op": "gte", "value": 1}
+        }
+      },
+      "relations": [],
+      "text": {
+        "en": "The group contains {attempts} alert(s) for repeated SSH authentication failures.",
+        "es": "El grupo contiene {attempts} alerta(s) por fallos repetidos de autenticación SSH."
+      }
+    },
+    "no_success_in_group": {
+      "subjects": ["group"],
+      "stance": "benign",
+      "evidence_kinds": ["aggregate"],
+      "slots": {
+        "successes": {
+          "fields": ["ssh_success_count"],
+          "precondition": {"field": "ssh_success_count", "op": "eq", "value": 0}
+        },
+        "members": {
+          "fields": ["member_count"],
+          "precondition": {"field": "ssh_brute_force_count", "op": "gte", "value": 1}
+        }
+      },
+      "relations": [{"kind": "same_record", "slots": ["successes", "members"]}],
+      "text": {
+        "en": "{successes} successful SSH logins are recorded among these {members} alert(s).",
+        "es": "Se registran {successes} inicios de sesión SSH correctos entre estas {members} alerta(s)."
+      }
+    },
+    "ssh_rule_observed": {
+      "subjects": ["group"],
+      "stance": "malicious",
+      "evidence_kinds": ["row"],
+      "slots": {
+        "rule": {
+          "fields": ["rule_id"],
+          "precondition": {"field": "rule_id", "op": "eq", "value": "5763"}
+        }
+      },
+      "relations": [],
+      "text": {
+        "en": "An SSH alert matched rule {rule}.",
+        "es": "Una alerta SSH coincidió con la regla {rule}."
+      }
+    },
+    "known_noise_coverage": {
+      "subjects": ["group"],
+      "stance": "benign",
+      "evidence_kinds": ["aggregate"],
+      "slots": {
+        "covered": {
+          "fields": ["known_noise_member_count"],
+          "precondition": {"field": "known_noise_member_count", "op": "gte", "value": 1}
+        }
+      },
+      "relations": [],
+      "coverage_slot": "covered",
+      "text": {
+        "en": "The configured known-noise check matched {covered} alert(s) in this group.",
+        "es": "La comprobación de ruido conocido coincidió con {covered} alerta(s) de este grupo."
+      }
+    }
+  },
+  "next_steps": {
+    "check_ssh_activity": {
+      "subjects": ["group"],
+      "evidence_kinds": ["aggregate"],
+      "precondition": {"field": "ssh_brute_force_count", "op": "gte", "value": 1},
+      "text": {
+        "en": "Review subsequent SSH login activity for the affected host.",
+        "es": "Revisa la actividad posterior de inicio de sesión SSH en el equipo afectado."
+      }
+    },
+    "follow_reviewed_ssh_runbook": {
+      "subjects": ["group"],
+      "evidence_kinds": ["knowledge"],
+      "precondition": {"field": "exact_match", "op": "eq", "value": true},
+      "text": {
+        "en": "Follow the cited reviewed SSH triage runbook for the next checks.",
+        "es": "Sigue el procedimiento de triaje SSH revisado y citado para las siguientes comprobaciones."
+      }
+    }
+  }
+}

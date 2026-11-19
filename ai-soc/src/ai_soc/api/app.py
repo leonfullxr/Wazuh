@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import datetime
-from typing import Any, Protocol, TypeVar, cast
+from typing import Any, Literal, Protocol, TypeVar, cast
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request, Response
@@ -28,6 +28,9 @@ from ai_soc.contracts.models import (
     FeedbackRequest,
     FetchResult,
     PageRequest,
+    PublicLimits,
+    SitePublic,
+    StrictModel,
     VerifiedPrincipal,
 )
 from ai_soc.contracts.ports import IdentityVerifier
@@ -58,6 +61,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class LocalBootstrapResponse(StrictModel):
+    schema_version: Literal["1"] = "1"
+    mode: Literal["local"] = "local"
+    sites: list[SitePublic]
+    models: tuple[()] = ()
+    provenance: None = None
+    limits: PublicLimits
+    csrf_token: str | None = None
+
+
+type LocalBootstrap = Callable[[VerifiedPrincipal], Awaitable[LocalBootstrapResponse]]
+
+
 class Application(Protocol):
     async def bootstrap(self, principal: VerifiedPrincipal) -> BootstrapResponse: ...
 
@@ -85,13 +101,19 @@ class Readiness(Protocol):
 
 
 def create_app(
-    application: Application,
+    application: Application | None,
     identity: IdentityVerifier,
     csrf: CsrfTokens,
     clock: Clock,
     readiness: Readiness,
     workspace_runtime: object | None = None,
+    *,
+    local_bootstrap: LocalBootstrap | None = None,
 ) -> FastAPI:
+    if (application is None) == (local_bootstrap is None):
+        raise ValueError("supply one REST application or local workspace bootstrap")
+    if local_bootstrap is not None and workspace_runtime is None:
+        raise ValueError("local bootstrap requires workspace routes")
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(SecurityHeadersMiddleware)
 
@@ -244,7 +266,11 @@ def create_app(
 
     async def bootstrap(request: Request, response: Response) -> JSONResponse:
         verified = await principal(request)
-        result = await application.bootstrap(verified)
+        if application is None:
+            assert local_bootstrap is not None
+            result = await local_bootstrap(verified)
+        else:
+            result = await application.bootstrap(verified)
         cookie, token = csrf.issue(
             owner_key=verified.owner_key,
             assertion_expires_at=verified.expires_at,
@@ -268,6 +294,7 @@ def create_app(
         )
 
     async def questions(request: Request) -> JSONResponse:
+        assert application is not None
         verified = await principal(request)
         verify_csrf(request, verified)
         parsed = await parse(request, AskRequest)
@@ -282,6 +309,7 @@ def create_app(
         )
 
     async def page(request: Request) -> JSONResponse:
+        assert application is not None
         verified = await principal(request)
         verify_csrf(request, verified)
         parsed = await parse(request, PageRequest)
@@ -294,6 +322,7 @@ def create_app(
         )
 
     async def feedback(request: Request) -> JSONResponse:
+        assert application is not None
         verified = await principal(request)
         verify_csrf(request, verified)
         parsed = await parse(request, FeedbackRequest)
@@ -310,9 +339,10 @@ def create_app(
     app.add_api_route("/health/live", live, methods=["GET"])
     app.add_api_route("/health/ready", ready, methods=["GET"])
     app.add_api_route("/v1/bootstrap", bootstrap, methods=["GET"])
-    app.add_api_route("/v1/questions", questions, methods=["POST"])
-    app.add_api_route("/v1/fetches/page", page, methods=["POST"])
-    app.add_api_route("/v1/feedback", feedback, methods=["POST"], status_code=202)
+    if application is not None:
+        app.add_api_route("/v1/questions", questions, methods=["POST"])
+        app.add_api_route("/v1/fetches/page", page, methods=["POST"])
+        app.add_api_route("/v1/feedback", feedback, methods=["POST"], status_code=202)
     return app
 
 

@@ -25,6 +25,16 @@ def test_unrelated_changes_skip(tmp_path: Path) -> None:
     assert dispatch(project) == 0
 
 
+def test_checks_do_not_inherit_the_hooks_repository_environment(tmp_path, monkeypatch) -> None:
+    repo, project = repo_at(tmp_path)
+    makefile = project / "Makefile"
+    makefile.write_text('ci-check:\n\ttest -z "$$GIT_DIR$$GIT_INDEX_FILE"\n')
+    subprocess.run(["git", "-C", str(repo), "add", "ai-soc"], check=True)
+    monkeypatch.setenv("GIT_DIR", str(repo / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(repo / ".git/index"))
+    assert dispatch(project) == 0
+
+
 def test_installer_preserves_unrelated_hook(tmp_path: Path) -> None:
     repo, project = repo_at(tmp_path)
     hook = repo / ".git/hooks/pre-commit"

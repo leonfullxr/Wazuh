@@ -11,7 +11,7 @@ import psycopg
 from ai_soc.contracts.models import AskRequest
 from ai_soc.validation.findings import (
     BoundTextRejected,
-    _bound_display_text,  # pyright: ignore[reportPrivateUsage]
+    bound_display_text,
 )
 
 
@@ -241,7 +241,7 @@ def _sampled_entities(
             ):
                 continue
             try:
-                found.add((kind, _bound_display_text(value), _bound_display_text(role)))
+                found.add((kind, bound_display_text(value), bound_display_text(role)))
             except BoundTextRejected:
                 continue
     values = [{"kind": k, "value": v, "role": r} for k, v, r in sorted(found)[:100]]

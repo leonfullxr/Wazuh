@@ -33,6 +33,10 @@ def config_file(tmp_path, **changes):
         "host_id": "host",
         "runtime_id": "runtime",
         "slot_directory": str(tmp_path),
+        "codex_path": SELECTED,
+        "auth_path": "/synthetic/auth",
+        "bwrap_path": "/synthetic/bwrap",
+        "authority_path": str(worker.host_authority_path()),
         **changes,
     }
     path = tmp_path / "model.json"
@@ -42,9 +46,11 @@ def config_file(tmp_path, **changes):
 
 def test_configuration_defaults_and_fixed_pins(tmp_path):
     default = worker.load_config(config_file(tmp_path)).codex_profile()
-    selected = worker.load_config(config_file(tmp_path, codex_path=SELECTED)).codex_profile()
-    assert default == CodexProfile()
-    assert selected.codex_path == SELECTED
+    selected = worker.load_config(
+        config_file(tmp_path, codex_path="/another/codex")
+    ).codex_profile()
+    assert default.codex_path == SELECTED
+    assert selected.codex_path == "/another/codex"
     for field in fields(CodexProfile):
         if field.name != "codex_path":
             assert getattr(selected, field.name) == getattr(default, field.name)

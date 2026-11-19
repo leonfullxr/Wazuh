@@ -12,12 +12,34 @@ from typing import Literal
 
 import httpx
 import psycopg
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, StrictBool, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    StrictBool,
+    model_validator,
+)
 
 from ai_soc.workspace.backfill import BackfillSite
 from ai_soc.workspace.context import ContextSources
 from ai_soc.workspace.ingest.indexer_reader import IndexerReader
 from ai_soc.workspace.normalize.models import load_profile
+
+
+class LabAssessmentSettings(BaseModel):
+    """Opt-in workspace shadow assessments."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: StrictBool = False
+    base_url: str
+    model: str = Field(min_length=1, max_length=128)
+    credential_file: Path | None = None
+    max_calls_per_run: int = Field(default=20, ge=1, le=1000, strict=True)
+    concurrency: int = Field(default=1, ge=1, le=8, strict=True)
+    narratives_enabled: StrictBool = False
 
 
 class PipelineSite(BaseModel):
@@ -35,6 +57,9 @@ class PipelineSite(BaseModel):
     context_sources: ContextSources = Field(default_factory=ContextSources)
     context_history: tuple[ContextSources, ...] = ()
     correlation_enabled: StrictBool = False
+    lab_assessment: LabAssessmentSettings | None = Field(
+        default=None, validation_alias=AliasChoices("assessment", "lab_assessment")
+    )
 
     @model_validator(mode="after")
     def correlation_version(self) -> PipelineSite:
@@ -106,8 +131,9 @@ def app_dsn(config: PipelineConfig) -> str:
 
 
 class PipelineRuntime:
-    def __init__(self, config: PipelineConfig) -> None:
+    def __init__(self, config: PipelineConfig, *, trust_env: bool = True) -> None:
         self.config = config
+        self._trust_env = trust_env
         self._stack = ExitStack()
         self._sites: dict[str, BackfillSite] = {}
 
@@ -134,7 +160,11 @@ class PipelineRuntime:
         context = ssl.create_default_context(cafile=str(settings.ca_file))
         client = self._stack.enter_context(
             httpx.Client(
-                base_url=settings.indexer_url, verify=context, follow_redirects=False, timeout=30
+                base_url=settings.indexer_url,
+                verify=context,
+                follow_redirects=False,
+                trust_env=self._trust_env,
+                timeout=30,
             )
         )
         auth = httpx.BasicAuth(credential.username, credential.password.get_secret_value())

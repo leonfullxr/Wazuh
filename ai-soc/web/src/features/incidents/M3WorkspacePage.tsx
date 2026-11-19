@@ -41,7 +41,7 @@ export function M3WorkspacePage({
     siteId: string;
     locale: Locale;
     t: Translate;
-    onInvestigate: (question: string, environmentId: string) => void;
+    onInvestigate?: (question: string, environmentId: string) => void;
 }) {
     const queryClient = useQueryClient();
     const [selection, setSelection] = useState<Selection>(null);
@@ -404,59 +404,70 @@ export function M3WorkspacePage({
                                         [name]: cursor,
                                     }))
                                 }
-                                onInvestigate={async () => {
-                                    contextAbort.current?.abort();
-                                    const controller = new AbortController();
-                                    contextAbort.current = controller;
-                                    const requestedScope = activeScope.current;
-                                    try {
-                                        const context = await getIncidentContext(
-                                            {
-                                                siteId,
-                                                incidentId: incident.data!.incident.incident_id,
-                                                evidenceRevision:
-                                                    incident.data!.incident.evidence_head,
-                                            },
-                                            controller.signal,
-                                        );
-                                        if (
-                                            controller.signal.aborted ||
-                                            activeScope.current !== requestedScope
-                                        )
-                                            return;
-                                        const request = field(context.question_draft, "request");
-                                        const question = field(request, "question");
-                                        const environment = field(request, "environment_id");
-                                        if (
-                                            typeof question !== "string" ||
-                                            typeof environment !== "string" ||
-                                            environment !== siteId
-                                        ) {
-                                            setError(t("m3ContextInvalid"));
-                                            return;
-                                        }
-                                        onInvestigate(question, environment);
-                                    } catch (reason) {
-                                        if (
-                                            controller.signal.aborted ||
-                                            activeScope.current !== requestedScope
-                                        )
-                                            return;
-                                        if (
-                                            reason instanceof WorkspaceRequestError &&
-                                            reason.status === 409
-                                        ) {
-                                            setError(t("m3Stale"));
-                                            await refresh();
-                                        } else {
-                                            setError(
-                                                reason instanceof Error
-                                                    ? reason.message
-                                                    : t("m3ActionError"),
-                                            );
-                                        }
-                                    }
-                                }}
+                                onInvestigate={
+                                    onInvestigate
+                                        ? async () => {
+                                              contextAbort.current?.abort();
+                                              const controller = new AbortController();
+                                              contextAbort.current = controller;
+                                              const requestedScope = activeScope.current;
+                                              try {
+                                                  const context = await getIncidentContext(
+                                                      {
+                                                          siteId,
+                                                          incidentId:
+                                                              incident.data!.incident.incident_id,
+                                                          evidenceRevision:
+                                                              incident.data!.incident.evidence_head,
+                                                      },
+                                                      controller.signal,
+                                                  );
+                                                  if (
+                                                      controller.signal.aborted ||
+                                                      activeScope.current !== requestedScope
+                                                  )
+                                                      return;
+                                                  const request = field(
+                                                      context.question_draft,
+                                                      "request",
+                                                  );
+                                                  const question = field(request, "question");
+                                                  const environment = field(
+                                                      request,
+                                                      "environment_id",
+                                                  );
+                                                  if (
+                                                      typeof question !== "string" ||
+                                                      typeof environment !== "string" ||
+                                                      environment !== siteId
+                                                  ) {
+                                                      setError(t("m3ContextInvalid"));
+                                                      return;
+                                                  }
+                                                  onInvestigate(question, environment);
+                                              } catch (reason) {
+                                                  if (
+                                                      controller.signal.aborted ||
+                                                      activeScope.current !== requestedScope
+                                                  )
+                                                      return;
+                                                  if (
+                                                      reason instanceof WorkspaceRequestError &&
+                                                      reason.status === 409
+                                                  ) {
+                                                      setError(t("m3Stale"));
+                                                      await refresh();
+                                                  } else {
+                                                      setError(
+                                                          reason instanceof Error
+                                                              ? reason.message
+                                                              : t("m3ActionError"),
+                                                      );
+                                                  }
+                                              }
+                                          }
+                                        : undefined
+                                }
                             />
                         ) : null}
                     </section>
@@ -561,6 +572,9 @@ function ChainDetailView({
                     </div>
                 )}
             </section>
+            {detail.assessment && (
+                <ChainAssessment assessment={detail.assessment} locale={locale} t={t} />
+            )}
             <section aria-labelledby="chain-links-heading">
                 <h4 id="chain-links-heading">{t("m3Links")}</h4>
                 {detail.edges.length ? (
@@ -631,6 +645,58 @@ function ChainDetailView({
     );
 }
 
+function ChainAssessment({
+    assessment,
+    locale,
+    t,
+}: {
+    assessment: components["schemas"]["ChainAssessmentPreview"];
+    locale: Locale;
+    t: Translate;
+}) {
+    const stages = new Map(assessment.evidence.map((item) => [item.id, item]));
+    const findings = assessment.outcome.findings ?? [];
+    return (
+        <section className="m3-chain-assessment" aria-labelledby="chain-assessment-heading">
+            <header>
+                <h4 id="chain-assessment-heading">{t("m3ChainAssessment")}</h4>
+                <span className="muted">{t("m3ChainAssessmentPreview")}</span>
+            </header>
+            {findings.length === 0 ? (
+                <p className="muted">{t("m3ChainAssessmentEmpty")}</p>
+            ) : (
+                <ul className="m3-chain-assessment-findings">
+                    {findings.map((finding) => (
+                        <li key={finding.id}>
+                            <p>{finding.text[locale]}</p>
+                            <ul className="m3-chain-assessment-citations" aria-label={t("m3OrderedStages")}>
+                                {finding.evidence_ids.map((id) => {
+                                    const stage = stages.get(id);
+                                    return stage && (
+                                        <li key={id}>
+                                            {humanizeKey(String(stage.fields.stage_id))}
+                                            <IdValue value={id} locale={locale} copy />
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <details>
+                <summary>{t("m3NarrativeProvenance")}</summary>
+                <dl className="m3-meta">
+                    <dt>{t("m3ChainAssessmentModel")}</dt>
+                    <dd>{assessment.provenance.provider} · {assessment.provenance.model}</dd>
+                    <dt>{t("m3NarrativePackDigest")}</dt>
+                    <dd><IdValue value={assessment.provenance.pack_digest} locale={locale} copy /></dd>
+                </dl>
+            </details>
+        </section>
+    );
+}
+
 function IncidentDetailView({
     data,
     events,
@@ -659,7 +725,7 @@ function IncidentDetailView({
         name: "history" | "comments" | "dispositions" | "membership",
         cursor: string,
     ) => void;
-    onInvestigate: () => Promise<void>;
+    onInvestigate?: () => Promise<void>;
 }) {
     const [owner, setOwner] = useState(data.incident.owner_key ?? "");
     const [status, setStatus] = useState<IncidentStatus>(data.incident.status);
@@ -677,9 +743,11 @@ function IncidentDetailView({
         <>
             <div className="panel-head">
                 <h3 id="incident-detail-heading">{incident.title}</h3>
-                <button className="btn outline" onClick={() => void onInvestigate()}>
-                    {t("m3Investigate")}
-                </button>
+                {onInvestigate && (
+                    <button className="btn outline" onClick={() => void onInvestigate()}>
+                        {t("m3Investigate")}
+                    </button>
+                )}
             </div>
             <dl className="m3-meta">
                 <dt>{t("m3IncidentId")}</dt>

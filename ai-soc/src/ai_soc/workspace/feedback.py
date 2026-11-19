@@ -42,7 +42,7 @@ def assign_group(
 ) -> dict[str, Any]:
     request = {"owner_key": owner_key, "expected_updated_at": _iso(expected_updated_at)}
     route = f"/groups/{group_id}/assign"
-    prior = _idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
+    prior = idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
     if prior is not None:
         return prior
     _validate_common(conn, site_id, group_id, actor_key, now)
@@ -89,7 +89,7 @@ def assign_group(
         actor_key=actor_key,
         payload={"group_id": group_id, "before": before, "after": result},
     )
-    _save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
+    save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
     return result
 
 
@@ -107,7 +107,7 @@ def change_group_status(
 ) -> dict[str, Any]:
     request = {"status": status, "expected_updated_at": _iso(expected_updated_at)}
     route = f"/groups/{group_id}/status"
-    prior = _idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
+    prior = idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
     if prior is not None:
         return prior
     _validate_common(conn, site_id, group_id, actor_key, now)
@@ -153,7 +153,7 @@ def change_group_status(
         actor_key=actor_key,
         payload={"group_id": group_id, "before": before, "after": result},
     )
-    _save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
+    save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
     return result
 
 
@@ -178,7 +178,7 @@ def record_group_disposition(
         "propagate_to_members": propagate_to_members,
     }
     route = f"/groups/{group_id}/disposition"
-    prior = _idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
+    prior = idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
     if prior is not None:
         return prior
     _validate_common(conn, site_id, group_id, actor_key, now)
@@ -267,7 +267,7 @@ def record_group_disposition(
             "member_keys_digest": member_digest,
         },
     )
-    _save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
+    save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
     return result
 
 
@@ -285,7 +285,7 @@ def bulk_group_action(
     ids = tuple(group_ids)
     request = {"group_ids": list(ids), "action": action}
     route = "/bulk"
-    prior = _idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
+    prior = idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
     if prior is not None:
         return prior
     if not 1 <= len(ids) <= 100 or len(set(ids)) != len(ids):
@@ -344,7 +344,7 @@ def bulk_group_action(
         actor_key=actor_key,
         payload={"action": action, "group_ids": list(ids), "updated": len(updated)},
     )
-    _save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
+    save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
     return result
 
 
@@ -363,7 +363,7 @@ def upsert_asset_tag(
     normalized_tags = tuple(tags)
     request = {"entity_id": entity_id, "criticality": criticality, "tags": list(normalized_tags)}
     route = "/assets"
-    prior = _idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
+    prior = idempotent_result(conn, site_id, principal_key, route, idempotency_key, request)
     if prior is not None:
         return prior
     _require_site(conn, site_id)
@@ -540,7 +540,7 @@ def upsert_asset_tag(
             "affected_group_revisions": len(groups),
         },
     )
-    _save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
+    save_idempotent(conn, site_id, principal_key, route, idempotency_key, request, result, now)
     return result
 
 
@@ -781,7 +781,7 @@ def _validate_common(
         raise LookupError("unknown group")
 
 
-def _idempotent_result(
+def idempotent_result(
     conn: psycopg.Connection[Any],
     site_id: str,
     principal: str,
@@ -789,6 +789,7 @@ def _idempotent_result(
     key: str,
     request: dict[str, Any],
 ) -> dict[str, Any] | None:
+    """Serialize a scoped write and return a matching committed response, if any."""
     _require_site(conn, site_id)
     if (
         not principal
@@ -815,7 +816,7 @@ def _idempotent_result(
     return cast(dict[str, Any], row[1])
 
 
-def _save_idempotent(
+def save_idempotent(
     conn: psycopg.Connection[Any],
     site_id: str,
     principal: str,
@@ -825,6 +826,7 @@ def _save_idempotent(
     response: dict[str, Any],
     now: datetime,
 ) -> None:
+    """Persist the response in the same transaction as the caller's write."""
     conn.execute(
         """INSERT INTO workspace_idempotency
            (site_id, principal_key, route_key, idempotency_key, request_digest,

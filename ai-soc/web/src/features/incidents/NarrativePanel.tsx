@@ -183,6 +183,12 @@ export function NarrativePanel({
                             </dd>
                             <dt>{t("m3NarrativeStatus")}</dt>
                             <dd>{t(`m3Narrative_${data.status}`)}</dd>
+                            {data.provider_id && data.model_id && (
+                                <>
+                                    <dt>{t("m3ChainAssessmentModel")}</dt>
+                                    <dd>{data.provider_id} · {data.model_id}</dd>
+                                </>
+                            )}
                             <dt>{t("m3NarrativeGeneration")}</dt>
                             <dd>
                                 {data.generation_id ? (

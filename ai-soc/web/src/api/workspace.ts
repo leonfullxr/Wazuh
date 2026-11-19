@@ -15,8 +15,11 @@ import {
     validateAssetTag,
     validateOpsMetrics,
     validateQualityMetrics,
+    validateAssessmentDetail,
+    validateAssessmentReview,
 } from "./generated/workspace-validators.js";
 import { currentCsrfToken } from "./client";
+import { signalLocalSessionExpiry } from "./local-session";
 
 export type SiteSummary = components["schemas"]["SiteSummary"];
 export type OverviewResponse = components["schemas"]["OverviewResponse"];
@@ -27,6 +30,10 @@ export type SitePage = components["schemas"]["Page_SiteSummary_"];
 export type IngestionHealthResponse = components["schemas"]["IngestionHealthResponse"];
 export type QueuePage = components["schemas"]["Page_QueueSummary_"];
 export type QueueSummary = components["schemas"]["QueueSummary"];
+export type AssessmentSummary = components["schemas"]["AssessmentSummary"];
+export type AssessmentDetail = components["schemas"]["AssessmentDetail"];
+export type AssessmentReviewRequest = components["schemas"]["AssessmentReviewRequest"];
+export type AssessmentReview = components["schemas"]["AssessmentReview"];
 export type GroupDetail = components["schemas"]["GroupDetail"];
 export type WorkState = components["schemas"]["WorkState"];
 export type WorkStatus = components["schemas"]["WorkState"]["status"];
@@ -72,6 +79,7 @@ async function request<T>(path: string, validator: Validator<T>, signal?: AbortS
         body = null;
     }
     if (!response.ok) {
+        if (response.status === 401) signalLocalSessionExpiry();
         const error = validateWorkspaceError(body) ? body : null;
         throw new WorkspaceRequestError(
             response.status,
@@ -130,6 +138,7 @@ async function decodeResponse<T>(response: Response, validator: Validator<T>): P
         body = null;
     }
     if (!response.ok) {
+        if (response.status === 401) signalLocalSessionExpiry();
         const error = validateWorkspaceError(body) ? body : null;
         throw new WorkspaceRequestError(
             response.status,
@@ -266,6 +275,28 @@ export function getGroup(
     return request<GroupDetail>(
         `/v1/workspace/groups/${encodeURIComponent(groupId)}?${search}`,
         validateGroupDetail,
+        signal,
+    );
+}
+
+export function getAssessment(siteId: string, groupId: string, signal?: AbortSignal) {
+    return request<AssessmentDetail>(
+        `/v1/workspace/groups/${encodeURIComponent(groupId)}/assessment?${query({ site_id: siteId })}`,
+        validateAssessmentDetail,
+        signal,
+    );
+}
+
+export function reviewAssessment(
+    siteId: string,
+    groupId: string,
+    body: Omit<AssessmentReviewRequest, "site_id">,
+    signal?: AbortSignal,
+) {
+    return writeRequest<AssessmentReview>(
+        `/v1/workspace/groups/${encodeURIComponent(groupId)}/assessment/review`,
+        { ...body, site_id: siteId },
+        validateAssessmentReview,
         signal,
     );
 }

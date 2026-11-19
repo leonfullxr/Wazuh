@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, Literal, Protocol, cast
 from uuid import UUID, uuid5
@@ -24,6 +24,7 @@ from ai_soc.workspace.triage.score import (
 )
 
 Availability = Literal["available", "unavailable", "stale"]
+GapState = Literal["present", "empty", "not_configured", "failed", "stale"]
 _SNAPSHOT_NAMESPACE = UUID("e830b3db-924b-451d-9674-4b0dc4fccfd8")
 
 
@@ -39,6 +40,7 @@ class EnrichmentRecord:
     value: dict[str, Any]
     fetched_at: datetime
     expires_at: datetime | None
+    gap_state: GapState | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +63,16 @@ class ContextObservation:
     value: dict[str, Any]
     fetched_at: datetime
     expires_at: datetime | None = None
+    gap_state: GapState | None = None
+
+
+def enrichment_gap(availability: Availability, state: GapState | None) -> GapState:
+    """Resolve legacy availability without inferring a checked absence."""
+    if state is not None:
+        return state
+    if availability == "available":
+        return "present"
+    return "stale" if availability == "stale" else "failed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +140,7 @@ class KevSnapshotAdapter:
                 availability="unavailable",
                 value={"reason": "approved KEV snapshot is not loaded", **metadata},
                 fetched_at=as_of,
+                gap_state="not_configured",
             )
         snapshot = self._index.snapshot
         freshness_state, valid_from, expires_at = freshness(snapshot, as_of)
@@ -242,6 +255,7 @@ class KevSnapshotAdapter:
             },
             fetched_at=fetched_at,
             expires_at=min(expiries),
+            gap_state="present" if hits else "empty",
         )
 
 
@@ -418,9 +432,9 @@ def enrich_group(
             ),
             fetched_at=observation.fetched_at,
             expires_at=observation.expires_at,
+            gap_state=enrichment_gap(observation.availability, observation.gap_state),
         )
-        _insert_frozen_enrichment(conn, record)
-        records.append(record)
+        records.append(_insert_frozen_enrichment(conn, record))
     return FrozenEnrichmentSnapshot(site_id, group_id, group_revision, as_of, tuple(records))
 
 
@@ -733,6 +747,7 @@ def _prevalence(
             "rule_id": rule_id,
         },
         fetched_at=as_of,
+        gap_state="present" if retained_count else "empty",
     )
 
 
@@ -805,7 +820,7 @@ def _asset(
         (site_id, sorted(host_values), as_of, agent_id.casefold()),
     ).fetchone()
     if row is None:
-        return _unavailable("asset", "no operator tag exists as of cutoff", as_of)
+        return _unavailable("asset", "no operator tag exists as of cutoff", as_of, state="empty")
     return ContextObservation(
         source_version="operator.asset_tag.v1",
         availability="available",
@@ -872,7 +887,7 @@ def validate_frozen_enrichment_snapshot(
     rows = conn.execute(
         """
         SELECT enrichment_id, site_id, group_id, group_revision, source, source_version,
-               availability, value, fetched_at, expires_at
+               availability, value, fetched_at, expires_at, gap_state
         FROM enrichments
         WHERE site_id = %s AND enrichment_id = ANY(%s)
         """,
@@ -894,6 +909,7 @@ def validate_frozen_enrichment_snapshot(
             record.value,
             record.fetched_at,
             record.expires_at,
+            record.gap_state,
         )
         if row != expected:
             raise ValueError("frozen enrichment record differs from retained immutable evidence")
@@ -944,7 +960,13 @@ def _provider_observation(
     default_version: str,
 ) -> ContextObservation:
     if adapter is None:
-        return _unavailable(source, "provider is not configured", as_of, version=default_version)
+        return _unavailable(
+            source,
+            "provider is not configured",
+            as_of,
+            version=default_version,
+            state="not_configured",
+        )
     try:
         result = adapter.fetch(
             site_id=site_id,
@@ -972,18 +994,25 @@ def _provider_observation(
 
 
 def _unavailable(
-    source: str, reason: str, as_of: datetime, *, version: str = "workspace.local.v1"
+    source: str,
+    reason: str,
+    as_of: datetime,
+    *,
+    version: str = "workspace.local.v1",
+    state: GapState = "failed",
 ) -> ContextObservation:
-    return ContextObservation(version, "unavailable", {"reason": reason}, as_of)
+    return ContextObservation(version, "unavailable", {"reason": reason}, as_of, gap_state=state)
 
 
-def _insert_frozen_enrichment(conn: psycopg.Connection[Any], record: EnrichmentRecord) -> None:
+def _insert_frozen_enrichment(
+    conn: psycopg.Connection[Any], record: EnrichmentRecord
+) -> EnrichmentRecord:
     conn.execute(
         """
         INSERT INTO enrichments
             (site_id, enrichment_id, group_id, group_revision, source, source_version,
-             availability, value, fetched_at, expires_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             availability, value, fetched_at, expires_at, gap_state)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (site_id, enrichment_id) DO NOTHING
         """,
         (
@@ -997,11 +1026,12 @@ def _insert_frozen_enrichment(conn: psycopg.Connection[Any], record: EnrichmentR
             Jsonb(record.value),
             record.fetched_at,
             record.expires_at,
+            record.gap_state,
         ),
     )
     row = conn.execute(
         """SELECT group_id, group_revision, source, source_version, availability, value,
-                  fetched_at, expires_at
+                  fetched_at, expires_at, gap_state
            FROM enrichments WHERE site_id = %s AND enrichment_id = %s""",
         (record.site_id, record.enrichment_id),
     ).fetchone()
@@ -1015,8 +1045,11 @@ def _insert_frozen_enrichment(conn: psycopg.Connection[Any], record: EnrichmentR
         record.fetched_at,
         record.expires_at,
     )
-    if row is None or tuple(row) != expected:
+    if row is None or tuple(row[:-1]) != expected or row[-1] not in (None, record.gap_state):
         raise FrozenSnapshotConflict(f"enrichment {record.source} changed at a frozen as_of cutoff")
+    if row[-1] is None:
+        return replace(record, gap_state=None)
+    return record
 
 
 def _score_value(record: EnrichmentRecord) -> float | None:

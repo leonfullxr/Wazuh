@@ -1,0 +1,110 @@
+.local-model-activity {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-block-end: var(--space-5);
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+    box-shadow: var(--shadow-panel);
+}
+
+.local-model-activity-title {
+    min-width: 13rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.local-model-activity-icon {
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    flex: none;
+    place-items: center;
+    border-radius: var(--radius-control);
+    color: var(--accent);
+    background: var(--accent-wash);
+}
+
+.local-model-activity h2,
+.local-model-activity p {
+    margin: 0;
+}
+
+.local-model-activity h2 {
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
+.local-model-activity-title p,
+.local-model-activity-state {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.local-model-activity dl {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+}
+
+.local-model-activity dl > div {
+    min-width: 6.5rem;
+    display: grid;
+    align-content: center;
+    gap: 0.15rem;
+    padding-inline: 1rem;
+    border-inline-start: 1px solid var(--border);
+}
+
+.local-model-activity dl > .local-model-name {
+    min-width: 10rem;
+}
+
+.local-model-activity dt {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.local-model-activity dd {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.local-model-activity-state {
+    max-width: 22rem;
+    text-align: end;
+}
+
+@media (max-width: 760px) {
+    .local-model-activity {
+        display: grid;
+    }
+
+    .local-model-activity dl {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .local-model-activity dl > div,
+    .local-model-activity dl > .local-model-name {
+        min-width: 0;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        background: var(--surface-2);
+    }
+
+    .local-model-activity-state {
+        text-align: start;
+    }
+}
