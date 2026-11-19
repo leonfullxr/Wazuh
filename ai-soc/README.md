@@ -4,17 +4,43 @@ Wazuh AI SOC is a self-hosted analyst workspace. It reads alerts from your Wazuh
 
 ## Console preview
 
-These screenshots show the running local workspace with invented Wazuh alerts.
+These screenshots show the workspace with synthetic Wazuh alerts.
 
-![Workspace overview with model activity and alert volume](docs/screenshots/local-overview.png)
+![Overview with alert volume, an hourly heatmap, and ranked rules and agents](docs/screenshots/console/overview-light.png)
 
-### Alert queue
+<details>
+<summary>More desktop screenshots</summary>
 
-![Analyst queue with a ranked group of SSH authentication alerts](docs/screenshots/local-queue.png)
+### Alerts
+
+![Desktop Alerts with a filter bar and alert evidence table](docs/screenshots/console/alerts-light.png)
+
+### Queue
+
+![Dark Queue with alert groups ranked by priority score](docs/screenshots/console/queue-dark.png)
+
+### Chain candidates
+
+![Dark Chain candidates view with ordered stages and evidence](docs/screenshots/console/chain-dark.png)
 
 ### Incident detail
 
-![Incident detail with a cited AI narrative](docs/screenshots/local-incident.png)
+![Selected incident with an AI narrative and its evidence groups](docs/screenshots/console/incident-light.png)
+
+</details>
+
+<details>
+<summary>Mobile screenshots</summary>
+
+### Overview on mobile
+
+![Mobile Overview with summary metrics and hourly alert volume](docs/screenshots/console/overview-mobile.png)
+
+### Alerts on mobile
+
+![Mobile Alerts with a filter grid and alert results](docs/screenshots/console/alerts-mobile.png)
+
+</details>
 
 ## Run your own local instance
 
