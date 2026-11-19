@@ -105,10 +105,18 @@ export function OverviewPage({
           chart.groups.at(-1)?.hour ??
           "");
     const activeGroup = chart.groups.find((group) => group.hour === activeHour);
+    const peakGroup = chart.groups.reduce<HourGroup | undefined>(
+        (peak, group) => (!peak || group.total > peak.total ? group : peak),
+        undefined,
+    );
+    const workloadMetrics = [
+        { label: t("groupsTotal"), value: data.totals.groups },
+        { label: openIncidentsLabel(t), value: data.totals.open_incidents },
+        { label: t("unassigned"), value: data.totals.unassigned_actionable },
+    ];
 
     return (
         <div className="workspace-page overview-v2">
-            <p className="page-description">{t("overviewDescription")}</p>
             {stale && (
                 <section className="alert error ingestion-alert" role="alert">
                     <div>
@@ -125,9 +133,14 @@ export function OverviewPage({
 
             <section className="overview-v2-summary" aria-label={t("overview")}>
                 <Metric label={t("alertsTotal")} value={data.totals.alerts} />
-                <Metric label={t("groupsTotal")} value={data.totals.groups} />
-                <Metric label={openIncidentsLabel(t)} value={data.totals.open_incidents} />
-                <Metric label={t("unassigned")} value={data.totals.unassigned_actionable} />
+                <Metric
+                    label={t("busiestHour")}
+                    value={peakGroup?.total}
+                    detail={peakGroup ? formatShortHour(peakGroup.hour, timezone) : undefined}
+                />
+                {workloadMetrics.map(({ label, value }) =>
+                    value == null ? null : <Metric key={label} label={label} value={value} />,
+                )}
                 <Metric
                     label={t("lag")}
                     value={formatDuration(data.freshness.lag_seconds)}
@@ -168,7 +181,7 @@ export function OverviewPage({
                                         >
                                             {chart.groups.map((group) => (
                                                 <option key={group.hour} value={group.hour}>
-                                                    {formatTime(group.hour, timezone)} ·{" "}
+                                                    {formatShortHour(group.hour, timezone)} ·{" "}
                                                     {group.total.toLocaleString()}{" "}
                                                     {t(
                                                         group.total === 1
@@ -236,12 +249,8 @@ export function OverviewPage({
                                                         return (
                                                             <Cell
                                                                 key={`${series.band}-${datum.hour}`}
-                                                                fill={
-                                                                    selected
-                                                                        ? "var(--accent)"
-                                                                        : `var(--${bandVariable(series.band)})`
-                                                                }
-                                                                fillOpacity={selected ? 1 : 0.72}
+                                                                fill={`var(--${bandVariable(series.band)})`}
+                                                                fillOpacity={selected ? 1 : 0.82}
                                                                 stroke="none"
                                                             />
                                                         );
@@ -264,10 +273,7 @@ export function OverviewPage({
                             </>
                         )}
                     </Panel>
-
-                    <AlertTimeHeatmap heatmap={heatmap} timezone={timezone} t={t} />
-
-                    <div className="overview-v2-lists">
+                    <div className="overview-v2-context">
                         <TopList
                             title={t("topRules")}
                             items={data.top_rules}
@@ -283,6 +289,11 @@ export function OverviewPage({
                             monoLabel
                             onSelect={(item) => onDrilldown({ agent_id: item.key })}
                         />
+                    </div>
+
+                    <AlertTimeHeatmap heatmap={heatmap} timezone={timezone} t={t} />
+
+                    <div className="overview-v2-lists">
                         <TopList
                             title={t("topTactics")}
                             items={data.top_tactics}
@@ -331,11 +342,13 @@ export function OverviewPage({
 function Metric({
     label,
     value,
+    detail,
     state,
     stateKind = "neutral",
 }: {
     label: string;
     value: number | string | null | undefined;
+    detail?: string;
     state?: string;
     stateKind?: "good" | "warning" | "danger" | "neutral";
 }) {
@@ -346,6 +359,7 @@ function Metric({
             <strong data-empty={value === null || value === undefined || undefined}>
                 {formatted}
             </strong>
+            {detail && <span className="overview-v2-metric-detail">{detail}</span>}
             {state && <small data-state={stateKind}>{state}</small>}
         </div>
     );
@@ -1004,6 +1018,16 @@ function formatTick(value: string, timezone: string): string {
     return new Intl.DateTimeFormat(undefined, { timeStyle: "short", timeZone: timezone }).format(
         new Date(value),
     );
+}
+
+function formatShortHour(value: string, timezone: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: timezone,
+    }).format(new Date(value));
 }
 
 function formatTime(value: string | null, timezone: string): string {

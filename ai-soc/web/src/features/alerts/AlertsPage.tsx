@@ -203,11 +203,10 @@ export function AlertsPage({
             }}
         >
             <div className="workspace-page alerts-v2">
-                <p className="page-description">{t("alertsDescription")}</p>
                 <Panel className="workspace-panel">
                     <div className="alerts-v2-panel-heading">
                         <div>
-                            <h3>{copy.filters}</h3>
+                            <h2>{copy.filters}</h2>
                             <p>{copy.filtersHelp}</p>
                         </div>
                         <div className="alerts-v2-capability" role="note">
@@ -398,7 +397,7 @@ export function AlertsPage({
                 <Panel className="workspace-panel table-panel">
                     <div className="alerts-v2-results-heading">
                         <div>
-                            <h3>{copy.results}</h3>
+                            <h2>{copy.results}</h2>
                             <p>
                                 {page.data.items.length.toLocaleString()}{" "}
                                 {page.data.items.length === 1 ? copy.loadedRow : copy.loadedRows}
@@ -425,7 +424,12 @@ export function AlertsPage({
                             <QuietSiteState t={t} />
                         )
                     ) : (
-                        <div className="table-scroll">
+                        <div
+                            className="table-scroll"
+                            role="region"
+                            aria-label={copy.results}
+                            tabIndex={0}
+                        >
                             <table className="workspace-table">
                                 <thead>
                                     <tr>

@@ -251,12 +251,6 @@ export function QueuePage({
 
     return (
         <div className="workspace-page queue-v2">
-            <div className="queue-v2-intro">
-                <p className="page-description">{t("queueDescription")}</p>
-                <Tag tone="amber">
-                    {t("score")} · {t("uncalibrated")}
-                </Tag>
-            </div>
             <Panel className="workspace-panel queue-v2-filters">
                 <div className="queue-filter-row">
                     <label>
@@ -439,14 +433,24 @@ export function QueuePage({
                 <Panel className="workspace-panel table-panel queue-v2-table-panel">
                     <div className="queue-v2-results-heading">
                         <div>
-                            <h3>{t("groupsTitle")}</h3>
+                            <h2>{t("groupsTitle")}</h2>
                             <p>
                                 {rows.length.toLocaleString()}{" "}
                                 {t(rows.length === 1 ? "rowLoaded" : "rowsLoaded")}
                             </p>
                         </div>
+                        <p className="queue-v2-mobile-calibration">
+                            <Tag tone="amber">
+                                {t("score")} · {t("uncalibratedShort")}
+                            </Tag>
+                        </p>
                     </div>
-                    <div className="table-scroll">
+                    <div
+                        className="table-scroll"
+                        role="region"
+                        aria-label={t("groupsTitle")}
+                        tabIndex={0}
+                    >
                         <table className="workspace-table queue-table">
                             <thead>
                                 <tr>
@@ -454,7 +458,12 @@ export function QueuePage({
                                         <span className="sr-only">{t("selectGroups")}</span>
                                     </th>
                                     <th>{t("group")}</th>
-                                    <th>{t("score")}</th>
+                                    <th>
+                                        {t("score")}
+                                        <span className="queue-v2-calibration">
+                                            {t("uncalibratedShort")}
+                                        </span>
+                                    </th>
                                     <th>{locale === "es" ? "Evaluación" : "Assessment"}</th>
                                     <th>{t("groupCount")}</th>
                                     <th>{t("owner")}</th>
@@ -499,24 +508,6 @@ export function QueuePage({
                                                             "—"}
                                                     </code>
                                                 </span>
-                                                {group.components
-                                                    .filter((item) => item.available)
-                                                    .sort(
-                                                        (a, b) =>
-                                                            Math.abs(b.contribution) -
-                                                            Math.abs(a.contribution),
-                                                    )
-                                                    .slice(0, 1)
-                                                    .map((item) => (
-                                                        <span
-                                                            className="table-secondary"
-                                                            key={item.name}
-                                                        >
-                                                            {item.explanation}:{" "}
-                                                            {item.contribution >= 0 ? "+" : ""}
-                                                            {item.contribution.toFixed(1)}
-                                                        </span>
-                                                    ))}
                                                 {reasons.length > 0 && (
                                                     <span className="table-secondary queue-v2-reasons">
                                                         {reasons.join(" · ")}

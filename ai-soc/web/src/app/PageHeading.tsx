@@ -11,18 +11,24 @@ export function PageHeading({
     icon: LucideIcon;
     t: Translate;
 }) {
+    const descriptions: Partial<Record<Route, string>> = {
+        overview: "overviewDescription",
+        alerts: "alertsDescription",
+        queue: "queueDescription",
+        investigate: "evidenceReview",
+    };
+    const description = descriptions[route];
+
     return (
-        <>
-            <div className="page-head">
-                <div>
-                    <span className="page-icon" aria-hidden="true">
-                        <Icon size={17} />
-                    </span>
-                    <h2>{t(route)}</h2>
-                </div>
+        <header className="page-head">
+            <span className="page-icon" aria-hidden="true">
+                <Icon size={21} />
+            </span>
+            <div>
+                <h1>{t(route)}</h1>
+                {description && <p>{t(description)}</p>}
             </div>
-            {route === "investigate" && <p className="page-description">{t("evidenceReview")}</p>}
-        </>
+        </header>
     );
 }
 

@@ -25,16 +25,16 @@
     --color-surface: var(--surface);
     --color-surface-subtle: var(--surface-2);
     --color-ink: var(--text);
-    --radius-control: 6px;
-    --radius-panel: 8px;
+    --radius-control: 8px;
+    --radius-panel: 12px;
     --shadow-panel: var(--shadow-panel);
     --shadow-float: var(--shadow-float);
 }
 :root {
     font-family: var(--font-ui);
-    font-size: 14px;
+    font-size: 87.5%;
     font-weight: 400;
-    line-height: 21px;
+    line-height: 1.5;
     font-feature-settings: "cv11" on;
     color: var(--text);
     background: var(--canvas);
@@ -99,8 +99,8 @@ select:focus-visible,
 input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
 textarea:focus-visible {
     border-color: var(--accent);
-    outline: none;
-    box-shadow: var(--focus-halo);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 select:disabled,
 input:disabled,
@@ -156,7 +156,7 @@ select {
     left: 8px;
 }
 .app-shell {
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     background: var(--canvas);
     color: var(--text);
@@ -173,61 +173,70 @@ select {
     }
 }
 .rail {
+    --text: #f1f7f4;
+    --text-2: #c0cfce;
+    --text-muted: #a3b7b7;
+    --accent: #93e2c9;
+    --selected: #233d40;
+    --hover: #1d3238;
+    --border: #2c3d43;
+    --tag-neutral-bg: #1c2e34;
+    --tag-neutral-border: #395057;
+    --tag-neutral-text: #d1dfdc;
+    --tag-amber-bg: #1b2a30;
+    --tag-amber-border: #395057;
+    --control-bg: #17252a;
+    --control-border: #455b62;
+    --control-border-hover: #789493;
     position: sticky;
     top: 0;
     width: var(--rail-width);
-    height: 100vh;
+    height: 100dvh;
     flex: none;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     background: var(--rail);
-    border-right: 1px solid var(--border);
+    color: var(--text);
+    border-inline-end: 1px solid var(--border);
 }
 .brand {
     height: var(--header-height);
     flex: none;
-    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0 18px;
-    font-size: 14px;
-    font-weight: 650;
-    letter-spacing: -0.01em;
+    gap: 11px;
+    padding-inline: 20px;
+    color: var(--text);
+    font: 600 16px/1 var(--font-display);
+    letter-spacing: -0.025em;
+}
+.brand strong {
+    font-weight: 800;
 }
 .brand-mark {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: linear-gradient(160deg, #3b7cf0, #1f4fb8);
-    color: #ffffff;
-    box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 22%),
-        0 1px 2px rgb(16 24 40 / 20%);
-}
-.brand small {
-    display: block;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 14px;
-    letter-spacing: 0;
+    width: 33px;
+    height: 33px;
+    flex: none;
+    border: 1px solid #4d716c;
+    border-radius: 9px;
+    background: #25403f;
+    color: #a3e8d1;
 }
 .rail-caption {
-    padding: 20px 20px 6px;
+    padding: 18px 22px 7px;
     color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
 }
 .rail nav {
-    padding: 0 10px;
+    padding: 0 12px;
     display: grid;
-    gap: 1px;
+    gap: 2px;
 }
 .rail nav a,
 .mobile-nav a {
@@ -235,8 +244,8 @@ select {
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 32px;
-    padding: 0 10px;
+    min-height: 36px;
+    padding: 4px 11px;
     border-radius: var(--radius-control);
     color: var(--text-2);
     text-decoration: none;
@@ -263,7 +272,7 @@ select {
     background: var(--selected);
     color: var(--text);
     box-shadow: none;
-    font-weight: 550;
+    font-weight: 650;
 }
 .rail nav a[aria-current="page"] svg,
 .mobile-rail-section a[aria-current="page"] svg {
@@ -285,7 +294,7 @@ select {
     display: grid;
     gap: 8px;
     padding: 10px;
-    border: 1px dashed var(--tag-amber-border);
+    border: 1px solid var(--tag-amber-border);
     border-radius: var(--radius-panel);
     background: var(--tag-amber-bg);
 }
@@ -315,10 +324,9 @@ select {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 10px 28px;
+    padding: 10px 32px;
     border-bottom: 1px solid var(--border);
-    background: color-mix(in srgb, var(--canvas) 96%, transparent);
-    backdrop-filter: saturate(160%) blur(12px);
+    background: var(--surface);
 }
 .top-title {
     min-width: 0;
@@ -326,22 +334,21 @@ select {
     align-items: center;
     gap: 8px;
     white-space: nowrap;
-}
-.top-title > span,
-.eyebrow {
-    font-size: 12px;
     color: var(--text-muted);
-}
-.top-title > span[aria-hidden="true"] {
-    color: var(--border-strong);
-}
-.top-title h1 {
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     font-size: 13px;
-    line-height: 20px;
+}
+.top-title svg {
+    flex: none;
+}
+.top-title strong {
+    overflow: hidden;
+    color: var(--text);
     font-weight: 600;
+    text-overflow: ellipsis;
+}
+.eyebrow {
+    color: var(--text-muted);
+    font-size: 12px;
 }
 .top-controls {
     display: flex;
@@ -384,39 +391,39 @@ select {
 }
 .workspace {
     width: 100%;
-    max-width: 1440px;
+    max-width: 1480px;
     margin: 0 auto;
-    padding: 28px 28px 56px;
+    padding: 30px 32px 56px;
     outline: none;
 }
 .page-head {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    margin: 0 0 20px;
-}
-.page-head > div {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 0 0 24px;
 }
 .page-icon {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 45px;
+    height: 45px;
     flex: none;
     border: 1px solid var(--border);
-    border-radius: 9px;
-    background: var(--surface);
+    border-radius: 12px;
+    background: var(--accent-wash);
     color: var(--accent);
-    box-shadow: var(--shadow-panel);
 }
-.page-head h2 {
+.page-head h1 {
     margin: 0;
-    font: 650 22px/30px var(--font-display);
-    letter-spacing: -0.022em;
+    font: 780 clamp(28px, 2.9vw, 38px)/1.1 var(--font-display);
+    letter-spacing: -0.045em;
+}
+.page-head p {
+    max-width: 65ch;
+    margin: 7px 0 0;
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.5;
 }
 .muted {
     color: var(--text-muted);
@@ -547,16 +554,16 @@ select {
 .m3-detail {
     overflow-wrap: anywhere;
 }
-.m3-detail h3 {
+.m3-detail h2 {
     margin: 0 0 16px;
     font-size: 18px;
 }
-.m3-detail h4 {
+.m3-detail h3 {
     margin: 22px 0 10px;
     font-size: 15px;
 }
-.m3-detail h5,
-.m3-detail h6 {
+.m3-detail h4,
+.m3-detail h5 {
     margin: 16px 0 8px;
     color: var(--text-2);
     font-size: 12px;
@@ -748,7 +755,7 @@ select {
     padding-top: 16px;
     border-top: 1px solid var(--stroke-subtle);
 }
-.m3-create h4 {
+.m3-create h3 {
     margin: 0;
 }
 .m3-timeline,
@@ -803,8 +810,8 @@ select {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: var(--control-height);
-        height: var(--control-height);
+        min-width: 40px;
+        min-height: 40px;
         padding: 0;
         border: 1px solid var(--border-strong);
         border-radius: var(--radius-control);
@@ -1277,6 +1284,12 @@ code,
 .table-scroll {
     width: 100%;
     overflow-x: auto;
+}
+.table-scroll[tabindex]:focus-visible {
+    outline-offset: -2px;
+}
+:is(.queue-v2, .alerts-v2, .metrics-v2) .workspace-table thead {
+    background: var(--surface-2);
 }
 table {
     width: 100%;
@@ -2376,11 +2389,12 @@ tbody tr:hover {
     .top-title {
         flex: 1;
     }
-    .top-title > span {
+    .top-title > :not(.top-product) {
         display: none;
     }
-    .top-title h1 {
-        font-size: 15px;
+    .top-title .top-product {
+        color: var(--text);
+        font: 750 15px/1 var(--font-display);
     }
     .top-controls {
         width: 100%;
@@ -2419,13 +2433,24 @@ tbody tr:hover {
         font-size: 9px;
     }
     .workspace {
-        padding: 18px 12px 32px;
+        padding: 22px 14px 36px;
     }
     .page-head {
-        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 18px;
     }
-    .page-head h2 {
-        font-size: 23px;
+    .page-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+    }
+    .page-icon svg {
+        width: 17px;
+        height: 17px;
+    }
+    .page-head p {
+        margin-top: 5px;
+        font-size: 13px;
     }
     .panel {
         padding: 15px;
@@ -2590,16 +2615,15 @@ tbody tr:hover {
 
 /* One card-title scale across pages; .workspace outranks the feature sheets. */
 .workspace .overview-v2-panel-head h2,
-.workspace .alerts-v2-panel-heading h3,
-.workspace .alerts-v2-results-heading h3,
+.workspace .alerts-v2-panel-heading h2,
+.workspace .alerts-v2-results-heading h2,
 .workspace .metrics-v2-panel-head h2,
 .workspace .dashboard-v2-available h2,
 .workspace .dashboard-v2-widget h2,
 .workspace .section-title h2,
 .workspace .status-grid h2 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 20px;
+    font: 750 16px/22px var(--font-display);
+    letter-spacing: -0.024em;
 }
 .topics-panel {
     margin-top: 20px;
@@ -2762,27 +2786,7 @@ tbody tr:hover {
     font-size: 12px;
     font-weight: 400;
 }
-/* Phones: the top bar already names the page, so the heading stays for screen readers only. */
-@media (max-width: 700px) {
-    .page-head {
-        margin: 0;
-    }
-    .page-head .page-icon {
-        display: none;
-    }
-    .page-head h2 {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-    }
-    .page-head > .muted {
-        margin-bottom: 12px;
-    }
-}
-/* Phones: the site picker joins the title row so the site name stays readable;
+/* Phones: the site picker joins the product name so the site name stays readable;
    search, range and custom fill the second row. */
 @media (max-width: 480px) {
     .topbar {

@@ -3,6 +3,7 @@ import {
     BarChart3,
     Bell,
     BriefcaseBusiness,
+    ChevronRight,
     Clock3,
     Files,
     GitBranch,
@@ -11,7 +12,7 @@ import {
     Menu,
     Search,
     Server,
-    Shield,
+    ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -88,9 +89,11 @@ export function NavigationRail({
             <aside className="rail">
                 <div className="brand">
                     <span className="brand-mark">
-                        <Shield size={16} />
+                        <ShieldCheck size={21} aria-hidden="true" />
                     </span>
-                    <span>Wazuh AI SOC</span>
+                    <span>
+                        Wazuh <strong>AI SOC</strong>
+                    </span>
                 </div>
                 <div className="rail-caption">{t("workspaceCaption")}</div>
                 <nav aria-label={t("mainNavigation")}>
@@ -249,9 +252,9 @@ export function ContextHeader({
                 </SheetContent>
             </Sheet>
             <div className="top-title">
-                <span>AI SOC</span>
-                <span aria-hidden="true">/</span>
-                <h1>{t(route)}</h1>
+                <span className="top-product">AI SOC</span>
+                <ChevronRight size={13} aria-hidden="true" />
+                <strong>{t(route)}</strong>
             </div>
             <div className="top-controls">
                 <CommandPalette

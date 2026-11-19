@@ -166,9 +166,9 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="chain-list-heading">
                         <div className="panel-head">
-                            <h3 id="chain-list-heading" className="sr-only">
+                            <h2 id="chain-list-heading" className="sr-only">
                                 {t("m3Candidates")}
-                            </h3>
+                            </h2>
                             <ListCount
                                 count={chains.data?.items.length}
                                 one={t("m3CandidateOne")}
@@ -277,9 +277,9 @@ export function M3WorkspacePage({
                 <div className="m3-grid">
                     <section className="panel" aria-labelledby="incident-list-heading">
                         <div className="panel-head">
-                            <h3 id="incident-list-heading" className="sr-only">
+                            <h2 id="incident-list-heading" className="sr-only">
                                 {t("m3Incidents")}
-                            </h3>
+                            </h2>
                             <ListCount
                                 count={incidents.data?.items.length}
                                 one={t("m3IncidentOne")}
@@ -352,18 +352,24 @@ export function M3WorkspacePage({
                                 {t("nextPage")}
                             </button>
                         )}
-                        <CreateIncidentForm
-                            siteId={siteId}
-                            t={t}
-                            onCreate={(body) =>
-                                void runAction(async () => {
-                                    const result = await createIncident(body);
-                                    await refresh();
-                                    if (result.incident_id)
-                                        setSelection({ kind: "incident", id: result.incident_id });
-                                })
-                            }
-                        />
+                        <details className="disclosure m3-create-disclosure">
+                            <summary>{t("m3CreateIncident")}</summary>
+                            <CreateIncidentForm
+                                siteId={siteId}
+                                t={t}
+                                onCreate={(body) =>
+                                    void runAction(async () => {
+                                        const result = await createIncident(body);
+                                        await refresh();
+                                        if (result.incident_id)
+                                            setSelection({
+                                                kind: "incident",
+                                                id: result.incident_id,
+                                            });
+                                    })
+                                }
+                            />
+                        </details>
                     </section>
                     <section className="panel m3-detail" aria-labelledby="incident-detail-heading">
                         {selection?.kind !== "incident" ? (
@@ -504,7 +510,7 @@ function ChainDetailView({
     };
     return (
         <>
-            <h3 id="chain-detail-heading">{t("m3CandidateDetail")}</h3>
+            <h2 id="chain-detail-heading">{t("m3CandidateDetail")}</h2>
             <dl className="m3-meta">
                 <dt>{t("m3CandidateId")}</dt>
                 <dd>
@@ -534,7 +540,7 @@ function ChainDetailView({
             {detail.weak_heuristic && <p className="alert warning">{t("m3WeakEvidence")}</p>}
             <GraphUnavailable kind="chain" locale={locale} />
             <section aria-labelledby="chain-stages-heading">
-                <h4 id="chain-stages-heading">{t("m3OrderedStages")}</h4>
+                <h3 id="chain-stages-heading">{t("m3OrderedStages")}</h3>
                 {detail.stages.length ? (
                     <EvidenceRows values={detail.stages} locale={locale} />
                 ) : (
@@ -552,7 +558,7 @@ function ChainDetailView({
                 )}
                 {(reasonItems.length > 0 || orderToleranceApplied) && (
                     <div>
-                        <h5>{t("m3Reasons")}</h5>
+                        <h4>{t("m3Reasons")}</h4>
                         <ul>
                             {reasonItems
                                 .filter(
@@ -576,7 +582,7 @@ function ChainDetailView({
                 <ChainAssessment assessment={detail.assessment} locale={locale} t={t} />
             )}
             <section aria-labelledby="chain-links-heading">
-                <h4 id="chain-links-heading">{t("m3Links")}</h4>
+                <h3 id="chain-links-heading">{t("m3Links")}</h3>
                 {detail.edges.length ? (
                     <EvidenceRows values={detail.edges} locale={locale} />
                 ) : (
@@ -584,13 +590,13 @@ function ChainDetailView({
                 )}
                 {detail.weak_edges.length > 0 && (
                     <>
-                        <h5>{t("m3WeakLinks")}</h5>
+                        <h4>{t("m3WeakLinks")}</h4>
                         <EvidenceRows values={detail.weak_edges} locale={locale} />
                     </>
                 )}
             </section>
             <section aria-labelledby="chain-pins-heading">
-                <h4 id="chain-pins-heading">{t("m3ScorePins")}</h4>
+                <h3 id="chain-pins-heading">{t("m3ScorePins")}</h3>
                 {detail.score_pins.length ? (
                     <EvidenceRows values={detail.score_pins} locale={locale} />
                 ) : (
@@ -599,7 +605,7 @@ function ChainDetailView({
             </section>
             {detail.state === "open" && (
                 <div className="m3-actions">
-                    <h4 className="m3-actions-title">{t("m3Decision")}</h4>
+                    <h3 className="m3-actions-title">{t("m3Decision")}</h3>
                     <form
                         id="chain-dismiss-form"
                         onSubmit={(event) => {
@@ -659,7 +665,7 @@ function ChainAssessment({
     return (
         <section className="m3-chain-assessment" aria-labelledby="chain-assessment-heading">
             <header>
-                <h4 id="chain-assessment-heading">{t("m3ChainAssessment")}</h4>
+                <h3 id="chain-assessment-heading">{t("m3ChainAssessment")}</h3>
                 <span className="muted">{t("m3ChainAssessmentPreview")}</span>
             </header>
             {findings.length === 0 ? (
@@ -742,9 +748,9 @@ function IncidentDetailView({
     return (
         <>
             <div className="panel-head">
-                <h3 id="incident-detail-heading">{incident.title}</h3>
+                <h2 id="incident-detail-heading">{incident.title}</h2>
                 {onInvestigate && (
-                    <button className="btn outline" onClick={() => void onInvestigate()}>
+                    <button className="btn primary" onClick={() => void onInvestigate()}>
                         {t("m3Investigate")}
                     </button>
                 )}
@@ -779,7 +785,7 @@ function IncidentDetailView({
                 t={t}
             />
             <section aria-labelledby="incident-members-heading">
-                <h4 id="incident-members-heading">{t("m3Members")}</h4>
+                <h3 id="incident-members-heading">{t("m3Members")}</h3>
                 {data.members.length ? (
                     <div className="table-wrap">
                         <table>
@@ -822,7 +828,7 @@ function IncidentDetailView({
                 ) : (
                     <p className="muted">{t("m3NoMembers")}</p>
                 )}
-                <h5>{t("m3MembershipHistory")}</h5>
+                <h4>{t("m3MembershipHistory")}</h4>
                 {data.membership_intervals.length ? (
                     <EvidenceRows values={data.membership_intervals} locale={locale} />
                 ) : (
@@ -890,7 +896,7 @@ function IncidentDetailView({
                 </details>
             </section>
             <section aria-labelledby="incident-timeline-heading">
-                <h4 id="incident-timeline-heading">{t("m3Timeline")}</h4>
+                <h3 id="incident-timeline-heading">{t("m3Timeline")}</h3>
                 {eventsLoading && <p role="status">{t("loading")}</p>}
                 {eventsError && <p role="alert">{eventsError}</p>}
                 {!eventsLoading && !eventsError && !events.length && (
@@ -941,7 +947,7 @@ function IncidentDetailView({
             </section>
             <div className="m3-two-column">
                 <section aria-labelledby="incident-work-heading">
-                    <h4 id="incident-work-heading">{t("m3Work")}</h4>
+                    <h3 id="incident-work-heading">{t("m3Work")}</h3>
                     <form
                         className="m3-inline-form"
                         onSubmit={(event) => {
@@ -1012,7 +1018,7 @@ function IncidentDetailView({
                             {t("m3AddComment")}
                         </button>
                     </form>
-                    <h5>{t("m3History")}</h5>
+                    <h4>{t("m3History")}</h4>
                     {data.history.length ? (
                         <ol className="m3-history m3-work-history">
                             {data.history.map((item) => (
@@ -1043,7 +1049,7 @@ function IncidentDetailView({
                             {t("nextPage")}
                         </button>
                     )}
-                    <h5>{t("m3Comments")}</h5>
+                    <h4>{t("m3Comments")}</h4>
                     {data.comments.length ? (
                         <ol className="m3-history">
                             {data.comments.map((item) => (
@@ -1071,7 +1077,7 @@ function IncidentDetailView({
                     )}
                 </section>
                 <section aria-labelledby="incident-disposition-heading">
-                    <h4 id="incident-disposition-heading">{t("m3Disposition")}</h4>
+                    <h3 id="incident-disposition-heading">{t("m3Disposition")}</h3>
                     <form
                         className="m3-inline-form"
                         onSubmit={(event) => {
@@ -1149,7 +1155,7 @@ function IncidentDetailView({
                             {t("m3SaveDisposition")}
                         </button>
                     </form>
-                    <h5>{t("m3DispositionHistory")}</h5>
+                    <h4>{t("m3DispositionHistory")}</h4>
                     {data.dispositions.length ? (
                         <ol className="m3-history">
                             {data.dispositions.map((item) => (
@@ -1206,7 +1212,7 @@ function GraphUnavailable({ kind, locale }: { kind: GraphKind; locale: Locale })
         <section className="m3-graph-empty" aria-labelledby={`${kind}-graph-heading`}>
             <div className="m3-graph-grid" aria-hidden="true" />
             <div className="m3-graph-empty-copy">
-                <h4 id={`${kind}-graph-heading`}>{copy.title}</h4>
+                <h3 id={`${kind}-graph-heading`}>{copy.title}</h3>
                 <p>{copy[kind]}</p>
             </div>
         </section>
@@ -1221,7 +1227,6 @@ function CreateIncidentForm({
     siteId: string;
     t: Translate;
     onCreate: (body: components["schemas"]["IncidentCreateRequest"]) => void;
-    /** While an incident is open its own actions are primary, so this one steps back. */
 }) {
     const [groupIdsText, setGroupIdsText] = useState("");
     const [title, setTitle] = useState("");
@@ -1250,7 +1255,6 @@ function CreateIncidentForm({
                 });
             }}
         >
-            <h4>{t("m3CreateIncident")}</h4>
             {formError && <p role="alert">{formError}</p>}
             <label>
                 {t("m3GroupIds")}
@@ -1361,6 +1365,7 @@ function FlatEvidence({
                         <code>{String(stage)}</code>
                         {outcome !== undefined && outcome !== null && (
                             <Tag
+                                className="m3-stage-outcome"
                                 tone={
                                     outcome === "matched"
                                         ? "green"

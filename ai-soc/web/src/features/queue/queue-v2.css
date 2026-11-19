@@ -8,19 +8,6 @@
     margin: 0;
 }
 
-.queue-v2-intro {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: var(--space-3, 12px);
-    margin-top: -8px;
-}
-
-.queue-v2-intro .page-description {
-    margin: 0;
-}
-
 .queue-v2-filters {
     padding: 16px 20px;
     background: var(--surface-2, var(--surface-subtle));
@@ -46,7 +33,7 @@
 .queue-v2-bulk {
     position: sticky;
     z-index: 5;
-    top: calc(var(--topbar-height, 48px) + 8px);
+    top: calc(var(--topbar-height, var(--header-height)) + 8px);
     border-color: var(--border-strong, var(--stroke-strong));
     background: var(--surface, var(--bg));
 }
@@ -102,9 +89,9 @@
 .queue-v2 .group-link {
     max-width: 420px;
     color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 18px;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 20px;
     text-align: left;
 }
 
@@ -170,7 +157,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--bar-fill);
+    background: var(--accent);
 }
 
 .queue-v2-drawer-meta {
@@ -443,15 +430,15 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 8px 16px;
     margin-bottom: 12px;
 }
 
-.queue-v2-results-heading h3 {
+.queue-v2-results-heading h2 {
     margin: 0;
-    font-size: 13px;
-    line-height: 18px;
-    font-weight: 600;
+    font: 750 16px/22px var(--font-display);
+    letter-spacing: -0.024em;
 }
 
 .queue-v2-results-heading p {
@@ -461,15 +448,17 @@
     line-height: 18px;
 }
 
-.queue-v2-results-heading > strong {
-    height: 22px;
-    padding: 0 8px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface-2);
-    color: var(--text-2);
-    font: 600 12px/20px var(--font-ui);
-    font-variant-numeric: tabular-nums;
+.queue-v2-calibration {
+    display: block;
+    margin-top: 2px;
+    color: var(--tag-amber-text);
+    font-size: 11px;
+    font-weight: 550;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.queue-v2-mobile-calibration {
+    display: none;
 }
 
 @media (min-width: 761px) {
@@ -490,6 +479,10 @@
 @media (max-width: 480px) {
     .queue-v2-results-heading {
         margin-bottom: 0;
+    }
+    .queue-v2-results-heading > .queue-v2-mobile-calibration {
+        display: block;
+        margin: 2px 0 0;
     }
 }
 
