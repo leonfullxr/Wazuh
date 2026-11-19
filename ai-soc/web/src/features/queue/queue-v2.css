@@ -89,8 +89,8 @@
 .queue-v2 .group-link {
     max-width: 420px;
     color: var(--text);
-    font-size: 14px;
-    font-weight: 650;
+    font-size: 15px;
+    font-weight: 600;
     line-height: 20px;
     text-align: left;
 }
@@ -437,8 +437,7 @@
 
 .queue-v2-results-heading h2 {
     margin: 0;
-    font: 750 16px/22px var(--font-display);
-    letter-spacing: -0.024em;
+    font: 600 19px/24px var(--font-display);
 }
 
 .queue-v2-results-heading p {
@@ -452,7 +451,7 @@
     display: block;
     margin-top: 2px;
     color: var(--tag-amber-text);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 550;
     letter-spacing: 0;
     text-transform: none;
@@ -690,11 +689,6 @@
     grid-column: 1 / -1;
 }
 
-/* The page description and the calibration pill keep a 16px gap. */
-.queue-v2-intro {
-    column-gap: 16px;
-}
-
 .assessment-knowledge[open] > summary {
     margin-bottom: var(--space-3);
 }
@@ -705,7 +699,7 @@
     padding: var(--space-4);
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);
-    background: linear-gradient(145deg, var(--accent-wash), var(--surface) 42%);
+    background: var(--surface-2);
 }
 
 .assessment-knowledge-card + .assessment-knowledge-card {

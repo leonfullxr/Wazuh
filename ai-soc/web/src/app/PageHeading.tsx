@@ -1,16 +1,8 @@
-import { CircleHelp, type LucideIcon } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import type { Route } from "./Navigation";
 type Translate = (key: string) => string;
 
-export function PageHeading({
-    route,
-    icon: Icon,
-    t,
-}: {
-    route: Route;
-    icon: LucideIcon;
-    t: Translate;
-}) {
+export function PageHeading({ route, t }: { route: Route; t: Translate }) {
     const descriptions: Partial<Record<Route, string>> = {
         overview: "overviewDescription",
         alerts: "alertsDescription",
@@ -21,13 +13,8 @@ export function PageHeading({
 
     return (
         <header className="page-head">
-            <span className="page-icon" aria-hidden="true">
-                <Icon size={21} />
-            </span>
-            <div>
-                <h1>{t(route)}</h1>
-                {description && <p>{t(description)}</p>}
-            </div>
+            <h1>{t(route)}</h1>
+            {description && <p>{t(description)}</p>}
         </header>
     );
 }

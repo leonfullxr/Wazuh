@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
 import type {
     Answer,
     AskRequest,
@@ -47,11 +46,8 @@ export { errorCopy, judgments, outcomes, reasons, removed } from "../i18n/answer
 
 import {
     ContextHeader,
-    dashboardNav,
     NavigationRail,
-    nav,
     routeFromHash,
-    secondaryNav,
     ShellStatus,
     type Route,
 } from "./Navigation";
@@ -439,9 +435,6 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
         setSelectedEvidence({ question_id: answer.question_id, item });
     }
     const mapped = useMemo(() => evidenceById(answer), [answer]);
-    const icon =
-        [...nav, ...dashboardNav, ...secondaryNav].find((n) => n.id === route)?.icon ?? Search;
-    const PageIcon = icon;
     const allTopics = useMemo(() => topicsFromHistory(history), [history]);
     const queryParams = new URLSearchParams(location.search);
     const requestedRange = queryParams.get("range");
@@ -549,7 +542,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                     profile={isLocal ? "local" : "full"}
                 />
                 <main id="main" className="workspace" tabIndex={-1}>
-                    <PageHeading route={route} icon={PageIcon} t={t} />
+                    <PageHeading route={route} t={t} />
                     {isLocal && route === "overview" && (
                         <LocalModelActivity siteId={selectedSite} t={t} />
                     )}

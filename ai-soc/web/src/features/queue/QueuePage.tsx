@@ -558,7 +558,16 @@ export function QueuePage({
                                                     </span>
                                                 )}
                                             </td>
-                                            <td>{assessmentLabel(group.assessment, locale)}</td>
+                                            <td>
+                                                {assessmentLabel(group.assessment, locale) || (
+                                                    <span className="muted">
+                                                        <span aria-hidden="true">—</span>
+                                                        <span className="sr-only">
+                                                            {t("noAssessmentAvailable")}
+                                                        </span>
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td>
                                                 {group.alert_count.toLocaleString()}
                                                 <span className="table-secondary">

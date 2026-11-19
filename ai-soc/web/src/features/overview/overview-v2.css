@@ -11,8 +11,7 @@
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
     gap: 1px;
     overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-panel);
+    border-block: 1px solid var(--border);
     background: var(--border);
 }
 .overview-v2-metric {
@@ -41,8 +40,8 @@
 .overview-v2-metric > span,
 .overview-v2-panel-head p {
     color: var(--text-2, var(--text-muted));
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 20px;
 }
 .overview-v2-metric > strong[data-empty] {
     color: var(--text-muted);
@@ -50,7 +49,7 @@
     font-weight: 400;
 }
 .overview-v2-metric > strong {
-    font: 780 31px/1.12 var(--font-display);
+    font: 600 35px/1.1 var(--font-display);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.045em;
 }
@@ -166,7 +165,7 @@
 .overview-v2-chart .recharts-cartesian-axis-tick text {
     fill: var(--text-muted);
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-chart .recharts-rectangle {
@@ -374,11 +373,15 @@
 .overview-v2-context {
     display: grid;
     align-content: start;
-    gap: var(--space-4);
     min-width: 0;
 }
 .overview-v2-context .overview-v2-list {
-    padding-block: 16px;
+    padding: 16px 12px;
+    background: transparent;
+}
+.overview-v2-context .overview-v2-list + .overview-v2-list {
+    border-block-start: 1px solid var(--border);
+    border-radius: 0;
 }
 .overview-v2-list ol {
     display: grid;
@@ -431,7 +434,6 @@
     min-width: 30px;
     padding: 5px 6px;
     border-radius: var(--radius-tag);
-    background: var(--surface-tile);
     color: var(--text-2);
     text-align: center;
     font: 650 13px/1 var(--font-ui);
@@ -554,7 +556,7 @@
 
 .overview-v2-list li > button > span,
 .overview-v2-list li > button > code.overview-v2-list-id {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 20px;
 }
 

@@ -5,6 +5,7 @@ const themeModes = ["system", "light", "dark"] as const;
 export type ThemeMode = (typeof themeModes)[number];
 
 const storageKey = "ai-soc-theme";
+const defaultTheme = "light";
 const darkQuery = "(prefers-color-scheme: dark)";
 
 function isThemeMode(value: string | null): value is ThemeMode {
@@ -14,9 +15,9 @@ function isThemeMode(value: string | null): value is ThemeMode {
 function storedTheme(): ThemeMode {
     try {
         const value = localStorage.getItem(storageKey);
-        return isThemeMode(value) ? value : "system";
+        return isThemeMode(value) ? value : defaultTheme;
     } catch {
-        return "system";
+        return defaultTheme;
     }
 }
 
