@@ -5,7 +5,7 @@ import {
     BarChart,
     CartesianGrid,
     Cell,
-    ReferenceArea,
+    ReferenceDot,
     ResponsiveContainer,
     XAxis,
     YAxis,
@@ -217,13 +217,6 @@ export function OverviewPage({
                                                 height={22}
                                             />
                                             <CartesianGrid vertical={false} strokeDasharray="3 4" />
-                                            <ReferenceArea
-                                                x1={activeHour}
-                                                x2={activeHour}
-                                                fill="var(--accent)"
-                                                fillOpacity={0.1}
-                                                ifOverflow="visible"
-                                            />
                                             <YAxis
                                                 domain={[0, yTicks.at(-1) ?? 1]}
                                                 ticks={yTicks}
@@ -257,6 +250,16 @@ export function OverviewPage({
                                                     })}
                                                 </Bar>
                                             ))}
+                                            <ReferenceDot
+                                                x={activeHour}
+                                                y={0}
+                                                r={3}
+                                                fill="var(--accent)"
+                                                stroke="var(--surface)"
+                                                strokeWidth={1}
+                                                ifOverflow="visible"
+                                                isFront
+                                            />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>

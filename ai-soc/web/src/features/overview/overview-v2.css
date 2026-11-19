@@ -153,12 +153,6 @@
     min-width: 0;
     padding: 8px 4px 0;
 }
-.dark .overview-v2-chart .recharts-reference-area-rect {
-    fill-opacity: 0.1;
-}
-.dark .overview-v2-chart path[fill-opacity="0.72"] {
-    fill-opacity: 0.76;
-}
 .overview-v2-chart .recharts-cartesian-grid line {
     stroke: var(--border);
 }
@@ -575,10 +569,6 @@
 .overview-v2-heatmap-day {
     font-size: 12px;
 }
-/* The selected hour band reads in dark as clearly as in light. */
-.dark .overview-v2-chart .recharts-reference-area-rect {
-    fill-opacity: 0.16;
-}
 /* Empty heatmap cells keep the grid visible in dark. */
 .dark .overview-v2-heatmap-cell[data-empty] {
     background: color-mix(in srgb, var(--surface-2), white 3%);
@@ -624,10 +614,4 @@ html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
 
 .overview-v2-metric > small[data-state="warning"]::before {
     background: var(--dot-warn);
-}
-
-/* Keep the selected hour distinct while retaining the severity colors inside it. */
-.overview-v2-chart .recharts-reference-area-rect,
-.dark .overview-v2-chart .recharts-reference-area-rect {
-    fill-opacity: 0.11;
 }

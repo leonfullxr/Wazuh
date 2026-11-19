@@ -450,9 +450,9 @@
 .queue-v2-calibration {
     display: block;
     margin-top: 2px;
-    color: var(--tag-amber-text);
+    color: var(--text-muted);
     font-size: 12px;
-    font-weight: 550;
+    font-weight: 400;
     letter-spacing: 0;
     text-transform: none;
 }
