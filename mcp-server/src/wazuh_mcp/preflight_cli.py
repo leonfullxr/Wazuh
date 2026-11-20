@@ -6,7 +6,6 @@ import ipaddress
 import json
 import os
 import re
-from pathlib import Path
 from urllib.parse import urlsplit
 
 from wazuh_mcp.api.wazuh_indexer import WazuhIndexerClient
@@ -24,13 +23,13 @@ def _reader(cluster: str | None) -> tuple[WazuhIndexerClient, dict]:
     filename = os.getenv("WAZUH_CLUSTERS_FILE")
     if filename == "":
         raise _TargetError("Empty WAZUH_CLUSTERS_FILE; unset it or set it to the server cluster file")
-    if filename and not Path(filename).is_file():
+    default, connections = read_cluster_connections()
+    if filename and not connections:
         raise _TargetError("Configured cluster file was not found; set WAZUH_CLUSTERS_FILE to the server cluster file")
-    if cluster is None and not filename and not Path("./config/clusters.json").is_file():
+    if cluster is None and not connections:
         raise _TargetError(
             "No implicit cluster file in this directory; use --cluster default for environment settings or set WAZUH_CLUSTERS_FILE"
         )
-    default, connections = read_cluster_connections()
     selected = default if cluster is None else cluster
     if not isinstance(selected, str) or not CLUSTER_ID_PATTERN.fullmatch(selected):
         raise ConfigurationError("Invalid cluster ID")
