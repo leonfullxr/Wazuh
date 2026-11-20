@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent
 # Path parameters are provided by the adapters. No read endpoint needs an extra required query.
 READS = {
     "/": (None, "validate_wazuh_connection"),
-    "/agents": ("agent:read", "get_wazuh_agents, get_iso27001_dashboard"),
+    "/agents": ("agent:read", "get_wazuh_agents, get_iso27001_dashboard, investigate_agent_timeline"),
     "/groups/{group_id}/configuration": ("group:read", "get_agent_configuration"),
     "/syscollector/{agent_id}/processes": ("syscollector:read", "get_agent_processes, wazuh_check_process"),
     "/syscollector/{agent_id}/ports": ("syscollector:read", "get_agent_ports"),
@@ -27,6 +27,7 @@ READS = {
     "/cluster/nodes": ("cluster:read", "get_wazuh_cluster_nodes"),
 }
 FIELDS = {"agent.id": "keyword", "vulnerability.id": "keyword", "vulnerability.severity": "keyword"}
+TIMELINE_AGENT_PARAMS = {"agents_list", "select"}
 VULN_TOOLS = "get_wazuh_vulnerabilities, get_wazuh_critical_vulnerabilities, get_iso27001_dashboard"
 
 
@@ -47,16 +48,21 @@ def project(spec_path, mapping_path):
         if op is None:
             continue
         required = []
+        query_params = set()
         for param in item.get("parameters", []) + op.get("parameters", []):
             if "$ref" in param:
                 param = spec["components"]["parameters"][param["$ref"].split("/")[-1]]
             if param.get("required"):
                 required.append([param["in"], param["name"]])
+            if param["in"] == "query":
+                query_params.add(param["name"])
         ops[path] = {
             "required": sorted(required),
             "actions": sorted(x["$ref"].split("/")[-1] for x in op.get("x-rbac-actions", [])),
             "deprecated": op.get("deprecated", False),
         }
+        if path == "/agents":
+            ops[path]["timeline_query_params"] = sorted(TIMELINE_AGENT_PARAMS & query_params)
     fields = {}
     for field in FIELDS:
         group, key = field.split(".")
@@ -75,6 +81,10 @@ def compare(snapshot):
             continue
         if op["required"] != required or op["actions"] != ([action] if action else []):
             errors.append(f"GET {path} changed required parameters or RBAC, affecting {tools}")
+        if path == "/agents":
+            missing = TIMELINE_AGENT_PARAMS.difference(op.get("timeline_query_params", []))
+            if missing:
+                errors.append(f"GET /agents lacks {', '.join(sorted(missing))} for investigate_agent_timeline")
         if op["deprecated"]:
             warnings.append(f"GET {path} deprecated for {tools}. Check /manager/daemons/stats as a replacement.")
     for field, expected in FIELDS.items():

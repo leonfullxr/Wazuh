@@ -31,7 +31,7 @@ class Indexer:
     client=httpx.AsyncClient(transport=httpx.MockTransport(indexer_handler))
     async def _ensure_initialized(self): pass
 indexer=Indexer()
-manager=SimpleNamespace(client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: response({'data':{'total_failed_items':0,'affected_items':[{'status':'active'}]}}))), token='fixture', config=SimpleNamespace(base_url='https://manager.invalid'), _indexer_client=indexer)
+manager=SimpleNamespace(client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: response({'data':{'total_failed_items':0,'affected_items':[{'id':'007','status':'active'}]}}))), token='fixture', config=SimpleNamespace(base_url='https://manager.invalid'), _indexer_client=indexer)
 server.state.investigation_config=ProductConfig((Fernet.generate_key(),), 'event.id', {})
 server.state.config.ENABLED_TOOLS={'investigate_agent_timeline','get_investigation_evidence'}
 server.state.cluster_registry=ClusterRegistry({'one':manager}, 'one', False)

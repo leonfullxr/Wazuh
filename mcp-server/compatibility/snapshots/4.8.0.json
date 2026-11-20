@@ -15,7 +15,11 @@
         "agent:read"
       ],
       "deprecated": false,
-      "required": []
+      "required": [],
+      "timeline_query_params": [
+        "agents_list",
+        "select"
+      ]
     },
     "/cluster/healthcheck": {
       "actions": [

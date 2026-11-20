@@ -244,6 +244,7 @@ async def timeline(
                 or not isinstance(source, dict)
                 or not isinstance(sort, list)
                 or len(sort) != 2
+                or None in sort
             ):
                 raise ValueError("Unverifiable alert origin or ordering")
             key = _canonical(sort)
@@ -318,8 +319,8 @@ async def timeline(
             stale_token = manager.token
             async with manager.client.stream(
                 "GET",
-                f"{manager.config.base_url}/agents/{agent_id}",
-                params={"select": "status"},
+                f"{manager.config.base_url}/agents",
+                params={"agents_list": agent_id, "select": "id,status"},
                 headers={"Authorization": f"Bearer {stale_token}", "Accept-Encoding": "identity"},
             ) as response:
                 if response.status_code != 401 or attempt:
@@ -334,6 +335,8 @@ async def timeline(
         if data.get("total_failed_items") != 0 or len(rows) != 1:
             return
         item = rows[0]
+        if item.get("id") != agent_id or not isinstance(item.get("status"), str) or not item["status"]:
+            return
         result["sources"]["agent_status"] = {
             "status": "available",
             "observed_at": _iso(datetime.now(timezone.utc)),

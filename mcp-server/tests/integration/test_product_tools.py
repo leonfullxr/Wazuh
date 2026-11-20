@@ -27,7 +27,7 @@ class Manager:
         self.client = httpx.AsyncClient(
             transport=httpx.MockTransport(
                 lambda request: httpx.Response(
-                    200, stream=Stream({"data": {"total_failed_items": 0, "affected_items": [{"status": "active"}]}})
+                    200, stream=Stream({"data": {"total_failed_items": 0, "affected_items": [{"id": "007", "status": "active"}]}})
                 )
             )
         )
@@ -237,6 +237,32 @@ async def test_unavailable_search_and_empty_search():
     await ctx.manager.client.aclose()
 
 
+@pytest.mark.asyncio
+async def test_missing_sort_value_withholds_unverifiable_evidence():
+    ctx, _, _ = fixture()
+    await ctx.indexer.client.aclose()
+    hit = {
+        "_index": "wazuh-alerts-test", "_id": "test", "sort": [123456789, None],
+        "_source": {"timestamp": "2026-01-01T00:30:00Z", "agent": {"id": "007"}, "rule": {"id": "5710"}},
+    }
+
+    def handler(request):
+        if request.url.path.endswith("/_settings"):
+            data = {"wazuh-alerts-test": {"settings": {"index": {"uuid": "fixture"}}}}
+        else:
+            data = {"hits": {"total": 1, "hits": [hit]}}
+        return httpx.Response(200, stream=Stream(data))
+
+    ctx.indexer.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        result = await timeline(ctx, {"agent_id": "7"})
+        assert result["sources"]["alerts"]["status"] == "unavailable"
+        assert result["events"] == []
+    finally:
+        await ctx.indexer.client.aclose()
+        await ctx.manager.client.aclose()
+
+
 def test_configuration_validation(tmp_path):
     from wazuh_mcp.server.product_tools import load_config
 
@@ -389,9 +415,11 @@ async def test_manager_expired_token_refresh_is_bounded(auth_status, retry_statu
         calls.append((request.method, request.url.path, request.headers.get("authorization")))
         if request.url.path.endswith("/authenticate"):
             return httpx.Response(auth_status, stream=Stream({"data": {"token": "fresh"}}))
+        if request.url.path != "/agents" or dict(request.url.params) != {"agents_list": "007", "select": "id,status"}:
+            return httpx.Response(404)
         status = 401 if request.headers["authorization"] == "Bearer stale" else retry_status
         return httpx.Response(
-            status, stream=Stream({"data": {"total_failed_items": 0, "affected_items": [{"status": "active"}]}})
+            status, stream=Stream({"data": {"total_failed_items": 0, "affected_items": [{"id": "007", "status": "active"}]}})
         )
 
     ctx.manager.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -407,6 +435,30 @@ async def test_manager_expired_token_refresh_is_bounded(auth_status, retry_statu
         assert calls[-1][2] == "Bearer fresh"
     await ctx.indexer.client.aclose()
     await ctx.manager.client.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failed,rows", [
+    (1, []),
+    (0, [{"id": "000", "status": "active"}]),
+    (0, [{"id": "007"}]),
+    (0, [{"id": "007", "status": ""}]),
+    (0, [{"id": "007", "status": 1}]),
+    (0, [{"id": "007", "status": "active"}, {"id": "008", "status": "active"}]),
+])
+async def test_manager_missing_or_mismatched_agent_keeps_alerts(failed, rows):
+    ctx, _, _ = fixture()
+    await ctx.manager.client.aclose()
+    ctx.manager.client = httpx.AsyncClient(transport=httpx.MockTransport(
+        lambda _: httpx.Response(200, stream=Stream({"data": {"total_failed_items": failed, "affected_items": rows}}))
+    ))
+    try:
+        result = await timeline(ctx, {"agent_id": "7"})
+        assert result["sources"]["agent_status"] == {"status": "unavailable", "observed_at": None}
+        assert result["sources"]["alerts"]["status"] == "complete"
+    finally:
+        await ctx.indexer.client.aclose()
+        await ctx.manager.client.aclose()
 
 
 @pytest.mark.asyncio
@@ -470,7 +522,7 @@ async def test_concurrent_expired_tokens_share_refresh():
             await both_stale.wait()
             return httpx.Response(401, stream=Stream({}))
         return httpx.Response(
-            200, stream=Stream({"data": {"total_failed_items": 0, "affected_items": [{"status": "active"}]}})
+            200, stream=Stream({"data": {"total_failed_items": 0, "affected_items": [{"id": "007", "status": "active"}]}})
         )
 
     ctx.manager.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))

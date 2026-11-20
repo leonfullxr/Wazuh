@@ -29,3 +29,11 @@ def test_contract_drift(change):
 
 def test_pinned_snapshots_match():
     assert checker["verify"]()
+
+
+@pytest.mark.parametrize("parameter", ["agents_list", "select"])
+def test_timeline_manager_query_drift(parameter):
+    snapshot = json.loads((ROOT / "snapshots/4.14.7.json").read_text())
+    snapshot["manager"]["/agents"]["timeline_query_params"].remove(parameter)
+    errors, _ = checker["compare"](snapshot)
+    assert errors == [f"GET /agents lacks {parameter} for investigate_agent_timeline"]

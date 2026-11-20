@@ -99,7 +99,7 @@ Toolsets: `alerts`, `agents`, `vulnerabilities`, `analysis`, `web_search`, `comp
 
 ## Measure it: tool-selection eval
 
-`evals/tool_selection.py` runs 25 SOC scenarios against any OpenAI-compatible endpoint and scores the model's first tool call: right tool, arguments valid against the schema, expected values, and no write tool on the two prompt-injection cases. Tools are never executed and no Wazuh is needed.
+`evals/tool_selection.py` runs 25 SOC scenarios against any OpenAI-compatible endpoint and checks the selected tools, argument schemas and expected values. The two prompt-injection cases also check for unwanted write selections. Tools are never executed and no Wazuh is needed.
 
 ```bash
 pip install -e .
@@ -162,4 +162,6 @@ mcp_servers:
 
 Set `WAZUH_TOOL_PROFILE` to `triage`, `compliance` or `operations` at startup. A profile further restricts the named operator toolsets and disabled-tool list. Omit it for the existing catalog. Use `tools/list` with the analyst's own credential to inspect the effective catalog.
 
-From the package directory run `python evals/tool_selection.py --base-url http://localhost:8000/v1 --model YOUR_MODEL --scenarios evals/profile-cases.json --compare-profile triage --repeat 3 --json results.json`. Both catalogs use the same prompts, expected results and nonempty denominator. The first case feeds a fixed synthetic agent record into the second model turn, then checks that the final answer cites the correct agent and rule from the fixture alerts. All emitted calls are scored, including unwanted writes. Missing tools and failed requests remain in the results. Latency summaries exclude unavailable cases and network errors. Reports contain the model name, settings, catalog and fixture digests and per-attempt outcomes. A unit-test transcript verifies the evaluator. Actual model quality and latency require the named model service.
+From the package directory run `python evals/tool_selection.py --base-url http://localhost:8000/v1 --model YOUR_MODEL --scenarios evals/profile-cases.json --compare-profile triage --repeat 3 --json results.json`. Both catalogs use the same prompts, expected results and nonempty denominator. The first case feeds a fixed synthetic agent record into the second model turn, then checks that the final answer cites the correct agent and rule from the fixture alerts. All emitted calls are scored, including unwanted writes. Missing tools and failed requests remain in the results. Latency summaries exclude unavailable cases and network errors. Reports contain the model name, settings, catalog and fixture digests and per-attempt outcomes. The triage profile exposes alert tools only when an Indexer is configured. For a fixture-only run, set `WAZUH_INDEXER_HOST=fixture.invalid` for the evaluator process. It uses the declared tools and synthetic responses without connecting to that host. Check the reported catalog sizes and unavailable-case counts before comparing results.
+
+On a local CPU run with Qwen3-VL-4B-Instruct, full and triage each passed six of nine attempts. Triage reduced median latency from 57.45 to 28.80 seconds. Both catalogs failed the same multistep investigation by requesting alerts before the agent lookup returned. These three scenarios were each repeated three times at temperature zero. [Per-attempt results](../evals/results/qwen3-vl-4b-triage.json)

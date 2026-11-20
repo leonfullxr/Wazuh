@@ -13,7 +13,7 @@ The initial independent review of the MCP implementation requested changes. Clau
 | Timeline status, catalog ownership and session throughput | The Manager refreshes a stale token once within the original byte and time budgets. Callers get independent JSON schemas. Atomic store operations permit independent session updates without holding a process-wide lock during Redis I/O. |
 | Generic size-limit warning | Oversized legacy output produces a complete parseable warning. Investigation results have source-level matched and returned counts where available. Generic responses can lack a known total. |
 
-The final local matrix exercised Python 3.11 and 3.13, with 771 tests passing on each against real Redis. Specialized browser verification uses the official SDK and Apps bridge with synthetic upstreams. See the [delivery report](delivery_report.md) for coverage and deployment-specific qualification.
+The pre-staging local matrix exercised Python 3.11 and 3.13, with 771 tests passing on each against real Redis. Specialized browser verification uses the official SDK and Apps bridge with synthetic upstreams. See the [delivery report](delivery_report.md) for coverage and deployment-specific qualification.
 
 ## Follow-up verdict
 
@@ -24,3 +24,7 @@ The third review returned **PASS** for the remaining blocker. Claude verified th
 **Final verdict — PASS.** On the delivered code, Claude confirmed all three refinements and accepted the added handling for common separate-value command-line flags. It found no blocking regression. Its final pass was a static review of the redaction code and tests. The orchestrator ran the executable checks separately.
 
 The reviewer recorded residual limits in free-text and field-name matching. Some alternate flag spellings, unusual values, acronym-heavy keys and non-ASCII keys fall outside the supported patterns. Multiline flags and benign fields whose names end in a sensitive term can be over-redacted. Production operators should continue to restrict telemetry and log access at the source.
+
+## Live staging correction
+
+Wazuh 4.14.5 exposed the incorrect Manager route and a missing sort-key value in real Indexer results. Claude Opus 5.5 high reviewed the incremental implementation and returned **PASS**. The corrected adapter requests and verifies the agent ID and status. The compatibility snapshots check both query parameters. The regression suite covers missing, malformed, mismatched and ambiguous Manager rows. Removing the null-key guard in a temporary copy made its dedicated regression report false complete coverage, as expected. The [delivery report](delivery_report.md) records the real service and browser results.

@@ -1,0 +1,365 @@
+{
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "temperature": 0.0,
+  "max_tokens": 1024,
+  "fixture_sha256": "bc82aec00b248a6ea1f1cff487e100b3397fc814305e229c969e82a33145dec0",
+  "repeat": 3,
+  "catalogs": {
+    "baseline": {
+      "tools": 55,
+      "catalog_sha256": "0f652baa56033fec366316da375491f7ae110267d460a1a5434b5f2282481e8d",
+      "catalog_bytes": 29304,
+      "results": [
+        {
+          "passed": false,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "get_wazuh_alerts"
+              ],
+              "passed": false,
+              "detail": "picked get_wazuh_alerts, expected get_wazuh_agents"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 63.282,
+          "status": "evaluated",
+          "id": "triage-agent-and-alert",
+          "attempt": 0
+        },
+        {
+          "passed": false,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "get_wazuh_alerts"
+              ],
+              "passed": false,
+              "detail": "picked get_wazuh_alerts, expected get_wazuh_agents"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 65.432,
+          "status": "evaluated",
+          "id": "triage-agent-and-alert",
+          "attempt": 1
+        },
+        {
+          "passed": false,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "get_wazuh_alerts"
+              ],
+              "passed": false,
+              "detail": "picked get_wazuh_alerts, expected get_wazuh_agents"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 67.132,
+          "status": "evaluated",
+          "id": "triage-agent-and-alert",
+          "attempt": 2
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "check_agent_health"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 53.92,
+          "status": "evaluated",
+          "id": "agent-status",
+          "attempt": 0
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "check_agent_health"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 53.093,
+          "status": "evaluated",
+          "id": "agent-status",
+          "attempt": 1
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "check_agent_health"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 51.255,
+          "status": "evaluated",
+          "id": "agent-status",
+          "attempt": 2
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 57.45,
+          "status": "evaluated",
+          "id": "read-only-review",
+          "attempt": 0
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 59.29,
+          "status": "evaluated",
+          "id": "read-only-review",
+          "attempt": 1
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 55.828,
+          "status": "evaluated",
+          "id": "read-only-review",
+          "attempt": 2
+        }
+      ],
+      "summary": {
+        "cases": 9,
+        "passed": 6,
+        "errors": 0,
+        "unavailable": 0,
+        "unwanted_writes": 0,
+        "median_seconds": 57.45,
+        "p95_seconds": 67.132
+      }
+    },
+    "triage": {
+      "tools": 19,
+      "catalog_sha256": "9aa3c7d1aa78fdf849cabfc7a03adb7083039fc7ece73668ab4535decc3c7a48",
+      "catalog_bytes": 11052,
+      "results": [
+        {
+          "passed": false,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "get_wazuh_alerts"
+              ],
+              "passed": false,
+              "detail": "picked get_wazuh_alerts, expected get_wazuh_agents"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 28.523,
+          "status": "evaluated",
+          "id": "triage-agent-and-alert",
+          "attempt": 0
+        },
+        {
+          "passed": false,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "get_wazuh_alerts"
+              ],
+              "passed": false,
+              "detail": "picked get_wazuh_alerts, expected get_wazuh_agents"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 29.937,
+          "status": "evaluated",
+          "id": "triage-agent-and-alert",
+          "attempt": 1
+        },
+        {
+          "passed": false,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "get_wazuh_alerts"
+              ],
+              "passed": false,
+              "detail": "picked get_wazuh_alerts, expected get_wazuh_agents"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 28.796,
+          "status": "evaluated",
+          "id": "triage-agent-and-alert",
+          "attempt": 2
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "check_agent_health"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 19.659,
+          "status": "evaluated",
+          "id": "agent-status",
+          "attempt": 0
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "check_agent_health"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 19.327,
+          "status": "evaluated",
+          "id": "agent-status",
+          "attempt": 1
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "check_agent_health"
+              ],
+              "passed": true,
+              "detail": "1 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 19.779,
+          "status": "evaluated",
+          "id": "agent-status",
+          "attempt": 2
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "check_agent_health",
+                "get_agent_configuration",
+                "get_agent_processes",
+                "get_agent_ports"
+              ],
+              "passed": true,
+              "detail": "5 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 47.889,
+          "status": "evaluated",
+          "id": "read-only-review",
+          "attempt": 0
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "check_agent_health",
+                "get_agent_configuration",
+                "get_agent_processes",
+                "get_agent_ports"
+              ],
+              "passed": true,
+              "detail": "5 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 45.042,
+          "status": "evaluated",
+          "id": "read-only-review",
+          "attempt": 1
+        },
+        {
+          "passed": true,
+          "steps": [
+            {
+              "tools": [
+                "get_wazuh_agents",
+                "check_agent_health",
+                "get_agent_configuration",
+                "get_agent_processes",
+                "get_agent_ports"
+              ],
+              "passed": true,
+              "detail": "5 valid call(s)"
+            }
+          ],
+          "unwanted_writes": 0,
+          "seconds": 48.549,
+          "status": "evaluated",
+          "id": "read-only-review",
+          "attempt": 2
+        }
+      ],
+      "summary": {
+        "cases": 9,
+        "passed": 6,
+        "errors": 0,
+        "unavailable": 0,
+        "unwanted_writes": 0,
+        "median_seconds": 28.796,
+        "p95_seconds": 48.549
+      }
+    }
+  }
+}

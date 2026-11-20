@@ -54,7 +54,7 @@ async def test_investigation_http_workflow(monkeypatch, modern):
     indexer = Indexer()
     manager = SimpleNamespace(
         client=httpx.AsyncClient(transport=httpx.MockTransport(lambda _: response({"data": {
-            "total_failed_items": 0, "affected_items": [{"status": "active"}]}}))),
+            "total_failed_items": 0, "affected_items": [{"id": "007", "status": "active"}]}}))),
         token="fixture", config=SimpleNamespace(base_url="https://manager.invalid"), _indexer_client=indexer,
     )
     saved_name = "saved_investigation_login"

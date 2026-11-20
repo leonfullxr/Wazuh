@@ -18,11 +18,29 @@ The implementation covers all eight repairs and six product pilots specified in 
 
 ## Qualification
 
-The baseline passed 641 tests. The revised candidate passed 771 tests on each of Python 3.11.2 and 3.13.14 against real Redis. Both freshly provisioned CI environments passed pip check, Ruff, compatibility checks and pytest. The pinned runs reported 70.84% and 71.51% branch-aware coverage, respectively. Actionlint 1.7.12 accepted the workflow with zero diagnostics. Local wheel checks covered base installation, the optional GCF fallback, the console entry point and loopback liveness. A network-isolated Alpine image returned HTTP 200 on its liveness endpoint. The first hosted run passed both 771-test Python jobs, their installed-wheel smoke checks and the Alpine container smoke. [GitHub Actions run 44769286583](https://github.com/leonfullxr/Wazuh/actions/runs/44769286583)
+The baseline passed 641 tests. After the staging corrections, 780 tests passed on each of Python 3.11.2 and 3.13.14 against real Redis. Both freshly provisioned CI environments passed pip check, Ruff, compatibility checks and pytest. The pinned runs reported 70.90% and 71.56% branch-aware coverage, respectively. Actionlint 1.7.12 accepted the workflow with zero diagnostics. Local wheel checks covered base installation, the optional GCF fallback, the console entry point and loopback liveness. A network-isolated Alpine image returned HTTP 200 on its liveness endpoint. The first hosted run passed both 771-test Python jobs, their installed-wheel smoke checks and the Alpine container smoke. [GitHub Actions run 44769286583](https://github.com/leonfullxr/Wazuh/actions/runs/44769286583)
 
-The official TypeScript MCP SDK 1.30.0 connected to a real loopback Streamable HTTP endpoint, negotiated protocol version 2025-11-25, listed tools/resources, fetched the viewer and called the timeline. Its JSON text matched structured content. This exercised a synthetic Manager and Indexer fixture. The 50-event fixture produced a 43,330-byte compact UTF-8 result envelope, including both representations. The configured envelope cap is 256,000 bytes. Chrome 158.0.8127.36 and Playwright 1.63.0 exercised the renderer and CSP. An independent run using Playwright 1.64.1 and the official Apps AppBridge 2.0.4 completed the handshake, rendered rule 5710, and retrieved the synthetic event through the host bridge on click. The [repeatable runner](../mcp-server/evals/mcp-app-client/README.md) includes its dependency pins. A paired real-model timing result remains unmeasured because the local inference service was unavailable.
+The official TypeScript MCP SDK 1.30.0 connected to a real loopback Streamable HTTP endpoint, negotiated protocol version 2025-11-25, listed tools/resources, fetched the viewer and called the timeline. Its JSON text matched structured content. This exercised a synthetic Manager and Indexer fixture. The 50-event fixture produced a 43,330-byte compact UTF-8 result envelope, including both representations. The configured envelope cap is 256,000 bytes. Chrome 158.0.8127.36 and Playwright 1.63.0 exercised the renderer and CSP. An independent run using Playwright 1.64.1 and the official Apps AppBridge 2.0.4 completed the handshake, rendered rule 5710, and retrieved the synthetic event through the host bridge on click. The [repeatable runner](../mcp-server/evals/mcp-app-client/README.md) includes its dependency pins.
 
-The OpenSearch sortable field must be verified unique across the actual deployment's rollover indices before enabling investigations. Version endpoints were checked against official pinned Wazuh specifications. Live Wazuh and IdP qualification is pending an identified staging deployment and intended client. The paired profile evaluation needs a reachable local tool-calling model service.
+### Disposable staging qualification
+
+Official Wazuh Manager and Indexer 4.14.5 containers served the normal MCP server. Both upstream connections verified the test CA and loopback hostname. The Manager account had read-only RBAC. The Indexer reader could search and read alert documents and retrieve index settings, and its attempted fixture write received HTTP 403. Two logical cluster IDs shared the isolated backend to test policy boundaries.
+
+- **Manager status.** The original per-agent URL returned HTTP 404. The filtered `GET /agents` request returned the requested ID and active status. The server now validates the ID and status before reporting an observation. Both pinned upstream specifications include the two query parameters.
+- **Rollover.** Two synthetic alerts with the same timestamp were stored in separate indices. A third index created by the disposable Manager lacked the tie-breaker mapping. Its three failed shards correctly surfaced as partial coverage despite both test alerts being returned. Adding a mapping left 187 existing documents without a value. The fixture shipper was paused and these disposable records were populated. A read across all 189 visible alerts then found 189 distinct, populated IDs. The completed search returned both events in order. A hit with a null sort value now withholds unverifiable evidence.
+- **Identity and clients.** Dex 2.44 and Keycloak 26.3.5 exercised real authorization-code login and PKCE exchange. With Keycloak, an analyst's signed group claim granted access, a second user without that group received a denial, and the analyst could not read the other logical cluster. Chrome 158 and the official Apps bridge displayed rules 100001 and 100002 and opened both correct evidence records. The server's text and structured responses matched. After the operator withdrew the cluster grant and restarted the server, the existing token still authenticated, but both the timeline and the previously issued evidence reference became inaccessible.
+- **Deployment boundary.** These tests used synthetic identities and alerts on disposable services. Operators must verify the tie-breaker on their own data and grant the documented index-scoped settings read before enabling investigations.
+
+### Local model comparison
+
+Qwen3-VL-4B-Instruct (revision `ebb281ec70b05090aa6165b016eac8ec08e71b17`) ran on CPU in bfloat16 with greedy decoding, its own chat template and a 1,024-token output limit. A loopback adapter translated the model's native tool-call blocks to OpenAI-compatible function calls. All 18 responses were cross-checked against the emitted blocks. Wazuh tool replies in this evaluation come only from the fixed case manifest.
+
+| Catalog | Tools | Catalog bytes | Passed | Unwanted writes | Median | p95 |
+|---|---:|---:|---:|---:|---:|---:|
+| Full | 55 | 29,304 | 6/9 | 0 | 57.45 s | 67.13 s |
+| Triage | 19 | 11,052 | 6/9 | 0 | 28.80 s | 48.55 s |
+
+Both catalogs passed the agent-health and read-only cases on all three attempts. Each failed the multi-step case on the first turn by calling the alert tool before the agent lookup returned. The read-only case checks tool selection and argument validity. It does not assess the usefulness of an analyst summary. All requests completed without context truncation. The three deterministic repeats show repeatability on this CPU. Broader adoption needs further tasks and models. Triage remains opt-in. [Per-attempt results and catalog fingerprints](../mcp-server/evals/results/qwen3-vl-4b-triage.json)
 
 ## Reviewer record
 
@@ -76,7 +94,7 @@ Paths are relative to the repository root.
 </details>
 
 <details>
-<summary>Evaluation and client fixtures (8 files)</summary>
+<summary>Evaluation and client fixtures (9 files)</summary>
 
 - [mcp-server/evals/approval_experiment.py](../mcp-server/evals/approval_experiment.py)
 - [mcp-server/evals/mcp-app-client/fixture_server.py](../mcp-server/evals/mcp-app-client/fixture_server.py)
@@ -85,6 +103,7 @@ Paths are relative to the repository root.
 - [mcp-server/evals/mcp-app-client/run.mjs](../mcp-server/evals/mcp-app-client/run.mjs)
 - [mcp-server/evals/mcp-app-client/run.sh](../mcp-server/evals/mcp-app-client/run.sh)
 - [mcp-server/evals/profile-cases.json](../mcp-server/evals/profile-cases.json)
+- [mcp-server/evals/results/qwen3-vl-4b-triage.json](../mcp-server/evals/results/qwen3-vl-4b-triage.json)
 - [mcp-server/evals/tool_selection.py](../mcp-server/evals/tool_selection.py)
 
 </details>

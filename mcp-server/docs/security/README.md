@@ -313,7 +313,7 @@ run active response.
 
 The Indexer account needs search access to `wazuh-alerts-*` and
 `wazuh-states-vulnerabilities-*` (prefixed with the remote cluster name when `ccs_prefix` is
-used). It does not need write access.
+used). The investigation pilot also reads the selected documents and their index UUIDs. Grant document reads and `indices:monitor/settings/get` on the permitted alert indices. See the [investigation requirements](../INVESTIGATIONS.md).
 
 ## Container and deployment hardening
 
