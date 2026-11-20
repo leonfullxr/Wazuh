@@ -165,3 +165,41 @@ class TestDcrInputs:
     def test_unsupported_dcr_inputs_rejected(self, env, extra):
         with pytest.raises(ValueError):
             env.mgr.register_client({"redirect_uris": [REDIRECT], **extra})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("redirect", ["https://client.example/cb?x=a%2Fb&x=two", "https://client.example/cb?", "https://client.example/cb?x=1&"])
+async def test_redirect_query_preserved_and_exact_exchange(env, redirect):
+    env.mgr.clients["claude-desktop"].redirect_uris.append(redirect)
+    verifier, challenge = _pkce()
+    params = {**_params(challenge), "redirect_uri": redirect, "api_key": env.writer}
+    response = await env.client.post("/oauth/authorize", data=params)
+    assert response.status_code == 303
+    location = response.headers["location"]
+    assert location.startswith(redirect)
+    query = parse_qs(urlparse(location).query)
+    assert len(query["code"]) == len(query["iss"]) == len(query["state"]) == 1
+    code = query["code"][0]
+    tokens = env.mgr.exchange_code_for_tokens(code, "claude-desktop", redirect, verifier)
+    assert tokens["access_token"]
+    response = await env.client.post("/oauth/authorize", data=params)
+    code = parse_qs(urlparse(response.headers["location"]).query)["code"][0]
+    with pytest.raises(ValueError, match="invalid_grant"):
+        env.mgr.exchange_code_for_tokens(code, "claude-desktop", redirect + "x", verifier)
+    response = await env.client.post("/oauth/authorize", data={**params, "code_challenge_method": "plain"})
+    assert response.status_code == 303
+    assert response.headers["location"].startswith(redirect)
+    assert parse_qs(urlparse(response.headers["location"]).query)["error"] == ["invalid_request"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("query", ["%63ode=x", "StAtE", "x=1&ERROR_URI=x", "x=1&x=2&iss=x"])
+async def test_reserved_redirect_keys_rejected_at_registration_and_authorization(env, query):
+    redirect = "https://client.example/cb?" + query
+    registration = await env.client.post("/oauth/register", json={"redirect_uris": [redirect]})
+    assert registration.status_code == 400
+    assert registration.json()["error"] == "invalid_redirect_uri"
+    env.mgr.clients["claude-desktop"].redirect_uris.append(redirect)
+    _, challenge = _pkce()
+    response = await env.client.post("/oauth/authorize", data={**_params(challenge), "redirect_uri": redirect, "api_key": env.writer})
+    assert response.status_code == 400 and "location" not in response.headers

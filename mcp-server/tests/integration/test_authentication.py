@@ -68,6 +68,8 @@ def _grant(mgr, subject, kind, scope="wazuh:read wazuh:write"):
         code_challenge_method="S256",
         subject=subject,
         subject_kind=kind,
+        identity_issuer="https://idp.example" if kind == "idp_user" else None,
+        groups_at=datetime.now(timezone.utc).timestamp() if kind == "idp_user" else None,
     )
     return mgr.exchange_code_for_tokens(
         code=code, client_id="claude-desktop", redirect_uri=REDIRECT, code_verifier=verifier
@@ -251,10 +253,102 @@ class TestRegistrationTableCannotFillUp:
         assert first.client_id in m.clients
 
 
-class TestKeysWithoutScopesStayReadOnly:
+class TestKeysWithoutScopesDenyAccess:
     @pytest.mark.asyncio
-    async def test_oauth_token_keeps_read(self, monkeypatch, keys, mgr):
+    async def test_oauth_token_empty_key_scope_denies(self, monkeypatch, keys, mgr):
         key = keys.validate_api_key(keys.create_api_key("k", scopes=[]))
         tokens = _grant(mgr, key.id, "api_key", scope="wazuh:read")
-        assert (await _principal(monkeypatch, mgr, tokens["access_token"])).scopes == ["wazuh:read"]
-        assert mgr.refresh_access_token(tokens["refresh_token"], "claude-desktop")["scope"] == "wazuh:read"
+        assert (await _principal(monkeypatch, mgr, tokens["access_token"])).scopes == []
+        with pytest.raises(ValueError, match="invalid_grant"):
+            mgr.refresh_access_token(tokens["refresh_token"], "claude-desktop")
+
+
+def test_environment_key_scope_absent_differs_from_empty(monkeypatch):
+    monkeypatch.delenv("MCP_API_KEY_SCOPES", raising=False)
+    assert auth.AuthManager._configured_key_scopes() == ["wazuh:read"]
+    monkeypatch.setenv("MCP_API_KEY_SCOPES", "")
+    assert auth.AuthManager._configured_key_scopes() == []
+    monkeypatch.setenv("MCP_API_KEY_SCOPES", "unrecognized")
+    assert auth.AuthManager._configured_key_scopes() == []
+
+
+def test_requested_scope_never_exceeds_registered_ceiling(mgr):
+    client = mgr.clients["claude-desktop"]
+    client.scope = "wazuh:read"
+    assert mgr.bound_scope(None, client) == "wazuh:read"
+    assert mgr.bound_scope("", client) == ""
+    assert mgr.bound_scope("wazuh:write", client) == ""
+    client.scope = ""
+    assert mgr.bound_scope(None, client) == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include_scopes, expected", [(False, ["wazuh:read"]), (True, [])])
+async def test_api_keys_missing_and_empty_scope_through_bearer_and_oauth(monkeypatch, include_scopes, expected):
+    import json
+
+    monkeypatch.delenv("MCP_API_KEY", raising=False)
+    template = auth.AuthManager()
+    raw = "wazuh_" + "a" * 43
+    key_data = {"id": "configured-key", "name": "test", "key_hash": template.hash_api_key(raw), "created_at": datetime.now(timezone.utc).isoformat()}
+    if include_scopes:
+        key_data["scopes"] = []
+    monkeypatch.setenv("API_KEYS", json.dumps([key_data]))
+    keys = auth.AuthManager()
+    monkeypatch.setattr(auth, "auth_manager", keys)
+    token = keys.create_token(raw)
+    assert token
+    monkeypatch.setattr(mcp_server.state.config, "AUTH_MODE", "bearer")
+    verified = await mcp_server.http_security.verify_authentication(f"Bearer {token}", mcp_server.state.config)
+    assert verified.scopes == expected
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28"}}}
+    headers = {"MCP-Protocol-Version": "2026-07-28", "Mcp-Method": "tools/list", "Authorization": f"Bearer {token}"}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=mcp_server.app), base_url="http://testserver") as client:
+        response = await client.post("/mcp", headers=headers, json=body)
+        assert response.status_code == 200
+        assert bool(response.json()["result"]["tools"]) == bool(expected)
+    jwt_token = auth.create_access_token({"sub": "configured-key", "scope": "wazuh:read wazuh:write"}, template.secret_key)
+    assert (await mcp_server.http_security.verify_authentication(f"Bearer {jwt_token}", mcp_server.state.config)).scopes == expected
+    oauth = OAuthManager(_oauth_config())
+    app = FastAPI()
+    app.include_router(create_oauth_router(oauth))
+    _, challenge = _pkce()
+    form = {"response_type": "code", "client_id": "claude-desktop", "redirect_uri": REDIRECT, "code_challenge": challenge, "code_challenge_method": "S256", "api_key": raw}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://mcp.example") as client:
+        response = await client.post("/oauth/authorize", data=form)
+        assert response.status_code == (303 if expected else 403)
+    tokens = _grant(oauth, "configured-key", "api_key")
+    assert (await _principal(monkeypatch, oauth, tokens["access_token"])).scopes == expected
+    headers["Authorization"] = f"Bearer {tokens['access_token']}"
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=mcp_server.app), base_url="http://testserver") as client:
+        response = await client.post("/mcp", headers=headers, json=body)
+        assert response.status_code == 200
+        assert bool(response.json()["result"]["tools"]) == bool(expected)
+
+
+@pytest.mark.asyncio
+async def test_dynamic_registration_restart_and_eviction_fail_closed(monkeypatch):
+    from fastapi import HTTPException
+
+    original = OAuthManager(_oauth_config(OAUTH_ENABLE_DCR=True))
+    client = original.register_client({"redirect_uris": ["https://client.example/cb"]})
+    token = original._create_jwt_token(client.client_id, "wazuh:read", "access")
+    monkeypatch.setattr(mcp_server.state.config, "AUTH_MODE", "oauth")
+    monkeypatch.setattr(mcp_server.state, "_oauth_manager", original)
+    principal = await mcp_server.http_security.verify_authentication(f"Bearer {token}", mcp_server.state.config)
+    assert principal.scopes == ["wazuh:read"]
+    from dataclasses import replace
+
+    for index in range(1000):
+        extra = replace(client, client_id=f"client_extra_{index}", created_at=client.created_at + timedelta(seconds=1))
+        original.clients[extra.client_id] = extra
+    original._evict_idle_clients()
+    assert client.client_id not in original.clients
+    with pytest.raises(HTTPException) as evicted:
+        await mcp_server.http_security.verify_authentication(f"Bearer {token}", mcp_server.state.config)
+    assert evicted.value.status_code == 401
+    restarted = OAuthManager(_oauth_config(OAUTH_ENABLE_DCR=True))
+    monkeypatch.setattr(mcp_server.state, "_oauth_manager", restarted)
+    with pytest.raises(HTTPException) as after_restart:
+        await mcp_server.http_security.verify_authentication(f"Bearer {token}", mcp_server.state.config)
+    assert after_restart.value.status_code == 401

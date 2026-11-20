@@ -33,6 +33,7 @@ class AuthToken:
     expires_at: Optional[datetime] = None
     scopes: List[str] = None
     metadata: Dict[str, Any] = None
+    owner: Optional[Dict[str, Any]] = None
 
     def is_valid(self) -> bool:
         """Check if token is still valid."""
@@ -55,7 +56,7 @@ class APIKey(BaseModel):
     key_hash: str = Field(description="Hashed API key")
     created_at: datetime = Field(description="Creation timestamp")
     expires_at: Optional[datetime] = Field(default=None, description="Expiration timestamp")
-    scopes: List[str] = Field(default_factory=list, description="Allowed scopes")
+    scopes: List[str] = Field(default_factory=lambda: ["wazuh:read"], description="Allowed scopes")
     active: bool = Field(default=True, description="Whether key is active")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
@@ -98,10 +99,9 @@ class AuthManager:
         write access. Defaults to read-only so destructive tools are opt-in.
         """
         raw = env_unquoted("MCP_API_KEY_SCOPES")
-        if not raw:
+        if "MCP_API_KEY_SCOPES" not in os.environ:
             return ["wazuh:read"]
-        scopes = [s for s in raw.split() if s in ("wazuh:read", "wazuh:write")]
-        return scopes or ["wazuh:read"]
+        return [s for s in raw.split() if s in ("wazuh:read", "wazuh:write")]
 
     def _load_api_keys(self):
         """Load API keys from configuration.
@@ -337,8 +337,7 @@ def current_key_scopes(granted: List[str], key_obj: APIKey) -> List[str]:
     Tokens survive restarts (key ids are deterministic), so narrowing a key's scopes has to
     narrow the tokens already issued from it, not only new ones.
     """
-    # A key without a scopes list is read-only everywhere else (sign-in, token minting)
-    return [s for s in granted if s in (key_obj.scopes or ["wazuh:read"])]
+    return [s for s in granted if s in key_obj.scopes]
 
 
 async def verify_bearer_token(authorization: str) -> AuthToken:
@@ -367,7 +366,11 @@ async def verify_bearer_token(authorization: str) -> AuthToken:
     if token.startswith("wst_"):
         token_obj = auth_manager.validate_token(token)
         if token_obj:
-            return token_obj
+            from dataclasses import replace
+
+            key_obj = usable_api_key(token_obj.api_key_id)
+            if key_obj is not None:
+                return replace(token_obj, scopes=current_key_scopes(token_obj.scopes or [], key_obj), owner={"version": 1, "family": "api_key", "subject": key_obj.id})
         raise ValueError("Invalid or expired session token")
 
     # Second, try JWT token validation (tokens from /auth/token endpoint)
@@ -406,8 +409,8 @@ async def verify_bearer_token(authorization: str) -> AuthToken:
 
         # Parse scopes from JWT payload. Fail closed: a token without an explicit
         # scope claim gets read-only, never write.
-        scope_string = payload.get("scope", "")
-        scopes = current_key_scopes(scope_string.split() if scope_string else ["wazuh:read"], key_obj)
+        scope_string = payload.get("scope")
+        scopes = current_key_scopes(scope_string.split() if isinstance(scope_string, str) else (["wazuh:read"] if "scope" not in payload else []), key_obj)
 
         # Derive a stable per-principal id for rate-limit bucketing. Prefer the JWT
         # subject (the API key id); fall back to a token hash so distinct tokens
@@ -426,6 +429,7 @@ async def verify_bearer_token(authorization: str) -> AuthToken:
             expires_at=expires_at,
             scopes=scopes,
             metadata={"sub": payload.get("sub"), "token_type": "jwt"},
+            owner={"version": 1, "family": "bearer_jwt", "subject": sub},
         )
 
     except ValueError:

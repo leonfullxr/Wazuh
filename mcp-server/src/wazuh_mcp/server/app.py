@@ -115,10 +115,6 @@ async def lifespan(app: FastAPI):
                 expired = await state.sessions.cleanup_expired()
                 if expired > 0:
                     logger.debug(f"Background cleanup: removed {expired} expired sessions")
-                    active = await state.sessions.get_all()
-                    stale = [k for k in state._initialized_sessions if k not in active]
-                    for k in stale:
-                        state._initialized_sessions.pop(k, None)
             except Exception as e:
                 logger.error(f"Background session cleanup error: {e}")
 

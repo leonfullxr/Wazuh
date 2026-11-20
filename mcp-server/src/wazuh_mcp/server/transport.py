@@ -240,7 +240,7 @@ async def handle_modern_request(
         result.setdefault("resultType", "complete")
         ttl_ms = CACHEABLE_METHOD_TTLS.get(method)
         if ttl_ms is not None:
-            result.setdefault("ttlMs", ttl_ms)
+            result["ttlMs"] = 0 if state.cluster_policy is not None else result.get("ttlMs", ttl_ms)
             result.setdefault("cacheScope", "private")
         result_meta = result.setdefault("_meta", {})
         if isinstance(result_meta, dict):
@@ -403,24 +403,15 @@ async def mcp_streamable_http_endpoint(
         # Legacy era - session validation per MCP Streamable HTTP spec:
         # If client provides session ID but session doesn't exist, return 404
         if mcp_session_id:
-            existing_session = await state.sessions.get(mcp_session_id)
-            if not existing_session:
-                raise HTTPException(
-                    status_code=404, detail="Session not found. Please start a new session with InitializeRequest."
-                )
-            if existing_session.is_expired():
-                await state.sessions.remove(mcp_session_id)
-                state._initialized_sessions.pop(mcp_session_id, None)
-                raise HTTPException(
-                    status_code=404, detail="Session expired. Please start a new session with InitializeRequest."
-                )
-            session = existing_session
-            session.update_activity()
-            await state.sessions.set(mcp_session_id, session)
+            try:
+                session = await state.sessions.owned(mcp_session_id, sessions._owner_of(auth_token))
+            except sessions.SessionNotFound:
+                raise HTTPException(status_code=404, detail="Session not found. Please start a new session with InitializeRequest.")
         else:
-            # Only an initialize (or a GET stream) starts a stored session
             persist = request.method == "GET" or _is_initialize(body)
-            session = await sessions.get_or_create_session(None, origin, persist=persist, principal=_principal_of(auth_token))
+            session = await sessions.get_or_create_session(
+                None, origin, persist=persist, principal=_principal_of(auth_token), owner=sessions._owner_of(auth_token)
+            )
 
         session.authenticated = True  # Mark as authenticated
         session._auth_token = auth_token  # Store token for scope checks in tool handlers
@@ -592,6 +583,7 @@ async def mcp_streamable_http_endpoint(
             ACTIVE_CONNECTIONS.dec()
 
 
+@router.delete("/")
 @router.delete("/mcp")
 async def close_mcp_session(
     request: Request,
@@ -612,11 +604,9 @@ async def close_mcp_session(
     if not allowed:
         raise _rate_limited_response(retry_after)
 
-    # Remove session
-    existing = await state.sessions.get(mcp_session_id)
-    if not existing:
+    try:
+        await state.sessions.owned(mcp_session_id, sessions._owner_of(auth_token), delete=True)
+    except sessions.SessionNotFound:
         raise HTTPException(status_code=404, detail="Session not found")
-    await state.sessions.remove(mcp_session_id)
-    state._initialized_sessions.pop(mcp_session_id, None)
     logger.info(f"Session {mcp_session_id} closed via DELETE")
     return Response(status_code=204)  # No content

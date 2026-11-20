@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "esbuild": "0.28.2",
+    "playwright": "1.64.1"
+  }
+}

@@ -291,7 +291,7 @@ class WazuhClient:
                 await self._indexer_client.initialize()
                 logger.info("Wazuh Indexer client initialized successfully")
             except Exception as e:
-                logger.warning(f"Wazuh Indexer initialization failed: {e}")
+                logger.warning("Wazuh Indexer initialization failed: %s", type(e).__name__)
 
     async def _authenticate(self):
         """Authenticate with Wazuh API."""
@@ -1380,8 +1380,8 @@ class WazuhClient:
             items = agents.get("data", {}).get("affected_items", [])
             active = sum(1 for a in items if a.get("status") == "active")
             report["sections"]["agents"] = {"total": len(items), "active": active, "disconnected": len(items) - active}
-        except Exception as e:
-            report["sections"]["agents"] = {"error": str(e)}
+        except Exception:
+            report["sections"]["agents"] = {"error": "Data unavailable"}
 
         # Section 2: Manager info (all report types)
         try:
@@ -1392,8 +1392,8 @@ class WazuhClient:
                 "hostname": mgr.get("hostname"),
                 "type": mgr.get("type"),
             }
-        except Exception as e:
-            report["sections"]["manager"] = {"error": str(e)}
+        except Exception:
+            report["sections"]["manager"] = {"error": "Data unavailable"}
 
         # Section 3: Alert summary (all report types)
         if self._indexer_client:
@@ -1413,16 +1413,16 @@ class WazuhClient:
                     "by_severity": level_dist,
                     "time_range": tr,
                 }
-            except Exception as e:
-                report["sections"]["alerts"] = {"error": str(e)}
+            except Exception:
+                report["sections"]["alerts"] = {"error": "Data unavailable"}
 
         # Section 4: Vulnerability summary (all report types)
         if self._indexer_client:
             try:
                 vuln_summary = await self._indexer_client.get_vulnerability_summary()
                 report["sections"]["vulnerabilities"] = vuln_summary.get("data", {})
-            except Exception as e:
-                report["sections"]["vulnerabilities"] = {"error": str(e)}
+            except Exception:
+                report["sections"]["vulnerabilities"] = {"error": "Data unavailable"}
 
         # Section 5: Top threats (daily, weekly, monthly, incident)
         if self._indexer_client:
@@ -1725,36 +1725,70 @@ class WazuhClient:
             except Exception:
                 sca_results.append({"agent_id": aid, "agent_name": ag.get("name"), "sca_items": []})
 
-        # Vulnerability summary (indexer if available, else skip).
-        # vuln_query_ok gates scoring: a *successful* query that returns zero vulns is a
-        # legitimate 100/pass, but a failed query (Indexer outage/auth error) or no target
-        # must score the vuln controls as no_data - not silently as full compliance.
+        # A complete score requires an exact target list and complete findings for each target.
         vuln_summary: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-        vuln_query_ok = False
+        reasons: set[str] = set()
+        manager_data = agents_res.get("data", {})
+        total = manager_data.get("total_affected_items")
+        exact_total = total if type(total) is int and total >= 0 else None
+        failed = manager_data.get("total_failed_items")
+        manager_ok = type(failed) is int and failed == 0
+        targets = [a.get("id") for a in agents if a.get("id")]
+        if exact_total is None:
+            reasons.add("unknown_total")
+        if not manager_ok or exact_total is None or exact_total != len(agents) or len(targets) != len(agents):
+            reasons.add("target_list_incomplete")
+        if agent_id:
+            targets = [agent_id] if agent_id in targets and manager_ok else []
+            expected_agents = 1 if targets else None
+        else:
+            expected_agents = exact_total
+        if not targets:
+            reasons.add("no_targets")
         vuln_agents_counted = 0
-        if self._indexer_client:
+        completed_agents = 0
+        if not self._indexer_client:
+            reasons.add("source_unavailable")
+        else:
             try:
-                if agent_id:
-                    # Explicit single-agent scope requested.
-                    vuln_targets = [agent_id]
-                else:
-                    # Aggregate across ALL active agents, not just agents[0]. A.8.8 is the
-                    # heaviest-weighted control (weight 4); scoring it from a single agent
-                    # made the whole dashboard hostage to one host's vuln posture.
-                    vuln_targets = [a.get("id") for a in agents if a.get("id")]
-                for tid in vuln_targets:
-                    vuln_res = await self._indexer_client.get_vulnerabilities(agent_id=tid, limit=500)
-                    for v in vuln_res.get("data", {}).get("affected_items", []):
-                        sev = (v.get("severity") or "").lower()
-                        if sev in vuln_summary:
-                            vuln_summary[sev] += 1
-                    vuln_agents_counted += 1
-                    vuln_query_ok = True
-            except Exception:
-                logger.warning(
-                    "ISO27001: vulnerability query failed; scoring vulnerability controls as no_data",
-                    exc_info=True,
-                )
+                async with asyncio.timeout(10):
+                    for tid in targets:
+                        try:
+                            vuln_res = await self._indexer_client.get_vulnerabilities(agent_id=tid, limit=500)
+                        except Exception:
+                            reasons.add("source_unavailable")
+                            continue
+                        vuln_agents_counted += 1
+                        data = vuln_res.get("data", {})
+                        complete = data.get("completeness", {})
+                        item_reasons = set(complete.get("reasons", []))
+                        if not complete.get("complete", False) and not item_reasons:
+                            item_reasons.add("search_incomplete")
+                        for v in data.get("affected_items", []):
+                            severity = v.get("severity")
+                            sev = severity.lower() if isinstance(severity, str) else ""
+                            if sev in vuln_summary:
+                                vuln_summary[sev] += 1
+                            else:
+                                item_reasons.add("unknown_severity")
+                        reasons.update(item_reasons)
+                        if not item_reasons:
+                            completed_agents += 1
+            except TimeoutError:
+                reasons.add("source_unavailable")
+
+        coverage_status = ("complete" if targets and not reasons and completed_agents == len(targets)
+                           else "partial" if vuln_agents_counted else "unavailable")
+        vuln_query_ok = coverage_status == "complete"
+        coverage = {
+            "status": coverage_status,
+            "expected_agents": expected_agents,
+            "completed_agents": completed_agents,
+            "observed_counts": vuln_summary,
+            "reasons": sorted(reasons),
+        }
+        score_upper_bound = (max(0, 100 - vuln_summary["critical"] * 15 - vuln_summary["high"] * 5
+                                 - vuln_summary["medium"]) if vuln_agents_counted else None)
 
         # Build per-control evidence
         alert_groups: Dict[str, int] = {}
@@ -1904,12 +1938,18 @@ class WazuhClient:
                 "low_confidence_controls": low_conf,
             }
 
+        if not vuln_query_ok:
+            domain_summary["A.8"]["weighted_score"] = None
+
         # --- Overall weighted score ---
         all_weighted = [(c["score"], c["weight"]) for c in control_statuses if c["score"] is not None]
         if all_weighted:
             total_w = sum(w for _, w in all_weighted)
             overall_score = int(sum(s * w for s, w in all_weighted) / total_w) if total_w else None
         else:
+            overall_score = None
+
+        if not vuln_query_ok:
             overall_score = None
 
         overall_confidence = (
@@ -1962,6 +2002,12 @@ class WazuhClient:
             else "No active endpoint agents found."
         )
 
+        if not vuln_query_ok:
+            board_summary += (f" Vulnerability evidence is {coverage_status}; observed counts are lower bounds: "
+                              f"{vuln_summary}.")
+            if score_upper_bound is not None and score_upper_bound < 75:
+                board_summary += f" Known failure: A.8.8 score is at most {score_upper_bound}."
+
         # Posture band - a coverage indicator, deliberately NOT a pass/fail compliance
         # verdict. Only 14 of the 93 Annex A controls are mapped to Wazuh data, so a
         # "pass" here would be read as whole-framework compliance, which it is not.
@@ -2002,7 +2048,8 @@ class WazuhClient:
                     "sca_agents_sampled": len(sca_results),
                 },
                 "active_agents": len(agents),
-                "vulnerability_summary": vuln_summary,
+                "vulnerability_summary": vuln_summary if vuln_query_ok else None,
+                "vulnerability_coverage": coverage,
                 "domain_summary": domain_summary,
                 "controls": control_statuses,
                 "failing_controls": [
@@ -2157,8 +2204,8 @@ class WazuhClient:
                     stats_res = await self._request("GET", "/manager/stats/analysisd")
                     block["evidence"] = {"analysisd_stats": stats_res.get("data", {})}
 
-            except Exception as e:
-                block["evidence"] = {"error": str(e)}
+            except Exception:
+                block["evidence"] = {"error": "Data unavailable"}
 
             evidence_blocks.append(block)
 
@@ -2182,7 +2229,19 @@ class WazuhClient:
             status = c["status"]
             score = c["score"]
 
-            if status == "no_data":
+            if ctrl_id == "A.8.8" and dashboard["data"]["vulnerability_coverage"]["status"] != "complete":
+                coverage = dashboard["data"]["vulnerability_coverage"]
+                counts = coverage["observed_counts"]
+                bound = (max(0, 100 - counts["critical"] * 15 - counts["high"] * 5 - counts["medium"])
+                         if dashboard["data"]["scoring"]["vuln_agents_aggregated"] else None)
+                gaps.append({
+                    "control_id": ctrl_id, "title": ctrl_meta.get("title", ""), "domain": c["domain"],
+                    "gap_type": "incomplete_evidence", "severity": "critical" if bound is not None and bound < 40 else "high",
+                    "score": None, "coverage_status": coverage["status"], "observed_counts": counts,
+                    "score_upper_bound": bound, "known_failure": bound is not None and bound < 75,
+                    "recommendation": "Complete vulnerability collection and remediate observed findings.",
+                })
+            elif status == "no_data":
                 gaps.append(
                     {
                         "control_id": ctrl_id,
@@ -2263,8 +2322,8 @@ class WazuhClient:
         try:
             # Alerts live in the Indexer - the Manager API removed its /alerts endpoint
             result = await self.get_alerts(limit=500, timestamp_start=since, agent_id=agent_id)
-        except Exception as e:
-            return {"error": f"Failed to fetch alerts: {e}"}
+        except Exception:
+            return {"error": "Failed to fetch alerts"}
 
         alerts = result.get("data", {}).get("affected_items", [])
 
@@ -2409,8 +2468,8 @@ class WazuhClient:
         try:
             result = await self._request("GET", "/")
             return {"status": "connected", "details": result}
-        except Exception as e:
-            return {"status": "failed", "error": str(e)}
+        except Exception:
+            return {"status": "failed", "error": "Connection unavailable"}
 
     # =========================================================================
     # Active Response / Action Tools
@@ -2501,7 +2560,9 @@ class WazuhClient:
 
     def _refuse_protected_target(self, ip_address: str) -> None:
         if self._is_protected_target(ip_address):
-            raise ValueError(
+            from wazuh_mcp.security import SafeToolError
+
+            raise SafeToolError(
                 f"Refusing to block protected target {ip_address}: it is loopback, the Wazuh "
                 "manager, or on the WAZUH_PROTECTED_IPS denylist. Blocking it would be self-inflicted DoS."
             )

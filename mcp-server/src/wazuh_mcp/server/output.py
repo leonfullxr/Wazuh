@@ -1,25 +1,138 @@
 """Redaction and compaction of tool output before it reaches the client."""
 
+import json
+import math
 import re as _re
+from datetime import date, datetime, time
+from uuid import UUID
 
-# Patterns to redact from output text (credentials, tokens, keys in log lines). Results are
-# usually serialized JSON on one line, so a value ends at whitespace, a quote or an escape
-# (an escaped backslash `\\` is part of the value): unbounded `.+` / `\S+` would swallow the
-# rest of the result or the closing quote and corrupt the JSON.
-_REDACT_VALUE = r"(?:[^\s\"\\]|\\\\)+"
-_OUTPUT_REDACT_PATTERNS = [
-    _re.compile(r"(?i)((?:password|passwd|pwd)\s*[=:]\s*)" + _REDACT_VALUE),
-    _re.compile(r"(?i)((?:api[_-]?key|secret|token)\s*[=:]\s*)" + _REDACT_VALUE),
-    # The whole header value ("Bearer <token>"), up to the end of the line or JSON string
-    _re.compile(r"(?i)(Authorization:\s*)(?:[^\"\\\n]|\\\\)+"),
-]
+_SENSITIVE = frozenset({
+    "password", "passwd", "apikey", "xapikey", "apisecret", "clientsecret", "privatekey",
+    "authorization", "proxyauthorization", "accesstoken", "refreshtoken", "idtoken",
+    "sessiontoken", "token", "secret", "cookie", "setcookie", "secretkey", "dbpassword", "apitoken",
+})
+_MARKER = "[REDACTED]"
+_TRUNCATED = "[Truncated: output could not be safely inspected]"
+# Handle literal and escaped JSON keys as well as conventional log assignments.
+_ASSIGNMENT = _re.compile(
+    r"(?i)((?:\\?[\"']?)(?<![A-Za-z0-9])(?:db[_-]?password|secret[_-]?key|api[_-]?token|password|passwd|pwd|api[_-]?key|x[_-]?api[_-]?key|api[_-]?secret|client[_-]?secret|private[_-]?key|authorization|proxy[_-]?authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|session[_-]?token|token|secret|cookie|set[_-]?cookie)(?:\\?[\"']?)\s*[=:]\s*)(?:\\\".*?(?:\\\"|$)|\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|(?:bearer\s+|basic\s+)?[^\s,;\"'\\}]+)"
+)
+_FLAG = _re.compile(
+    r"(?i)(?<!\S)(--(?:password|passwd|pwd|token|api[_-]?key|api[_-]?token|secret[_-]?key))\s+(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|(?!-{1,2}[A-Za-z])[^\s]+)"
+)
+_HEADER = _re.compile(r"(?i)\b(bearer|basic)\s+([A-Za-z0-9._~+/=-]+)")
+_URL_USERINFO = _re.compile(r"(?i)(https?://)[^\s/@]+@")
 
 
 def _sanitize_output_text(text: str) -> str:
-    """Redact credentials/tokens from log text before returning to MCP clients."""
-    for pattern in _OUTPUT_REDACT_PATTERNS:
-        text = pattern.sub(r"\1[REDACTED]", text)
-    return text
+    if len(text) > 1_000_000:
+        return _TRUNCATED
+    text = _ASSIGNMENT.sub(lambda m: m.group(1) + _MARKER, text)
+    text = _FLAG.sub(lambda m: m.group(1) + " " + _MARKER, text)
+
+    def redact_token(match):
+        candidate = match.group(2)
+        if (match.group(1).lower(), candidate.lower()) in {("basic", "authentication"), ("bearer", "of")}:
+            return match.group(0)
+        return match.group(1) + " " + _MARKER
+
+    text = _HEADER.sub(redact_token, text)
+    return _URL_USERINFO.sub(r"\1[REDACTED]@", text)
+
+
+def sanitize_output(value, *, max_chars=1_000_000, max_depth=32):
+    """Return an independently owned, bounded JSON-compatible redacted value."""
+    remaining = max_chars
+
+    def visit(item, depth):
+        nonlocal remaining
+        remaining -= 1  # Charge every visited node, including empty containers and strings.
+        if depth > max_depth or remaining <= 0:
+            return _TRUNCATED
+        if item is None or isinstance(item, (bool, int, float)):
+            if isinstance(item, float) and not math.isfinite(item):
+                return _TRUNCATED
+            try:
+                remaining -= len(str(item))
+            except ValueError:
+                return _TRUNCATED
+            return item if remaining >= 0 else _TRUNCATED
+        if isinstance(item, (datetime, date, time, UUID)):
+            return visit(str(item), depth)
+        if isinstance(item, str):
+            remaining -= len(item)
+            return _sanitize_output_text(item) if remaining >= 0 else _TRUNCATED
+        if isinstance(item, (list, tuple)):
+            result = []
+            for child in item:
+                if remaining <= 0:
+                    result.append(_TRUNCATED)
+                    break
+                result.append(visit(child, depth + 1))
+            return result
+        if isinstance(item, dict):
+            result = {}
+            next_suffix = {}
+            for key, child in item.items():
+                if remaining <= 0:
+                    result["[truncated]"] = _TRUNCATED
+                    break
+                if not isinstance(key, str):
+                    if key is None:
+                        key = "null"
+                    elif isinstance(key, bool):
+                        key = "true" if key else "false"
+                    elif isinstance(key, int) or (isinstance(key, float) and math.isfinite(key)):
+                        try:
+                            key = str(key)
+                        except ValueError:
+                            return _TRUNCATED
+                    else:
+                        return _TRUNCATED
+                remaining -= len(key)
+                if remaining < 0:
+                    result["[truncated]"] = _TRUNCATED
+                    break
+                safe_key = _sanitize_output_text(key)
+                base = safe_key
+                suffix = next_suffix.get(base, 2)
+                while safe_key in result:
+                    safe_key = f"{base} [{suffix}]"
+                    suffix += 1
+                if safe_key != base:
+                    next_suffix[base] = suffix
+                sensitive = False
+                if key.isascii():
+                    # Every accepted credential suffix is short. Inspect only a bounded
+                    # tail, retaining one preceding character for the boundary check.
+                    tail = key[-65:]
+                    for index, char in enumerate(tail):
+                        previous = key[len(key) - len(tail) + index - 1] if len(key) - len(tail) + index else ""
+                        boundary = not previous or previous in "_.-" or (previous.islower() and char.isupper())
+                        if not boundary:
+                            continue
+                        normalized = tail[index:].lower().replace("-", "").replace("_", "").replace(".", "")
+                        if normalized in _SENSITIVE or (normalized == "pwd" and previous):
+                            sensitive = True
+                            break
+                result[safe_key] = _MARKER if sensitive else visit(child, depth + 1)
+            return result
+        return _TRUNCATED
+
+    return visit(value, 0)
+
+
+def render_json(value, *, max_chars=1_000_000):
+    """Emit complete JSON, including when encoding overhead exceeds the configured budget."""
+    value = sanitize_output(value, max_chars=max_chars)
+    parts = []
+    size = 0
+    for part in json.JSONEncoder(indent=2).iterencode(value):
+        size += len(part)
+        if size > max_chars:
+            return json.dumps({"warning": _TRUNCATED})
+        parts.append(part)
+    return "".join(parts)
 
 
 def _compact_alert(alert: dict) -> dict:

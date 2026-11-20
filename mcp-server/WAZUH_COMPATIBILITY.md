@@ -16,8 +16,7 @@ What has been checked:
   API specifications for 4.13.0, 4.14.0, 4.14.1 and 4.14.7, with the same RBAC actions.
 - Active-response behavior (delivery semantics, per-command timeout handling) was checked
   against the Wazuh 4.14 source.
-- Versions 4.8 to 4.12 are in the supported range but were not re-checked against their API
-  specifications for this document.
+- The offline gate below checks the 4.8.0 and 4.14.7 read contracts. Intermediate 4.8–4.12 releases remain within the documented range.
 
 ## Where data comes from
 
@@ -151,3 +150,9 @@ session.
 - [Wazuh API reference](https://documentation.wazuh.com/current/user-manual/api/reference.html)
 - [Wazuh release notes](https://documentation.wazuh.com/current/release-notes/index.html)
 - [Wazuh upgrade guide](https://documentation.wazuh.com/current/upgrade-guide/index.html)
+
+## Offline release check
+
+Run `python compatibility/check.py` to verify the 16 read operations and three vulnerability search fields on the pinned 4.8.0 and 4.14.7 inputs. The output identifies affected MCP tools on drift and reports supported deprecations. These are published specification and mapping checks for the two named releases. The package tests use local fixtures. Live verification is a separate evidence tier.
+
+The manifest records immutable links and SHA-256 digests for the official Manager specification, Indexer template and checked-in factual projection. For an update, download the two raw inputs from the upstream revision, verify their digests, then run `python compatibility/check.py --project spec.yaml index-template.json` with PyYAML installed. Review any changed fields and synchronize the manifest and snapshots before extending the supported range. [Input manifest](compatibility/manifest.json)

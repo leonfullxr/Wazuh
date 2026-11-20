@@ -27,10 +27,19 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class ToolValidationError(ValueError):
+class SafeToolError(ValueError):
+    """A reviewed, client-safe operational message."""
+
+
+class ToolValidationError(SafeToolError):
     """Raised when tool parameter validation fails."""
 
     def __init__(self, param_name: str, message: str, suggestion: str = None):
+        from wazuh_mcp.server.output import _sanitize_output_text
+
+        param_name = _sanitize_output_text(str(param_name))[:100]
+        message = _sanitize_output_text(message)
+        suggestion = _sanitize_output_text(suggestion) if suggestion else suggestion
         self.param_name = param_name
         self.suggestion = suggestion
         full_message = f"Invalid parameter '{param_name}': {message}"

@@ -118,18 +118,18 @@ docker compose logs wazuh-mcp | grep -E 'ERROR|WARNING'
 
 ### Audit trail
 
-Each call to a `wazuh:write` tool writes two `WARNING` records on the `wazuh_mcp.audit` logger:
+Each write-tool call that reaches its Wazuh client writes two `WARNING` records on the `wazuh_mcp.audit` logger:
 
 ```text
-AUDIT: tool=<name> client=<principal> session=<id> cluster=<cluster> args={...}
-AUDIT_OUTCOME: tool=<name> outcome=success|failure principal=<principal> session=<id> cluster=<cluster> duration_ms=<n> args={...}
+AUDIT: tool=<name> cluster=<cluster> principal="<label>" owner_id=<hash> correlation=<id> target={"agent_id":"001"}
+AUDIT_OUTCOME: tool=<name> cluster=<cluster> principal="<label>" owner_id=<hash> correlation=<id> target={"agent_id":"001"} outcome=success duration_ms=<n>
 ```
 
 ```bash
 docker compose logs wazuh-mcp | grep -E 'AUDIT(_OUTCOME)?:'
 ```
 
-The principal is `env-<hash>` for `MCP_API_KEY`, `jwt:<key id>` for bearer tokens (the key id is the `id` of the `API_KEYS` entry), `authless` in `AUTH_MODE=none`, and `oauth:<client>:<subject>` for OAuth, where the subject is the API key id or, with an identity provider, the user identity chosen by `OAUTH_IDP_SUBJECT_CLAIM`. Forward these records to your SIEM if you need to keep them. Container logs are rotated.
+The target contains the validated identifiers used by the operation. Use the correlation and owner IDs to pair records. The principal is `env-<hash>` for `MCP_API_KEY`, `jwt:<key id>` for bearer tokens (the key id is the `id` of the `API_KEYS` entry), `authless` in `AUTH_MODE=none`, and `oauth:<client>:<subject>` for OAuth, where the subject is the API key id or, with an identity provider, the user identity chosen by `OAUTH_IDP_SUBJECT_CLAIM`. Forward these records to your SIEM if you need to keep them. Container logs are rotated.
 
 ## Maintenance
 
@@ -229,3 +229,13 @@ curl -s -X DELETE $BASE/mcp -H "Authorization: Bearer $TOKEN" -H "MCP-Session-Id
 ---
 
 [Back to README](../README.md) | [Configuration](configuration.md) | [Troubleshooting](TROUBLESHOOTING.md)
+
+## Verify this package
+
+Install the development and Redis extras in a fresh virtual environment with `python -m pip install -c ci-constraints.txt -e '.[dev,redis]'`. Activate it and run `scripts/verify.sh` from the package directory. To include the real Redis store check, point `MCP_TEST_REDIS_URL` at a disposable isolated Redis database. The fixture uses a unique session ID and removes it on exit. A failed or timed-out Redis count now makes readiness return 503. Its five-second cache starts when the probe completes.
+
+Dynamic OAuth registrations are process-local. After a restart or registration eviction, an access token for a client whose registration is no longer present is rejected because its registered scope ceiling cannot be verified. The client must register again and complete authorization to obtain new tokens. Use sticky sessions or a single instance for OAuth; shared Redis session storage does not persist OAuth registrations.
+
+Legacy clients holding a session issued before typed owners were introduced must initialize again. Drain old replicas before switching a shared Redis namespace to this release. Check that read-only consumers have the read scope, named clusters match resource expectations, and registered OAuth callbacks contain no reserved response keys. OAuth login POST redirects use HTTP 303.
+
+The response-approval experiment in `evals/approval_experiment.py` uses a local SQLite file and a simulated marker. The test demonstrates single use, expiry, identity and exact proposal binding, restart recovery and reconciliation. Run `python -m pytest -q tests/integration/test_approval_experiment.py`. The package registers no tool or dispatcher for this experiment. A deployment would first need a trusted user-interaction channel and a durable shared approval and dispatch journal.

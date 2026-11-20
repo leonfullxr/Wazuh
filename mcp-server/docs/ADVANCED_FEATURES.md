@@ -134,7 +134,7 @@ WAZUH_DISABLED_TOOLS=wazuh_restart,wazuh_active_response
 
 ### Scopes
 
-Tools require `wazuh:read` (41 tools) or `wazuh:write` (14 tools). Write tools are omitted from `tools/list` for tokens without `wazuh:write`, and refused if called. Every write-tool call that passes the scope, confirmation and argument checks is logged to the `wazuh_mcp.audit` logger with the principal, session and arguments.
+Tools require `wazuh:read` (41 tools) or `wazuh:write` (14 tools). Write tools are omitted from `tools/list` for tokens without `wazuh:write`, and refused if called. Every write-tool call that passes the scope, confirmation and argument checks is logged to the `wazuh_mcp.audit` logger with the principal, owner ID, correlation ID, resolved cluster and validated target fields.
 
 ### Active-response guard-rails
 

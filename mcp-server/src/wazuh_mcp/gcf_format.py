@@ -42,6 +42,10 @@ def render_result(label: str, result: Any, *, compact: bool) -> str:
     Returns:
         The formatted response body (``"{label}:\\n{payload}"``).
     """
+    from wazuh_mcp.server.output import sanitize_output
+
+    label = sanitize_output(label)
+    result = sanitize_output(result)
     if gcf_enabled():
         try:
             from gcf import encode_generic

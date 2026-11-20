@@ -102,3 +102,8 @@ yarn.lock
 .mypy_cache/
 .dmypy.json
 dmypy.json
+# Local audit worktrees and development-only verification assets
+.review/
+plans/
+compatibility/
+evals/

@@ -58,6 +58,11 @@ class SessionStore(ABC):
         """Remove expired sessions and return count."""
         pass
 
+    @abstractmethod
+    async def compare_and_swap(self, session_id: str, expected: Dict[str, Any], replacement: Optional[Dict[str, Any]]) -> bool:
+        """Atomically replace or delete an unchanged record; never create a missing record."""
+        pass
+
     async def count(self) -> int:
         """Number of stored sessions. Backends override with something cheaper than get_all()."""
         return len(await self.get_all())
@@ -97,6 +102,15 @@ class InMemorySessionStore(SessionStore):
         except Exception as e:
             logger.error(f"Failed to delete session {session_id}: {e}")
             return False
+
+    async def compare_and_swap(self, session_id: str, expected: Dict[str, Any], replacement: Optional[Dict[str, Any]]) -> bool:
+        if self._sessions.get(session_id) != expected:
+            return False
+        if replacement is None:
+            del self._sessions[session_id]
+        else:
+            self._sessions[session_id] = replacement
+        return True
 
     async def exists(self, session_id: str) -> bool:
         """Check if session exists."""
@@ -222,7 +236,7 @@ class RedisSessionStore(SessionStore):
         try:
             key = self._session_key(session_id)
             data = json.dumps(session_data, default=str)
-            await self._redis.setex(key, self.ttl_seconds, data)
+            await self._redis.set(key, data, ex=self.ttl_seconds)
             return True
         except Exception as e:
             logger.error(f"Failed to store session {session_id} in Redis: {e}")
@@ -237,6 +251,22 @@ class RedisSessionStore(SessionStore):
             return result > 0
         except Exception as e:
             logger.error(f"Failed to delete session {session_id} from Redis: {e}")
+            raise SessionStoreUnavailable(str(e)) from e
+
+    async def compare_and_swap(self, session_id: str, expected: Dict[str, Any], replacement: Optional[Dict[str, Any]]) -> bool:
+        await self._ensure_initialized()
+        script = """
+        if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+        if ARGV[2] == '' then return redis.call('DEL', KEYS[1]) end
+        redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+        return 1
+        """
+        try:
+            result = await self._redis.eval(script, 1, self._session_key(session_id),
+                json.dumps(expected, default=str),
+                json.dumps(replacement, default=str) if replacement is not None else "", self.ttl_seconds)
+            return bool(result)
+        except Exception as e:
             raise SessionStoreUnavailable(str(e)) from e
 
     async def exists(self, session_id: str) -> bool:
@@ -307,13 +337,19 @@ class RedisSessionStore(SessionStore):
         return 0
 
     async def count(self) -> int:
-        """Key count via SCAN (no payload fetch), so the bounds check stays cheap."""
-        await self._ensure_initialized()
+        """Count one SCAN page at a time under a single readiness deadline."""
         try:
-            return len(await self._scan_keys(self._session_key("*")))
-        except Exception as e:
-            logger.error(f"Failed to count sessions in Redis: {e}")
-            return 0
+            async with asyncio.timeout(5):
+                await self._ensure_initialized()
+                cursor = 0
+                count = 0
+                while True:
+                    cursor, batch = await self._redis.scan(cursor=cursor, match=self._session_key("*"), count=100)
+                    count += len(batch)
+                    if cursor == 0:
+                        return count
+        except Exception as exc:
+            raise SessionStoreUnavailable("Redis session count unavailable") from exc
 
     async def close(self):
         """Close Redis connection."""

@@ -465,3 +465,11 @@ SCA Policy Checks [cis_ubuntu22-04]:
 ## Guided prompt
 
 The server also provides an `iso27001_assessment` prompt that walks through the dashboard, domain drill-down, gap analysis and recommendations. Its arguments are `scope` (`full`, `technological` or `specific_control`), `control_id` and `agent_id`, all optional.
+
+### Vulnerability evidence completeness
+
+The ISO dashboard reports `vulnerability_coverage` with a `status` (`complete`, `partial`, or `unavailable`), the exact `expected_agents` when known, `completed_agents`, observed severity counts, and reasons for incomplete collection. Findings from incomplete searches are lower bounds. A single ten-second budget covers all vulnerability queries and their retries.
+
+For partial or unavailable coverage, `vulnerability_summary`, the A.8.8 score, the A.8 weighted score, and the overall weighted score are null; posture is `insufficient_data`. Other measured controls remain available. For example, a truncated page may return `{"status":"partial","expected_agents":1,"completed_agents":0,"observed_counts":{"critical":500,"high":0,"medium":0,"low":0},"reasons":["page_truncated"]}`. A fleet with no targets returns `status: unavailable` and reason `no_targets`.
+
+The A.8.8 gap uses `incomplete_evidence` and includes the observed counts and a `score_upper_bound` when a query succeeded. A bound below 75 is a known failure; a bound below 40 is critical. Complete zero findings for a confirmed target retain a score of 100.

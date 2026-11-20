@@ -86,7 +86,7 @@ USER 1000:1000
 
 # Environment configuration
 ENV PATH="/home/wazuh/.local/bin:${PATH}" \
-    PYTHONPATH="/app/src:${PYTHONPATH}" \
+    PYTHONPATH="/app/src" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     # Enable Python fault handler for crash diagnostics

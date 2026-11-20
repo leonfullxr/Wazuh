@@ -389,11 +389,13 @@ class TestSessionFixation:
     @pytest.mark.asyncio
     async def test_session_always_gets_server_generated_id(self):
         """Verify get_or_create_session always generates server-side IDs."""
-        from wazuh_mcp.server.sessions import get_or_create_session
+        from wazuh_mcp.server.sessions import SessionNotFound, get_or_create_session
 
-        # Even when passing a client-chosen session ID that doesn't exist,
-        # the server should generate its own ID
-        session = await get_or_create_session("client-chosen-id", None)
+        # A client-chosen unknown ID cannot create a session.
+
+        with pytest.raises(SessionNotFound):
+            await get_or_create_session("client-chosen-id", None)
+        session = await get_or_create_session(None, None)
         assert session.session_id != "client-chosen-id"
         # Session ID should be a UUID4 format
         import uuid

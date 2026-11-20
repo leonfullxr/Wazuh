@@ -178,7 +178,7 @@ Note: The /vulnerability API was removed in Wazuh 4.8.0. Vulnerability data must
   ```
 
 - **Annotations.** Each tool carries MCP annotations. Read tools: `readOnlyHint: true`, `openWorldHint: false` (`true` for `search_external_context`). Write tools: `readOnlyHint: false`, `idempotentHint: false`, `openWorldHint: false`, and `destructiveHint: true` except for the five reversal tools (`wazuh_unisolate_host`, `wazuh_enable_user`, `wazuh_restore_file`, `wazuh_firewall_allow`, `wazuh_host_allow`), which are `false`. Annotations are hints for clients; authorization is enforced by scope on the server.
-- **Audit log.** Every write-tool call that passes the scope, confirmation and argument checks is logged before execution (`AUDIT:`) and after it with its outcome (`AUDIT_OUTCOME:`), including the principal and target arguments. Calls refused by those checks are not audit-logged.
+- **Audit log.** Every write-tool call that passes the scope, confirmation and argument checks is logged before execution (`AUDIT:`) and after it with its outcome (`AUDIT_OUTCOME:`), including the principal, resolved cluster, correlation ID and validated target fields. Calls refused by those checks are not audit-logged.
 
 ## Multi-cluster routing
 
@@ -192,3 +192,7 @@ In single-cluster deployments neither `cluster_id` nor `list_wazuh_clusters` exi
 ## Resilience
 
 Manager API and Indexer requests are retried on transient failures and protected by per-client circuit breakers. See [OPERATIONS.md](../OPERATIONS.md) and [TROUBLESHOOTING.md](../TROUBLESHOOTING.md) for connection problems and [configuration.md](../configuration.md) for every environment variable mentioned here.
+
+## Optional investigations
+
+The analysis toolset can expose a per-agent timeline, evidence lookup and configured saved investigations. Replies include source completeness and a text rendering. [Setup and tool contracts](../INVESTIGATIONS.md)

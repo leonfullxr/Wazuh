@@ -304,3 +304,7 @@ Bugs and feature requests: [GitHub issues](https://github.com/leonfullxr/Wazuh/i
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Investigation pilots and verification
+
+Operators can select a compact tool profile, enable an evidence-linked investigation timeline and saved queries, and restrict access by cluster. The timeline includes a read-only viewer for MCP Apps clients and a JSON/text rendering for other clients. [Investigation configuration and evidence](docs/INVESTIGATIONS.md) · [Tool profiles and paired evaluation](docs/LOCAL_LLM.md#task-profiles-and-paired-evaluation) · [Cluster policy](docs/CLUSTER_POLICY.md) · [Package verification](docs/OPERATIONS.md#verify-this-package) · [Compatibility checks](WAZUH_COMPATIBILITY.md#offline-release-check)

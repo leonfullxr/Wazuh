@@ -1,5 +1,6 @@
 """Request authentication, rate limiting, CORS and Origin header validation."""
 
+import hashlib
 import logging
 import os
 from datetime import datetime, timezone
@@ -49,6 +50,7 @@ async def _do_verify_authentication(authorization: Optional[str], config) -> Opt
             api_key_id="authless",
             created_at=datetime.now(timezone.utc),
             scopes=scopes,
+            owner={"version": 1, "family": "authless"},
         )
 
     # Point OAuth clients at the protected resource metadata (RFC 9728) when the
@@ -80,8 +82,8 @@ async def _do_verify_authentication(authorization: Optional[str], config) -> Opt
                     token_obj = None
             if token_obj:
                 # Return AuthToken with OAuth scopes (fail closed to read-only)
-                scope_str = getattr(token_obj, "scope", "") or ""
-                scopes = scope_str.split() if scope_str else ["wazuh:read"]
+                scope_str = getattr(token_obj, "scope", None)
+                scopes = scope_str.split() if isinstance(scope_str, str) else ["wazuh:read"]
                 if key_obj is not None:
                     from wazuh_mcp.auth import current_key_scopes
 
@@ -92,11 +94,26 @@ async def _do_verify_authentication(authorization: Optional[str], config) -> Opt
                 subject = getattr(token_obj, "subject", None)
                 client = getattr(token_obj, "client_id", None)
                 oauth_principal = f"{client}:{subject}" if subject and client else (subject or client)
+                registered = state._oauth_manager.validate_client(client)
+                if registered is None:
+                    raise HTTPException(status_code=401, detail="Invalid or expired OAuth token")
+                scopes = [scope for scope in scopes if scope in (registered.scope or "").split()]
+                kind = getattr(token_obj, "subject_kind", None)
+                issuer = getattr(token_obj, "identity_issuer", None)
+                if (not isinstance(client, str) or not client.strip()
+                    or kind not in (None, "api_key", "idp_user")
+                    or (kind is None and subject is not None)
+                    or (kind is not None and (not isinstance(subject, str) or not subject.strip()))
+                    or (kind == "idp_user" and (not isinstance(issuer, str) or not issuer.strip()))):
+                    raise HTTPException(status_code=401, detail="Invalid or expired OAuth token")
+                owner = {"version": 1, "family": "oauth", "issuer": getattr(config, "OAUTH_ISSUER_URL", "") or hashlib.sha256(state._oauth_manager.secret_key.encode()).hexdigest(), "client": client, "subject_kind": kind, "subject": subject, "identity_issuer": issuer}
                 return AuthToken(
                     token=token,
                     api_key_id=f"oauth:{oauth_principal}" if oauth_principal else "oauth",
                     created_at=datetime.now(timezone.utc),
                     scopes=scopes,
+                    owner=owner,
+                    metadata={"identity_issuer": issuer, "subject": subject, "subject_kind": kind, "groups": getattr(token_obj, "groups", ()), "groups_at": getattr(token_obj, "groups_at", None)},
                 )
         raise HTTPException(
             status_code=401, detail="Invalid or expired OAuth token", headers={"WWW-Authenticate": www_authenticate}

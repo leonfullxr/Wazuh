@@ -320,14 +320,14 @@ class TestCallback:
         tokens = mgr.exchange_code_for_tokens(back["code"][0], "claude-desktop", CLAUDE_REDIRECT, verifier)
         assert tokens["scope"] == "wazuh:read wazuh:write"
         access = mgr.validate_access_token(tokens["access_token"])
-        assert access.subject == "alice@corp.example"
-        assert jwt.decode(tokens["access_token"], mgr.secret_key, algorithms=["HS256"])["sub"] == "alice@corp.example"
+        assert access.subject == "idp-sub-42"
+        assert jwt.decode(tokens["access_token"], mgr.secret_key, algorithms=["HS256"])["sub"] == "idp-sub-42"
 
         # ...and survive refresh rotation, including the stateless (post-restart) decode path.
         refreshed = mgr.refresh_access_token(tokens["refresh_token"], "claude-desktop")
-        assert mgr.validate_access_token(refreshed["access_token"]).subject == "alice@corp.example"
+        assert mgr.validate_access_token(refreshed["access_token"]).subject == "idp-sub-42"
         mgr.access_tokens.clear()
-        assert mgr.validate_access_token(refreshed["access_token"]).subject == "alice@corp.example"
+        assert mgr.validate_access_token(refreshed["access_token"]).subject == "idp-sub-42"
 
     async def test_state_is_single_use(self, client, idp, rsa_key):
         """State is single use."""
@@ -652,7 +652,7 @@ class TestIdpTokensAtTheServer:
     async def test_idp_token_accepted_by_verify_authentication(self, monkeypatch, mgr):
         from wazuh_mcp import server as mcp_server
 
-        token = mgr._create_jwt_token("claude-desktop", "wazuh:read", "access", "alice@corp.example", "fam", "idp_user")
+        token = mgr._create_jwt_token("claude-desktop", "wazuh:read", "access", "alice@corp.example", "fam", "idp_user", "https://idp.example.test", (), time.time())
         monkeypatch.setattr(mcp_server.state, "_oauth_manager", mgr)
         monkeypatch.setattr(mcp_server.state.config, "AUTH_MODE", "oauth")
         principal = await mcp_server.http_security.verify_authentication(f"Bearer {token}", mcp_server.state.config)

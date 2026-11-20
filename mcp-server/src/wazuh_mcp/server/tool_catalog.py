@@ -1,16 +1,17 @@
 """The tools/list handler and the tool argument-name lookup."""
 
 from datetime import datetime, timezone
+from functools import lru_cache as _lru_cache
 from typing import Any, Dict, Optional
 
 from wazuh_mcp.toolsets import tool_annotations
 
 from . import state, tool_policy
 from .sessions import MCPSession
-from .tool_policy import WRITE_SCOPE_TOOLS
+from .tool_policy import WRITE_SCOPE_TOOLS, _get_tool_scope
 
 
-async def handle_tools_list(params: Dict[str, Any], session: MCPSession) -> Dict[str, Any]:
+async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _schema_introspection: bool = False) -> Dict[str, Any]:
     """Handle tools/list method - All 55 Wazuh Security Tools with pagination.
     Filters tools based on session token scopes."""
     _cursor = params.get("cursor")  # Reserved for future pagination
@@ -807,14 +808,19 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession) -> Dict
         },
     ]
 
+    if state.investigation_config:
+        from .product_tools import catalog as investigation_catalog
+
+        tools.extend(investigation_catalog(state.investigation_config.saved))
+
     # Multi-cluster mode: advertise the cluster_id parameter on every tool and the
     # list_wazuh_clusters tool. Single-cluster deployments see no schema change.
-    if state.cluster_registry.multi_cluster:
+    if state.cluster_registry.multi_cluster or _schema_introspection:
         cluster_property = {
             "type": "string",
             "description": (
-                f"Target Wazuh cluster (default: {state.cluster_registry.default_id}). "
-                "Use list_wazuh_clusters to see configured clusters."
+                ("Target Wazuh cluster. " if state.cluster_policy is not None else f"Target Wazuh cluster (default: {state.cluster_registry.default_id}). ")
+                + "Use list_wazuh_clusters to see configured clusters."
             ),
         }
         for t in tools:
@@ -830,8 +836,19 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession) -> Dict
     # Operator-selected exposure (WAZUH_TOOLSETS / WAZUH_DISABLED_TOOLS)
     tools = [t for t in tools if t["name"] in state.config.ENABLED_TOOLS]
 
-    # Filter tools by session scopes: hide write tools from read-only or unknown tokens
+    # Apply the same scope requirements as invocation.
     auth_token = getattr(session, "_auth_token", None)
+    product_names = {t["name"] for t in investigation_catalog(state.investigation_config.saved)} if state.investigation_config else set()
+    tools = [t for t in tools if auth_token and auth_token.has_scope(
+        "wazuh:read" if t["name"] in product_names else _get_tool_scope(t["name"]))]
+    if not _schema_introspection and (state.cluster_policy is not None or state.config.TOOL_PROFILE):
+        from .cluster_policy import authorize_cluster, supports_tool
+
+        tools = [t for t in tools if any(
+            authorize_cluster(auth_token, cluster, "wazuh:read" if t["name"] in product_names else _get_tool_scope(t["name"]))
+            and supports_tool(cluster, t["name"])
+            for cluster in state.cluster_registry.cluster_ids
+        )]
     if not auth_token or not auth_token.has_scope("wazuh:write"):
         tools = [t for t in tools if t["name"] not in WRITE_SCOPE_TOOLS]
     else:
@@ -873,20 +890,86 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession) -> Dict
 _UNADVERTISED_ARGUMENTS = {"wazuh_block_ip": {"duration"}, "wazuh_firewall_drop": {"duration"}}
 
 
-async def _tool_argument_names(tool_name: str) -> Optional[frozenset]:
-    """Declared inputSchema properties for a tool, taken from the tools/list definitions."""
-    if state._TOOL_ARGUMENT_NAMES is None:
-        from wazuh_mcp.auth import AuthToken
+def _schema_field_type(schema: dict):
+    from typing import Literal
 
-        schema_session = MCPSession("schema-introspection", None)
-        schema_session._auth_token = AuthToken(
-            token="", api_key_id="schema", created_at=datetime.now(timezone.utc), scopes=["wazuh:read", "wazuh:write"]
-        )
-        listed = (await handle_tools_list({}, schema_session))["tools"]
-        # cluster_id and confirm are consumed before this check, so they never count as unknown
-        state._TOOL_ARGUMENT_NAMES = {
-            t["name"]: (frozenset(t["inputSchema"].get("properties", {})) - {"cluster_id", "confirm"})
-            | frozenset(_UNADVERTISED_ARGUMENTS.get(t["name"], ()))
-            for t in listed
-        }
-    return state._TOOL_ARGUMENT_NAMES.get(tool_name)
+    kind = schema.get("type")
+    if "enum" in schema:
+        return Literal[tuple(schema["enum"])]
+    if kind == "array":
+        return list[_schema_field_type(schema.get("items", {}))]
+    return {"string": str, "integer": int, "number": float, "boolean": bool, "object": dict}.get(kind, Any)
+
+
+@_lru_cache(maxsize=256)
+def _compile_tool_schema(serialized: str):
+    import json
+
+    from pydantic import ConfigDict, Field, create_model
+
+    schema = json.loads(serialized)
+    properties = schema.get("properties", {})
+    required = set(schema.get("required", []))
+    fields = {}
+    for index, (name, prop) in enumerate(properties.items()):
+        constraints = {}
+        if "minimum" in prop:
+            constraints["ge"] = prop["minimum"]
+        if "maximum" in prop:
+            constraints["le"] = prop["maximum"]
+        if "maxItems" in prop:
+            constraints["max_length"] = prop["maxItems"]
+        if "minItems" in prop:
+            constraints["min_length"] = prop["minItems"]
+        fields[f"field_{index}"] = (_schema_field_type(prop), Field(... if name in required else None, alias=name, **constraints))
+    return create_model("ToolArguments", __config__=ConfigDict(strict=True, extra="forbid"), **fields)
+
+
+async def validate_tool_schema(tool_name: str, arguments: dict) -> Optional[str]:
+    """Validate against the operator catalog, independent of a caller's discovery view."""
+    import json
+
+    from pydantic import ValidationError
+
+    from wazuh_mcp.auth import AuthToken
+
+    schema_session = MCPSession("schema-introspection", None)
+    schema_session._auth_token = AuthToken(token="", api_key_id="schema", created_at=datetime.now(timezone.utc), scopes=["wazuh:read", "wazuh:write"])
+    listed = (await handle_tools_list({}, schema_session, _schema_introspection=True))["tools"]
+    schema = next((t["inputSchema"] for t in listed if t["name"] == tool_name), None)
+    if schema is None:
+        return "Tool unavailable"
+    schema = dict(schema)
+    schema["properties"] = dict(schema.get("properties", {}))
+    for name in _UNADVERTISED_ARGUMENTS.get(tool_name, ()):
+        schema["properties"][name] = {}
+    # Restore only inputs that the relevant legacy validators explicitly accepted.
+    normalized = dict(arguments)
+    required = set(schema.get("required", []))
+    for name, value in list(normalized.items()):
+        if name not in schema["properties"]:
+            continue
+        if value is None and name not in required:
+            del normalized[name]
+        elif tool_name != "investigate_agent_timeline" and not tool_name.startswith("saved_investigation_") and name in {"limit", "min_frequency", "top_rules", "top_agents", "count", "process_id"} and isinstance(value, str) and value.isascii() and value.isdecimal() and len(value) <= 20:
+            normalized[name] = int(value)
+        elif name in {"compact", "include_recommendations", "all_agents"} and isinstance(value, str) and value.lower() in {"true", "false", "1", "0", "yes", "no", "on", "off"}:
+            normalized[name] = value.lower() in {"true", "1", "yes", "on"}
+        elif name == "confirm" and isinstance(value, str) and value.strip().lower() in {"true", "false", "1", "0", "yes", "no", "y", "n"}:
+            normalized[name] = value.strip().lower() in {"true", "1", "yes", "y"}
+        elif name == "severity" and isinstance(value, str) and value.strip().lower() in {"low", "medium", "high", "critical"}:
+            normalized[name] = value.strip().lower()
+        elif name == "rule_groups" and isinstance(value, str):
+            normalized[name] = [value]
+    try:
+        _compile_tool_schema(json.dumps(schema, sort_keys=True)).model_validate(normalized)
+    except ValidationError as exc:
+        error = exc.errors(include_input=False, include_url=False)[0]
+        field = str(error["loc"][0]) if error["loc"] else "arguments"
+        # Field names are from the static catalog except for extra-property errors.
+        if error["type"] == "extra_forbidden":
+            return "Unknown argument for this tool. Valid arguments: " + ", ".join(sorted(properties for properties in schema["properties"]))
+        return f"Invalid parameter '{field}': {error['msg']}"
+    arguments.clear()
+    arguments.update(normalized)
+    return None

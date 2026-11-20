@@ -136,3 +136,13 @@ class TestAnnotationsAndSchemas:
         listed = await _listed()
         assert "confirm" in listed["wazuh_block_ip"]["inputSchema"]["properties"]
         assert "confirm" not in listed["get_wazuh_alerts"]["inputSchema"]["properties"]
+
+
+def test_profile_intersects_operator_allowlist(monkeypatch):
+    monkeypatch.setenv("WAZUH_TOOL_PROFILE", "operations")
+    monkeypatch.setenv("WAZUH_TOOLSETS", "alerts,agents")
+    monkeypatch.setenv("WAZUH_DISABLED_TOOLS", "get_agent_ports")
+    assert ServerConfig.from_env().ENABLED_TOOLS == TOOLSETS["agents"] - {"get_agent_ports"}
+    monkeypatch.setenv("WAZUH_TOOL_PROFILE", "unknown")
+    with pytest.raises(ConfigurationError, match="Unknown WAZUH_TOOL_PROFILE"):
+        ServerConfig.from_env()

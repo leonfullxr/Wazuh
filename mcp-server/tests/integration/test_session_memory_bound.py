@@ -106,9 +106,10 @@ class TestStoreBounds:
     @pytest.mark.asyncio
     async def test_existing_session_lookup_never_evicts(self, fresh_store):
         """Existing session lookup never evicts."""
-        s = await get_or_create_session(None, None, principal="alice")
+        owner = {"version": 1, "family": "api_key", "subject": "alice"}
+        s = await get_or_create_session(None, None, principal="alice", owner=owner)
         for _ in range(10):
-            again = await get_or_create_session(s.session_id, None, principal="alice")
+            again = await get_or_create_session(s.session_id, None, principal="alice", owner=owner)
             assert again.session_id == s.session_id
         assert len(await fresh_store.get_all()) == 1
 

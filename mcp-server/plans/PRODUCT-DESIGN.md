@@ -1,0 +1,86 @@
+# Wazuh MCP product design
+
+Planning baseline `cccb1e8`, 2026-11-20. These are design candidates for the top-level Python server. Effort estimates include contract tests and operator documentation. The first release candidate is P1. P2–P6 are independently selectable investments.
+
+## P1. Give the analyst an evidence-backed alert timeline
+
+**User story.** An analyst asks “What happened on this agent around this alert?” and gets one answer they can check and hand to the next shift. Today the `security_investigation` prompt instructs the model to make five separate choices. The order, scope and treatment of missing data depend on the client. Microsoft Sentinel offers separate incident-triage and data-exploration collections. Grafana gives the analyst a route from a summary to the full source. [Wazuh investigation prompt](../src/wazuh_mcp/server/handlers.py#L249) · [Microsoft Sentinel collections](https://learn.microsoft.com/en-us/azure/sentinel/datalake/sentinel-mcp-tools-overview) · [Grafana tool reference](https://grafana.com/docs/grafana/latest/ai-tools/mcp/reference/mcp-tools-table/)
+
+**First slice, medium effort.** Add one read-only investigation tool to the analysis toolset. Inputs are a normalized agent ID, an optional authorized cluster, and a bounded absolute time window. Start with alert events from the Indexer and agent status from the Manager. Return a structured result plus a concise text rendering. Include resolved cluster, requested interval, collection time, per-source availability, total matches when known, rows returned, truncation, and evidence references. Order ties deterministically. Agent status is a dated observation at collection time. Distinguish it visually and structurally from historical alert events. Use opaque cluster-bound references derived from hit metadata for authorized drill-down; the Indexer currently discards that metadata at wazuh_indexer.py:443. Avoid returning arbitrary index names as accepted lookup targets. Redact before building either representation. Preserve support for JSON-only clients. [Indexer transformation](../src/wazuh_mcp/api/wazuh_indexer.py#L439)
+
+**Pilot contract.** Reject an invalid time window or row limit with the permitted range. Use a fixture containing two same-time events, reused IDs in two clusters, an empty successful search, a stale Manager observation and an unavailable source. Require correct ordering, authorized source retrieval, deterministic totals/coverage and identical evidence IDs in both renderings. Use the existing endpoints for reference assertions. A desktop client and one local text-only client should answer “what happened and what could you verify?” using those IDs. Ship a bounded single-call result first; persistent investigations require separate access, retention and deletion contracts. Depends on 001, 003, 004, 006 and the coverage semantics established by 002.
+
+**Example response.** This abbreviated fixture illustrates the distinction the client must preserve. With two matching Indexer alerts and an unavailable Manager, the analyst can cite both alerts. The agent's current status is unknown.
+
+```json
+{
+  "cluster": "staging-eu",
+  "agent_id": "007",
+  "window": {"from": "2026-11-18T09:00:00Z", "to": "2026-11-18T10:00:00Z"},
+  "collected_at": "2026-11-18T10:01:00Z",
+  "sources": {
+    "alerts": {"status": "complete", "matched": 2, "returned": 2, "truncated": false},
+    "agent_status": {"status": "unavailable", "observed_at": null}
+  },
+  "events": [
+    {"at": "2026-11-18T09:12:00Z", "rule_id": "101", "evidence_ref": "ev_A"},
+    {"at": "2026-11-18T09:17:00Z", "rule_id": "102", "evidence_ref": "ev_B"}
+  ]
+}
+```
+
+The same fixture with a successful empty search returns `matched: 0` and an empty list. A failed search returns `matched: null` and `status: unavailable`. For a capped search use `status: partial`, expose both counts when available, and show the selected interval in the human-readable response. Treat references as identifiers. Resolve and authorize each read server-side. Start the pilot using a one-hour default window, a 24-hour maximum and at most 50 events per request. Test these proposed bounds against real operator questions before promoting them to defaults. Reject explicit oversized windows with the allowed range so that the analyst can choose a narrower interval.
+
+**Retrieval contract.** Include a read-only evidence lookup in the pilot. Accept limits of 1–50 and select the latest hour when the caller omits the interval. Select the most recent matches in descending event time, using a sortable, unique tie-breaker at the Indexer before applying the limit. Display the selected page oldest first. Validate the tie-breaker against supported mappings and against ties spanning rollover indices. If the field is unavailable, require a verified equivalent such as a point-in-time search with a supported stable shard tie-breaker before enabling that backend. The returned page states its selection order and whether earlier matches were omitted.
+
+For the pilot, an eligible cluster is a configured, directly connected cluster for which the request has `wazuh:read`. Enable the feature only in deployments where that existing grant covers the data. P5 introduces finer boundaries. Mint a short-lived (15-minute) opaque, authenticated-encrypted locator with a versioned cluster identity, concrete allowed alert index, document ID, expiry and owner identity. Configure the same key ring on participating replicas and retain retiring decryption keys for the locator lifetime. Treat missing keys as a feature configuration error. Recheck identity, read scope, active cluster policy and the index allowlist at lookup. Return the same unavailable result for inaccessible and expired locators. Test a registry remap, revoked access and a lookup on a second replica. Exclude wildcard cross-cluster sources until concrete origin identity is verified.
+
+Emit the sanitized object as MCP `structuredContent`. For clients that only consume `content`, return a concise text summary plus a text block containing standalone JSON for that same object. The new tool uses this contract in both response-format modes. Keep existing GCF tools on their established encoding. Document the extra response size and measure the largest 50-row reply before release.
+
+## P2. Give smaller models task-specific tool profiles
+
+Cloudflare exposes a large API through discovery and execution. Wazuh already has eight operator-configurable toolsets and 55 tools. Its project benchmark recorded median responses of 15.8 seconds with the full catalog and 10.9 seconds with a trimmed catalog, across different runnable scenario sets. That warrants a controlled comparison with identical cases. [Cloudflare Code Mode](https://blog.cloudflare.com/code-mode-mcp/) · [Wazuh local-model measurements](../docs/LOCAL_LLM.md#trim-the-tool-catalogue)
+
+**Pilot, small effort.** Define opinionated profiles for alert triage, compliance review and platform operations over the existing named toolsets. Resolve profiles on the server and intersect them with the operator allowlist, effective user scope and statically configured backends. Tool listing and direct calls must agree. Start with configuration presets and an operator-visible effective catalog. On-demand discovery adds another model round trip and client compatibility work; prototype it only if the presets miss frequent workflows.
+
+**Decision gate.** Replay the same selected prompts against full and compact catalogs, using the same model, temperature, fixtures and requested tasks. Report median and p95 latency, catalog size, end-to-end task success, unavailable tools, and undesired write selections across *all* returned calls. Report skipped scenarios and denominators explicitly. Existing evals score only the first call. Rejected and missed tasks must remain visible when comparing profiles. This evaluation can begin alongside audit fixes. [Current evaluator](../evals/tool_selection.py#L121)
+
+Select one profile at server startup using operator configuration. An absent setting preserves the current catalog. Reject an unknown profile at startup. Transient backend outages return normal tool errors without changing discovery. Adopt a preset only when it retains baseline task completions on the predeclared matched cases, introduces zero unauthorized actions or additional unwanted write selections, and reduces median catalog tokens or latency. Publish per-case outcomes and p95 so a faster median cannot hide a failed investigation.
+
+## P3. Let operators publish saved investigations
+
+Sentinel exposes saved KQL queries as MCP tools. Elastic offers parameterized ES|QL tools. A Wazuh equivalent lets a detection engineer publish the questions analysts already ask repeatedly. [Microsoft saved queries](https://learn.microsoft.com/en-us/azure/sentinel/datalake/sentinel-mcp-tools-overview) · [Elastic custom tools](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/tools/custom-tools)
+
+**Pilot, medium effort.** Start with a named, read-only query for failed logins on one agent in a bounded time window. Declare its ID, version, allowed parameters, approved fields and source. Compile typed parameters through the existing Indexer query builder. Return query version and normalized filters with each answer. Limit registration to operator-owned configuration loaded at startup. Add a second saved query before expanding the format. [Existing alert filters](../src/wazuh_mcp/api/wazuh_indexer.py#L373)
+
+**Decision gate.** Compare both saved queries to their underlying filtered calls on the same fixture. Missing, unknown or out-of-range parameters must produce an actionable error. Keep a fixed upper bound on rows and time; enforce authorization for discovery and execution. Favor one small catalog of reviewed queries. Owning versioned queries creates a maintenance commitment whenever detection rules change. Reuse P1’s evidence contract when both ship.
+
+Reserve `saved_investigation_` for these tool names and reject duplicate IDs and built-in collisions on startup. Version 1 accepts a normalized agent ID, explicit timestamps and an integer limit with P1 bounds. The reviewed definition owns field names, operators and source. Caller-supplied query syntax, wildcards, regular expressions and fields are invalid input. Register through the analysis toolset and apply P2 selection and P5 policy consistently to listing and invocation when configured. An unavailable source returns the P1 coverage state.
+
+## P4. Show evidence and reviewable actions inside compatible MCP clients
+
+Grafana renders interactive alert history and opens alert-creation drafts for user review. Wazuh already has a useful distinction between dispatch and evidence of execution. Use that distinction in the interface. [Grafana interactive alert apps](https://grafana.com/docs/grafana-cloud/platform/grafana-assistant/configure/cloud-mcp/) · [Wazuh action verification](../docs/api/active-response.md#verification-tools)
+
+**Pilot, medium for the viewer.** Render P1’s results as a timeline with agent, cluster, selected time window and per-source freshness. Select an event to see the sanitized record. Provide the same evidence and uncertainty in plain text to clients without MCP Apps support. UI event handlers must recheck the current principal’s read access. Test equivalent outcomes and references with both client types, including unavailable evidence.
+
+**Separate response-design spike, large.** An operator can preview an existing defensive response with exact cluster, target, expected effect, duration, verification method and rollback availability. An explicit human approval should bind the exact canonical proposal and the authenticated approver, be short-lived and single-use. Preserve the current server-side write scope and protected-target checks at dispatch. Specify retry behavior across process loss: distinguish “not dispatched”, “dispatched”, “outcome unknown” and “verified”; an unknown outcome requires reconciliation before another dispatch. A model-supplied boolean cannot attest that a person approved. Prototype only with a stub dispatcher and a trusted user interaction. Gate any live rollout on an agreed identity and approval channel for the supported clients. [Current confirmation gate](../src/wazuh_mcp/server/tool_policy.py#L149)
+
+Render all alert strings as text nodes, with no HTML interpretation or executable links. Isolate the viewer with a strict CSP, packaged scripts, no inline execution or external network access. Use only a narrow host bridge for authorized reads. A telemetry string can never initiate a tool call. Include a markup-like alert fixture and verify the DOM renders literal text. Apply current cluster policy on every fetch. A deployable response feature additionally requires shared durable approval consumption and dispatch records. The stub spike must demonstrate reconciliation after a simulated restart and identify the trusted UI identity binding before any implementation of live response.
+
+## P5. Add access policies for individual clusters
+
+Atlassian’s OAuth-based MCP access inherits the user’s existing application permissions. In Wazuh, scopes are currently per token across all configured clusters. Giving an analyst read access to production and response rights only in staging is a concrete enterprise use case. [Atlassian MCP permissions](https://support.atlassian.com/security-and-access-policies/docs/understand-atlassian-mcp-server/) · [Wazuh cluster limitations](../docs/MULTI_CLUSTER.md#limitations)
+
+**Pilot, medium–large effort.** Add an opt-in map from stable API-key or IdP group identities to explicit clusters and allowed operations. Compute the intersection with token grants, server settings and backend credentials. Apply policy consistently to discovery, resources, tools, cached evidence and action previews. Record principal, resolved cluster, outcome and correlation ID with sensitive values omitted. Preserve existing semantics when no cluster policy is configured. A configured policy denies unspecified combinations. When a cluster policy is enabled, reject cross-cluster search coordinators in the first release. Direct connections to approved clusters remain eligible.
+
+**Decision gate.** Use a synthetic two-cluster matrix covering identical agent IDs, permission changes, a restricted default, direct calls and resource reads. Require zero backend access on denial and correct attribution when using a shared service credential. Document how newly added clusters receive grants and how caches invalidate after revocation. Depends on 001, 003, 004 and 006. Shared OAuth storage is a separate HA decision; choose it when restart-safe revocation or non-sticky deployments become product requirements. [Existing deployment tradeoff](../docs/OPERATIONS.md#running-more-than-one-instance)
+
+Keep verified API-key, IdP group and issuer identifiers in separate typed namespaces. Union matching grants, intersect with the token and deployment ceilings, and apply any explicit deny last. A configured empty, unreadable or invalid policy fails startup. An intentionally absent policy preserves the current behavior. A forbidden default fails closed without selecting another cluster. Filter discovery and make unknown and forbidden destinations indistinguishable at the public boundary. Re-evaluate policy on every read and dispatch, including cached evidence. If policy reload is supported, switch validated snapshots atomically and key caches to the revision.
+
+## P6. Make the Wazuh compatibility promise executable
+
+The compatibility guide lists 4.8–4.14.7 and identifies backend versions that were checked against published specifications. Two Manager statistics endpoints already have documented replacements. [Compatibility inventory](../WAZUH_COMPATIBILITY.md#supported-versions) · [Deprecated endpoints](../WAZUH_COMPATIBILITY.md#deprecated-endpoints)
+
+**Pilot, medium effort.** Check the documented read endpoints, required parameters and RBAC actions against versioned official specs at the oldest declared and most recently verified releases. Pin inputs and distinguish spec compatibility, fixture compatibility and live verification in the output. A removed operation or changed required parameter must identify its affected MCP tools. Start with read-only Manager coverage; use local fixtures for the Indexer and separately label any environment-backed validation. The inventory can be prepared in parallel and integrated with 008. The tradeoff is ongoing ownership when the upstream support range changes.
+
+Check in the smallest redistributable official Manager specification snapshots and Indexer mapping/response fixtures required for the 4.8.0 and 4.14.7 endpoints. Record upstream release, immutable source revision, checksum and license. Run CI offline against those inputs. A newly removed required endpoint, parameter incompatibility or changed required Indexer field fails with a list of affected tools. A known deprecated but supported endpoint produces a warning with its replacement. The package maintainer updates snapshots and confirms the status at each change to the supported version range.

@@ -126,7 +126,17 @@ def _split(raw: Optional[str]) -> list:
     return [item.strip().lower() for item in (raw or "").split(",") if item.strip()]
 
 
-def resolve_enabled_tools(toolsets: Optional[str], disabled_tools: Optional[str]) -> FrozenSet[str]:
+PROFILES = {
+    "triage": ("alerts", "agents", "analysis", "vulnerabilities"),
+    "compliance": ("compliance", "agents", "vulnerabilities"),
+    "operations": ("system", "agents", "response"),
+}
+
+
+def resolve_enabled_tools(
+    toolsets: Optional[str], disabled_tools: Optional[str], profile: Optional[str] = None,
+    investigation_tools: FrozenSet[str] = frozenset(),
+) -> FrozenSet[str]:
     """Resolve WAZUH_TOOLSETS / WAZUH_DISABLED_TOOLS into the set of exposed tools.
 
     Empty or ``all`` toolsets means every toolset. Unknown names raise ValueError so a typo
@@ -134,7 +144,7 @@ def resolve_enabled_tools(toolsets: Optional[str], disabled_tools: Optional[str]
     """
     names = _split(toolsets)
     if not names or "all" in names:
-        enabled = set(ALL_TOOLS)
+        enabled = set(ALL_TOOLS) | set(investigation_tools)
     else:
         unknown = [n for n in names if n not in TOOLSETS]
         if unknown:
@@ -143,9 +153,19 @@ def resolve_enabled_tools(toolsets: Optional[str], disabled_tools: Optional[str]
                 f"Valid: all, {', '.join(sorted(TOOLSETS))}"
             )
         enabled = set().union(*(TOOLSETS[n] for n in names))
+        if "analysis" in names:
+            enabled.update(investigation_tools)
+
+    if profile:
+        if profile not in PROFILES:
+            raise ValueError(f"Unknown WAZUH_TOOL_PROFILE. Choose one of: {', '.join(PROFILES)}")
+        profile_tools = set().union(*(TOOLSETS[group] for group in PROFILES[profile]))
+        if "analysis" in PROFILES[profile]:
+            profile_tools.update(investigation_tools)
+        enabled.intersection_update(profile_tools)
 
     disabled = _split(disabled_tools)
-    unknown = [t for t in disabled if t not in ALL_TOOLS]
+    unknown = [t for t in disabled if t not in ALL_TOOLS and t not in investigation_tools]
     if unknown:
         raise ValueError(f"WAZUH_DISABLED_TOOLS: unknown tool(s) {', '.join(unknown)}")
     enabled.difference_update(disabled)
