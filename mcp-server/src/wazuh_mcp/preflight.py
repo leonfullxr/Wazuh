@@ -81,6 +81,8 @@ def _mapping_projection(field: str) -> str:
 
 
 def _mapping(mappings: dict, before: dict, field: str) -> None:
+    if mappings.keys() < before.keys():
+        raise _Inconclusive("Tie-breaker mapping unavailable for one or more visible indices")
     if set(mappings) != set(before):
         raise _Inconclusive("Index topology changed during verification")
     field_mapping = None

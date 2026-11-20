@@ -164,7 +164,7 @@ async def test_concrete_settings_permission_is_required():
 
 
 @pytest.mark.asyncio
-async def test_source_path_ambiguity_is_inconclusive():
+async def test_unsupported_mapping_type_is_inconclusive():
     backend = Backend([("wazuh-alerts-a", "1", "one")])
     backend.mapping = {"type": "date"}
     assert (await investigation_preflight(backend, "tie"))["status"] == "inconclusive"
@@ -367,3 +367,25 @@ async def test_real_indexer_initialization_sends_basic_auth(monkeypatch):
     finally:
         await indexer.close()
         await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_page_size_over_indexer_window_stops_before_connecting():
+    backend = Backend()
+    result = await investigation_preflight(backend, "tie", limits=PreflightLimits(page_size=10_001))
+    assert result["status"] == "inconclusive" and "Page size" in result["reason"]
+    assert backend.settings_calls == 0
+    await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_mapping_projection_missing_one_index_reports_unavailable_mapping():
+    def remove_missing_mapping(request, status, payload):
+        if request.url.path.endswith("/_mapping"):
+            del payload["wazuh-alerts-b"]
+        return status, payload
+
+    backend = TransformBackend(remove_missing_mapping)
+    result = await investigation_preflight(backend, "tie")
+    assert result["status"] == "inconclusive" and "mapping unavailable" in result["reason"]
+    await backend.client.aclose()
