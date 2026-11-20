@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 from urllib.parse import quote
-from uuid import uuid4
 
 import httpx
 
@@ -40,6 +39,10 @@ _FIELD = re.compile(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\Z")
 _TYPES = {"keyword", "byte", "short", "integer", "long", "unsigned_long"}
 
 
+def valid_tie_breaker(field: str) -> bool:
+    return isinstance(field, str) and len(field) <= 256 and _FIELD.fullmatch(field) is not None
+
+
 def _complete_search(raw: dict) -> dict:
     clusters = raw.get("_clusters", {})
     if (
@@ -63,6 +66,18 @@ def _complete_search(raw: dict) -> dict:
     if not isinstance(hits, dict) or not isinstance(hits.get("hits"), list):
         raise _Inconclusive("Invalid search response")
     return hits
+
+
+def _mapping_projection(field: str) -> str:
+    """Request the leaf definition, ancestor types (including nested), and source visibility."""
+    parts = field.split(".")
+    paths = ["*.mappings._source"]
+    parent = "*.mappings"
+    for part in parts[:-1]:
+        parent += ".properties." + part
+        paths.append(parent + ".type")
+    paths.append(parent + ".properties." + parts[-1])
+    return ",".join(paths)
 
 
 def _mapping(mappings: dict, before: dict, field: str) -> None:
@@ -96,7 +111,12 @@ def _value(hit: dict, field: str) -> tuple:
     fields = hit.get("fields")
     values = fields.get(field) if isinstance(fields, dict) else None
     source = hit.get("_source")
-    for part in field.split("."):
+    parts = field.split(".")
+    for position, part in enumerate(parts):
+        if isinstance(source, dict) and any(
+            "." in key and (".".join(parts[position:]) + ".").startswith(key + ".") for key in source
+        ):
+            raise _Inconclusive("Literal dotted source keys are ambiguous")
         if isinstance(source, dict) and part not in source and not values:
             raise _Violation("Tie-breaker is missing from the visible alert")
         if not isinstance(source, dict) or part not in source:
@@ -129,16 +149,13 @@ async def investigation_preflight(
     scroll_id = None
     used = 0
 
-    async def request(
-        method: str, path: str, body: dict | None = None, *, cleanup: bool = False, allow_missing: bool = False
-    ) -> dict:
+    async def request(method: str, path: str, body: dict | None = None, *, cleanup: bool = False) -> dict:
         nonlocal used
         await indexer._ensure_initialized()
         async with indexer.client.stream(
             method, indexer.base_url + path, json=body, headers={"Accept-Encoding": "identity"}
         ) as response:
-            if not (allow_missing and response.status_code == 404):
-                response.raise_for_status()
+            response.raise_for_status()
             if response.headers.get("content-encoding", "identity").lower() not in ("", "identity"):
                 raise _Inconclusive("Compressed response cannot be verified")
             chunks = bytearray()
@@ -156,7 +173,10 @@ async def investigation_preflight(
         return value
 
     async def topology() -> dict[str, str]:
-        result = await request("GET", "/wazuh-alerts-*/_settings?expand_wildcards=open&allow_no_indices=false")
+        result = await request(
+            "GET",
+            "/wazuh-alerts-*/_settings?expand_wildcards=open&allow_no_indices=false&filter_path=*.settings.index.uuid",
+        )
         if not result:
             raise _Inconclusive("No visible alert indices")
         identities = {}
@@ -171,17 +191,23 @@ async def investigation_preflight(
 
     async def run() -> None:
         nonlocal scroll_id
-        if not isinstance(tie_breaker, str) or not _FIELD.fullmatch(tie_breaker):
+        if not valid_tie_breaker(tie_breaker):
             raise _Violation("Invalid tie-breaker field")
         if getattr(indexer, "ccs_prefix", ""):
             raise _Inconclusive("A direct Indexer connection is required")
         if limits.seconds <= 0 or min(limits.pages, limits.documents, limits.bytes, limits.page_size) <= 0:
             raise _Inconclusive("Invalid verification budget")
+        if limits.page_size > 10_000:
+            raise _Inconclusive("Page size exceeds the supported maximum of 10000")
         before = await topology()
-        mappings = await request("GET", "/wazuh-alerts-*/_mapping?expand_wildcards=open&allow_no_indices=false")
+        mappings = await request(
+            "GET",
+            "/wazuh-alerts-*/_mapping?expand_wildcards=open&allow_no_indices=false&filter_path="
+            + _mapping_projection(tie_breaker),
+        )
         _mapping(mappings, before, tie_breaker)
         for name, uuid in before.items():
-            concrete = await request("GET", f"/{quote(name, safe='')}/_settings")
+            concrete = await request("GET", f"/{quote(name, safe='')}/_settings?filter_path=*.settings.index.uuid")
             if concrete.get(name, {}).get("settings", {}).get("index", {}).get("uuid") != uuid:
                 raise _Inconclusive("Concrete index identity unavailable or changed")
         report["indices_checked"] = len(before)
@@ -216,6 +242,8 @@ async def investigation_preflight(
                     count = count.get("value") if count.get("relation") == "eq" else None
                 if type(count) is not int or count < 0:
                     raise _Inconclusive("Exact document count unavailable")
+                if count > limits.documents:
+                    raise _Inconclusive("Document budget exceeded")
                 total = count
             rows = hits["hits"]
             if not rows:
@@ -238,8 +266,8 @@ async def investigation_preflight(
                 report["documents_checked"] += 1
         else:
             raise _Inconclusive("Page budget exceeded")
-        if not total:
-            raise _Inconclusive("No visible documents to verify")
+        if sample_ids.keys() != before.keys():
+            raise _Inconclusive("At least one index has no visible document for an evidence read")
         pilot = await request(
             "POST",
             "/wazuh-alerts-*/_search?allow_partial_search_results=false",
@@ -256,20 +284,11 @@ async def investigation_preflight(
         sort = pilot_hits[0].get("sort")
         if not isinstance(sort, list) or len(sort) != 2 or any(value is None for value in sort):
             raise _Inconclusive("Investigation sort values unavailable")
-        for name in before:
-            doc_id = sample_ids.get(name) or f"preflight-nonexistent-{uuid4().hex}"
-            result = await request(
-                "GET",
-                evidence_path(name, doc_id),
-                allow_missing=True,
-            )
-            if (
-                result.get("_index") != name
-                or result.get("_id") != doc_id
-                or result.get("found") is not (name in sample_ids)
-            ):
+        for name, doc_id in sample_ids.items():
+            result = await request("GET", evidence_path(name, doc_id))
+            if result.get("_index") != name or result.get("_id") != doc_id or result.get("found") is not True:
                 raise _Inconclusive("Document read permission or identity unavailable")
-            if name in sample_ids and not isinstance(result.get("_source"), dict):
+            if not isinstance(result.get("_source"), dict):
                 raise _Inconclusive("Document source unavailable")
         if await topology() != before:
             raise _Inconclusive("Index topology changed during verification")

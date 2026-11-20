@@ -45,7 +45,7 @@ def test_environment_selection_matches_indexer_settings(monkeypatch, tmp_path):
     monkeypatch.setenv("REQUEST_TIMEOUT_SECONDS", "45")
     monkeypatch.delenv("WAZUH_CLUSTERS_FILE", raising=False)
     env = indexer_environment()
-    reader = preflight_cli._reader(None)
+    reader, target = preflight_cli._reader("default")
     assert reader.host == "environment-indexer"
     assert reader.port == env["WAZUH_INDEXER_PORT"]
     assert reader.username == env["WAZUH_INDEXER_USER"]
@@ -83,7 +83,7 @@ def clusters_file(tmp_path, monkeypatch):
 
 
 def test_selected_and_configured_default_clusters(clusters_file):
-    default = preflight_cli._reader(None)
+    default, target = preflight_cli._reader(None)
     assert (default.host, default.port, default.username, default.password) == (
         "second",
         9202,
@@ -91,7 +91,7 @@ def test_selected_and_configured_default_clusters(clusters_file):
         os.environ["IDX_PASS"],
     )
     assert default.verify_ssl is False and default.scheme == "http" and default.timeout == 12
-    explicit = preflight_cli._reader("first")
+    explicit, _ = preflight_cli._reader("first")
     assert (explicit.host, explicit.port) == ("first", 9201)
 
 
@@ -115,7 +115,20 @@ def test_exit_mapping_limits_and_cleanup(monkeypatch, capsys, status, code):
             self.closed = True
 
     reader = Reader()
-    monkeypatch.setattr(preflight_cli, "_reader", lambda cluster: reader)
+    monkeypatch.setattr(
+        preflight_cli,
+        "_reader",
+        lambda cluster: (
+            reader,
+            {
+                "cluster_id": "default",
+                "config_source": "environment",
+                "scheme": "https",
+                "host": "localhost",
+                "port": 9200,
+            },
+        ),
+    )
 
     async def preflight(actual, field, *, limits):
         assert actual is reader and field == "event.id"
@@ -143,7 +156,16 @@ def test_exit_mapping_limits_and_cleanup(monkeypatch, capsys, status, code):
         == code
     )
     assert reader.closed
-    assert json.loads(capsys.readouterr().out)["status"] == status
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == status
+    assert output["target"] == {
+        "cluster_id": "default",
+        "config_source": "environment",
+        "scheme": "https",
+        "host": "localhost",
+        "port": 9200,
+        "tie_breaker": "event.id",
+    }
 
 
 def test_cleanup_on_preflight_exception(monkeypatch):
@@ -154,7 +176,20 @@ def test_cleanup_on_preflight_exception(monkeypatch):
             self.closed = True
 
     reader = Reader()
-    monkeypatch.setattr(preflight_cli, "_reader", lambda cluster: reader)
+    monkeypatch.setattr(
+        preflight_cli,
+        "_reader",
+        lambda cluster: (
+            reader,
+            {
+                "cluster_id": "default",
+                "config_source": "environment",
+                "scheme": "https",
+                "host": "localhost",
+                "port": 9200,
+            },
+        ),
+    )
 
     async def broken(*args, **kwargs):
         raise RuntimeError("backend broke")
@@ -184,3 +219,138 @@ def test_bad_config_errors_are_redacted(monkeypatch, tmp_path):
     assert result["status"] == "inconclusive"
     assert "sensitive-path" not in json.dumps(result)
     assert "secret-password" not in json.dumps(result)
+
+
+def test_implicit_missing_file_requires_explicit_environment_selection(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("WAZUH_CLUSTERS_FILE", raising=False)
+    monkeypatch.setenv("WAZUH_INDEXER_HOST", "localhost")
+    args = Namespace(
+        cluster=None, tie_breaker="event.id", timeout=1, max_pages=1, max_documents=1, max_bytes=1, page_size=1
+    )
+    result = asyncio.run(preflight_cli._run(args))
+    assert result["status"] == "inconclusive"
+    assert "--cluster default" in result["reason"]
+    reader, target = preflight_cli._reader("default")
+    assert target == {
+        "cluster_id": "default",
+        "config_source": "environment",
+        "scheme": "https",
+        "host": "localhost",
+        "port": 9200,
+    }
+
+
+def test_implicit_file_uses_same_cwd_as_server(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("WAZUH_CLUSTERS_FILE", raising=False)
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config/clusters.json").write_text(
+        json.dumps(
+            {
+                "default_cluster": "one",
+                "clusters": [
+                    {
+                        "id": "one",
+                        "wazuh_host": "manager",
+                        "wazuh_user": "user",
+                        "wazuh_pass": "password",
+                        "indexer_host": "named-indexer",
+                    }
+                ],
+            }
+        )
+    )
+    _, target = preflight_cli._reader(None)
+    assert target == {
+        "cluster_id": "one",
+        "config_source": "file",
+        "scheme": "https",
+        "host": "named-indexer",
+        "port": 9200,
+    }
+
+
+def test_rejects_credentials_in_host_without_leaking(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("WAZUH_CLUSTERS_FILE", raising=False)
+    monkeypatch.setenv("WAZUH_INDEXER_HOST", "https://secret-user@private-indexer")
+    args = Namespace(
+        cluster="default", tie_breaker="event.id", timeout=1, max_pages=1, max_documents=1, max_bytes=1, page_size=1
+    )
+    result = asyncio.run(preflight_cli._run(args))
+    assert result["status"] == "inconclusive"
+    assert "secret-user" not in json.dumps(result)
+
+
+def test_invalid_tie_breaker_is_not_reported_or_connected(monkeypatch):
+    monkeypatch.setattr(preflight_cli, "_reader", lambda cluster: pytest.fail("must not connect"))
+    args = Namespace(
+        cluster="default", tie_breaker="secret/path", timeout=1, max_pages=1, max_documents=1, max_bytes=1, page_size=1
+    )
+    result = asyncio.run(preflight_cli._run(args))
+    assert result["status"] == "fail"
+    assert "secret/path" not in json.dumps(result)
+
+
+def test_indexer_tls_is_independent_of_manager_self_signed(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("WAZUH_CLUSTERS_FILE", raising=False)
+    monkeypatch.setenv("WAZUH_INDEXER_HOST", "localhost")
+    monkeypatch.setenv("WAZUH_ALLOW_SELF_SIGNED", "true")
+    monkeypatch.setenv("WAZUH_CA_BUNDLE", "/tmp/example-ca.pem")
+    monkeypatch.setenv("WAZUH_INDEXER_VERIFY_SSL", "true")
+    reader, _ = preflight_cli._reader("default")
+    assert reader.verify_ssl == "/tmp/example-ca.pem"
+    monkeypatch.setenv("WAZUH_INDEXER_VERIFY_SSL", "false")
+    reader, _ = preflight_cli._reader("default")
+    assert reader.verify_ssl is False
+
+
+def test_named_indexer_uses_cluster_ca(clusters_file):
+    # The named connection stores an httpx verify value (boolean or CA path).
+    from certifi import where
+
+    ca = where()
+    data = json.loads(clusters_file.read_text())
+    data["clusters"][0]["ca_bundle"] = ca
+    data["clusters"][0]["indexer_verify_ssl"] = True
+    clusters_file.write_text(json.dumps(data))
+    reader, target = preflight_cli._reader("first")
+    assert reader.verify_ssl == ca
+    assert target["config_source"] == "file"
+
+
+def test_named_endpoint_preserves_explicit_http_scheme(clusters_file):
+    data = json.loads(clusters_file.read_text())
+    data["clusters"][0]["indexer_host"] = "http://named-indexer"
+    data["clusters"][0]["indexer_ssl"] = True
+    clusters_file.write_text(json.dumps(data))
+    reader, target = preflight_cli._reader("first")
+    assert reader.scheme == target["scheme"] == "http"
+    assert target["host"] == "named-indexer"
+
+
+@pytest.mark.parametrize("host", ["secret@host", "bad host", "host?secret", "host;secret", "[invalid]", "host:9999"])
+def test_malformed_hosts_are_not_reported(monkeypatch, tmp_path, host):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("WAZUH_CLUSTERS_FILE", raising=False)
+    monkeypatch.setenv("WAZUH_INDEXER_HOST", host)
+    args = Namespace(
+        cluster="default", tie_breaker="event.id", timeout=1, max_pages=1, max_documents=1, max_bytes=1, page_size=1
+    )
+    result = asyncio.run(preflight_cli._run(args))
+    assert result["status"] == "inconclusive"
+    assert host not in json.dumps(result)
+
+
+def test_empty_cluster_file_is_rejected(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("WAZUH_CLUSTERS_FILE", "")
+    monkeypatch.setenv("WAZUH_INDEXER_HOST", "localhost")
+    args = Namespace(
+        cluster=None, tie_breaker="event.id", timeout=1, max_pages=1, max_documents=1, max_bytes=1, page_size=1
+    )
+    result = asyncio.run(preflight_cli._run(args))
+    assert result["status"] == "inconclusive"
+    assert "Empty WAZUH_CLUSTERS_FILE" in result["reason"]

@@ -227,3 +227,143 @@ async def test_deadline_releases_scroll():
     assert result["status"] == "inconclusive"
     assert backend.closed
     await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_each_index_needs_a_positive_document_read():
+    backend = Backend([("wazuh-alerts-a", "1", "one")])
+    result = await investigation_preflight(backend, "tie")
+    assert result["status"] == "inconclusive" and "no visible document" in result["reason"]
+    assert backend.closed
+    await backend.client.aclose()
+
+
+class TransformBackend(Backend):
+    def __init__(self, transform, docs=None):
+        self.transform = transform
+        super().__init__(docs)
+
+    def handle(self, request):
+        original = super().handle(request)
+        payload = json.loads(original.stream.data)
+        status, payload = self.transform(request, original.status_code, payload)
+        return response(status, json=payload)
+
+
+def scroll_page(request):
+    return (
+        request.url.path == "/_search/scroll"
+        and request.method == "POST"
+        or (request.url.path.endswith("/_search") and "scroll" in request.url.params)
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("shape, expected", [("nested", "pass"), ("literal", "inconclusive"), ("both", "inconclusive")])
+async def test_dotted_field_requires_unambiguous_source_path(shape, expected):
+    def transform(request, status, payload):
+        if request.url.path.endswith("/_mapping"):
+            for index in payload.values():
+                index["mappings"]["properties"] = {"event": {"properties": {"id": {"type": "keyword"}}}}
+        if scroll_page(request):
+            for hit in payload["hits"]["hits"]:
+                value = hit["_source"]["tie"]
+                hit["_source"] = {"event": {"id": value}} if shape != "literal" else {}
+                if shape != "nested":
+                    hit["_source"]["event.id"] = value
+                hit["fields"] = {"event.id": hit["fields"]["tie"]}
+        return status, payload
+
+    backend = TransformBackend(transform)
+    assert (await investigation_preflight(backend, "event.id"))["status"] == expected
+    await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_absent_doc_values_fail_even_with_visible_source():
+    def transform(request, status, payload):
+        if scroll_page(request):
+            for hit in payload["hits"]["hits"]:
+                hit["fields"] = {}
+        return status, payload
+
+    backend = TransformBackend(transform)
+    result = await investigation_preflight(backend, "tie")
+    assert result["status"] == "fail" and "doc values" in result["reason"]
+    assert backend.closed
+    await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_normalized_doc_values_collision_fails():
+    def transform(request, status, payload):
+        if request.url.path.endswith("/_mapping"):
+            for index in payload.values():
+                index["mappings"]["properties"]["tie"]["normalizer"] = "lowercase"
+        if scroll_page(request):
+            for hit in payload["hits"]["hits"]:
+                hit["fields"]["tie"] = [hit["_source"]["tie"].lower()]
+        return status, payload
+
+    backend = TransformBackend(transform, [("wazuh-alerts-a", "1", "ABC"), ("wazuh-alerts-b", "2", "abc")])
+    result = await investigation_preflight(backend, "tie")
+    assert result["status"] == "fail" and "unique" in result["reason"]
+    assert backend.closed
+    await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("problem", ["different_mappings", "source_excludes", "unexpected_index", "missing_document"])
+async def test_incomplete_or_ambiguous_index_evidence(problem):
+    def transform(request, status, payload):
+        path = request.url.path
+        if path.endswith("/_mapping") and problem == "different_mappings":
+            payload["wazuh-alerts-b"]["mappings"]["properties"]["tie"] = {"type": "long"}
+        if path.endswith("/_mapping") and problem == "source_excludes":
+            payload["wazuh-alerts-a"]["mappings"]["_source"] = {"excludes": ["tie"]}
+        if scroll_page(request) and problem == "unexpected_index":
+            for hit in payload["hits"]["hits"]:
+                hit["_index"] = "wazuh-alerts-unexpected"
+        if "/_doc/" in path and problem == "missing_document":
+            status, payload = 404, {"found": False}
+        return status, payload
+
+    backend = TransformBackend(transform)
+    result = await investigation_preflight(backend, "tie")
+    assert result["status"] == "inconclusive"
+    if backend.page:
+        assert backend.closed
+    await backend.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_real_indexer_initialization_sends_basic_auth(monkeypatch):
+    import base64
+    import secrets
+
+    from wazuh_mcp.api.wazuh_indexer import WazuhIndexerClient
+
+    backend = Backend()
+    user, password = secrets.token_hex(12), secrets.token_hex(12)
+    expected = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+    captured = []
+
+    def handler(request):
+        captured.append(request.headers.get("authorization"))
+        return backend.handle(request)
+
+    real_client = httpx.AsyncClient
+
+    def mock_client(*args, **kwargs):
+        return real_client(*args, transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", mock_client)
+    indexer = WazuhIndexerClient("indexer", username=user, password=password)
+    try:
+        result = await investigation_preflight(indexer, "tie")
+        assert result["status"] == "pass"
+        assert captured and all(header == expected for header in captured)
+        assert user not in json.dumps(result) and password not in json.dumps(result)
+    finally:
+        await indexer.close()
+        await backend.client.aclose()
