@@ -142,6 +142,20 @@ def normalize_host(host: str) -> str:
     return host
 
 
+def indexer_environment() -> dict:
+    """Connection settings shared by the server and the operator preflight."""
+    host = os.getenv("WAZUH_INDEXER_HOST", "")
+    use_ssl = env_bool("WAZUH_INDEXER_SSL", not host.strip().lower().startswith("http://"))
+    return {
+        "WAZUH_INDEXER_HOST": normalize_host(host),
+        "WAZUH_INDEXER_PORT": validate_port(os.getenv("WAZUH_INDEXER_PORT", "9200"), "WAZUH_INDEXER_PORT"),
+        "WAZUH_INDEXER_USER": os.getenv("WAZUH_INDEXER_USER", ""),
+        "WAZUH_INDEXER_PASS": os.getenv("WAZUH_INDEXER_PASS", ""),
+        "WAZUH_INDEXER_SSL": use_ssl,
+        "WAZUH_INDEXER_VERIFY_SSL": env_bool("WAZUH_INDEXER_VERIFY_SSL", True),
+    }
+
+
 @dataclass
 class WazuhConfig:
     """Wazuh configuration settings."""
@@ -413,14 +427,6 @@ class ServerConfig:
         if log_level not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
             log_level = "INFO"
 
-        # Indexer scheme: honor an explicit WAZUH_INDEXER_SSL, otherwise infer from the
-        # host prefix (http:// -> plain HTTP). Defaults to HTTPS when no scheme is given.
-        indexer_host_raw = os.getenv("WAZUH_INDEXER_HOST", "")
-        if os.getenv("WAZUH_INDEXER_SSL") is not None:
-            indexer_ssl = env_bool("WAZUH_INDEXER_SSL", True)
-        else:
-            indexer_ssl = not indexer_host_raw.strip().lower().startswith("http://")
-
         # Active-response switches are read per call, but a typo must fail here, at startup,
         # not on every write-tool call
         for switch in ("WAZUH_REQUIRE_ACTION_CONFIRMATION", "WAZUH_ALLOW_FLEET_AR", "WAZUH_ALLOW_MANAGER_AR"):
@@ -485,12 +491,7 @@ class ServerConfig:
             WAZUH_ALLOW_SELF_SIGNED=env_bool("WAZUH_ALLOW_SELF_SIGNED", False),
             WAZUH_CA_BUNDLE=ca_bundle,
             # Wazuh Indexer settings (for vulnerability tools in Wazuh 4.8.0+)
-            WAZUH_INDEXER_HOST=normalize_host(indexer_host_raw),
-            WAZUH_INDEXER_PORT=validate_port(os.getenv("WAZUH_INDEXER_PORT", "9200"), "WAZUH_INDEXER_PORT"),
-            WAZUH_INDEXER_USER=os.getenv("WAZUH_INDEXER_USER", ""),
-            WAZUH_INDEXER_PASS=os.getenv("WAZUH_INDEXER_PASS", ""),
-            WAZUH_INDEXER_SSL=indexer_ssl,
-            WAZUH_INDEXER_VERIFY_SSL=env_bool("WAZUH_INDEXER_VERIFY_SSL", True),
+            **indexer_environment(),
             REQUEST_TIMEOUT_SECONDS=validate_positive_int(
                 os.getenv("REQUEST_TIMEOUT_SECONDS", "30"), "REQUEST_TIMEOUT_SECONDS", max_val=300
             ),

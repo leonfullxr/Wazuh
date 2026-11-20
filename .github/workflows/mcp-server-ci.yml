@@ -60,3 +60,4 @@ jobs:
           persist-credentials: false
       - run: docker build --tag wazuh-mcp-ci ./mcp-server
       - run: docker run -i --rm --network none --entrypoint python wazuh-mcp-ci - < mcp-server/scripts/smoke-startup.py
+      - run: docker run --rm --network none --entrypoint python wazuh-mcp-ci -m wazuh_mcp.preflight_cli --help

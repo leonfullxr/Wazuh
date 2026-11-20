@@ -14,14 +14,13 @@ import httpx
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from wazuh_mcp.config import tls_verify
+from wazuh_mcp.investigation_queries import FIELDS, INDEX_RE, evidence_path, timeline_sort
 from wazuh_mcp.security import validate_agent_id
 from wazuh_mcp.server.output import _sanitize_output_text
 
 MAX_RESPONSE_BYTES = 256_000
 MAX_BACKEND_BYTES = 2_000_000
 DEADLINE_SECONDS = 10
-INDEX_RE = re.compile(r"^wazuh-alerts-[a-zA-Z0-9._-]+$")
-FIELDS = ["timestamp", "agent.id", "agent.name", "rule.id", "rule.level", "rule.description", "rule.groups"]
 
 
 @dataclass(frozen=True)
@@ -160,7 +159,7 @@ async def evidence(ctx: InvestigationContext, ref: str) -> dict:
             response = await _request(
                 ctx.indexer,
                 "GET",
-                f"/{quote(index, safe='')}/_doc/{quote(payload['id'], safe='')}?_source_includes={','.join(FIELDS)}",
+                evidence_path(index, payload["id"]),
                 budget=budget,
             )
             source = response.get("_source")
@@ -210,7 +209,7 @@ async def timeline(
         "track_total_hits": True,
         "_source": FIELDS,
         "query": {"bool": {"filter": filters}},
-        "sort": [{"timestamp": "desc"}, {ctx.tie_breaker: "desc"}],
+        "sort": timeline_sort(ctx.tie_breaker),
     }
     budget = [0]
 

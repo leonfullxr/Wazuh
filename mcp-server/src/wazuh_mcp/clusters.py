@@ -175,23 +175,12 @@ def _cluster_config(entry: Dict[str, Any]) -> WazuhConfig:
     )
 
 
-def load_cluster_registry(default_client, clusters_file: Optional[str] = None) -> ClusterRegistry:
-    """
-    Build the cluster registry.
-
-    default_client is the env-configured WazuhClient (today's single-cluster path).
-    Without a clusters file it is the only entry, keyed "default", and nothing about
-    the server's behavior changes. With a clusters file, each entry gets its own
-    client (all connections are established lazily on first use) and tools accept
-    cluster_id; the env-configured cluster stays reachable as "default" unless the
-    file overrides default_cluster.
-    """
-    from wazuh_mcp.api.wazuh_client import WazuhClient
-
+def read_cluster_connections(clusters_file: Optional[str] = None) -> tuple[str, dict[str, tuple[WazuhConfig, str]]]:
+    """Read the named connections. The reserved default connection comes from the environment."""
     path = clusters_file or os.getenv("WAZUH_CLUSTERS_FILE", "./config/clusters.json")
 
     if not os.path.isfile(path):
-        return ClusterRegistry({"default": default_client}, "default", multi_cluster=False)
+        return "default", {}
 
     with open(path, encoding="utf-8") as fh:
         try:
@@ -205,25 +194,46 @@ def load_cluster_registry(default_client, clusters_file: Optional[str] = None) -
     if not isinstance(entries, list) or not entries:
         raise ValueError(f"clusters file {path} must contain a non-empty 'clusters' list")
 
-    clients: Dict[str, Any] = {"default": default_client}
+    connections: dict[str, tuple[WazuhConfig, str]] = {}
     for entry in entries:
         if not isinstance(entry, dict):
             raise ValueError(f"clusters file {path}: each cluster must be an object, got {type(entry).__name__}")
         cluster_id = str(entry.get("id", "")).strip()
         if not CLUSTER_ID_PATTERN.match(cluster_id):
             raise ValueError(f"clusters file {path}: invalid or missing cluster id {cluster_id!r}")
-        if cluster_id in clients:
+        if cluster_id == "default" or cluster_id in connections:
             raise ValueError(f"clusters file {path}: duplicate cluster id '{cluster_id}'")
         config = _cluster_config(entry)
-        client = WazuhClient(config)
-        ccs_prefix = str(entry.get("ccs_prefix", "") or "")
-        if ccs_prefix and client._indexer_client is not None:
-            client._indexer_client.ccs_prefix = ccs_prefix.strip().rstrip(":")
-        clients[cluster_id] = client
+        prefix = str(entry.get("ccs_prefix", "") or "").strip().rstrip(":")
+        connections[cluster_id] = (config, prefix)
 
     default_id = str(data.get("default_cluster") or "default")
-    if default_id not in clients:
+    if default_id != "default" and default_id not in connections:
         raise ValueError(f"clusters file {path}: default_cluster '{default_id}' is not a configured cluster")
 
-    logger.info(f"Multi-cluster mode: {len(clients)} clusters loaded from {path} (default: {default_id})")
-    return ClusterRegistry(clients, default_id, multi_cluster=True)
+    return default_id, connections
+
+
+def load_cluster_registry(default_client, clusters_file: Optional[str] = None) -> ClusterRegistry:
+    """
+    Build the cluster registry.
+
+    default_client is the env-configured WazuhClient (today's single-cluster path).
+    Without a clusters file it is the only entry, keyed "default", and nothing about
+    the server's behavior changes. With a clusters file, each entry gets its own
+    client (all connections are established lazily on first use) and tools accept
+    cluster_id; the env-configured cluster stays reachable as "default" unless the
+    file overrides default_cluster.
+    """
+    from wazuh_mcp.api.wazuh_client import WazuhClient
+
+    default_id, connections = read_cluster_connections(clusters_file)
+    clients: Dict[str, Any] = {"default": default_client}
+    for cluster_id, (config, prefix) in connections.items():
+        client = WazuhClient(config)
+        if prefix and client._indexer_client is not None:
+            client._indexer_client.ccs_prefix = prefix
+        clients[cluster_id] = client
+    if connections:
+        logger.info("Multi-cluster mode: %d clusters loaded (default: %s)", len(clients), default_id)
+    return ClusterRegistry(clients, default_id, multi_cluster=bool(connections))

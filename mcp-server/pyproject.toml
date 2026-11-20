@@ -67,6 +67,7 @@ dev = [
 
 [project.scripts]
 wazuh-mcp = "wazuh_mcp.__main__:main"
+wazuh-mcp-preflight = "wazuh_mcp.preflight_cli:main"
 
 [project.urls]
 Repository = "https://github.com/leonfullxr/Wazuh/tree/main/mcp-server"
