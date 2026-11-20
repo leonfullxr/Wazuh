@@ -96,3 +96,81 @@ class TestWriteTokenAllowedAndAudited:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scopes", [None, [], ["wazuh:write"], ["unknown"]])
+async def test_read_access_denied_before_registry(monkeypatch, scopes):
+    class Registry:
+        def get(self, cluster_id):
+            pytest.fail("denied request reached registry")
+
+        multi_cluster = False
+
+    monkeypatch.setattr(mcp_server.state, "cluster_registry", Registry())
+    session = _session(scopes) if scopes is not None else MCPSession("missing", None)
+    handlers = mcp_server.handlers
+    assert await handlers.handle_resources_list({}, session) == {"resources": []}
+    assert await handlers.handle_resources_templates_list({}, session) == {"resourceTemplates": []}
+    listed = await mcp_server.tool_catalog.handle_tools_list({}, session)
+    assert all(t["name"] in WRITE_SCOPE_TOOLS for t in listed["tools"])
+    result = await handle_tools_call({"name": "get_wazuh_alerts", "arguments": {"cluster_id": "bad"}}, session)
+    assert result["isError"] and "Insufficient permissions" in result["content"][0]["text"]
+    for uri in ("wazuh://manager/info", "wazuh://agents/1/info", "wazuh://nope", "bad", None):
+        request = mcp_server.jsonrpc.MCPRequest(jsonrpc="2.0", id=1, method="resources/read", params={"uri": uri})
+        response = await mcp_server.dispatch.process_mcp_request(request, session)
+        assert response.error["code"] == -32002
+        assert response.error["message"] == "Resource not found"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scopes", [["wazuh:read"], ["wazuh:read", "wazuh:write"]])
+async def test_read_discovery_and_unknown_uri(scopes):
+    session = _session(scopes)
+    assert len((await mcp_server.handlers.handle_resources_list({}, session))["resources"]) == 6
+    assert len((await mcp_server.handlers.handle_resources_templates_list({}, session))["resourceTemplates"]) == 3
+    listed = await mcp_server.tool_catalog.handle_tools_list({}, session)
+    assert any(t["name"] == "get_wazuh_alerts" for t in listed["tools"])
+    request = mcp_server.jsonrpc.MCPRequest(jsonrpc="2.0", id=1, method="resources/read", params={"uri": "wazuh://nope"})
+    assert (await mcp_server.dispatch.process_mcp_request(request, session)).error["code"] == -32002
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("modern", [False, True])
+async def test_http_reads_use_current_grant(monkeypatch, modern, _stub_cluster):
+    from unittest.mock import AsyncMock
+
+    import httpx
+
+    token = _session(["wazuh:read"])._auth_token
+    token.owner = {"version": 1, "family": "api_key", "subject": "tester"}
+    monkeypatch.setattr(mcp_server.http_security, "verify_authentication", AsyncMock(return_value=token))
+    _stub_cluster.get_manager_info = AsyncMock(return_value={"data": {}})
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=mcp_server.app), base_url="http://testserver") as client:
+        headers = {}
+        if not modern:
+            init = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}})
+            headers["MCP-Session-Id"] = init.headers["MCP-Session-Id"]
+
+        async def call(method, params=None):
+            params = dict(params or {})
+            local_headers = dict(headers)
+            if modern:
+                params["_meta"] = {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "test", "version": "1"}, "io.modelcontextprotocol/clientCapabilities": {}}
+                local_headers.update({"MCP-Protocol-Version": "2026-07-28", "Mcp-Method": method})
+                if method == "resources/read":
+                    local_headers["Mcp-Name"] = params["uri"]
+            response = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 2, "method": method, "params": params}, headers=local_headers)
+            assert response.status_code == 200
+            return response.json()
+
+        allowed = await call("resources/read", {"uri": "wazuh://manager/info"})
+        assert "contents" in allowed["result"]
+        token.scopes = []
+        denied = await call("resources/read", {"uri": "wazuh://manager/info"})
+        assert denied["error"]["code"] == -32002
+        listed = await call("resources/list")
+        assert listed["result"]["resources"] == []
+        if modern:
+            assert listed["result"]["resultType"] == "complete"
+        assert _stub_cluster.get_manager_info.await_count == 1

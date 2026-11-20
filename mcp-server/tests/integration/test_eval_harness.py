@@ -102,3 +102,82 @@ class TestScenarios:
             for name in s.get("expect", []):
                 missing = set(s.get("args", {})) - set(tools[name]["properties"])
                 assert not missing, f"{s['id']}: {name} has no {missing}"
+
+
+def test_scores_all_calls_and_keeps_missing_cases_in_denominator():
+    ok, _ = tool_selection.score_calls(
+        {"forbid_write": True},
+        [_call("get_wazuh_agents", agent_id="001"), _call("wazuh_isolate_host", agent_id="001")],
+        TestScore.schemas,
+    )
+    assert not ok
+    metrics = tool_selection.summarize(
+        [
+            {"passed": True, "seconds": 2, "status": "evaluated"},
+            {"passed": False, "seconds": None, "status": "error"},
+            {"passed": False, "seconds": None, "status": "unavailable"},
+        ]
+    )
+    assert metrics["cases"] == 3 and metrics["passed"] == 1 and metrics["median_seconds"] == 2
+
+
+@pytest.mark.asyncio
+async def test_paired_fixture_executes_multiple_turns(tmp_path, monkeypatch):
+    import httpx
+
+    registry = tool_selection.state.cluster_registry
+    monkeypatch.setattr(registry.get(None), "_indexer_client", object())
+    real_client = httpx.AsyncClient
+    calls = []
+
+    def reply(request):
+        body = json.loads(request.content)
+        responses = [m for m in body["messages"] if m["role"] == "tool"]
+        if len(responses) == 2:
+            assert "FIX-410" in responses[-1]["content"]
+            calls.append("answer")
+            return httpx.Response(200, json={"choices": [{"message": {"content": "branch-seven, rule FIX-410"}}]})
+        second = bool(responses)
+        fn = _call("get_wazuh_alerts", agent_id="007") if second else _call("get_wazuh_agents", status="disconnected")
+        calls.append(fn["name"])
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "tool_calls": [{"id": "test", "type": "function", "function": fn}],
+                        }
+                    }
+                ]
+            },
+        )
+
+    monkeypatch.setattr(
+        httpx, "AsyncClient", lambda **kwargs: real_client(transport=httpx.MockTransport(reply), **kwargs)
+    )
+    out = tmp_path / "results.json"
+    opts = tool_selection.parse_args(
+        [
+            "--model",
+            "offline-fixture",
+            "--compare-profile",
+            "triage",
+            "--scenarios",
+            str(ROOT / "evals/profile-cases.json"),
+            "--only",
+            "triage-agent-and-alert",
+            "--repeat",
+            "2",
+            "--json",
+            str(out),
+        ]
+    )
+    assert await tool_selection.main(opts) == 0
+    report = json.loads(out.read_text())
+    assert len(calls) == 12
+    assert all(c["summary"]["passed"] == 2 for c in report["catalogs"].values())
+    opts.only = ["missing"]
+    with pytest.raises(ValueError, match="nonempty"):
+        await tool_selection.main(opts)

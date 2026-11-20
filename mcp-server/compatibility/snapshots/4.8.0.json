@@ -1,0 +1,153 @@
+{
+  "fields": {
+    "agent.id": "keyword",
+    "vulnerability.id": "keyword",
+    "vulnerability.severity": "keyword"
+  },
+  "manager": {
+    "/": {
+      "actions": [],
+      "deprecated": false,
+      "required": []
+    },
+    "/agents": {
+      "actions": [
+        "agent:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/cluster/healthcheck": {
+      "actions": [
+        "cluster:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/cluster/nodes": {
+      "actions": [
+        "cluster:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/groups/{group_id}/configuration": {
+      "actions": [
+        "group:read"
+      ],
+      "deprecated": false,
+      "required": [
+        [
+          "path",
+          "group_id"
+        ]
+      ]
+    },
+    "/manager/logs": {
+      "actions": [
+        "manager:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/manager/stats": {
+      "actions": [
+        "manager:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/manager/stats/analysisd": {
+      "actions": [
+        "manager:read"
+      ],
+      "deprecated": true,
+      "required": []
+    },
+    "/manager/stats/remoted": {
+      "actions": [
+        "manager:read"
+      ],
+      "deprecated": true,
+      "required": []
+    },
+    "/manager/stats/weekly": {
+      "actions": [
+        "manager:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/rules": {
+      "actions": [
+        "rules:read"
+      ],
+      "deprecated": false,
+      "required": []
+    },
+    "/sca/{agent_id}": {
+      "actions": [
+        "sca:read"
+      ],
+      "deprecated": false,
+      "required": [
+        [
+          "path",
+          "agent_id"
+        ]
+      ]
+    },
+    "/sca/{agent_id}/checks/{policy_id}": {
+      "actions": [
+        "sca:read"
+      ],
+      "deprecated": false,
+      "required": [
+        [
+          "path",
+          "agent_id"
+        ],
+        [
+          "path",
+          "policy_id"
+        ]
+      ]
+    },
+    "/syscheck/{agent_id}": {
+      "actions": [
+        "syscheck:read"
+      ],
+      "deprecated": false,
+      "required": [
+        [
+          "path",
+          "agent_id"
+        ]
+      ]
+    },
+    "/syscollector/{agent_id}/ports": {
+      "actions": [
+        "syscollector:read"
+      ],
+      "deprecated": false,
+      "required": [
+        [
+          "path",
+          "agent_id"
+        ]
+      ]
+    },
+    "/syscollector/{agent_id}/processes": {
+      "actions": [
+        "syscollector:read"
+      ],
+      "deprecated": false,
+      "required": [
+        [
+          "path",
+          "agent_id"
+        ]
+      ]
+    }
+  }
+}

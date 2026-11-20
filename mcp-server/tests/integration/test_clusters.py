@@ -204,3 +204,42 @@ class TestToolRouting:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "uri,method,arguments",
+    [
+        ("wazuh://manager/info", "get_manager_info", {}),
+        ("wazuh://agents/summary", "get_running_agents", {}),
+        ("wazuh://alerts/recent", "get_alerts", {"limit": 50}),
+        ("wazuh://cluster/status", "get_cluster_health", {}),
+        ("wazuh://rules/summary", "get_rules_summary", {}),
+        ("wazuh://vulnerabilities/critical", "get_critical_vulnerabilities", {"limit": 50}),
+        ("wazuh://agents/1/info", "get_agents", {"agent_id": "001"}),
+        ("wazuh://agents/1/alerts", "get_alerts", {"limit": 50, "agent_id": "001"}),
+        ("wazuh://agents/1/vulnerabilities", "get_vulnerabilities", {"agent_id": "001", "limit": 100}),
+    ],
+)
+@pytest.mark.parametrize("multi", [False, True])
+async def test_resource_uses_registry_default(monkeypatch, uri, method, arguments, multi):
+    from datetime import datetime, timezone
+    from unittest.mock import AsyncMock, Mock
+
+    from wazuh_mcp.auth import AuthToken
+
+    env, selected = Mock(), Mock()
+    setattr(selected, method, AsyncMock(return_value={"data": {}}))
+    clients = {"default": env, "eu": selected} if multi else {"default": selected}
+    registry = ClusterRegistry(clients, "eu" if multi else "default", multi_cluster=multi)
+    registry.get = Mock(wraps=registry.get)
+    monkeypatch.setattr(mcp_server.state, "wazuh_client", env)
+    monkeypatch.setattr(mcp_server.state, "cluster_registry", registry)
+    session = mcp_server.sessions.MCPSession("resource", None)
+    session._auth_token = AuthToken(token="t", api_key_id="test", created_at=datetime.now(timezone.utc), scopes=["wazuh:read"])
+    request = mcp_server.jsonrpc.MCPRequest(jsonrpc="2.0", id=1, method="resources/read", params={"uri": uri})
+    response = await mcp_server.dispatch.process_mcp_request(request, session)
+    assert response.error is None
+    registry.get.assert_called_once_with(None)
+    getattr(selected, method).assert_awaited_once_with(**arguments)
+    assert not env.mock_calls

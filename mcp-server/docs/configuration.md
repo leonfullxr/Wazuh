@@ -109,7 +109,8 @@ Each `API_KEYS` entry is an object with these fields:
 - `name` (required).
 - `key_hash` (required): the HMAC-SHA256 of the key, using `AUTH_SECRET_KEY` as the HMAC key, hex-encoded.
 - `created_at` (required): an ISO 8601 timestamp.
-- `scopes`, `expires_at`, `active` and `metadata` (optional).
+- `scopes` (optional) defaults to `["wazuh:read"]` when omitted. An explicit empty list grants no access.
+- `expires_at`, `active` and `metadata` are optional.
 
 An entry with a missing required field stops the server at startup.
 
@@ -256,7 +257,7 @@ Variables not listed on this page are not read by the server. In particular, `VE
 
 - **Fail-closed:** a token without a scope claim is read-only.
 - **Enforcement:** `tools/list` returns only the tools the token may call, and `tools/call` checks the scope before running anything. A refusal comes back as an `isError` tool result.
-- **Audit:** every `wazuh:write` call is logged twice on the `wazuh_mcp.audit` logger, as `AUDIT:` before execution and `AUDIT_OUTCOME:` after, with the principal, session and arguments.
+- **Audit:** each write-tool call that reaches its Wazuh client is logged twice on the `wazuh_mcp.audit` logger, as `AUDIT:` before execution and `AUDIT_OUTCOME:` after, with the principal, owner ID, correlation ID, resolved cluster and validated target fields.
 
 ## Authentication modes
 
@@ -342,3 +343,13 @@ For client setup (Claude, Open WebUI and others) see [Claude Integration](CLAUDE
 ---
 
 **See also:** [Operations](OPERATIONS.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Security](security/README.md) | [API Reference](api/README.md)
+
+
+## Investigation and cluster policy settings
+
+| Setting | Meaning |
+|---|---|
+| `WAZUH_TOOL_PROFILE` | Optional startup preset, one of triage, compliance or operations. It intersects the allowed toolsets and disabled names. |
+| `WAZUH_CLUSTER_POLICY_FILE` | Optional operator JSON file defining grants and denies for individual clusters and trusted subjects or groups. |
+
+See [investigation settings and examples](INVESTIGATIONS.md), [cluster grants and rollout](CLUSTER_POLICY.md) and [the paired evaluation runner](LOCAL_LLM.md#task-profiles-and-paired-evaluation).

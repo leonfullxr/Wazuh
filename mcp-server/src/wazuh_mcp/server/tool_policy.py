@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Any, Dict
 
-from wazuh_mcp.security import ToolValidationError, validate_limit
+from wazuh_mcp.security import SafeToolError, ToolValidationError, validate_limit
 
 from . import state
 
@@ -188,7 +188,7 @@ def _guard_manager_agent(agent_id: str, tool_name: str) -> None:
     """
     if str(agent_id).lstrip("0") == "" and str(agent_id) != "":  # "0", "00", "000" all normalize to the manager
         if not _manager_ar_allowed():
-            raise ValueError(
+            raise SafeToolError(
                 f"Refusing to run '{tool_name}' against agent 000 (the Wazuh manager itself) - "
                 "this would disrupt the SOC control plane. Set WAZUH_ALLOW_MANAGER_AR=true to override."
             )

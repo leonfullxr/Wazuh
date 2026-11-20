@@ -3,8 +3,7 @@
 import asyncio
 import logging
 import os
-from collections import OrderedDict
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 from fastapi.responses import JSONResponse
 
@@ -82,6 +81,17 @@ from wazuh_mcp.clusters import load_cluster_registry  # noqa: E402
 
 cluster_registry = load_cluster_registry(wazuh_client)
 
+from .cluster_policy import load_policy  # noqa: E402
+
+cluster_policy = load_policy(cluster_registry)
+
+from .product_tools import load_config as load_investigation_config  # noqa: E402
+
+investigation_config = load_investigation_config(
+    os.getenv("WAZUH_INVESTIGATIONS_FILE"), os.getenv("WAZUH_INVESTIGATION_KEYS")
+)
+
+
 
 # Initialize rate limiter
 # Honour RATE_LIMIT_REQUESTS / RATE_LIMIT_WINDOW here too (validated at startup in security.py);
@@ -102,14 +112,11 @@ logger.info("Graceful shutdown manager initialized")
 allowed_origins = validate_cors_origins(config.ALLOWED_ORIGINS)
 
 
-# Track initialized sessions (OrderedDict for O(1) eviction of oldest entries)
-_initialized_sessions: OrderedDict[str, bool] = OrderedDict()
 
 # Current log level for logging/setLevel
 _current_log_level: str = "info"
 
 
-_TOOL_ARGUMENT_NAMES: Optional[Dict[str, frozenset]] = None
 _ready_cache: Optional[Tuple[float, JSONResponse]] = None
 _ready_lock = asyncio.Lock()
 

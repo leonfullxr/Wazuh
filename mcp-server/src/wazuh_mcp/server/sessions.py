@@ -61,6 +61,7 @@ class MCPSession:
         self.authenticated = False
         # Principal that created the session (for the per-principal cap); set by the endpoints.
         self.principal: Optional[str] = None
+        self.owner: Optional[Dict[str, Any]] = None
 
     def update_activity(self) -> None:
         """Update last activity timestamp."""
@@ -88,6 +89,7 @@ class MCPSession:
             "capabilities": self.capabilities,
             "client_info": self.client_info,
             "principal": self.principal,
+            "owner": self.owner,
             "authenticated": self.authenticated,
         }
 
@@ -112,6 +114,7 @@ class SessionManager:
         session.capabilities = _bounded_capabilities(data.get("capabilities", {}))
         session.client_info = _bounded_client_info(data.get("client_info", {}))
         session.principal = data.get("principal")
+        session.owner = data.get("owner")
         session.authenticated = data.get("authenticated", False)
         return session
 
@@ -121,6 +124,25 @@ class SessionManager:
         if data:
             return self._session_from_dict(data)
         return None
+
+    async def owned(self, session_id: str, owner: Optional[Dict[str, Any]], *, delete: bool = False) -> MCPSession:
+        """Atomically check ownership and update activity, or remove a live session."""
+        if not _valid_owner(owner):
+            raise SessionNotFound()
+        while True:
+            data = await self._store.get(session_id)
+            if not data or not _valid_owner(data.get("owner")) or data["owner"] != owner:
+                raise SessionNotFound()
+            session = self._session_from_dict(data)
+            timeout = timedelta(seconds=getattr(self._store, "ttl_seconds", SESSION_TIMEOUT_MINUTES * 60))
+            expired = datetime.now(timezone.utc) - session.last_activity > timeout
+            if not expired and not delete:
+                session.update_activity()
+            replacement = None if expired or delete else session.to_dict()
+            if await self._store.compare_and_swap(session_id, data, replacement):
+                if expired:
+                    raise SessionNotFound()
+                return session
 
     async def set(self, session_id: str, session: MCPSession) -> bool:
         """Store session."""
@@ -209,6 +231,35 @@ class SessionManager:
         return await self._store.count()
 
 
+class SessionNotFound(Exception):
+    """An unknown, expired, or foreign session."""
+
+
+def _valid_owner(owner: Any) -> bool:
+    if not isinstance(owner, dict) or owner.get("version") != 1:
+        return False
+    family = owner.get("family")
+    if family == "authless":
+        return owner == {"version": 1, "family": "authless"}
+    if family in ("api_key", "bearer_jwt"):
+        return isinstance(owner.get("subject"), str) and bool(owner["subject"].strip())
+    if family == "oauth":
+        client, kind, subject = owner.get("client"), owner.get("subject_kind"), owner.get("subject")
+        if not isinstance(client, str) or not client.strip():
+            return False
+        if kind is None:
+            return subject is None
+        if kind not in ("api_key", "idp_user") or not isinstance(subject, str) or not subject.strip():
+            return False
+        return kind != "idp_user" or (isinstance(owner.get("identity_issuer"), str) and bool(owner["identity_issuer"].strip()))
+    return False
+
+
+def _owner_of(auth_token: Any) -> Optional[Dict[str, Any]]:
+    owner = getattr(auth_token, "owner", None)
+    return owner if _valid_owner(owner) else None
+
+
 def _principal_of(auth_token: Any) -> Optional[str]:
     """The api_key_id of an auth token (the session-bounding principal), or None when unauthenticated."""
     return getattr(auth_token, "api_key_id", None) if auth_token is not None else None
@@ -244,7 +295,6 @@ async def _enforce_session_bounds(principal: Optional[str]) -> None:
         excess = len(mine) - (state.MAX_SESSIONS_PER_PRINCIPAL - 1)
         for victim in mine[: max(0, excess)]:
             await state.sessions.remove(victim.session_id)
-            state._initialized_sessions.pop(victim.session_id, None)
             active.pop(victim.session_id, None)
     if len(active) >= state.MAX_SESSIONS:
         reclaimed = await state.sessions.cleanup_expired()
@@ -254,7 +304,6 @@ async def _enforce_session_bounds(principal: Optional[str]) -> None:
         oldest = sorted(active.values(), key=lambda s: s.last_activity)
         for victim in oldest[: len(active) - state.MAX_SESSIONS + 1]:
             await state.sessions.remove(victim.session_id)
-            state._initialized_sessions.pop(victim.session_id, None)
         logger.warning(f"Session store at MAX_SESSIONS={state.MAX_SESSIONS}; evicted least recently active sessions")
 
 
@@ -265,7 +314,7 @@ def _is_initialize(body: Any) -> bool:
 
 
 async def get_or_create_session(
-    session_id: Optional[str], origin: Optional[str], persist: bool = True, principal: Optional[str] = None
+    session_id: Optional[str], origin: Optional[str], persist: bool = True, principal: Optional[str] = None, owner: Optional[Dict[str, Any]] = None
 ) -> MCPSession:
     """Get existing session or create new one.
 
@@ -279,11 +328,7 @@ async def get_or_create_session(
         return MCPSession(str(uuid.uuid4()), origin)
 
     if session_id:
-        existing_session = await state.sessions.get(session_id)
-        if existing_session:
-            existing_session.update_activity()
-            await state.sessions.set(session_id, existing_session)
-            return existing_session
+        return await state.sessions.owned(session_id, owner)
 
     await _enforce_session_bounds(principal)
 
@@ -292,6 +337,7 @@ async def get_or_create_session(
     new_session_id = str(uuid.uuid4())
     session = MCPSession(new_session_id, origin)
     session.principal = principal
+    session.owner = owner
     await state.sessions.set(new_session_id, session)
     from wazuh_mcp.monitoring import record_session_event
 
@@ -309,11 +355,6 @@ async def get_or_create_session(
                 for _ in range(expired_count):
                     record_session_event("expired")
                 logger.debug(f"Cleaned up {expired_count} expired sessions")
-                # Sync _initialized_sessions with active sessions
-                active = await state.sessions.get_all()
-                stale_keys = [k for k in state._initialized_sessions if k not in active]
-                for k in stale_keys:
-                    state._initialized_sessions.pop(k, None)
         except Exception as e:
             logger.error(f"Session cleanup error: {e}")
 

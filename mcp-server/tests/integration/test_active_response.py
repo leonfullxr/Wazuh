@@ -157,7 +157,7 @@ class TestISO27001Scoring:
     async def _run_dashboard(self, client, *, stats_events, vulns_raise):
         async def fake_request(method, endpoint, **kwargs):
             if endpoint == "/agents":
-                return {"data": {"affected_items": [{"id": "001", "name": "web-01"}]}}
+                return {"data": {"affected_items": [{"id": "001", "name": "web-01"}], "total_affected_items": 1, "total_failed_items": 0}}
             if endpoint.startswith("/sca/"):
                 return {"data": {"affected_items": []}}
             if endpoint == "/manager/stats/analysisd":
@@ -171,7 +171,7 @@ class TestISO27001Scoring:
         async def fake_vulns(**kwargs):
             if vulns_raise:
                 raise RuntimeError("indexer down")
-            return {"data": {"affected_items": []}}
+            return {"data": {"affected_items": [], "completeness": {"complete": True, "reasons": []}}}
 
         client._request = fake_request
         client.get_alerts = fake_get_alerts
@@ -212,3 +212,134 @@ class TestISO27001Scoring:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+class TestISOCompleteness:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("total,extra,reason", [
+        (None, {}, "unknown_total"), ("1", {}, "unknown_total"),
+        ({"value": 1, "relation": "gte"}, {}, "unknown_total"),
+        (600, {}, "page_truncated"), (1, {"timed_out": True}, "search_incomplete"),
+        (1, {"_shards": {"failed": 1}}, "search_incomplete"),
+        (1, {"_clusters": {"partial": 1}}, "search_incomplete"),
+        ({"value": 1, "relation": "eq"}, {}, None),
+    ])
+    async def test_indexer_completeness(self, total, extra, reason):
+        client = TestISO27001Scoring()._client_with_indexer()._indexer_client
+        async def search(*args, **kwargs):
+            return {"hits": {"total": total, "hits": [{"_source": {}}]}, **extra}
+        client._search = search
+        data = (await client.get_vulnerabilities(agent_id="001"))["data"]
+        assert data["completeness"]["complete"] is (reason is None)
+        if reason:
+            assert reason in data["completeness"]["reasons"]
+
+    async def dashboard(self, agent_ids, results, *, total=None, failed=0, agent_id=None):
+        client = TestISO27001Scoring()._client_with_indexer()
+        async def request(method, endpoint, **kwargs):
+            if endpoint == "/agents":
+                return {"data": {"affected_items": [{"id": a} for a in agent_ids],
+                                 "total_affected_items": total, "total_failed_items": failed}}
+            return {"data": {"affected_items": []}}
+        async def alerts(**kwargs):
+            return {"data": {"affected_items": []}}
+        async def search(index, query, size):
+            tid = query["bool"]["must"][0]["term"]["agent.id"]
+            value = results[tid]
+            if isinstance(value, Exception):
+                raise value
+            return value
+        client._request = request
+        client.get_alerts = alerts
+        client._indexer_client._search = search
+        return client, (await client.get_iso27001_dashboard(agent_id))["data"]
+
+    @staticmethod
+    def hits(count, total=None):
+        return {"hits": {"total": count if total is None else total,
+                         "hits": [{"_source": {"vulnerability": {"severity": "Critical"}}}] * count}}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("first_fails", [False, True])
+    async def test_failure_preserves_observations_and_gap(self, first_fails):
+        results = {"001": RuntimeError() if first_fails else self.hits(2),
+                   "002": self.hits(2) if first_fails else RuntimeError()}
+        client, data = await self.dashboard(["001", "002"], results, total=2)
+        coverage = data["vulnerability_coverage"]
+        assert coverage["status"] == "partial" and coverage["completed_agents"] == 1
+        assert coverage["observed_counts"]["critical"] == 2
+        assert data["vulnerability_summary"] is None and data["overall_weighted_score"] is None
+        assert data["domain_summary"]["A.8"]["weighted_score"] is None
+        assert "Known failure" in data["endpoint_device_panel"]["board_summary"]
+        gap = next(g for g in (await client.get_iso27001_gap_analysis())["data"]["gaps"] if g["control_id"] == "A.8.8")
+        assert gap["gap_type"] == "incomplete_evidence" and gap["score_upper_bound"] == 70
+        assert gap["known_failure"]
+
+    @pytest.mark.asyncio
+    async def test_truncated_critical_page_and_explicit_agent(self):
+        client, data = await self.dashboard(["001"], {"001": self.hits(500, 600)}, total=1, agent_id="001")
+        assert data["vulnerability_coverage"]["observed_counts"]["critical"] == 500
+        assert data["vulnerability_coverage"]["reasons"] == ["page_truncated"]
+        assert data["posture"] == "insufficient_data"
+        gap = next(g for g in (await client.get_iso27001_gap_analysis("001"))["data"]["gaps"] if g["control_id"] == "A.8.8")
+        assert gap["severity"] == "critical" and gap["score_upper_bound"] == 0
+
+    @pytest.mark.asyncio
+    async def test_zero_and_incomplete_targets(self):
+        _, empty = await self.dashboard([], {}, total=0)
+        assert empty["vulnerability_coverage"]["status"] == "unavailable"
+        _, incomplete = await self.dashboard(["001"], {"001": self.hits(0)}, total=2)
+        assert incomplete["vulnerability_coverage"]["status"] == "partial"
+        assert "target_list_incomplete" in incomplete["vulnerability_coverage"]["reasons"]
+        _, explicit = await self.dashboard(["001"], {"001": self.hits(0)}, total=1, agent_id="001")
+        assert explicit["vulnerability_coverage"]["status"] == "complete"
+        assert explicit["vulnerability_summary"]["critical"] == 0
+        assert next(c for c in explicit["controls"] if c["control_id"] == "A.8.8")["score"] == 100
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("total", [None, "1", {"value": 1, "relation": "gte"}, -1])
+    async def test_unknown_manager_total(self, total):
+        _, data = await self.dashboard(["001"], {"001": self.hits(0)}, total=total)
+        assert data["vulnerability_coverage"]["status"] == "partial"
+        assert data["vulnerability_coverage"]["expected_agents"] is None
+        assert "unknown_total" in data["vulnerability_coverage"]["reasons"]
+
+    @pytest.mark.asyncio
+    async def test_budget_and_caller_cancellation(self, monkeypatch):
+        import asyncio
+
+        import wazuh_mcp.api.wazuh_client as module
+
+        client = TestISO27001Scoring()._client_with_indexer()
+        async def request(method, endpoint, **kwargs):
+            if endpoint == "/agents":
+                return {"data": {"affected_items": [{"id": "001"}], "total_affected_items": 1,
+                                 "total_failed_items": 0}}
+            return {"data": {"affected_items": []}}
+        async def alerts(**kwargs):
+            return {"data": {"affected_items": []}}
+        started = asyncio.Event()
+        async def slow(**kwargs):
+            started.set()
+            await asyncio.Event().wait()
+        client._request = request
+        client.get_alerts = alerts
+        client._indexer_client.get_vulnerabilities = slow
+        real_timeout = asyncio.timeout
+        monkeypatch.setattr(module.asyncio, "timeout", lambda _: real_timeout(0.01))
+        data = (await client.get_iso27001_dashboard())["data"]
+        assert data["vulnerability_coverage"]["status"] == "unavailable"
+        assert "source_unavailable" in data["vulnerability_coverage"]["reasons"]
+        started.clear()
+        task = asyncio.create_task(client.get_iso27001_dashboard())
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    @pytest.mark.asyncio
+    async def test_unrecognized_severity_is_incomplete(self):
+        response = {"hits": {"total": 1, "hits": [{"_source": {"vulnerability": {"severity": 123}}}]}}
+        _, data = await self.dashboard(["001"], {"001": response}, total=1)
+        assert data["vulnerability_coverage"]["status"] == "partial"
+        assert "unknown_severity" in data["vulnerability_coverage"]["reasons"]
+        assert data["overall_weighted_score"] is None

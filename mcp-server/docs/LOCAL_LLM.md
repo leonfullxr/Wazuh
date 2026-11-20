@@ -157,3 +157,9 @@ mcp_servers:
 - Agent `000` (the manager), including a Manager restart, is refused as a target unless `WAZUH_ALLOW_MANAGER_AR=true`; fleet-wide IP blocks are refused unless `WAZUH_ALLOW_FLEET_AR=true`.
 - Protected IPs (loopback, the Manager, `WAZUH_PROTECTED_IPS`) are never blocked, and `wazuh_quarantine_file` refuses system and agent directories.
 - See [Active response](api/active-response.md#safety-controls) for the full list.
+
+## Task profiles and paired evaluation
+
+Set `WAZUH_TOOL_PROFILE` to `triage`, `compliance` or `operations` at startup. A profile further restricts the named operator toolsets and disabled-tool list. Omit it for the existing catalog. Use `tools/list` with the analyst's own credential to inspect the effective catalog.
+
+From the package directory run `python evals/tool_selection.py --base-url http://localhost:8000/v1 --model YOUR_MODEL --scenarios evals/profile-cases.json --compare-profile triage --repeat 3 --json results.json`. Both catalogs use the same prompts, expected results and nonempty denominator. The first case feeds a fixed synthetic agent record into the second model turn, then checks that the final answer cites the correct agent and rule from the fixture alerts. All emitted calls are scored, including unwanted writes. Missing tools and failed requests remain in the results. Latency summaries exclude unavailable cases and network errors. Reports contain the model name, settings, catalog and fixture digests and per-attempt outcomes. A unit-test transcript verifies the evaluator. Actual model quality and latency require the named model service.

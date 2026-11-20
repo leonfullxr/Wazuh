@@ -15,6 +15,8 @@ The server reads `WAZUH_CLUSTERS_FILE` (default `./config/clusters.json`, relati
 
 `WAZUH_HOST`, `WAZUH_USER` and `WAZUH_PASS` are still required in multi-cluster mode (startup fails without them), because the environment cluster is always loaded as `default`. The id `default` is therefore reserved and cannot be used in the file.
 
+Resource reads use the configured `default_cluster`, as tool calls without `cluster_id` do. For example, if the environment cluster is `default` and `default_cluster` is `prod-eu`, resources now read from `prod-eu`; operators who previously relied on environment-only resource reads should review their default before upgrading. The `/ready` probe still checks the environment cluster, so a green probe does not establish that a different named default is reachable.
+
 Connections are opened lazily on first use, so an unreachable cluster does not prevent startup; tools targeting it return the connection error.
 
 ## Configuration
@@ -172,7 +174,7 @@ The prefix applies only to Indexer queries (alerts, events, vulnerabilities). Ma
 ## Limitations
 
 - **Readiness:** `/ready` probes only the environment-configured cluster (`default`), even when `default_cluster` points elsewhere. It lists the configured clusters under `clusters` but does not check them. `/health` does not report clusters. Use `validate_wazuh_connection` with a `cluster_id` to test a specific cluster.
-- **Audit log:** write-tool audit lines record the tool, client, session, arguments and the resolved cluster (`cluster=<id>`, so the default is named explicitly), which is the cluster a destructive action actually ran against.
+- **Audit log:** write-tool audit lines record the tool, principal, owner ID, correlation ID, validated target fields and the resolved cluster (`cluster=<id>`, so the default is named explicitly), which is the cluster a destructive action actually ran against.
 - **Scopes:** RBAC is per token, not per cluster. A token with `wazuh:write` can run active response on every configured cluster.
 - **Connection settings:** `MAX_CONNECTIONS` and `REQUEST_TIMEOUT_SECONDS` apply only to the `default` cluster. File entries use `request_timeout_seconds` and a fixed limit of 10 concurrent Manager requests.
 - **Protected targets:** `WAZUH_PROTECTED_IPS` and the active-response switches (`WAZUH_ALLOW_MANAGER_AR`, `WAZUH_ALLOW_FLEET_AR`, `WAZUH_REQUIRE_ACTION_CONFIRMATION`, quarantine prefixes) apply to every cluster. Each cluster's own `wazuh_host` is protected from IP blocks when it is an IP address.

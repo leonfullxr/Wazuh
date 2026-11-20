@@ -6,6 +6,7 @@ Implements MCP 2026-07-28 authentication specification for Claude Desktop integr
 
 import hashlib
 import html
+import ipaddress
 import logging
 import os
 import re
@@ -13,7 +14,7 @@ import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse
 
 import jwt
 from fastapi import APIRouter, Form, Query, Request
@@ -23,6 +24,14 @@ from jwt.exceptions import PyJWTError as JWTError
 from wazuh_mcp.oidc import IdentityDenied, IdPError, OIDCProvider
 
 logger = logging.getLogger(__name__)
+
+_RESERVED_CALLBACK_KEYS = {"code", "state", "iss", "error", "error_description", "error_uri"}
+
+
+def _client_redirect(uri: str, params: dict, *, status_code: int = 307, headers=None):
+    separator = "" if uri.endswith(("?", "&")) else ("&" if "?" in uri else "?")
+    return RedirectResponse(uri + separator + urlencode(params), status_code=status_code, headers=headers)
+
 
 # OAuth 2.0 Error Codes (RFC 6749)
 OAUTH_ERRORS = {
@@ -83,6 +92,9 @@ class AuthorizationCode:
     # Who approved it: an API key id (sign-in page) or an IdP user (OIDC login)
     subject: Optional[str] = None
     subject_kind: Optional[str] = None  # "api_key" | "idp_user"
+    identity_issuer: Optional[str] = None
+    groups: Tuple[str, ...] = ()
+    groups_at: Optional[float] = None
 
     def is_expired(self) -> bool:
         return datetime.now(timezone.utc) > self.expires_at
@@ -105,6 +117,9 @@ class OAuthToken:
     # Grant family: every token minted from one authorization shares it, so a refresh
     # replay revokes that grant only, not every user of a shared public client.
     family: Optional[str] = None
+    identity_issuer: Optional[str] = None
+    groups: Tuple[str, ...] = ()
+    groups_at: Optional[float] = None
 
     def is_expired(self) -> bool:
         return datetime.now(timezone.utc) > self.expires_at
@@ -246,13 +261,33 @@ class OAuthManager:
     def _validate_redirect_uri(uri: str) -> None:
         """Reject redirect URIs that aren't https (loopback http allowed) or contain a fragment."""
         try:
+            if not isinstance(uri, str) or any(c.isspace() or ord(c) < 32 for c in uri):
+                raise ValueError("invalid URI")
             parsed = urlparse(uri)
         except Exception:
             raise ValueError(f"invalid redirect_uri: {uri}")
-        if parsed.fragment:
+        if "#" in uri:
             raise ValueError(f"redirect_uri must not contain a fragment: {uri}")
         host = (parsed.hostname or "").lower()
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            try:
+                ascii_host = host.encode("idna").decode("ascii")
+            except UnicodeError as exc:
+                raise ValueError(f"invalid redirect_uri: {uri}") from exc
+            labels = ascii_host.rstrip(".").split(".")
+            if len(ascii_host) > 253 or not all(re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) for label in labels):
+                raise ValueError(f"invalid redirect_uri: {uri}")
         is_loopback = host in ("localhost", "127.0.0.1", "::1")
+        if not host or parsed.username is not None or parsed.password is not None:
+            raise ValueError(f"invalid redirect_uri: {uri}")
+        try:
+            parsed.port
+        except ValueError as exc:
+            raise ValueError(f"invalid redirect_uri: {uri}") from exc
+        if any(key.casefold() in _RESERVED_CALLBACK_KEYS for key, _ in parse_qsl(parsed.query, keep_blank_values=True)):
+            raise ValueError(f"redirect_uri contains reserved response parameter: {uri}")
         if parsed.scheme == "https":
             return
         if parsed.scheme == "http" and is_loopback:
@@ -359,10 +394,7 @@ class OAuthManager:
         registered read scope."""
         valid = {"wazuh:read", "wazuh:write"}
         registered = set((client.scope or "").split()) & valid
-        asked = set((requested or "").split()) & valid
-        granted = (asked & registered) if asked else registered
-        if not granted:
-            granted = registered or {"wazuh:read"}
+        granted = registered if requested is None else set(requested.split()) & registered
         # Stable, canonical order.
         return " ".join(s for s in ("wazuh:read", "wazuh:write") if s in granted)
 
@@ -436,6 +468,9 @@ class OAuthManager:
         code_challenge_method: Optional[str] = None,
         subject: Optional[str] = None,
         subject_kind: Optional[str] = None,
+        identity_issuer: Optional[str] = None,
+        groups: Tuple[str, ...] = (),
+        groups_at: Optional[float] = None,
     ) -> str:
         """Create authorization code for OAuth flow. PKCE with S256 is mandatory."""
         if not code_challenge:
@@ -455,6 +490,7 @@ class OAuthManager:
             code_challenge_method=code_challenge_method,
             subject=subject,
             subject_kind=subject_kind if subject else None,
+            identity_issuer=identity_issuer, groups=groups, groups_at=groups_at,
         )
 
         # Cleanup expired entries periodically to bound memory
@@ -497,8 +533,8 @@ class OAuthManager:
         # Generate tokens
         family = secrets.token_urlsafe(12)
         subject, kind = auth_code.subject, auth_code.subject_kind
-        access_token = self._create_jwt_token(client_id, auth_code.scope, "access", subject, family, kind)
-        refresh_token = self._create_jwt_token(client_id, auth_code.scope, "refresh", subject, family, kind)
+        access_token = self._create_jwt_token(client_id, auth_code.scope, "access", subject, family, kind, auth_code.identity_issuer, auth_code.groups, auth_code.groups_at)
+        refresh_token = self._create_jwt_token(client_id, auth_code.scope, "refresh", subject, family, kind, auth_code.identity_issuer, auth_code.groups, auth_code.groups_at)
 
         # Cleanup expired tokens periodically to bound memory
         if len(self.access_tokens) > 5000 or len(self.refresh_tokens) > 5000:
@@ -514,6 +550,7 @@ class OAuthManager:
             subject=subject,
             subject_kind=kind,
             family=family,
+            identity_issuer=auth_code.identity_issuer, groups=auth_code.groups, groups_at=auth_code.groups_at,
         )
 
         self.refresh_tokens[refresh_token] = OAuthToken(
@@ -526,6 +563,7 @@ class OAuthManager:
             subject=subject,
             subject_kind=kind,
             family=family,
+            identity_issuer=auth_code.identity_issuer, groups=auth_code.groups, groups_at=auth_code.groups_at,
         )
 
         # Authorization code was already consumed via pop() above (single-use).
@@ -578,6 +616,8 @@ class OAuthManager:
             self.revoked_jtis[consumed_payload["jti"]] = token_obj.expires_at
 
         scope = token_obj.scope
+        if token_obj.subject_kind == "idp_user" and (not token_obj.identity_issuer or not token_obj.subject or token_obj.groups_at is None):
+            raise ValueError("invalid_grant")
         if token_obj.subject_kind == "api_key":
             # A refresh must not outlive the API key the user signed in with: a removed,
             # deactivated or expired key ends the grant, and narrowed key scopes narrow it.
@@ -612,8 +652,8 @@ class OAuthManager:
 
         # Generate new access token AND a new refresh token (rotation), same grant family.
         subject, family, kind = token_obj.subject, token_obj.family, token_obj.subject_kind
-        access_token = self._create_jwt_token(client_id, scope, "access", subject, family, kind)
-        new_refresh_token = self._create_jwt_token(client_id, scope, "refresh", subject, family, kind)
+        access_token = self._create_jwt_token(client_id, scope, "access", subject, family, kind, token_obj.identity_issuer, token_obj.groups, token_obj.groups_at)
+        new_refresh_token = self._create_jwt_token(client_id, scope, "refresh", subject, family, kind, token_obj.identity_issuer, token_obj.groups, token_obj.groups_at)
 
         self.access_tokens[access_token] = OAuthToken(
             token=access_token,
@@ -625,6 +665,7 @@ class OAuthManager:
             subject=subject,
             subject_kind=kind,
             family=family,
+            identity_issuer=token_obj.identity_issuer, groups=token_obj.groups, groups_at=token_obj.groups_at,
         )
         self.refresh_tokens[new_refresh_token] = OAuthToken(
             token=new_refresh_token,
@@ -636,6 +677,7 @@ class OAuthManager:
             subject=subject,
             subject_kind=kind,
             family=family,
+            identity_issuer=token_obj.identity_issuer, groups=token_obj.groups, groups_at=token_obj.groups_at,
         )
 
         return {
@@ -686,12 +728,15 @@ class OAuthManager:
                 token=token,
                 token_type="access",
                 client_id=payload.get("client_id", ""),
-                scope=payload.get("scope", ""),
+                scope=payload.get("scope"),
                 created_at=datetime.fromtimestamp(payload.get("iat", 0), timezone.utc),
                 expires_at=datetime.fromtimestamp(payload.get("exp", 0), timezone.utc),
                 subject=payload.get("usr") or payload.get("idp_sub"),
                 subject_kind="api_key" if payload.get("usr") else ("idp_user" if payload.get("idp_sub") else None),
                 family=payload.get("fam"),
+                identity_issuer=payload.get("idp_iss"),
+                groups=tuple(payload.get("idp_groups", [])),
+                groups_at=payload.get("idp_groups_at"),
             )
 
         return None
@@ -748,6 +793,9 @@ class OAuthManager:
         subject: Optional[str] = None,
         family: Optional[str] = None,
         subject_kind: Optional[str] = None,
+        identity_issuer: Optional[str] = None,
+        groups: Tuple[str, ...] = (),
+        groups_at: Optional[float] = None,
     ) -> str:
         """Create JWT token. `usr` carries an API-key subject, `idp_sub` an IdP-authenticated user."""
         ttl = self.config.OAUTH_ACCESS_TOKEN_TTL if token_type == "access" else self.config.OAUTH_REFRESH_TOKEN_TTL
@@ -763,6 +811,9 @@ class OAuthManager:
         }
         if subject and subject_kind == "idp_user":
             payload["idp_sub"] = subject
+            payload["idp_iss"] = identity_issuer
+            payload["idp_groups"] = list(groups)
+            payload["idp_groups_at"] = groups_at
         elif subject:
             payload["usr"] = subject
         if family:
@@ -841,7 +892,7 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
             },
         )
 
-    def _check_request(client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method):
+    def _check_request(client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, redirect_status=307):
         """Validate an authorization request. Returns (client, error_response)."""
         client = oauth_manager.validate_client(client_id)
         if not client:
@@ -853,19 +904,21 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
             return None, JSONResponse(
                 {"error": "invalid_request", "error_description": "Invalid redirect_uri"}, status_code=400
             )
+        try:
+            oauth_manager._validate_redirect_uri(redirect_uri)
+        except ValueError:
+            return None, JSONResponse({"error": "invalid_request", "error_description": "Invalid redirect_uri"}, status_code=400)
         if response_type != "code":
-            params = urlencode({"error": "unsupported_response_type", "state": state or ""})
-            return None, RedirectResponse(f"{redirect_uri}?{params}")
+            params = {"error": "unsupported_response_type"}
+            if state is not None:
+                params["state"] = state
+            return None, _client_redirect(redirect_uri, params, status_code=redirect_status)
         # PKCE (S256) is mandatory
         if not code_challenge or code_challenge_method != "S256":
-            params = urlencode(
-                {
-                    "error": "invalid_request",
-                    "error_description": "PKCE required: send code_challenge with code_challenge_method=S256",
-                    "state": state or "",
-                }
-            )
-            return None, RedirectResponse(f"{redirect_uri}?{params}")
+            params = {"error": "invalid_request", "error_description": "PKCE required: send code_challenge with code_challenge_method=S256"}
+            if state is not None:
+                params["state"] = state
+            return None, _client_redirect(redirect_uri, params, status_code=redirect_status)
         return client, None
 
     async def _start_idp_login(request, client, redirect_uri, scope, state, code_challenge):
@@ -920,12 +973,17 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
                 headers=_NO_STORE,
             )
 
+        try:
+            oauth_manager._validate_redirect_uri(pending.redirect_uri)
+        except ValueError:
+            return JSONResponse({"error": "invalid_request", "error_description": "Invalid redirect_uri"}, status_code=400, headers=_NO_STORE)
+
         def _deny(err: str, description: str) -> RedirectResponse:
             """Send the MCP client an OAuth error redirect (with its own state), never IdP text."""
             params = {"error": err, "error_description": description}
             if pending.state:
                 params["state"] = pending.state
-            return RedirectResponse(f"{pending.redirect_uri}?{urlencode(params)}", headers=_NO_STORE)
+            return _client_redirect(pending.redirect_uri, params, headers=_NO_STORE)
 
         if error:
             # Never echo the IdP's free-text description to the client (nor log it verbatim).
@@ -950,6 +1008,10 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
             logger.error(f"Unexpected error completing IdP login: {type(e).__name__}")
             return _deny("server_error", "Login could not be completed")
 
+        verified_sub, verified_issuer = claims.get("sub"), claims.get("iss")
+        if not isinstance(verified_sub, str) or not verified_sub.strip() or not isinstance(verified_issuer, str) or not verified_issuer.strip():
+            return _deny("access_denied", "Login has no verified identity")
+
         granted_scope = oauth_manager.intersect_scope(identity.scope, pending.scope)
         if not granted_scope:
             return _deny("access_denied", "This account has no permitted scope for this client")
@@ -965,15 +1027,16 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
                 scope=granted_scope,
                 code_challenge=pending.code_challenge,
                 code_challenge_method=pending.code_challenge_method,
-                subject=identity.subject,
+                subject=verified_sub,
                 subject_kind="idp_user",
+                identity_issuer=verified_issuer, groups=identity.groups, groups_at=datetime.now(timezone.utc).timestamp(),
             )
         except ValueError as e:
             return _deny("invalid_request", str(e))
         params = {"code": mcp_code, "iss": oauth_manager.get_issuer_url(request)}
         if pending.state:
             params["state"] = pending.state
-        return RedirectResponse(f"{pending.redirect_uri}?{urlencode(params)}", headers=_NO_STORE)
+        return _client_redirect(pending.redirect_uri, params, headers=_NO_STORE)
 
     @router.get("/authorize")
     async def authorize(
@@ -981,7 +1044,7 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
         response_type: str = Query(...),
         client_id: str = Query(...),
         redirect_uri: str = Query(...),
-        scope: str = Query(default="wazuh:read wazuh:write"),
+        scope: Optional[str] = Query(default=None),
         state: Optional[str] = Query(default=None),
         code_challenge: Optional[str] = Query(default=None),
         code_challenge_method: Optional[str] = Query(default=None),
@@ -995,6 +1058,8 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
         )
         if error:
             return error
+        if scope is None:
+            scope = oauth_manager.bound_scope(None, client)
         if oauth_manager.requires_idp:
             return await _start_idp_login(request, client, redirect_uri, scope, state, code_challenge)
         return _login_page(client, redirect_uri, scope, state, code_challenge)
@@ -1006,17 +1071,22 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
         client_id: str = Form(...),
         redirect_uri: str = Form(...),
         api_key: str = Form(...),
-        scope: str = Form(default="wazuh:read wazuh:write"),
+        scope: Optional[str] = Form(default=None),
         state: Optional[str] = Form(default=None),
         code_challenge: Optional[str] = Form(default=None),
         code_challenge_method: Optional[str] = Form(default=None),
     ):
         """Login form submission: authenticate the API key and issue the authorization code."""
+        form = await request.form()
+        if "scope" in form:
+            scope = str(form["scope"])
         client, error = _check_request(
-            client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method
+            client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, redirect_status=303
         )
         if error:
             return error
+        if scope is None:
+            scope = oauth_manager.bound_scope(None, client)
         if oauth_manager.requires_idp:
             # With an IdP configured, users authenticate there; the API-key form is off.
             return JSONResponse(
@@ -1035,7 +1105,7 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
 
         # Requested & what the client is registered for & what this user's key allows
         client_scope = set(oauth_manager.bound_scope(scope, client).split())
-        granted = client_scope & set(key.scopes or ["wazuh:read"])
+        granted = client_scope & set(key.scopes)
         if not granted:
             return _login_page(
                 client,
@@ -1059,8 +1129,10 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
                 subject_kind="api_key",
             )
         except ValueError as e:
-            params = urlencode({"error": "invalid_request", "error_description": str(e), "state": state or ""})
-            return RedirectResponse(f"{redirect_uri}?{params}", status_code=303)
+            params = {"error": "invalid_request", "error_description": str(e)}
+            if state is not None:
+                params["state"] = state
+            return _client_redirect(redirect_uri, params, status_code=303)
 
         logger.info(f"OAuth grant approved: client={client_id} key={key.id} scope={granted_scope}")
         # Redirect back with code and the issuer identifier (RFC 9207) so the client can
@@ -1068,7 +1140,7 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
         params = {"code": code, "iss": oauth_manager.get_issuer_url(request)}
         if state:
             params["state"] = state
-        return RedirectResponse(f"{redirect_uri}?{urlencode(params)}", status_code=303)
+        return _client_redirect(redirect_uri, params, status_code=303)
 
     @router.post("/token")
     async def token(
@@ -1168,7 +1240,7 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
             client = oauth_manager.register_client(body)
             return JSONResponse(client.to_registration_response(), status_code=201)
         except ValueError as e:
-            return JSONResponse({"error": "invalid_request", "error_description": str(e)}, status_code=400)
+            return JSONResponse({"error": "invalid_redirect_uri" if "redirect_uri" in str(e) else "invalid_request", "error_description": str(e)}, status_code=400)
         except Exception as e:
             logger.error(f"Client registration error: {e}")
             return JSONResponse({"error": "server_error", "error_description": "Registration failed"}, status_code=500)

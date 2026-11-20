@@ -1,0 +1,61 @@
+[
+  {
+    "id": "triage-agent-and-alert",
+    "prompt": "List the disconnected agents. Then look up recent alerts on the agent named branch-seven from the tool result. Cite the rule ID and agent name in your answer.",
+    "steps": [
+      {
+        "expect": [
+          "get_wazuh_agents"
+        ],
+        "args": {
+          "status": "disconnected"
+        },
+        "fixture": {
+          "agents": [
+            {
+              "id": "007",
+              "name": "branch-seven"
+            }
+          ]
+        }
+      },
+      {
+        "expect": [
+          "get_wazuh_alerts"
+        ],
+        "args": {
+          "agent_id": "007"
+        },
+        "fixture": {
+          "events": [
+            {
+              "agent": "branch-seven",
+              "rule_id": "FIX-410"
+            }
+          ]
+        }
+      },
+      {
+        "answer_contains": [
+          "branch-seven",
+          "FIX-410"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "agent-status",
+    "prompt": "Check the health of agent 012.",
+    "expect": [
+      "check_agent_health"
+    ],
+    "args": {
+      "agent_id": "012"
+    }
+  },
+  {
+    "id": "read-only-review",
+    "prompt": "Summarize agent 007 using only read operations.",
+    "forbid_write": true
+  }
+]

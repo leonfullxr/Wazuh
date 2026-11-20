@@ -64,7 +64,8 @@ async def readiness_check():
     async with state._ready_lock:
         now = time.monotonic()
         if state._ready_cache is None or now - state._ready_cache[0] >= READY_CACHE_SECONDS:
-            state._ready_cache = (now, await _evaluate_readiness())
+            response = await _evaluate_readiness()
+            state._ready_cache = (time.monotonic(), response)
         response = state._ready_cache[1]
     return JSONResponse(content=json.loads(response.body), status_code=response.status_code)
 
@@ -169,11 +170,11 @@ async def _evaluate_readiness() -> JSONResponse:
                 "legacy_handshake_protocol_version": MCP_PROTOCOL_VERSION,
                 "supported_protocol_versions": SUPPORTED_PROTOCOL_VERSIONS,
                 "transport": {"streamable_http": "enabled"},
-                "clusters": {
+                **({"clusters": {
                     "multi_cluster": state.cluster_registry.multi_cluster,
                     "default": state.cluster_registry.default_id,
                     "configured": state.cluster_registry.cluster_ids,
-                },
+                }} if state.cluster_policy is None else {}),
                 "authentication": auth_info,
                 "services": {
                     "wazuh_manager": wazuh_status,

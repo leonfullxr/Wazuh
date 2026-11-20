@@ -3,6 +3,8 @@
 import logging
 from typing import Any, Dict
 
+from wazuh_mcp.security import ToolValidationError
+
 from .constants import MCP_ERRORS
 from .handlers import (
     ResourceNotFound,
@@ -20,6 +22,7 @@ from .handlers import (
     handle_server_discover,
 )
 from .jsonrpc import MCPRequest, MCPResponse, create_error_response, create_success_response
+from .output import _sanitize_output_text
 from .sessions import MCPSession
 from .tool_calls import handle_tools_call
 from .tool_catalog import handle_tools_list
@@ -70,7 +73,7 @@ async def process_mcp_notification(method: str, params: Dict[str, Any], session:
             await handler(params, session)
         except Exception as e:
             # Log but don't return error - notifications don't get responses
-            logger.error(f"Error processing notification {method}: {e}")
+            logger.error("Notification failed: %s", type(e).__name__)
     else:
         logger.debug(f"Received unknown notification: {method}")
 
@@ -99,17 +102,19 @@ async def process_mcp_request(request: MCPRequest, session: MCPSession) -> MCPRe
 
     except ResourceNotFound as e:
         return create_error_response(request.id, MCP_ERRORS["RESOURCE_NOT_FOUND"], str(e))
-    except ValueError as e:
-        return create_error_response(request.id, MCP_ERRORS["INVALID_PARAMS"], str(e))
+    except ToolValidationError as e:
+        return create_error_response(request.id, MCP_ERRORS["INVALID_PARAMS"], _sanitize_output_text(str(e)))
+    except ValueError:
+        message = "Invalid request parameters"
+        if request.method == "tools/call":
+            message = "Unknown tool or invalid parameters. Use tools/list to see available tools."
+        return create_error_response(request.id, MCP_ERRORS["INVALID_PARAMS"], message)
     except Exception as e:
         from wazuh_mcp.monitoring import structured_logger
 
         structured_logger.error(
             f"Internal error processing {request.method}",
-            exc_info=True,
             method=request.method,
-            request_id=str(request.id) if request.id else None,
             error_type=type(e).__name__,
-            error_message=str(e),
         )
         return create_error_response(request.id, MCP_ERRORS["INTERNAL_ERROR"], "Internal server error")

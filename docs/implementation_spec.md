@@ -1,0 +1,50 @@
+# Wazuh MCP implementation specification
+
+Baseline `cccb1e8`. The [audit](audit_report.md), [eight executor contracts](../mcp-server/plans/README.md) and [six product contracts](../mcp-server/plans/PRODUCT-DESIGN.md) form the specification. Use this document for sequencing and cross-cutting acceptance. Review gates precede source edits.
+
+## Architecture and invariants
+
+HTTP authentication produces the current credential and effective grants. Transport selects a stateless request or verifies legacy ownership before loading mutable session state. Dispatch routes the request. Discovery and invocation share policy. An authorized valid request resolves its cluster once, then calls the Manager or Indexer adapter. Collection returns bounded data and explicit evidence quality. Redaction runs before any client representation. Failure handling distinguishes reviewed configuration or validation guidance from unexpected backend text.
+
+Sessions persist through the memory or Redis adapter. Ownership is immutable for the life of a session. Stateless calls avoid stored session state. OAuth login and rate limits remain process-local. Production deployments using these features require the topology documented in OPERATIONS.md. A read-only evidence locator must be resolved against current permissions, registered data origin and current key configuration on every lookup. A coordinating search backend that obscures origin is ineligible for the initial restricted policy. The server must never treat input data or model output as human approval.
+
+## Work matrix
+
+| Work | Owned boundary | Dependencies | Acceptance |
+|---|---|---|---|
+| 001 | Resource scope in handlers and scope tests | None | Denied discovery is empty, denied reads make zero backend calls. |
+| 002 | ISO scoring and Indexer completeness | None | Partial assessment retains known failures and suppresses favorable aggregates. |
+| 003 | Authenticated session owners, transport and persistence | None | Verify both HTTP eras, memory and serialized Redis with fresh manager. |
+| 005 | Redis count and readiness tests | None | Empty success is 200, failures are 503, liveness remains independent. |
+| 007 | OAuth callbacks and existing OAuth route tests | None | Registered bytes survive the round trip and ambiguous response keys fail directly. |
+| 008 | Dedicated GitHub workflow and local equivalent | None | Run editable dev install, pip check, Ruff and pytest with coverage. |
+| 006 | Resource registry resolution and multi-cluster docs | 001 | All resource variants use the resolved default once. |
+| 004 | Output, public exceptions and shared producer files | 002, 006 | Redacted JSON and GCF agree, errors retain safe guidance. |
+| P5 | Typed cluster grants and policy evaluator | 001, 003, 004, 006 | Restricted default, revocation and hidden destinations across discovery, tools and resources. |
+| P2 | Configuration profiles, discovery and matched evaluations | 001, serialize catalog edits with P5 | Identical tasks on full and trimmed catalogs, published denominators. |
+| P1 | Timeline, authorized drill-down, Indexer and Manager adapters | 001–004, 006, coordinate integration with P5 | Ties, missing sources, bounded page, cluster and principal binding and compatible content. |
+| P3 | Operator-defined read-only query templates | P1, integrate through P2/P5 when enabled | Typed and bounded filters, version and equivalent underlying results. |
+| P4 | Read-only viewer and separate offline response design experiment | P1, P5 | Literal untrusted text, access rechecks and plain-text parity. Exercise a stub-only approval and reconciliation lifecycle. |
+| P6 | Offline compatibility inventory and executable checks | 008 for pipeline | Check pinned upstream inputs, map failures to affected tools and separate live checks. |
+
+Each implementation worker owns its code and regression tests. Shared paths belong to one worker at a time. Use disjoint paths in this checkout or isolated worktrees with verified import paths. Never integrate generated unrelated artifacts. Start with three workers because this session exposes four concurrent slots including the coordinator. Schedule independent work as capacity becomes available. Preserve existing public API envelopes and every existing safety check except where the cited contract explicitly changes behavior.
+
+## Validation and handoff
+
+For each assignment collect focused tests, modified paths and output from Ruff. At integration run the combined gate from the executor index with the project interpreter. Confirm merged behavior via the ASGI entry points and offline service doubles, then check available real Redis, packaged startup, optional codec and runner paths. Record the difference between local and hosted tests. Do not publish changes or trigger a deployment as part of this gate. Qualification against live infrastructure needs identified fixtures and credentials.
+
+## Gate record
+
+Three GPT-6.2 Astra high reviewers requested amendments from the architecture, QA and security perspectives. After the binding changes below, GPT-6.2 Sol xhigh issued PASS for all eight repairs and all six pilots. Live environment and model qualification remain separate from implementation approval.
+
+## Binding amendments from independent review
+
+Delivery includes all eight repairs and the six product pilots. These amendments take precedence over earlier handoffs. A package-owned path may be added to the assigned worker's scope for a requirement below. The coordinator serializes shared edits. The first three workstreams are 001+006, 002 and 003. 005 follows 003 on session_store.py, 007 follows 003 on oauth.py, and 004 follows 001, 002 and 006. Only one worker edits any shared production or test file at a time.
+
+**Access and credentials (001, 003, 007).** Enforce required scopes for both tool discovery and direct calls with a current request token, including missing or explicitly empty grants. Authless deployments supply the existing synthetic read token. Preserve documented behavior for a genuinely absent legacy scope claim while failing closed for an explicitly empty, unknown or disjoint grant. The allowed set is the intersection with operator and registered ceilings. Check grants before registry selection. Preserve modern transport response metadata. In 003 use typed verified issuer and case-sensitive subject identity across IdP code and token lifecycles, with display names and rate-limit principals separate. Require a fresh login for older IdP grants missing this identity. Reject missing bearer JWT subjects as today. Persist trustworthy group provenance for P5 through token reconstruction. Owner checks, update-if-live and conditional delete must be atomic for memory and Redis. After concurrent expiry/deletion an older request cannot recreate the record, extend TTL or reinsert initialized state. Use two independent managers on the same backend, control interleaving, and include test_business_logic.py. An expired or missing supplied ID gets 404. In 007 credential-bearing POST callbacks must always return a 303 or a direct error, including early validation. Reject literal fragments including empty ones and validate the permitted URI host. Cover exact exchange and query-preserving callback behavior.
+
+**Collection and operations (002, 004, 005, 008).** Give the combined ISO vulnerability collection a single ten-second elapsed budget including retries, with at most one in-flight query in this initial implementation. On budget expiry classify unfinished work, retain measured lower bounds and propagate caller cancellation. Verify with deterministic injected clocks or controlled coroutines. Redaction also covers registry errors, invalid argument labels, raw action args and session identifiers in diagnostics. Allowlist logged metadata. Redis count accumulates per-page integers under one absolute deadline including initialization. Preserve cancellation and cache at readiness completion so concurrent waiters share a full-budget failure. Test an actual adapter with a stub transport. CI exercises dev and Redis extras. Test base installation without GCF independently, include a built-wheel console entry point smoke check, explicitly provision a YAML validator and qualify the production Alpine image separately when a container runner exists.
+
+**Product acceptance (P1–P6).** P5 requires a validated startup policy, typed issuers, current grants and explicit group membership freshness. Use a maximum 15-minute group snapshot from verified login, require fresh authentication after expiry for group grants, and suppress client caching for policy-sensitive reads/discovery. Hide restricted topology in /ready, discovery schemas, list output and all errors. Filter global inventory independently of permissions on the default. Validate every tool call against a static operator-registered schema independent of any caller or discovery cache, including the first invocation. For P1/P3 use source field projection, total query deadline, compressed/decompressed and total output budgets, whole-event truncation, principal/cluster binding and record revision or safe content digest. A changed record, recreated index or expired key resolves to a generic unavailable result. Release any search context on failure or cancellation. Reuse P1 coverage in P3 and P4. Use fixed backend fixtures, clock and versioned client transcripts. Report actual model/client/environment qualification independently of fixture tests. P2 uses a fixed nonempty paired manifest, includes hidden and unsuccessful scenarios, scores all calls, keeps failed requests out of latency, and reports model/configuration/fixture identity. P6 pins and hashes upstream source data, checks RBAC, required parameters and mapped Indexer fields, and proves failures using modified fixtures. Document exact releases, affected tools and evidence tier. P4's action component runs against a stub dispatcher only.
+
+The QA, architecture and security reviewers requested these changes. Final independent gatekeeper review applies to this consolidated revision.

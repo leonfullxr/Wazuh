@@ -259,20 +259,15 @@ If you use a secret manager, inject the values as environment variables at conta
 
 ## Audit logging
 
-Audit logging is always on. Each write-tool call produces two WARNING records on the
+Audit logging is always on. Each write-tool call that reaches its Wazuh client produces two WARNING records on the
 `wazuh_mcp.audit` logger:
 
 ```
-AUDIT: tool=wazuh_block_ip client=<principal> session=<session_id> cluster=<cluster> args={...}
-AUDIT_OUTCOME: tool=wazuh_block_ip outcome=success principal=<principal> session=<session_id> cluster=<cluster> duration_ms=<n> args={...}
+AUDIT: tool=<name> cluster=<cluster> principal="<label>" owner_id=<hash> correlation=<id> target={"agent_id":"001"}
+AUDIT_OUTCOME: tool=<name> cluster=<cluster> principal="<label>" owner_id=<hash> correlation=<id> target={"agent_id":"001"} outcome=success duration_ms=<n>
 ```
 
-The first is written before the action runs, the second after it with the outcome. The
-`parameters` and `confirm` arguments are omitted. Calls refused by the scope, confirmation or
-unknown-argument checks are refused before this point and produce no audit record. The
-principal is the API key id (`jwt:<key id>` for bearer JWTs), `oauth:<client>:<key id>` or
-`oauth:<client>:<IdP subject>` for OAuth, or `authless` in authless mode. Records go to the server's standard log output; ship them with your container log
-driver or log collector.
+Use the correlation ID and owner ID to pair an intent with its outcome. The target records the normalized agent, fleet flag, IP, process, account, path, restart target or known command applicable to the operation. The API key ID or authenticated OAuth identity supplies the principal label. Validation and authorization precede this audit. Session identifiers, raw arguments and generic command parameters are excluded. Restrict access to these records because targets can identify people or systems. Ship them with the container log driver or log collector.
 
 ## Connections to Wazuh
 

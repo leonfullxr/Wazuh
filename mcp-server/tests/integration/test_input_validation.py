@@ -378,7 +378,8 @@ class TestUnknownArguments:
         result = await mcp_server.tool_calls.handle_tools_call(
             {"name": "get_wazuh_alerts", "arguments": {"agentid": "001"}}, _session()
         )
-        assert result["isError"] is True and "agentid" in result["content"][0]["text"]
+        assert result["isError"] is True and "Unknown argument" in result["content"][0]["text"]
+        assert "agentid" not in result["content"][0]["text"]
         assert not calls
 
 
@@ -524,7 +525,7 @@ class TestEndpointGuards:
 
 class TestResources:
     async def _read(self, monkeypatch, uri, stub):
-        monkeypatch.setattr(mcp_server.state, "wazuh_client", stub)
+        monkeypatch.setattr(mcp_server.state, "cluster_registry", ClusterRegistry({"default": stub}, "default", False))
         request = mcp_server.jsonrpc.MCPRequest(jsonrpc="2.0", id=1, method="resources/read", params={"uri": uri})
         return await mcp_server.dispatch.process_mcp_request(request, _session())
 

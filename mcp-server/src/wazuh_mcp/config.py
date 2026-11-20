@@ -313,6 +313,7 @@ class ServerConfig:
     MAX_SESSIONS: int = 1000
     MAX_SESSIONS_PER_PRINCIPAL: int = 100  # "principal" = API key / OAuth client, not a person
     # Tool exposure (see toolsets.py): which tools tools/list advertises and tools/call accepts
+    TOOL_PROFILE: Optional[str] = None
     ENABLED_TOOLS: FrozenSet[str] = ALL_TOOLS
 
     # Logging
@@ -427,8 +428,19 @@ class ServerConfig:
                 env_bool(switch, False)
 
         try:
-            enabled_tools = resolve_enabled_tools(os.getenv("WAZUH_TOOLSETS"), os.getenv("WAZUH_DISABLED_TOOLS"))
-        except ValueError as e:
+            profile = os.getenv("WAZUH_TOOL_PROFILE", "").strip().lower() or None
+            investigation_tools = frozenset()
+            investigation_path = os.getenv("WAZUH_INVESTIGATIONS_FILE", "").strip()
+            if investigation_path:
+                with open(investigation_path, encoding="utf-8") as source:
+                    investigation_config = json.load(source)
+                saved = investigation_config.get("saved")
+                if not isinstance(saved, dict):
+                    raise ValueError("Investigation saved definitions must be an object")
+                investigation_tools = frozenset(saved) | {"investigate_agent_timeline", "get_investigation_evidence"}
+            enabled_tools = resolve_enabled_tools(os.getenv("WAZUH_TOOLSETS"), os.getenv("WAZUH_DISABLED_TOOLS"),
+                                                  profile, investigation_tools)
+        except (ValueError, OSError, AttributeError) as e:
             raise ConfigurationError(str(e)) from e
 
         config = cls(
@@ -491,6 +503,7 @@ class ServerConfig:
                 os.getenv("MAX_SESSIONS_PER_PRINCIPAL", "100"), "MAX_SESSIONS_PER_PRINCIPAL", max_val=100000
             ),
             ENABLED_TOOLS=enabled_tools,
+            TOOL_PROFILE=profile,
             LOG_LEVEL=log_level,
             ENVIRONMENT=environment,
         )

@@ -56,8 +56,9 @@ gcf = [
 ]
 dev = [
     "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
+    "pytest-asyncio>=0.24.0",
     "pytest-cov>=4.1.0",
+    "PyYAML>=6,<7",
     "black>=23.0.0",
     "isort>=5.12.0",
     "ruff>=0.1.0",
@@ -100,6 +101,7 @@ minversion = "7.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["src/wazuh_mcp"]

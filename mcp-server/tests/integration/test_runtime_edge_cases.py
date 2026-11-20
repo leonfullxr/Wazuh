@@ -83,7 +83,37 @@ class TestAuditLinesNameTheCluster:
                 {"name": "wazuh_isolate_host", "arguments": {"agent_id": "001", "cluster_id": "eu"}}, _session()
             )
         lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("AUDIT")]
-        assert lines and all("cluster=eu" in line for line in lines)
+        assert len(lines) == 2
+        assert all('cluster=eu principal="tester"' in line for line in lines)
+        assert all('target={"agent_id":"001"}' in line for line in lines)
+        context = lines[0].removeprefix("AUDIT: ")
+        assert lines[1].startswith(f"AUDIT_OUTCOME: {context} outcome=success duration_ms=")
+
+    @pytest.mark.asyncio
+    async def test_failure_records_target_and_omits_private_fields(self, monkeypatch, caplog):
+        class Stub:
+            async def run_active_response(self, agent_id, command, parameters):
+                raise ConnectionError("private upstream error")
+
+        monkeypatch.setattr(mcp_server.state, "cluster_registry", ClusterRegistry({"default": Stub()}, "default", False))
+        session = _session()
+        session.session_id = "private-session"
+        session._auth_token.token = "private-bearer"
+        session._auth_token.api_key_id = "operator\nlabel"
+        with caplog.at_level(logging.WARNING):
+            result = await mcp_server.tool_calls.handle_tools_call(
+                {"name": "wazuh_active_response", "arguments": {
+                    "agent_id": "001", "command": "host-isolation", "confirm": True,
+                    "parameters": {"note": "private-payload"},
+                }}, session
+            )
+        lines = [r.getMessage() for r in caplog.records if r.name == "wazuh_mcp.audit"]
+        assert result["isError"]
+        assert len(lines) == 2 and "outcome=failure" in lines[1]
+        assert all('target={"agent_id":"001","command":"!host-isolation"}' in line for line in lines)
+        assert all(r'principal="operator\nlabel"' in line for line in lines)
+        assert all("private-" not in line and "confirm" not in line and "\n" not in line for line in lines)
+
 
 
 class TestIpv6ManagerIsProtected:

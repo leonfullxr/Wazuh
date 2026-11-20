@@ -1,0 +1,20 @@
+{
+  "4.8.0": {
+    "upstream_revision": "038fe11d988fa54cca8a6c3101fc7906fad5da3b",
+    "manager": "https://github.com/wazuh/wazuh/blob/038fe11d988fa54cca8a6c3101fc7906fad5da3b/api/api/spec/spec.yaml",
+    "manager_sha256": "99d1f72f4e6b2f686728cca267204c22ed218237d8c84113f705e4374ee4b0ef",
+    "indexer": "https://github.com/wazuh/wazuh/blob/038fe11d988fa54cca8a6c3101fc7906fad5da3b/src/wazuh_modules/vulnerability_scanner/indexer/template/index-template.json",
+    "indexer_sha256": "8b59a41955606e30b525cf050a1baed5fd9bb8d82eb934aaf785864ace600eaf",
+    "snapshot_sha256": "7eb951fde7efcc0560ce2fadc35e5e95dbb96cb26a9f06ca83cbed4bff52957c",
+    "source_license": "https://github.com/wazuh/wazuh/blob/038fe11d988fa54cca8a6c3101fc7906fad5da3b/LICENSE"
+  },
+  "4.14.7": {
+    "upstream_revision": "a42268a27c555d9348d5598fb8751eaf4c8e9024",
+    "manager": "https://github.com/wazuh/wazuh/blob/a42268a27c555d9348d5598fb8751eaf4c8e9024/api/api/spec/spec.yaml",
+    "manager_sha256": "a47d371ef92152966a460dbc481bf361d7559ebef58383ed047dc921f7cef973",
+    "indexer": "https://github.com/wazuh/wazuh/blob/a42268a27c555d9348d5598fb8751eaf4c8e9024/src/wazuh_modules/vulnerability_scanner/indexer/template/index-template.json",
+    "indexer_sha256": "8fa6b147f286403aed9e06e3813b45c55f1b87edb1c5aee2585f9e768223d621",
+    "snapshot_sha256": "7eb951fde7efcc0560ce2fadc35e5e95dbb96cb26a9f06ca83cbed4bff52957c",
+    "source_license": "https://github.com/wazuh/wazuh/blob/a42268a27c555d9348d5598fb8751eaf4c8e9024/LICENSE"
+  }
+}

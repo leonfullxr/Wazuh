@@ -1,6 +1,5 @@
 """Handlers for the non-tool MCP methods: initialize, ping, logging, prompts, resources, completion."""
 
-import json
 import logging
 import re as _re
 from typing import Any, Dict
@@ -17,7 +16,7 @@ from .constants import (
     SERVER_INSTRUCTIONS,
     SUPPORTED_PROTOCOL_VERSIONS,
 )
-from .output import _sanitize_output_text
+from .output import render_json
 from .sessions import MCPSession, _bounded_capabilities, _bounded_client_info
 
 logger = logging.getLogger(__name__)
@@ -57,6 +56,9 @@ async def handle_initialize(params: Dict[str, Any], session: MCPSession) -> Dict
         "completions": {},
     }
 
+    if state.investigation_config:
+        server_capabilities["extensions"] = {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/html;profile=mcp-app"]}}
+
     # Server information
     server_info = {
         "name": "Wazuh MCP",
@@ -64,13 +66,6 @@ async def handle_initialize(params: Dict[str, Any], session: MCPSession) -> Dict
         "vendor": "Leon Elliott Fuller",
         "description": "MCP-compliant remote server for Wazuh SIEM integration",
     }
-
-    # Mark session as awaiting initialized notification (cap to prevent unbounded growth)
-    if len(state._initialized_sessions) > 10000:
-        # Evict oldest entries in O(1) per removal
-        for _ in range(len(state._initialized_sessions) - 5000):
-            state._initialized_sessions.popitem(last=False)
-    state._initialized_sessions[session.session_id] = False
 
     return {
         "protocolVersion": negotiated_version,
@@ -82,8 +77,7 @@ async def handle_initialize(params: Dict[str, Any], session: MCPSession) -> Dict
 
 async def handle_initialized_notification(params: Dict[str, Any], session: MCPSession) -> None:
     """Handle notifications/initialized - marks session as fully initialized."""
-    state._initialized_sessions[session.session_id] = True
-    logger.info(f"Session {session.session_id} fully initialized")
+    logger.info("Session fully initialized")
 
 
 async def handle_ping(params: Dict[str, Any], session: MCPSession) -> Dict[str, Any]:
@@ -100,6 +94,7 @@ async def handle_server_discover(params: Dict[str, Any], session: MCPSession) ->
     versions, capabilities, and identity. Servers MUST implement this RPC; clients MAY
     call it before any other request (or use it as a backward-compatibility probe).
     """
+    extensions = {"extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/html;profile=mcp-app"]}}} if state.investigation_config else {}
     return {
         "resultType": "complete",
         "supportedVersions": SUPPORTED_PROTOCOL_VERSIONS,
@@ -108,6 +103,7 @@ async def handle_server_discover(params: Dict[str, Any], session: MCPSession) ->
             "prompts": {},
             "resources": {},
             "completions": {},
+            **extensions,
         },
         "instructions": SERVER_INSTRUCTIONS,
         "ttlMs": CACHEABLE_METHOD_TTLS["server/discover"],
@@ -379,6 +375,13 @@ async def handle_resources_list(params: Dict[str, Any], session: MCPSession) -> 
     Handle resources/list method per MCP specification.
     Returns list of available resources with pagination support.
     """
+    from . import timeline_viewer
+
+    viewer = [{"uri": timeline_viewer.URI, "name": "Agent investigation timeline",
+               "mimeType": timeline_viewer.MIME}] if _can_read_viewer(session) else []
+    if not _can_read_resources(session):
+        return {"resources": viewer}
+
     _cursor = params.get("cursor")  # Reserved for future pagination
 
     # Wazuh resources
@@ -421,11 +424,29 @@ async def handle_resources_list(params: Dict[str, Any], session: MCPSession) -> 
         },
     ]
 
-    return {"resources": resources}
+    return {"resources": resources + viewer}
 
 
 class ResourceNotFound(ValueError):
     """resources/read for a URI this server doesn't serve (-32002 per the MCP spec)."""
+
+
+def _can_read_resources(session: MCPSession) -> bool:
+    from .cluster_policy import authorize_cluster
+
+    token = getattr(session, "_auth_token", None)
+    return bool(token and token.has_scope("wazuh:read") and authorize_cluster(token, None, "wazuh:read"))
+
+
+def _can_read_viewer(session: MCPSession) -> bool:
+    from .cluster_policy import authorize_cluster
+
+    token = getattr(session, "_auth_token", None)
+    enabled = state.config.ENABLED_TOOLS
+    return bool(state.investigation_config and "investigate_agent_timeline" in enabled
+                and "get_investigation_evidence" in enabled and token and token.has_scope("wazuh:read")
+                and any(authorize_cluster(token, cluster, "wazuh:read")
+                        for cluster in state.cluster_registry.cluster_ids))
 
 
 _AGENT_RESOURCE = _re.compile(r"^agents/([0-9]{1,5})/(info|alerts|vulnerabilities)$")
@@ -436,52 +457,69 @@ async def handle_resources_read(params: Dict[str, Any], session: MCPSession) -> 
     Handle resources/read method per MCP specification.
     Returns resource content.
     """
-    uri = params.get("uri")
+    from . import timeline_viewer
+    from .cluster_policy import authorize_cluster
 
+    token = getattr(session, "_auth_token", None)
+    if not token or not token.has_scope("wazuh:read"):
+        raise ResourceNotFound("Resource not found")
+    uri = params.get("uri")
     if not uri or not isinstance(uri, str):
         raise ValueError("Resource URI is required")
+    if uri == timeline_viewer.URI:
+        if not _can_read_viewer(session):
+            raise ResourceNotFound("Resource not found")
+        return {"contents": [{"uri": uri, "mimeType": timeline_viewer.MIME, "text": timeline_viewer.html(),
+                              "_meta": {"ui": {"csp": {"connectDomains": [], "resourceDomains": []}}}}]}
+    if not _can_read_resources(session) or not authorize_cluster(getattr(session, "_auth_token", None), None, "wazuh:read"):
+        raise ResourceNotFound("Resource not found")
 
     # Parse Wazuh resource URI
     if not uri.startswith("wazuh://"):
-        raise ResourceNotFound(f"Resource not found: {uri} (expected a wazuh:// URI)")
+        raise ResourceNotFound("Resource not found")
 
     resource_path = uri[8:]  # Remove "wazuh://"
     agent_match = _AGENT_RESOURCE.match(resource_path)
 
+    known_paths = {"manager/info", "agents/summary", "alerts/recent", "cluster/status", "rules/summary", "vulnerabilities/critical"}
+    if not agent_match and resource_path not in known_paths:
+        raise ResourceNotFound("Resource not found")
+    agent_id = validate_agent_id(agent_match.group(1), required=True) if agent_match else None
+
     try:
+        client = state.cluster_registry.get(None)
         if agent_match:
             # The three templates advertised by resources/templates/list
-            agent_id = validate_agent_id(agent_match.group(1), required=True)
             kind = agent_match.group(2)
             if kind == "info":
-                data = await state.wazuh_client.get_agents(agent_id=agent_id)
+                data = await client.get_agents(agent_id=agent_id)
             elif kind == "alerts":
-                data = await state.wazuh_client.get_alerts(limit=50, agent_id=agent_id)
+                data = await client.get_alerts(limit=50, agent_id=agent_id)
             else:
-                data = await state.wazuh_client.get_vulnerabilities(agent_id=agent_id, limit=100)
+                data = await client.get_vulnerabilities(agent_id=agent_id, limit=100)
         elif resource_path == "manager/info":
-            data = await state.wazuh_client.get_manager_info()
+            data = await client.get_manager_info()
         elif resource_path == "agents/summary":
-            data = await state.wazuh_client.get_running_agents()
+            data = await client.get_running_agents()
         elif resource_path == "alerts/recent":
-            data = await state.wazuh_client.get_alerts(limit=50)
+            data = await client.get_alerts(limit=50)
         elif resource_path == "cluster/status":
-            data = await state.wazuh_client.get_cluster_health()
+            data = await client.get_cluster_health()
         elif resource_path == "rules/summary":
-            data = await state.wazuh_client.get_rules_summary()
+            data = await client.get_rules_summary()
         elif resource_path == "vulnerabilities/critical":
-            data = await state.wazuh_client.get_critical_vulnerabilities(limit=50)
+            data = await client.get_critical_vulnerabilities(limit=50)
         else:
-            raise ResourceNotFound(f"Resource not found: {uri}")
+            raise ResourceNotFound("Resource not found")
     except ResourceNotFound:
         raise
     except Exception as e:
         # A backend failure is an internal error, not bad params - and its text can carry
         # internal hosts/usernames, so it goes to the log, not the client.
-        logger.error(f"Error reading resource {uri}: {e}")
+        logger.error("Resource read failed: %s", type(e).__name__)
         raise RuntimeError("Failed to read resource") from e
 
-    text = _sanitize_output_text(json.dumps(data, indent=2, default=str))
+    text = render_json(data)
     return {"contents": [{"uri": uri, "mimeType": "application/json", "text": text}]}
 
 
@@ -490,6 +528,9 @@ async def handle_resources_templates_list(params: Dict[str, Any], session: MCPSe
     Handle resources/templates/list method per MCP specification.
     Returns list of resource URI templates.
     """
+    if not _can_read_resources(session):
+        return {"resourceTemplates": []}
+
     templates = [
         {
             "uriTemplate": "wazuh://agents/{agent_id}/info",

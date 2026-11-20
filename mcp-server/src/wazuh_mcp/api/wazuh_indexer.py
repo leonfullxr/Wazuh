@@ -540,9 +540,26 @@ class WazuhIndexerClient:
                 }
             )
 
+        total = hits.get("total")
+        exact_total = total if type(total) is int and total >= 0 else None
+        if isinstance(total, dict) and total.get("relation") == "eq":
+            value = total.get("value")
+            exact_total = value if type(value) is int and value >= 0 else None
+        reasons = []
+        if exact_total is None:
+            reasons.append("unknown_total")
+        elif exact_total != len(vulnerabilities):
+            reasons.append("page_truncated")
+        clusters = result.get("_clusters") or {}
+        if (result.get("timed_out") is True or (result.get("_shards") or {}).get("failed", 0)
+                or clusters.get("failed", 0) or clusters.get("partial", 0)
+                or clusters.get("skipped", 0) or clusters.get("running", 0)):
+            reasons.append("search_incomplete")
+
         return {
             "data": {
                 "affected_items": vulnerabilities,
+                "completeness": {"complete": not reasons, "reasons": reasons},
                 "total_affected_items": self._total_hits(hits, len(vulnerabilities)),
                 "total_failed_items": 0,
                 "failed_items": [],
