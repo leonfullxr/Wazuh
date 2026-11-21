@@ -1523,14 +1523,14 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
 }
 .m3-detail .panel-head > h2,
 #chain-detail-heading {
-    font: 600 clamp(1.3rem, 1rem + 0.7vw, 1.8rem) / 1.18 var(--font-display);
+    font: 600 18px/1.3 var(--font-ui);
+    letter-spacing: -0.02em;
 }
 .m3-detail > section > h3,
 .m3-detail > .m3-two-column > section > h3,
 .m3-detail > .m3-actions > .m3-actions-title,
 .m3-narrative > .panel-head h3 {
-    font-family: var(--font-display);
-    font-weight: 600;
+    font: 600 14px/1.4 var(--font-ui);
 }
 .m3-list-item[aria-current="true"] {
     background: var(--hover);
