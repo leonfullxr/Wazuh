@@ -21,9 +21,10 @@
 .alerts-v2-panel-heading h2,
 .alerts-v2-results-heading h2 {
     margin: 0;
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 15px;
+    line-height: 1.35;
     font-weight: 600;
+    letter-spacing: 0;
 }
 
 .alerts-v2-panel-heading p,

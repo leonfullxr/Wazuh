@@ -218,9 +218,9 @@
 
 .queue-v2-drawer .group-score-card strong {
     font-family: var(--font-ui);
-    font-size: 26px;
-    font-weight: 650;
-    letter-spacing: -0.02em;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.012em;
     font-variant-numeric: tabular-nums;
 }
 
@@ -466,7 +466,8 @@
 
 .queue-v2-results-heading h2 {
     margin: 0;
-    font: 600 13px/18px var(--font-ui);
+    font: 600 15px/1.35 var(--font-ui);
+    letter-spacing: 0;
 }
 
 .queue-v2-results-heading p {

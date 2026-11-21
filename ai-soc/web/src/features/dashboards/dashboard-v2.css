@@ -18,9 +18,10 @@
 .dashboard-v2-available h2,
 .dashboard-v2-widget h2 {
     margin: 0;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
-    line-height: 18px;
+    line-height: 1.35;
+    letter-spacing: 0;
 }
 
 .dashboard-v2-available p {
@@ -38,8 +39,11 @@
 
 .dashboard-v2-index h2 {
     margin: 0;
-    font-size: 16px;
-    line-height: 22px;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0;
 }
 .dashboard-v2-index > p {
     margin: 4px 0 0;

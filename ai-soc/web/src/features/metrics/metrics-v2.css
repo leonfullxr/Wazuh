@@ -20,7 +20,8 @@
 .metrics-v2-stats-card h3 {
     margin: 0;
     color: var(--text);
-    font: 600 13px/18px var(--font-ui);
+    font: 600 15px/1.35 var(--font-ui);
+    letter-spacing: 0;
 }
 
 .metrics-v2-panel-head p {
@@ -70,8 +71,8 @@
 .metrics-v2 .metrics-v2-summary > div > strong,
 .metrics-v2-quality-summary strong {
     color: var(--text);
-    font: 650 24px/32px var(--font-ui);
-    letter-spacing: -0.02em;
+    font: 500 28px/1.15 var(--font-ui);
+    letter-spacing: -0.012em;
 }
 
 .metrics-v2-quality-summary small {
