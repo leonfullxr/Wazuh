@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "../../api/workspace";
 import type { GroupDetail } from "../../api/workspace";
 import type { Locale } from "../../i18n";
-import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates";
+import { ErrorState } from "../../components/ui/states";
+import { WorkspaceLoading } from "../workspace/WorkspaceStates";
 
 const words = {
     en: {
@@ -50,6 +51,8 @@ const words = {
         none: "None recorded",
         nothing: "Nothing matched",
         couldNot: "Could not check",
+        unavailable: "AI assessment is unavailable",
+        failed: "The assessment request failed.",
         reference: "Reference",
         knowledge: "Knowledge used",
         raw: "Raw record",
@@ -121,6 +124,8 @@ const words = {
         none: "Nada registrado",
         nothing: "Sin coincidencias",
         couldNot: "No se pudo comprobar",
+        unavailable: "La evaluación de IA no está disponible",
+        failed: "La solicitud de evaluación ha fallado.",
         reference: "Referencia",
         knowledge: "Conocimiento utilizado",
         raw: "Registro completo",
@@ -192,14 +197,22 @@ export function AssessmentPanel({
         },
     });
     if (assessment.isLoading) return <WorkspaceLoading label={copy.title} />;
-    if (assessment.isError)
+    if (assessment.isError) {
+        const message = assessment.error instanceof Error ? assessment.error.message : copy.failed;
         return (
-            <WorkspaceFailure
-                error={assessment.error}
-                t={t}
-                onRetry={() => void assessment.refetch()}
-            />
+            <section className="drawer-section" aria-label={copy.title}>
+                <h3>{copy.title}</h3>
+                <ErrorState title={copy.unavailable} description={message} />
+                <button
+                    className="btn outline"
+                    type="button"
+                    onClick={() => void assessment.refetch()}
+                >
+                    {t("retry")}
+                </button>
+            </section>
         );
+    }
     const detail = assessment.data;
     if (!detail) return null;
     const { summary, outcome } = detail;
@@ -224,10 +237,14 @@ export function AssessmentPanel({
         if (!item) return null;
         return (
             <details key={id}>
-                <summary>
-                    {copy.citation}: {id}
-                </summary>
+                <summary>{copy.citation}</summary>
                 <dl>
+                    <div>
+                        <dt>id</dt>
+                        <dd>
+                            <code>{id}</code>
+                        </dd>
+                    </div>
                     {Object.entries(item.fields).map(([key, value]) => (
                         <div key={key}>
                             <dt>{key}</dt>
@@ -273,7 +290,11 @@ export function AssessmentPanel({
     return (
         <section className="drawer-section" aria-label={copy.title}>
             <h3>{copy.title}</h3>
-            {summary.state === "preview" && <a href="#ai_quality">{t("developmentScorecard")}</a>}
+            {summary.state === "preview" && (
+                <a className="text-link" href="#ai_quality">
+                    {t("developmentScorecard")}
+                </a>
+            )}
             <p>
                 <strong>{copy[summary.state]}</strong>
             </p>
@@ -552,7 +573,9 @@ export function AssessmentPanel({
                                         </div>
                                         <div>
                                             <dt>{copy.reviewed}</dt>
-                                            <dd>{[reviewer, reviewDate].filter(Boolean).join(" · ")}</dd>
+                                            <dd>
+                                                {[reviewer, reviewDate].filter(Boolean).join(" · ")}
+                                            </dd>
                                         </div>
                                     </dl>
                                 </article>
@@ -593,11 +616,5 @@ export function assessmentLabel(
     )
         return "";
     const copy = words[locale];
-    return [
-        copy[summary.state],
-        summary.verdict && copy[summary.verdict],
-        summary.band && `${copy.context}: ${copy[summary.band]}`,
-    ]
-        .filter(Boolean)
-        .join(" · ");
+    return summary.verdict ? copy[summary.verdict] : copy[summary.state];
 }

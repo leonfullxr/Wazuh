@@ -2020,8 +2020,10 @@ tbody tr:hover {
 .drawer-section {
     display: grid;
     gap: 9px;
+    min-width: 0;
     padding-top: 14px;
     border-top: 1px solid var(--stroke-subtle);
+    overflow-wrap: anywhere;
 }
 .drawer-section h3 {
     margin: 0;

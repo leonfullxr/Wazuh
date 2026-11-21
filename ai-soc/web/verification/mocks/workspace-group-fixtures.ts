@@ -67,6 +67,64 @@ function makeGroup(
         pipeline_version: "workspace-pipeline-m2.1",
     };
 }
+const assessmentEvidenceId = `ev1_${"ab".repeat(32)}`;
+const assessmentRequestId = "cd".repeat(32);
+/** Shadow assessment for the synthetic SSH group. Real alerts are not sent to a model. */
+export const authGroupAssessment: components["schemas"]["AssessmentDetail"] = {
+    summary: { state: "preview", verdict: "likely_malicious", band: "partial" },
+    request_id: assessmentRequestId,
+    revision: "revision:group-auth-001",
+    outcome: {
+        status: "accepted",
+        verdict: "likely_malicious",
+        band: "partial",
+        findings: [
+            {
+                id: "finding-ssh-failures",
+                template_id: "ssh_failures",
+                stance: "malicious",
+                text: {
+                    en: "Repeated authentication failures from one source reached the failure threshold on web-01.",
+                    es: "Los fallos de autenticación repetidos desde un origen alcanzaron el umbral en web-01.",
+                },
+                evidence_ids: [assessmentEvidenceId],
+            },
+        ],
+        next_steps: [
+            {
+                step_id: "review_source",
+                text: {
+                    en: "Compare the source address with the host's expected login addresses.",
+                    es: "Compare la dirección de origen con las direcciones de acceso esperadas del host.",
+                },
+                evidence_ids: [assessmentEvidenceId],
+            },
+        ],
+        removals: [],
+    },
+    evidence: [
+        {
+            id: assessmentEvidenceId,
+            kind: "alert",
+            fields: { rule_id: "5712", agent: "web-01", source: "203.0.113.8" },
+        },
+    ],
+    gaps: { vulnerability: "not_configured" },
+    missing_fields: [],
+    provenance: {
+        provider: "synthetic",
+        model: "synthetic-shadow",
+        prompt_digest: "aa".repeat(32),
+        pack_digest: "bb".repeat(32),
+        catalog_version: "catalog-v1",
+        catalog_digest: "ee".repeat(32),
+        input_tokens: 420,
+        output_tokens: 180,
+        latency_ms: 840,
+        finished_at: timestamp(60_000),
+    },
+    reviews: [],
+};
 const baseGroups = [
     makeGroup(
         "group-auth-001",
@@ -86,6 +144,7 @@ const baseGroups = [
     ),
     makeGroup("group-score-pending", "New group awaiting score", null, alertThree, "new", null),
 ];
+baseGroups[0].assessment = authGroupAssessment.summary;
 const initialStates = new Map<string, WorkState>(
     baseGroups.map((group) => [
         group.group_id,
