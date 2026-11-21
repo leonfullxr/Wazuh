@@ -54,6 +54,8 @@ MCP_ERRORS = {
     "HEADER_MISMATCH": -32020,
     "MISSING_CLIENT_CAPABILITY": -32021,
     "UNSUPPORTED_PROTOCOL_VERSION": -32022,
+    # Server-defined. MCP clients only display a non-2xx body when it is a JSON-RPC error.
+    "RATE_LIMITED": -32029,
 }
 
 

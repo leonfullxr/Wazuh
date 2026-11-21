@@ -31,7 +31,7 @@ from .constants import (
     SUPPORTED_PROTOCOL_VERSIONS,
 )
 from .dispatch import MCP_METHODS, process_mcp_notification, process_mcp_request
-from .http_security import _authenticate, _rate_limit_key, _rate_limited_response, validate_origin_header
+from .http_security import RateLimited, _authenticate, _rate_limit_key, _rate_limited_response, validate_origin_header
 from .jsonrpc import (
     MCPRequest,
     _echo_id,
@@ -567,6 +567,9 @@ async def mcp_streamable_http_endpoint(
 
     except HTTPException as exc:
         _status_code = exc.status_code
+        raise
+    except RateLimited:
+        _status_code = 429
         raise
     except SessionStoreUnavailable:
         _status_code = 503

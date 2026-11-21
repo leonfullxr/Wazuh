@@ -522,6 +522,27 @@ class TestEndpointGuards:
             ]
         assert codes[:5] == [401] * 5 and 429 in codes[5:]
 
+    @pytest.mark.asyncio
+    async def test_mcp_rate_limit_is_a_jsonrpc_error(self, monkeypatch):
+        monkeypatch.setattr(mcp_server.state.rate_limiter, "is_allowed", lambda key: (False, 17))
+        async with _http() as client:
+            resp = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 7, "method": "ping"})
+        assert resp.status_code == 429
+        assert resp.headers["retry-after"] == "17"
+        body = resp.json()
+        assert body["jsonrpc"] == "2.0"
+        assert body["id"] is None
+        assert body["error"]["code"] == mcp_server.constants.MCP_ERRORS["RATE_LIMITED"]
+        assert body["error"]["message"] == "Rate limit exceeded. Retry after 17 seconds."
+        assert body["error"]["data"]["retry_after_seconds"] == 17
+        # The same check the official MCP SDK uses before it will show the message.
+        from mcp.client.streamable_http import jsonrpc_message_adapter
+        from mcp.shared.exceptions import JSONRPCError
+
+        parsed = jsonrpc_message_adapter.validate_json(resp.content, by_name=False)
+        assert isinstance(parsed, JSONRPCError)
+        assert "17" in parsed.error.message
+
 
 class TestResources:
     async def _read(self, monkeypatch, uri, stub):

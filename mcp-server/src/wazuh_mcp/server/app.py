@@ -19,6 +19,7 @@ from wazuh_mcp.session_store import SessionStoreUnavailable
 
 from . import ops, state, transport
 from .constants import CORS_MAX_AGE_SECONDS, MCP_PROTOCOL_VERSION
+from .http_security import RateLimited
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +245,30 @@ async def _session_store_unavailable(request: Request, exc: SessionStoreUnavaila
         content={"error": "Session store unavailable; retry shortly"},
         headers={"Retry-After": "5"},
     )
+
+
+@app.exception_handler(RateLimited)
+async def _rate_limited(request: Request, exc: RateLimited):
+    """429 that an MCP client can read.
+
+    Streamable HTTP clients only surface a non-2xx body when it is a JSON-RPC
+    error. ``{"detail": "Rate limit exceeded"}`` becomes "Server returned an
+    error response" and the Retry-After value is dropped.
+    """
+    wait = exc.retry_after if isinstance(exc.retry_after, int) and exc.retry_after > 0 else 1
+    headers = {"Retry-After": str(wait)}
+    if request.url.path in {"/", "/mcp"}:
+        from .constants import MCP_ERRORS
+
+        return transport._modern_error_response(
+            None,
+            MCP_ERRORS["RATE_LIMITED"],
+            f"Rate limit exceeded. Retry after {wait} seconds.",
+            data={"retry_after_seconds": wait},
+            status_code=429,
+            headers=headers,
+        )
+    return JSONResponse({"detail": "Rate limit exceeded"}, status_code=429, headers=headers)
 
 
 async def get_wazuh_client() -> WazuhClient:
