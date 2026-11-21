@@ -192,6 +192,34 @@ def _add_truncation_warning(result: dict, requested_limit: int) -> dict:
     return result
 
 
+def present_manager_payload(result, *, single: bool = False):
+    """Drop the Manager transport envelope before a tool result is shown.
+
+    Statistics endpoints return one object inside ``affected_items``. Logs and
+    node lists return ``count`` plus ``items``. ``message``, ``error``, and an
+    empty ``failed_items`` are not part of the answer. A non-zero failure count
+    stays, so a partial Manager response is still visible. Anything that is not
+    that envelope is returned unchanged, and redaction still runs on the result.
+    """
+    if not isinstance(result, dict):
+        return result
+    data = result.get("data")
+    if not isinstance(data, dict) or not isinstance(data.get("affected_items"), list):
+        return result
+    items = data["affected_items"]
+    failed = data.get("total_failed_items") or 0
+    if single and len(items) == 1 and isinstance(items[0], dict):
+        body = dict(items[0])
+    else:
+        body = {"count": data.get("total_affected_items", len(items)), "items": items}
+    if failed:
+        body["failed_count"] = failed
+        failed_items = data.get("failed_items") or []
+        if failed_items:
+            body["failed"] = failed_items
+    return body
+
+
 def _compact_vulnerability(vuln: dict) -> dict:
     """Strip a raw Wazuh vulnerability to essential fields for MCP output."""
     compact = {}
