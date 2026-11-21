@@ -21,6 +21,18 @@ from wazuh_mcp.resilience import CircuitBreaker, CircuitBreakerConfig, RetryConf
 
 logger = logging.getLogger(__name__)
 
+
+def _operational_error(message: str):
+    """Raise a reviewed message the MCP client is allowed to see.
+
+    SafeToolError is a ValueError, so existing ``except ValueError`` handlers
+    still catch it. Upstream response bodies must not be passed in: those stay
+    plain ValueError and the tool layer hides them.
+    """
+    from wazuh_mcp.security import SafeToolError
+
+    raise SafeToolError(message)
+
 # Time range to hours mapping for indexer-based queries
 _TIME_RANGE_HOURS = {"1h": 1, "6h": 6, "12h": 12, "1d": 24, "24h": 24, "7d": 168, "30d": 720}
 
@@ -504,7 +516,7 @@ class WazuhClient:
                     # with an empty params - Wazuh's active-response controller defaults an
                     # absent agents_list to '*' (ALL agents), which would fan a block/isolate/
                     # kill out to the entire fleet. Refuse instead.
-                    raise ValueError(
+                    _operational_error(
                         f"No valid numeric agent ID in target(s) {agent_items!r}. "
                         "Active response requires numeric agent IDs (e.g. '001'); "
                         "refusing to dispatch to avoid a fleet-wide action."
@@ -513,7 +525,7 @@ class WazuhClient:
         if not fleet_wide and not params.get("agents_list"):
             # Defense in depth: never send a targeting active-response PUT without an explicit
             # agents_list - an empty/absent list is interpreted as ALL agents by the manager.
-            raise ValueError(
+            _operational_error(
                 "Active response requires an explicit agent target (numeric agent ID or 'all'); "
                 "refusing to dispatch with an unspecified target."
             )
@@ -545,7 +557,7 @@ class WazuhClient:
                 )
             else:
                 error_detail = "no agents affected"
-            raise ValueError(
+            _operational_error(
                 f"Active response command affected 0 agents "
                 f"({total_affected} succeeded, {total_failed} failed): {error_detail}"
             )
@@ -953,7 +965,7 @@ class WazuhClient:
         )
         agents = result.get("data", {}).get("affected_items", [])
         if not agents:
-            raise ValueError(f"Agent {agent_id} not found")
+            _operational_error(f"Agent {agent_id} not found")
         agent = agents[0]
         status = agent.get("status", "unknown")
         return {
@@ -989,7 +1001,7 @@ class WazuhClient:
         )
         agents = agent_result.get("data", {}).get("affected_items", [])
         if not agents:
-            raise ValueError(f"Agent {agent_id} not found")
+            _operational_error(f"Agent {agent_id} not found")
         agent = agents[0]
         config_data: Dict[str, Any] = {"agent": agent, "group_configuration": []}
         groups = agent.get("group", [])
@@ -2487,15 +2499,15 @@ class WazuhClient:
         # Strip leading/trailing whitespace
         value = value.strip()
         if not value:
-            raise ValueError(f"{param_name} cannot be empty")
+            _operational_error(f"{param_name} cannot be empty")
         # Block shell metacharacters and control chars. Backslash is allowed only in file paths,
         # where it is the Windows separator (C:\Users\x.exe); elsewhere it's an escape char.
         forbidden = r'[;&|`$(){}\[\]<>!\'"\n\r\t]' if param_name == "file_path" else r'[;&|`$(){}\[\]<>!\\\'"\n\r\t]'
         if re.search(forbidden, value):
-            raise ValueError(f"{param_name} contains invalid characters")
+            _operational_error(f"{param_name} contains invalid characters")
         # Audit fix M6: Block flag injection for standalone values
         if not param_name.startswith("parameter:") and value.startswith("-"):
-            raise ValueError(f"{param_name} must not start with '-'")
+            _operational_error(f"{param_name} must not start with '-'")
         return value
 
     @staticmethod
@@ -2517,7 +2529,7 @@ class WazuhClient:
                 raise ValueError
             addr = ipaddress.ip_address(candidate)
         except ValueError:
-            raise ValueError(f"Invalid IP address format for {param_name}: {ip_address}") from None
+            _operational_error(f"Invalid IP address format for {param_name}: {ip_address}")
         if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped:
             addr = addr.ipv4_mapped  # agents' firewall scripts expect the plain IPv4 form
         return str(addr)
@@ -2577,9 +2589,9 @@ class WazuhClient:
         ip_address = self._validate_ip(ip_address)
         self._refuse_protected_target(ip_address)
         if not agent_id and not all_agents:
-            raise ValueError(
+            _operational_error(
                 "block_ip requires an explicit target: pass agent_id for a single agent, or "
-                "all_agents=True to deliberately block fleet-wide."
+                "all_agents=true to deliberately block fleet-wide."
             )
         ip_address = self._sanitize_ar_argument(ip_address, "ip_address")
         arguments = [f"-srcip {ip_address}"]
@@ -2594,25 +2606,25 @@ class WazuhClient:
     async def isolate_host(self, agent_id: str) -> Dict[str, Any]:
         """Isolate host from network via active response."""
         if not agent_id:
-            raise ValueError("agent_id is required for host isolation")
+            _operational_error("agent_id is required for host isolation")
         data = {"command": "!host-isolation", "agent_list": [agent_id], "arguments": []}
         return await self.execute_active_response(data)
 
     async def kill_process(self, agent_id: str, process_id: int) -> Dict[str, Any]:
         """Kill process on agent via active response."""
         if not agent_id:
-            raise ValueError("agent_id is required for kill_process")
+            _operational_error("agent_id is required for kill_process")
         try:
             pid = int(process_id)
         except (ValueError, TypeError):
-            raise ValueError(f"process_id must be numeric, got: {process_id}")
+            _operational_error(f"process_id must be numeric, got: {process_id}")
         data = {"command": "!kill-process", "agent_list": [agent_id], "arguments": [str(pid)]}
         return await self.execute_active_response(data)
 
     async def disable_user(self, agent_id: str, username: str) -> Dict[str, Any]:
         """Disable user account on agent via active response."""
         if not agent_id:
-            raise ValueError("agent_id is required for disable_user")
+            _operational_error("agent_id is required for disable_user")
         username = self._sanitize_ar_argument(username, "username")
         # The stock disable-account script reads the target user from
         # alert.data.dstuser and ignores extra_args; pass it there (and keep it in
@@ -2628,7 +2640,7 @@ class WazuhClient:
     async def quarantine_file(self, agent_id: str, file_path: str) -> Dict[str, Any]:
         """Quarantine file on agent via active response."""
         if not agent_id:
-            raise ValueError("agent_id is required for quarantine_file")
+            _operational_error("agent_id is required for quarantine_file")
         file_path = self._sanitize_ar_argument(file_path, "file_path")
         data = {"command": "!quarantine", "agent_list": [agent_id], "arguments": [file_path]}
         return await self.execute_active_response(data)
@@ -2661,7 +2673,7 @@ class WazuhClient:
         # allowlist is keyed on the "!" form - without this the tool could never succeed).
         command = command if command.startswith("!") else f"!{command}"
         if command not in self.ALLOWED_AR_COMMANDS:
-            raise ValueError(
+            _operational_error(
                 f"Unknown active response command: {command}. "
                 f"Allowed commands: {', '.join(sorted(self.ALLOWED_AR_COMMANDS))}"
             )
@@ -2670,15 +2682,15 @@ class WazuhClient:
             # and apply the protected-target guard. Checking free-form parameters here could
             # be sidestepped (CIDR ranges, 127.1, ip:port, integer IPs, key=value strings).
             dedicated = "wazuh_firewall_drop" if command == "!firewall-drop" else "wazuh_host_deny"
-            raise ValueError(f"Use {dedicated} to run {command}; the generic tool does not dispatch IP blocks.")
+            _operational_error(f"Use {dedicated} to run {command}; the generic tool does not dispatch IP blocks.")
         if command in self.VALIDATED_AR_COMMANDS:
             # Same reasoning: the dedicated tool validates the target (protected paths, PID
             # range, username), which free-form key=value parameters would skip.
             dedicated = self.VALIDATED_AR_COMMANDS[command]
-            raise ValueError(f"Use {dedicated} to run {command}; its target is validated there.")
+            _operational_error(f"Use {dedicated} to run {command}; its target is validated there.")
         args = []
         if parameters is not None and not isinstance(parameters, dict):
-            raise ValueError("parameters must be an object of key/value pairs")
+            _operational_error("parameters must be an object of key/value pairs")
         if parameters:
             args = [self._sanitize_ar_argument(f"{k}={v}", f"parameter:{k}") for k, v in parameters.items()]
         data = {"command": command, "agent_list": [agent_id], "arguments": args}
@@ -2759,7 +2771,7 @@ class WazuhClient:
         result = await self._request("GET", "/agents", params={"agents_list": agent_id, "select": "id,name,status"})
         agents = result.get("data", {}).get("affected_items", [])
         if not agents:
-            raise ValueError(f"Agent {agent_id} not found")
+            _operational_error(f"Agent {agent_id} not found")
         agent = agents[0]
         status = agent.get("status")
         # Look for a recent host-isolation active-response alert for THIS agent, regardless of
@@ -2878,7 +2890,7 @@ class WazuhClient:
         # Wazuh's q filter, where , ; ( ) are operators - refuse them rather than let a path
         # widen the query to other files.
         if any(c in file_path for c in ",;()"):
-            raise ValueError("file_path contains , ; ( or ) - checking it needs the Indexer (WAZUH_INDEXER_HOST)")
+            _operational_error("file_path contains , ; ( or ) - checking it needs the Indexer (WAZUH_INDEXER_HOST)")
         result = await self._request("GET", f"/syscheck/{agent_id}", params={"q": f"file={file_path}"})
         present = bool(result.get("data", {}).get("affected_items", []))
         return {
@@ -2924,7 +2936,7 @@ class WazuhClient:
             return None
         command = str(value).strip()
         if not re.match(r"^!?[a-zA-Z0-9_-]{1,64}$", command):
-            raise ValueError(f"Invalid active-response command name: {command!r}")
+            _operational_error(f"Invalid active-response command name: {command!r}")
         return command if command.startswith("!") else f"!{command}"
 
     async def _undo_block(
@@ -2942,7 +2954,7 @@ class WazuhClient:
         src_ip = self._sanitize_ar_argument(src_ip, "src_ip")
         if not undo_command:
             env_var = "WAZUH_AR_FIREWALL_UNDO_COMMAND" if block_kind == "firewall" else "WAZUH_AR_HOSTDENY_UNDO_COMMAND"
-            raise ValueError(
+            _operational_error(
                 f"Cannot remove a {block_kind} block through the Wazuh API: stock active-response "
                 f"scripts only support the 'add' action via the API, so this would re-block "
                 f"{src_ip} instead of removing it. Configure an operator-deployed undo script "
