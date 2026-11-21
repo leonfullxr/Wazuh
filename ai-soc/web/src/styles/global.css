@@ -3368,3 +3368,34 @@ main:has(.answer-summary) .composer textarea {
         font-size: 12px;
     }
 }
+
+/* Good, warning, and bad tags use their tone fill. Other tones stay on the quiet pill. */
+.tag[data-tone="red"] {
+    border-color: var(--tag-red-border);
+    background: var(--tag-red-bg);
+    color: var(--tag-red-text);
+}
+.tag[data-tone="amber"] {
+    border-color: var(--tag-amber-border);
+    background: var(--tag-amber-bg);
+    color: var(--tag-amber-text);
+}
+.tag[data-tone="orange"] {
+    border-color: var(--tag-orange-border);
+    background: var(--tag-orange-bg);
+    color: var(--tag-orange-text);
+}
+.tag[data-tone="green"] {
+    border-color: var(--tag-green-border);
+    background: var(--tag-green-bg);
+    color: var(--tag-green-text);
+}
+/* The rail redefines tag fills for its dark chrome. Keep those pills quiet. */
+.rail .tag[data-tone="red"],
+.rail .tag[data-tone="amber"],
+.rail .tag[data-tone="orange"],
+.rail .tag[data-tone="green"] {
+    border-color: var(--tag-neutral-border);
+    background: var(--tag-neutral-bg);
+    color: var(--tag-neutral-text);
+}
