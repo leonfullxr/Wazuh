@@ -20,6 +20,7 @@ export default defineConfig({
         "row-targets.check.ts",
         "disposition-labels.check.ts",
         "quiet-heatmap.check.ts",
+        "queue-disposition-row.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",

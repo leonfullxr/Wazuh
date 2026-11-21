@@ -7,8 +7,10 @@ test.beforeEach(async ({ page }) => {
 test("the queue row identity opens the group", async ({ page }) => {
     await page.goto("/#queue");
     const openGroup = page.getByRole("button", { name: /Repeated SSH authentication failures/ });
-    const box = await openGroup.boundingBox();
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect(openGroup).toBeVisible();
+    await expect
+        .poll(async () => (await openGroup.boundingBox())?.height ?? 0)
+        .toBeGreaterThanOrEqual(44);
     await openGroup.getByText("web-01").click();
     await expect(page.getByRole("dialog").getByText("group-auth-001").first()).toBeVisible();
 });
