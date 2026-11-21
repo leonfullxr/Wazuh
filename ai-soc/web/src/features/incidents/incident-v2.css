@@ -794,7 +794,6 @@
     padding-top: 0;
 }
 
-
 /* Provenance rows share the header block's rhythm and value column. */
 .m3-provenance > .m3-meta {
     gap: 8px 14px;
@@ -1524,7 +1523,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
 }
 .m3-detail .panel-head > h2,
 #chain-detail-heading {
-    font: 600 clamp(1.3rem, 1rem + 0.7vw, 1.8rem)/1.18 var(--font-display);
+    font: 600 clamp(1.3rem, 1rem + 0.7vw, 1.8rem) / 1.18 var(--font-display);
 }
 .m3-detail > section > h3,
 .m3-detail > .m3-two-column > section > h3,
@@ -1534,8 +1533,8 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
     font-weight: 600;
 }
 .m3-list-item[aria-current="true"] {
-    background: var(--accent-wash);
-    box-shadow: inset 2px 0 var(--accent);
+    background: var(--hover);
+    box-shadow: inset 2px 0 var(--text);
 }
 .m3-create-disclosure {
     margin-top: 16px;

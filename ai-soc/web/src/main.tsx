@@ -1,6 +1,5 @@
-import "@fontsource-variable/source-sans-3/index.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource-variable/geist/index.css";
+import "@fontsource-variable/geist-mono/index.css";
 import "./styles/tokens.css";
 import "./styles/global.css";
 import React from "react";

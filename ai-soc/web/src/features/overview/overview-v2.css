@@ -16,20 +16,14 @@
 }
 .overview-v2-metric {
     min-width: 0;
-    min-height: 96px;
+    min-height: 76px;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
-    align-items: center;
-    gap: 6px 10px;
-    padding: 17px 20px;
+    align-items: baseline;
+    gap: 4px 8px;
+    padding: 14px 16px;
     background: var(--surface);
-}
-.overview-v2-metric:first-child {
-    background: var(--accent-wash);
-}
-.overview-v2-metric:first-child > strong:not([data-empty]) {
-    color: var(--accent-text);
 }
 .overview-v2-metric > span {
     flex-basis: 100%;
@@ -39,9 +33,9 @@
 }
 .overview-v2-metric > span,
 .overview-v2-panel-head p {
-    color: var(--text-2, var(--text-muted));
-    font-size: 14px;
-    line-height: 20px;
+    color: var(--dim, var(--text-muted));
+    font-size: 12px;
+    line-height: 16px;
 }
 .overview-v2-metric > strong[data-empty] {
     color: var(--text-muted);
@@ -49,9 +43,9 @@
     font-weight: 400;
 }
 .overview-v2-metric > strong {
-    font: 600 35px/1.1 var(--font-display);
+    font: 600 24px/1.15 var(--font-ui);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.045em;
+    letter-spacing: -0.035em;
 }
 .overview-v2-metric > small {
     width: fit-content;
