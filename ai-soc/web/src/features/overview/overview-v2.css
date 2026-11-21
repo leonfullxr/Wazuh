@@ -43,9 +43,9 @@
     font-weight: 400;
 }
 .overview-v2-metric > strong {
-    font: 600 24px/1.15 var(--font-ui);
+    font: 500 28px/1.15 var(--font-ui);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.012em;
 }
 .overview-v2-metric > small {
     width: fit-content;
@@ -85,7 +85,8 @@
 .overview-v2-panel-head h2 {
     margin: 0;
     color: var(--text);
-    font: 600 13px/18px var(--font-ui);
+    font: 600 15px/1.35 var(--font-ui);
+    letter-spacing: 0;
 }
 .overview-v2-panel-head p {
     margin: 3px 0 0;

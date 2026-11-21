@@ -3,9 +3,9 @@
    default; dark follows the same steps on a near-black ground. */
 :root {
     color-scheme: light;
-    --font-ui: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-    --font-display: var(--font-ui);
-    --font-code: "Geist Mono Variable", ui-monospace, monospace;
+    --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Source Serif 4", Georgia, serif;
+    --font-code: "IBM Plex Mono", ui-monospace, monospace;
     --canvas: #f3f4f7;
     --rail: #ffffff;
     --panel: #ffffff;
