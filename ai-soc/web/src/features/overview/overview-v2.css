@@ -453,6 +453,18 @@
     .overview-v2 {
         grid-template-columns: minmax(0, 1fr);
     }
+    /* The side column is transparent on desktop. Once the lists stack, they need the same card as the chart. */
+    .overview-v2-context {
+        gap: var(--space-5);
+    }
+    .overview-v2-context .overview-v2-list {
+        padding: 16px 20px;
+        border-radius: var(--radius-card);
+        background: var(--surface);
+    }
+    .overview-v2-context .overview-v2-list + .overview-v2-list {
+        border-block-start: 0;
+    }
 }
 @media (max-width: 700px) {
     .overview-v2-summary {
