@@ -43,8 +43,12 @@ test("alert evidence and asset edit controls meet the 24px target", async ({ pag
     await expect(edit).toBeVisible();
     await expect
         .poll(async () => {
-            await edit.scrollIntoViewIfNeeded();
-            return (await edit.boundingBox())?.height ?? 0;
+            try {
+                await edit.scrollIntoViewIfNeeded();
+                return (await edit.boundingBox())?.height ?? 0;
+            } catch {
+                return 0;
+            }
         })
         .toBeGreaterThanOrEqual(24);
     await edit.click();

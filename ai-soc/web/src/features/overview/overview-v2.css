@@ -423,7 +423,9 @@
 .overview-v2-list li > button:hover > span {
     color: var(--accent);
 }
-.overview-v2-list li > button > span {
+.overview-v2-list li > button > span,
+.overview-v2-list li > button > code {
+    min-width: 0;
     max-width: 100%;
     overflow-wrap: anywhere;
 }

@@ -343,6 +343,7 @@ const scenarios = [
     "workspace_stalled",
     "workspace_error",
     "workspace_denied",
+    "workspace_stress",
 ] as const;
 
 export function ShellStatus({
