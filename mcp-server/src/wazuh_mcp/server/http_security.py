@@ -232,21 +232,23 @@ async def _authenticate(request: Request, authorization: Optional[str]) -> Any:
 
 
 class RateLimited(Exception):
-    """The caller exceeded the MCP rate limit. Raised, not returned, so every site can ``raise`` it."""
+    """The caller exceeded an MCP rate limit. Raised, not returned, so every site can ``raise`` it."""
 
-    def __init__(self, retry_after: Optional[int]):
+    def __init__(self, retry_after: Optional[int], budget: str = "tools"):
         self.retry_after = retry_after
+        self.budget = budget
         super().__init__("Rate limit exceeded")
 
 
-def _rate_limited_response(retry_after: Optional[int]) -> RateLimited:
+def _rate_limited_response(retry_after: Optional[int], budget: str = "tools") -> RateLimited:
     """Record the rate-limit metric and build the exception the app handler turns into HTTP 429.
 
     The body is a JSON-RPC error for ``/`` and ``/mcp`` (see the app handler). A plain
     ``{"detail": ...}`` body is invisible to MCP clients: they replace any non-JSON-RPC
     error response with "Server returned an error response" and drop Retry-After.
+    ``budget`` is ``tools`` or ``discovery`` and is named in the retry hint.
     """
     from wazuh_mcp.monitoring import record_rate_limit_hit
 
     record_rate_limit_hit("mcp")
-    return RateLimited(retry_after)
+    return RateLimited(retry_after, budget)

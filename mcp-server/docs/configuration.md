@@ -170,10 +170,11 @@ The `OAUTH_IDP_*` settings are validated at startup whenever `OAUTH_IDP_ISSUER` 
 |----------|---------|-------------|
 | `ALLOWED_ORIGINS` | `https://claude.ai,http://localhost:3000` | Comma-separated origins used for both CORS and the `Origin` check on `/mcp` and `/`. Matching is exact, so `https://*.example.com` does not work. A request whose `Origin` header is not listed gets `403 Origin not allowed`. Requests without an `Origin` header are accepted. `*` is honoured only in development |
 | `TRUSTED_PROXIES` | *(none)* | Comma-separated proxy IPs whose `X-Forwarded-For`/`X-Real-IP` headers are trusted when working out the client IP for rate limiting. OAuth issuer derivation also trusts these addresses. Set it behind a reverse proxy |
-| `RATE_LIMIT_REQUESTS` | `100` | Requests per window, per client IP (positive integer), for every route except `/mcp`, `/`, `/sse` and the probes, for example `/auth/token` and `/oauth/*` |
-| `RATE_LIMIT_WINDOW` | `60` | Window for `RATE_LIMIT_REQUESTS`, in seconds (1-86400) |
+| `RATE_LIMIT_REQUESTS` | `100` | Tool and other `/mcp` requests per window, per principal and client IP. Also the per-IP limit on routes other than `/mcp`, `/` and the probes |
+| `DISCOVERY_RATE_LIMIT_REQUESTS` | `300` | Separate budget for `initialize`, `tools/list`, `prompts/list` and `resources/list`. A batch that mixes these with another method uses the tool budget |
+| `RATE_LIMIT_WINDOW` | `60` | Window for both budgets, in seconds (1-86400) |
 
-`/mcp` and `/` apply `RATE_LIMIT_REQUESTS` per `RATE_LIMIT_WINDOW` to each authenticated principal and client IP; other routes apply it per client IP. Failed authentication attempts count against a per-IP bucket of the same size. Over-limit requests get `429 Rate limit exceeded` with a `Retry-After` header. `/health`, `/ready` and `/metrics` are never rate limited.
+`/mcp` and `/` apply `RATE_LIMIT_REQUESTS` per `RATE_LIMIT_WINDOW` to each authenticated principal and client IP for tool calls and anything that is not a discovery method. `initialize`, `tools/list`, `prompts/list` and `resources/list` use `DISCOVERY_RATE_LIMIT_REQUESTS` in the same window, so listing the catalog does not spend the tool budget. Other routes apply `RATE_LIMIT_REQUESTS` per client IP. Failed authentication attempts count against a per-IP bucket of the same size. Over-limit `/mcp` requests get HTTP 429 with a JSON-RPC error, a `Retry-After` header, and a message that names the wait. `/health`, `/ready` and `/metrics` are never rate limited.
 
 ## Sessions
 

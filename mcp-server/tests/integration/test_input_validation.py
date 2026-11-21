@@ -541,6 +541,29 @@ class TestEndpointGuards:
         assert isinstance(body["error"]["code"], int)
         assert "17" in body["error"]["message"]
 
+    @pytest.mark.asyncio
+    async def test_discovery_has_its_own_budget(self, monkeypatch):
+        from wazuh_mcp.security import RateLimiter
+
+        monkeypatch.setattr(mcp_server.state, "rate_limiter", RateLimiter(max_requests=1, window_seconds=60))
+        monkeypatch.setattr(mcp_server.state, "discovery_rate_limiter", RateLimiter(max_requests=2, window_seconds=60))
+        async with _http() as client:
+            listed = [
+                await client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+                for _ in range(2)
+            ]
+            assert [response.status_code for response in listed] == [200, 200]
+            third = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+            assert third.status_code == 429
+            assert third.headers["retry-after"]
+            assert "Discovery rate limit exceeded" in third.json()["error"]["message"]
+            # The tool bucket was not spent by those listings.
+            ping = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 2, "method": "ping"})
+            assert ping.status_code == 200
+            again = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 3, "method": "ping"})
+            assert again.status_code == 429
+            assert again.json()["error"]["message"].startswith("Rate limit exceeded.")
+
 
 class TestResources:
     async def _read(self, monkeypatch, uri, stub):
