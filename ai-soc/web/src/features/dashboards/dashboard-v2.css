@@ -36,10 +36,39 @@
     text-decoration: none;
 }
 
-.dashboard-v2-grid {
+.dashboard-v2-index h2 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 22px;
+}
+.dashboard-v2-index > p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+.dashboard-v2-index ul {
     display: grid;
-    grid-template-columns: repeat(2, minmax(320px, 1fr));
-    gap: 16px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.dashboard-v2-index li {
+    display: grid;
+    gap: 2px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-row);
+}
+.dashboard-v2-index h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+}
+.dashboard-v2-index li p {
+    margin: 0;
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 18px;
 }
 
 .dashboard-v2-widget {
@@ -126,9 +155,6 @@
         flex-direction: column;
     }
 
-    .dashboard-v2-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 /* The banner copy runs to the button instead of wrapping early. */
@@ -137,12 +163,3 @@
     max-width: 900px;
 }
 
-/* An odd last card spans both columns instead of leaving a hole. */
-.dashboard-v2-grid > :last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-}
-
-/* Dashboard cards use the 20px page rhythm in both directions. */
-.dashboard-v2-grid {
-    gap: 20px;
-}
