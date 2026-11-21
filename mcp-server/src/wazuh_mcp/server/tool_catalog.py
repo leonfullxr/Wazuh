@@ -96,10 +96,15 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _sch
         },
         {
             "name": "get_alerts_aggregated",
-            "description": "Summarize ALL alerts in a time window using indexer aggregations (no document limit). Returns the true total match count plus top rules, severity levels, and agents. Prefer this over get_wazuh_alerts/get_wazuh_alert_summary when the goal is a complete overview of a period rather than individual alert documents.",
+            "description": "Summarize ALL alerts in a time window using indexer aggregations (no document limit). Returns the true total match count plus top rules, severity levels, and agents. Prefer this over get_wazuh_alerts/get_wazuh_alert_summary when the goal is a complete overview of a period rather than individual alert documents. Pass time_range (24h, 7d, ...) the same way as those tools, or timestamp_start/timestamp_end for an explicit window.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "time_range": {
+                        "type": "string",
+                        "enum": ["1h", "6h", "12h", "1d", "24h", "7d", "30d"],
+                        "description": "Shorthand window, same values as the other alert tools. Equivalent to timestamp_start=now-<time_range>. Do not combine with timestamp_start.",
+                    },
                     "timestamp_start": {
                         "type": "string",
                         "description": "Start of window - ISO 8601 or date math (e.g. now-24h, now-7d). Default now-24h.",

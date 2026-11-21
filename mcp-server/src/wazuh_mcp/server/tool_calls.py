@@ -311,9 +311,20 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
             return _tool_result(f"Alert Patterns:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_alerts_aggregated":
-            timestamp_start = (
-                validate_timestamp(arguments.get("timestamp_start"), param_name="timestamp_start") or "now-24h"
-            )
+            shorthand = arguments.get("time_range")
+            explicit_start = arguments.get("timestamp_start")
+            if shorthand is not None and explicit_start is not None:
+                raise ToolValidationError(
+                    "time_range",
+                    "conflicts with timestamp_start",
+                    "Pass time_range or timestamp_start, not both",
+                )
+            if shorthand is not None:
+                timestamp_start = f"now-{validate_time_range(shorthand)}"
+            else:
+                timestamp_start = (
+                    validate_timestamp(explicit_start, param_name="timestamp_start") or "now-24h"
+                )
             timestamp_end = validate_timestamp(arguments.get("timestamp_end"), param_name="timestamp_end") or "now"
             top_rules = validate_limit(
                 arguments.get("top_rules"), min_val=1, max_val=500, default=50, param_name="top_rules"
