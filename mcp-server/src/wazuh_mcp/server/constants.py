@@ -37,9 +37,18 @@ MCP_NAME_SOURCE_FIELDS = {"tools/call": "name", "resources/read": "uri", "prompt
 SESSION_TIMEOUT_MINUTES = 30
 RATE_LIMIT_REQUESTS = 100
 RATE_LIMIT_WINDOW_SECONDS = 60
-# Catalog reads (initialize, tools/list, prompts/list, resources/list) do not spend the tool budget.
+# Catalog reads do not spend the tool budget. prompts/get and resources/read are
+# included: clients fetch them while connecting, and a timeline viewer read is not a tool call.
 DISCOVERY_RATE_LIMIT_REQUESTS = 300
-DISCOVERY_METHODS = frozenset({"initialize", "tools/list", "prompts/list", "resources/list"})
+DISCOVERY_METHODS = frozenset({
+    "initialize",
+    "tools/list",
+    "prompts/list",
+    "prompts/get",
+    "resources/list",
+    "resources/templates/list",
+    "resources/read",
+})
 CORS_MAX_AGE_SECONDS = 600
 DEFAULT_QUERY_LIMIT = 100
 MAX_QUERY_LIMIT = 1000

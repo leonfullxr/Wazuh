@@ -273,7 +273,8 @@ async def _rate_limited(request: Request, exc: RateLimited):
 
         if getattr(exc, "budget", "tools") == "discovery":
             message = (
-                "Discovery rate limit exceeded (initialize, tools/list, prompts/list, resources/list). "
+                "Discovery rate limit exceeded (initialize, tools/list, prompts/list, prompts/get, "
+                "resources/list, resources/templates/list, resources/read). "
                 f"Retry after {wait} seconds."
             )
         else:
