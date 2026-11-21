@@ -42,6 +42,21 @@ def test_alert_filters_and_unique_tie_breaker():
     assert [item["vulnerability"]["id"] for item in critical] == ["CVE-2021-44228"]
 
 
+def test_document_get_honors_source_includes():
+    standin = _load()
+    handler = standin.IndexerHandler
+    # The investigation evidence read asks for the same field list the search projected.
+    # Returning the full document makes the evidence digest miss.
+    source = standin.CATALOG.alerts[0]
+    projected = standin._project(source, ["timestamp", "rule.id", "rule.description"])
+    assert set(projected) == {"timestamp", "rule"}
+    assert "full_log" not in projected
+    assert "<script>" in standin.CATALOG.alerts[8]["rule"]["description"] or any(
+        "<script>" in alert["rule"]["description"] for alert in standin.CATALOG.alerts
+    )
+    assert handler is not None
+
+
 def test_process_inventory_includes_a_pid_past_the_first_row():
     standin = _load()
     # wazuh_check_process asks for one PID (q=pid=4242). That row must not be the only way

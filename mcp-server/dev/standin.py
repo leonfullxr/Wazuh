@@ -432,7 +432,16 @@ class Catalog:
             {"full_log": "active-response: firewall-drop srcip 198.51.100.23"},
         )
         add(50, db, 100100, 12, "Active response: host-isolation executed.", ["active_response"], extra={"full_log": "active-response: isolation applied on db-01"})
-        add(90, web, 31106, 13, "SQL injection attempt.", ["web", "attack"], "203.0.113.50")
+        add(
+            90,
+            web,
+            31106,
+            13,
+            "<script>alert(1)</script>",
+            ["web", "attack"],
+            "203.0.113.50",
+            {"full_log": "<img src=x onerror=alert(1)> sql injection from 203.0.113.50"},
+        )
         add(180, db, 5902, 8, "Malware signature matched.", ["malware", "rootcheck"])
         add(60 * 24 * 10, web, 40112, 5, "User login succeeded.", ["syslog", "authentication_success"], "10.0.1.40")
         return rows
@@ -709,9 +718,12 @@ class IndexerHandler(BaseHTTPRequestHandler):
         document = re.fullmatch(r"/([^/]+)/_doc/([^/]+)", path)
         if document:
             index, doc_id = document.group(1), document.group(2)
+            includes = parse_qs(urlsplit(self.path).query).get("_source_includes", [""])[0]
+            fields = [field for field in includes.split(",") if field] if includes else None
             for hit in CATALOG.documents(index):
                 if hit["_id"] == doc_id:
-                    self._json(200, {"_index": hit["_index"], "_id": hit["_id"], "found": True, "_source": hit["_source"]})
+                    source = _project(hit["_source"], fields) if fields else hit["_source"]
+                    self._json(200, {"_index": hit["_index"], "_id": hit["_id"], "found": True, "_source": source})
                     return
             self._json(404, {"found": False, "_index": index, "_id": doc_id})
             return
