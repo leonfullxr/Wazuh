@@ -17,8 +17,13 @@ test("queue row identity stays a 44px target on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/#queue");
     const openGroup = page.getByRole("button", { name: /Repeated SSH authentication failures/ });
-    const box = await openGroup.boundingBox();
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect(openGroup).toBeVisible();
+    await openGroup.scrollIntoViewIfNeeded();
+    await expect
+        .poll(async () => (await openGroup.boundingBox())?.height ?? 0)
+        .toBeGreaterThanOrEqual(44);
+    await openGroup.getByText("web-01").click();
+    await expect(page.getByRole("dialog").getByText("group-auth-001").first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
     );
