@@ -32,13 +32,19 @@ test("queue row identity stays a 44px target on a phone", async ({ page }) => {
 test("alert evidence and asset edit controls meet the 24px target", async ({ page }) => {
     await page.goto("/#alerts");
     const evidence = page.getByRole("button", { name: "Evidence details" }).first();
-    const evidenceBox = await evidence.boundingBox();
-    expect(evidenceBox?.height ?? 0).toBeGreaterThanOrEqual(24);
+    await expect(evidence).toBeVisible();
+    await expect
+        .poll(async () => (await evidence.boundingBox())?.height ?? 0)
+        .toBeGreaterThanOrEqual(24);
     await page.goto("/#metrics");
     const edit = page.getByRole("button", { name: "Edit tags" }).first();
-    await edit.scrollIntoViewIfNeeded();
-    const editBox = await edit.boundingBox();
-    expect(editBox?.height ?? 0).toBeGreaterThanOrEqual(24);
+    await expect(edit).toBeVisible();
+    await expect
+        .poll(async () => {
+            await edit.scrollIntoViewIfNeeded();
+            return (await edit.boundingBox())?.height ?? 0;
+        })
+        .toBeGreaterThanOrEqual(24);
     await edit.click();
     await expect(page.getByRole("heading", { name: "web-01" })).toBeVisible();
 });

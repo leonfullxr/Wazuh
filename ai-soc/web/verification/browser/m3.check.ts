@@ -187,6 +187,8 @@ test("incident writes use current revisions and survive reload in the synthetic 
     );
     await expect(page.getByText("Synthetic analyst comment")).toBeVisible();
     await expect(page.getByText("Synthetic disposition note")).toBeVisible();
+    await expect(page.getByText("Test activity")).toBeVisible();
+    await expect(page.getByText("test_activity")).toHaveCount(0);
     await expect(page.locator('[aria-labelledby="incident-members-heading"]')).toContainText(
         "Manually added group",
     );

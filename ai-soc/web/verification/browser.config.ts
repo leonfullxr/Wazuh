@@ -18,6 +18,7 @@ export default defineConfig({
         "m3.check.ts",
         "queue-assessment.check.ts",
         "row-targets.check.ts",
+        "disposition-labels.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",

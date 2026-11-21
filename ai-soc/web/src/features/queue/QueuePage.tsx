@@ -11,6 +11,7 @@ import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/worksp
 import "./queue-v2.css";
 import { AssessmentPanel, assessmentLabel } from "./AssessmentPanel";
 import type { Locale } from "../../i18n";
+import { falsePositiveReasonText } from "../../i18n/workspace-copy";
 
 type Translate = (key: string) => string;
 type QueueFilterPatch = Record<string, string | null | undefined>;
@@ -382,7 +383,7 @@ export function QueuePage({
                                 <option value="">—</option>
                                 {fpReasons.map((value) => (
                                     <option key={value} value={value}>
-                                        {value}
+                                        {falsePositiveReasonText(t, value)}
                                     </option>
                                 ))}
                             </select>
@@ -1051,7 +1052,7 @@ function GroupDrawer({
                             <option value="">—</option>
                             {fpReasons.map((value) => (
                                 <option key={value} value={value}>
-                                    {value}
+                                    {falsePositiveReasonText(t, value)}
                                 </option>
                             ))}
                         </select>
@@ -1098,7 +1099,7 @@ function labelKey(label: DispositionLabel): string {
         case "false_positive":
             return "falsePositiveDisposition";
         case "duplicate":
-            return "disposition";
+            return "duplicate";
         case "undetermined":
             return "undetermined";
     }
