@@ -39,14 +39,19 @@ test("alert evidence and asset edit controls meet the 24px target", async ({ pag
         .poll(async () => (await evidence.boundingBox())?.height ?? 0)
         .toBeGreaterThanOrEqual(24);
     await page.goto("/#metrics");
-    const edit = page.getByRole("button", { name: "Edit tags" }).first();
-    await expect(edit).toBeVisible();
+    const edit = () => page.getByRole("button", { name: "Edit tags" }).first();
+    await expect(edit()).toBeVisible();
     await expect
         .poll(async () => {
-            await edit.scrollIntoViewIfNeeded();
-            return (await edit.boundingBox())?.height ?? 0;
+            const control = edit();
+            try {
+                await control.scrollIntoViewIfNeeded();
+                return (await control.boundingBox())?.height ?? 0;
+            } catch {
+                return 0;
+            }
         })
         .toBeGreaterThanOrEqual(24);
-    await edit.click();
+    await edit().click();
     await expect(page.getByRole("heading", { name: "web-01" })).toBeVisible();
 });

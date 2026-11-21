@@ -26,6 +26,7 @@ export default defineConfig({
         "citation-label.check.ts",
         "copy-names.check.ts",
         "heatmap-scroll.check.ts",
+        "dashboard-empty.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",

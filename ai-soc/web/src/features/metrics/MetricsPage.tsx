@@ -83,14 +83,12 @@ export function MetricsPage({
     if (busy)
         return (
             <div className="workspace-page">
-                <p className="page-description">{t("metricsDescription")}</p>
                 <WorkspaceLoading label={t("metrics")} />
             </div>
         );
     if (failed)
         return (
             <div className="workspace-page">
-                <p className="page-description">{t("metricsDescription")}</p>
                 <WorkspaceFailure
                     error={failed.error}
                     t={t}
@@ -112,7 +110,6 @@ export function MetricsPage({
             : "0 = default · 3 = highest";
     return (
         <div className="workspace-page metrics-v2">
-            <p className="page-description">{t("metricsDescription")}</p>
             <Panel className="workspace-panel metrics-panel">
                 <div className="section-heading-row metrics-v2-panel-head">
                     <div>
