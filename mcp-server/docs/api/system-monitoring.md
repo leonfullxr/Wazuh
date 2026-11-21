@@ -36,23 +36,12 @@ Result (one hour shown):
 ```text
 Wazuh Statistics:
 {
-  "data": {
-    "affected_items": [
-      {
-        "hour": 9,
-        "alerts": [{"sigid": 5763, "level": 10, "times": 3}],
-        "totalAlerts": 911,
-        "syscheck": 17,
-        "firewall": 0,
-        "events": 30447
-      }
-    ],
-    "total_affected_items": 2,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "hour": 9,
+  "alerts": [{"sigid": 5763, "level": 10, "times": 3}],
+  "totalAlerts": 911,
+  "syscheck": 17,
+  "firewall": 0,
+  "events": 30447
 }
 ```
 
@@ -76,17 +65,8 @@ Result (two days shown, hourly arrays trimmed):
 ```text
 Weekly Statistics:
 {
-  "data": {
-    "affected_items": [
-      {"Sun": {"hours": [5820, 5611], "interactions": 0}},
-      {"Mon": {"hours": [6104, 6230], "interactions": 0}}
-    ],
-    "total_affected_items": 2,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "Sun": {"hours": [5820, 5611], "interactions": 0},
+  "Mon": {"hours": [6104, 6230], "interactions": 0}
 }
 ```
 
@@ -114,19 +94,13 @@ Result (trimmed):
 ```text
 Cluster Health:
 {
-  "data": {
-    "affected_items": [
-      {
-        "info": {"name": "node01", "type": "master", "version": "4.14.1", "ip": "10.0.0.2", "n_active_agents": 2},
-        "status": {"last_keep_alive": "n/a"}
-      }
-    ],
-    "total_affected_items": 1,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "count": 1,
+  "items": [
+    {
+      "info": {"name": "node01", "type": "master", "version": "4.14.1", "ip": "10.0.0.2", "n_active_agents": 2},
+      "status": {"last_keep_alive": "n/a"}
+    }
+  ]
 }
 ```
 
@@ -155,17 +129,11 @@ Result:
 ```text
 Cluster Nodes:
 {
-  "data": {
-    "affected_items": [
-      {"name": "node01", "type": "master", "version": "4.14.1", "ip": "10.0.0.2"},
-      {"name": "node02", "type": "worker", "version": "4.14.1", "ip": "10.0.0.3"}
-    ],
-    "total_affected_items": 2,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "count": 2,
+  "items": [
+    {"name": "node01", "type": "master", "version": "4.14.1", "ip": "10.0.0.2"},
+    {"name": "node02", "type": "worker", "version": "4.14.1", "ip": "10.0.0.3"}
+  ]
 }
 ```
 
@@ -222,26 +190,15 @@ Result:
 ```text
 Remoted Statistics:
 {
-  "data": {
-    "affected_items": [
-      {
-        "queue_size": 0,
-        "total_queue_size": 131072,
-        "tcp_sessions": 3,
-        "evt_count": 4129011,
-        "ctrl_msg_count": 22540,
-        "discarded_count": 0,
-        "sent_bytes": 118223412,
-        "recv_bytes": 1502233891,
-        "dequeued_after_close": 0
-      }
-    ],
-    "total_affected_items": 1,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "queue_size": 0,
+  "total_queue_size": 131072,
+  "tcp_sessions": 3,
+  "evt_count": 4129011,
+  "ctrl_msg_count": 22540,
+  "discarded_count": 0,
+  "sent_bytes": 118223412,
+  "recv_bytes": 1502233891,
+  "dequeued_after_close": 0
 }
 ```
 
@@ -265,27 +222,16 @@ Result (fields trimmed):
 ```text
 Analysisd Statistics:
 {
-  "data": {
-    "affected_items": [
-      {
-        "total_events_decoded": 4128803,
-        "syscheck_events_decoded": 11207,
-        "syscollector_events_decoded": 30551,
-        "events_processed": 4128803,
-        "events_received": 4128830,
-        "event_queue_usage": 0.0,
-        "alerts_written": 211094,
-        "firewall_written": 0,
-        "fts_written": 1880,
-        "events_dropped": 0
-      }
-    ],
-    "total_affected_items": 1,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "total_events_decoded": 4128803,
+  "syscheck_events_decoded": 11207,
+  "syscollector_events_decoded": 30551,
+  "events_processed": 4128803,
+  "events_received": 4128830,
+  "event_queue_usage": 0.0,
+  "alerts_written": 211094,
+  "firewall_written": 0,
+  "fts_written": 1880,
+  "events_dropped": 0
 }
 ```
 

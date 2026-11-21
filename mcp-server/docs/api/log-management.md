@@ -42,21 +42,15 @@ Result:
 ```text
 Manager Logs:
 {
-  "data": {
-    "affected_items": [
-      {
-        "timestamp": "2026-09-24T08:02:55Z",
-        "tag": "wazuh-modulesd:vulnerability-scanner",
-        "level": "info",
-        "description": " Vulnerability scan finished."
-      }
-    ],
-    "total_affected_items": 1,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "count": 1,
+  "items": [
+    {
+      "timestamp": "2026-09-24T08:02:55Z",
+      "tag": "wazuh-modulesd:vulnerability-scanner",
+      "level": "info",
+      "description": " Vulnerability scan finished."
+    }
+  ]
 }
 ```
 
@@ -92,20 +86,14 @@ Result:
 ```text
 Manager Error Logs:
 {
-  "data": {
-    "affected_items": [
-      {
-        "timestamp": "2026-09-24T09:31:02Z",
-        "tag": "wazuh-remoted",
-        "level": "error",
-        "description": " Agent key already in use: agent ID '007'"
-      }
-    ],
-    "total_affected_items": 1,
-    "total_failed_items": 0,
-    "failed_items": []
-  },
-  "message": "All selected items were returned",
-  "error": 0
+  "count": 1,
+  "items": [
+    {
+      "timestamp": "2026-09-24T09:31:02Z",
+      "tag": "wazuh-remoted",
+      "level": "error",
+      "description": " Agent key already in use: agent ID '007'"
+    }
+  ]
 }
 ```

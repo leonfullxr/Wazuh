@@ -69,7 +69,7 @@ An SCA policy counts toward a framework when its ID or name contains one of thes
 
 ### Notes
 
-- Without `agent_id`, the tool reads up to 10 active agents and checks the SCA results of the first 5. An agent whose SCA request fails is included with no policies. With `agent_id`, a failed SCA request is returned as an error.
+- Without `agent_id`, the tool reads up to 10 active agents and checks the SCA results of the first 5. An agent with no matching policy is omitted from `results` and counted in `agents_without_matching_policy`, so a null score is not shown next to a real one. With `agent_id`, a failed SCA request is returned as an error.
 - If no matching policy is loaded on any checked agent, the result has `assessment: "not_assessable"` and a `reason`, instead of scoring unrelated benchmarks under the framework's name. Stock Wazuh ships CIS benchmark policies, which match `ISO27001` but not the other frameworks' keywords.
 - Otherwise `assessment` is `hardening_coverage`, and `hardening_coverage_pct` is passing checks divided by `total_checks` across the matching policies.
 
@@ -95,6 +95,7 @@ Compliance Check:
     "total_pass": 96,
     "total_fail": 71,
     "agents_checked": 1,
+    "agents_without_matching_policy": 0,
     "results": [
       {
         "agent_id": "001",

@@ -1555,6 +1555,7 @@ class WazuhClient:
         total_fail = 0
         total_checks = 0
         any_framework_policy = False
+        agents_without_policy = 0
 
         for agent in agent_data:
             sca_items = agent.get("sca_items", [])
@@ -1566,8 +1567,12 @@ class WazuhClient:
                 ]
             else:
                 relevant = sca_items
-            if relevant:
-                any_framework_policy = True
+            if not relevant:
+                # An agent with no matching policy is not an assessment. A null score
+                # next to a real one reads as if that agent was checked and scored nothing.
+                agents_without_policy += 1
+                continue
+            any_framework_policy = True
 
             agent_pass = sum(p.get("pass", 0) for p in relevant)
             agent_fail = sum(p.get("fail", 0) for p in relevant)
@@ -1629,6 +1634,7 @@ class WazuhClient:
                 "total_pass": total_pass,
                 "total_fail": total_fail,
                 "agents_checked": len(results),
+                "agents_without_matching_policy": agents_without_policy,
                 "results": results,
             }
         }

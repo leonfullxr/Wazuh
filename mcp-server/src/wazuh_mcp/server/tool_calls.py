@@ -44,6 +44,7 @@ from .output import (
     _compact_alerts_result,
     _compact_vulns_result,
     _sanitize_output_text,
+    present_manager_payload,
     render_json,
     sanitize_output,
 )
@@ -541,22 +542,22 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
 
         # System Monitoring Tools
         elif tool_name == "get_wazuh_statistics":
-            result = await wazuh_client.get_wazuh_statistics()
+            result = present_manager_payload(await wazuh_client.get_wazuh_statistics(), single=True)
             _success = True
             return _tool_result(f"Wazuh Statistics:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_wazuh_weekly_stats":
-            result = await wazuh_client.get_weekly_stats()
+            result = present_manager_payload(await wazuh_client.get_weekly_stats(), single=True)
             _success = True
             return _tool_result(f"Weekly Statistics:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_wazuh_cluster_health":
-            result = await wazuh_client.get_cluster_health()
+            result = present_manager_payload(await wazuh_client.get_cluster_health())
             _success = True
             return _tool_result(f"Cluster Health:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_wazuh_cluster_nodes":
-            result = await wazuh_client.get_cluster_nodes()
+            result = present_manager_payload(await wazuh_client.get_cluster_nodes())
             _success = True
             return _tool_result(f"Cluster Nodes:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
@@ -566,12 +567,12 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
             return _tool_result(f"Rules Summary:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_wazuh_remoted_stats":
-            result = await wazuh_client.get_remoted_stats()
+            result = present_manager_payload(await wazuh_client.get_remoted_stats(), single=True)
             _success = True
             return _tool_result(f"Remoted Statistics:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_wazuh_log_collector_stats":
-            result = await wazuh_client.get_log_collector_stats()
+            result = present_manager_payload(await wazuh_client.get_log_collector_stats(), single=True)
             _success = True
             return _tool_result(f"Analysisd Statistics:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
@@ -579,13 +580,13 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
             query = validate_query(arguments.get("query"), required=True)
             limit = validate_limit(arguments.get("limit"), max_val=500)  # /manager/logs caps limit at 500
 
-            result = await wazuh_client.search_manager_logs(query, limit)
+            result = present_manager_payload(await wazuh_client.search_manager_logs(query, limit))
             _success = True
             return _tool_result(f"Manager Logs:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
         elif tool_name == "get_wazuh_manager_error_logs":
             limit = validate_limit(arguments.get("limit"), max_val=500)  # /manager/logs caps limit at 500
-            result = await wazuh_client.get_manager_error_logs(limit)
+            result = present_manager_payload(await wazuh_client.get_manager_error_logs(limit))
             _success = True
             return _tool_result(f"Manager Error Logs:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
