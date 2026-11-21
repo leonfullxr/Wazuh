@@ -361,10 +361,16 @@ EVIDENCE_NAME = "get_investigation_evidence"
 _SCHEMA = {
     "type": "object",
     "properties": {
-        "agent_id": {"type": "string"},
-        "from": {"type": "string"},
-        "to": {"type": "string"},
-        "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+        "agent_id": {"type": "string", "description": "Numeric Wazuh agent id, for example 001."},
+        "from": {
+            "type": "string",
+            "description": "Window start, absolute ISO 8601 with a timezone. Omit both from and to to use the latest hour.",
+        },
+        "to": {
+            "type": "string",
+            "description": "Window end, absolute ISO 8601 with a timezone. The span must be positive and at most 24 hours.",
+        },
+        "limit": {"type": "integer", "minimum": 1, "maximum": 50, "description": "Maximum events. Default 50."},
         "cluster_id": {"type": "string"},
     },
     "required": ["agent_id"],
@@ -376,13 +382,22 @@ def catalog(saved: dict[str, dict] | None = None) -> list[dict]:
     tools = [
         {
             "name": TIMELINE_NAME,
-            "description": "Investigate a bounded agent alert timeline.",
+            "description": (
+                "Read-only alert timeline for one agent. from and to are absolute ISO 8601 timestamps "
+                "with a timezone; the window must be positive and at most 24 hours. Omit both for the "
+                "latest hour. Returns per-source coverage, a point-in-time agent status, and evidence_ref "
+                "values for get_investigation_evidence. Not a verdict."
+            ),
             "inputSchema": copy.deepcopy(_SCHEMA),
             "_meta": {"ui": {"resourceUri": "ui://wazuh/agent-timeline.html"}},
         },
         {
             "name": EVIDENCE_NAME,
-            "description": "Retrieve currently authorized timeline evidence.",
+            "description": (
+                "Read one timeline event by evidence_ref. The reference expires 15 minutes after it was "
+                "minted and only works for the same principal. Expired, unknown, or unauthorized references "
+                "return status unavailable."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {"evidence_ref": {"type": "string"}, "cluster_id": {"type": "string"}},

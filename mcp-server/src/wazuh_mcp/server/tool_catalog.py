@@ -80,7 +80,7 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _sch
         },
         {
             "name": "analyze_alert_patterns",
-            "description": "Analyze alert patterns to identify trends and anomalies",
+            "description": "Count rules that fired at least min_frequency times in the window. This is a frequency count of the newest sampled alerts, not anomaly detection.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -374,7 +374,7 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _sch
         },
         {
             "name": "run_compliance_check",
-            "description": "Run compliance check against security frameworks",
+            "description": "Summarize SCA hardening coverage for one framework (PCI-DSS, HIPAA, SOX, GDPR, NIST, ISO27001). This is not a compliance certification. If no matching SCA policy is loaded, the result is not_assessable instead of a score.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -508,12 +508,12 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _sch
         # System Monitoring Tools (10 tools)
         {
             "name": "get_wazuh_statistics",
-            "description": "Get comprehensive Wazuh statistics and metrics",
+            "description": "Return the Manager statistics snapshot from GET /manager/stats (alert and event counters). Not a fleet or agent report.",
             "inputSchema": {"type": "object", "properties": {}, "required": []},
         },
         {
             "name": "get_wazuh_weekly_stats",
-            "description": "Get weekly statistics from Wazuh including alerts, agents, and trends",
+            "description": "Return the Manager weekly statistics object from GET /manager/stats/weekly (per-weekday counters). Not an agent inventory.",
             "inputSchema": {"type": "object", "properties": {}, "required": []},
         },
         {
@@ -528,7 +528,7 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _sch
         },
         {
             "name": "get_wazuh_rules_summary",
-            "description": "Get summary of Wazuh rules and their effectiveness",
+            "description": "Count rules by level and by rule group. This does not score whether a rule is effective.",
             "inputSchema": {"type": "object", "properties": {}, "required": []},
         },
         {
