@@ -215,6 +215,7 @@ async def test_consent_page_names_scopes_and_can_deny(env):
     assert "active responses" in page.text
     assert "claude.ai" in page.text
     assert "color-scheme: light dark" in page.text
+    assert "align-items: safe center" in page.text
     denied = await env.client.post(
         "/oauth/authorize", data={**_params(challenge), "decision": "deny"}
     )

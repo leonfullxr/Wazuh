@@ -845,7 +845,7 @@ _CONSENT_CSS = """
 }
 * { box-sizing: border-box; }
 body { margin:0; min-height:100vh; font:16px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--ink);
-  display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; }
+  display:flex; align-items: safe center; justify-content:center; padding:32px 16px; }
 .card { width:min(100%, 32rem); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 24px; }
 .eyebrow { margin:0 0 8px; font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
 h1 { font-size:1.55rem; line-height:1.2; margin:0 0 12px; }
