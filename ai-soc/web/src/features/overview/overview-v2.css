@@ -261,6 +261,18 @@
     max-width: 100%;
     overflow-x: auto;
     padding-bottom: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+.overview-v2-heatmap-scroll::-webkit-scrollbar {
+    height: 6px;
+}
+.overview-v2-heatmap-scroll::-webkit-scrollbar-thumb {
+    border-radius: 99px;
+    background: var(--border-strong);
+}
+.overview-v2-heatmap-scroll[data-overflow="more"] {
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
 .overview-v2-heatmap {
     min-width: 980px;
