@@ -5,7 +5,7 @@ test("an assessment citation names the rule instead of the raw evidence id", asy
     await page.goto("/#queue");
     await page.getByRole("button", { name: "Repeated SSH authentication failures" }).click();
     const drawer = page.getByRole("dialog");
-    const citation = drawer.getByText("Rule 5712 · web-01 · 203.0.113.8");
+    const citation = drawer.getByText("Rule 5712 · web-01 · 203.0.113.8").first();
     await expect(citation).toBeVisible();
     await citation.click();
     await expect(drawer.getByText("203.0.113.8").first()).toBeVisible();

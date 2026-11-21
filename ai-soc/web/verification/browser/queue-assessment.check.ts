@@ -23,7 +23,7 @@ test("a queue group shows its synthetic AI assessment", async ({ page }) => {
             "Repeated authentication failures from one source reached the failure threshold on web-01.",
         ),
     ).toBeVisible();
-    await drawer.getByText("Evidence", { exact: true }).first().click();
+    await drawer.getByText("Rule 5712 · web-01 · 203.0.113.8").first().click();
     await expect(drawer.getByText("203.0.113.8").first()).toBeVisible();
     await expect(drawer.getByText(/^ev1_ab/).first()).toBeVisible();
     await drawer.getByRole("button", { name: "Save review" }).click();
