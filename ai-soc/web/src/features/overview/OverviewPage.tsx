@@ -216,7 +216,10 @@ export function OverviewPage({
                                                 tickLine={false}
                                                 height={22}
                                             />
-                                            <CartesianGrid vertical={false} strokeDasharray="3 4" />
+                                            <CartesianGrid
+                                                vertical={false}
+                                                stroke="var(--border)"
+                                            />
                                             <YAxis
                                                 domain={[0, yTicks.at(-1) ?? 1]}
                                                 ticks={yTicks}

@@ -11,7 +11,8 @@
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
     gap: 1px;
     overflow: hidden;
-    border-block: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
     background: var(--border);
 }
 .overview-v2-metric {
@@ -152,9 +153,9 @@
     stroke: var(--border);
 }
 .overview-v2-chart .recharts-cartesian-axis-tick text {
-    fill: var(--text-muted);
+    fill: var(--dim);
     font-family: var(--font-ui);
-    font-size: 13px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 .overview-v2-chart .recharts-rectangle {

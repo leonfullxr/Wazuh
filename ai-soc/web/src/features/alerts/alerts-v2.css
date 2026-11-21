@@ -21,9 +21,10 @@
 .alerts-v2-panel-heading h2,
 .alerts-v2-results-heading h2 {
     margin: 0;
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 15px;
+    line-height: 1.35;
     font-weight: 600;
+    letter-spacing: 0;
 }
 
 .alerts-v2-panel-heading p,
@@ -94,14 +95,13 @@
 }
 
 .alerts-v2-results-heading > strong {
-    align-self: flex-start;
-    height: 22px;
-    padding: 0 8px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface-2);
-    color: var(--text-2);
-    font: 600 12px/20px var(--font-ui);
+    align-self: center;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: 450 12px/18px var(--font-ui);
     font-variant-numeric: tabular-nums;
 }
 
