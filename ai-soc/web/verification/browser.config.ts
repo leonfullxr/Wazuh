@@ -23,6 +23,7 @@ export default defineConfig({
         "queue-disposition-row.check.ts",
         "overview-cards.check.ts",
         "disposition-note.check.ts",
+        "citation-label.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",

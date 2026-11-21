@@ -4,6 +4,7 @@ import * as api from "../../api/workspace";
 import type { GroupDetail } from "../../api/workspace";
 import type { Locale } from "../../i18n";
 import { ErrorState } from "../../components/ui/states";
+import { citationSummary, shortEvidenceId } from "./citation-summary";
 import { WorkspaceLoading } from "../workspace/WorkspaceStates";
 
 const words = {
@@ -237,12 +238,14 @@ export function AssessmentPanel({
         if (!item) return null;
         return (
             <details key={id}>
-                <summary>{copy.citation}</summary>
+                <summary>{citationSummary(item.fields) || copy.citation}</summary>
                 <dl>
                     <div>
                         <dt>id</dt>
                         <dd>
-                            <code>{id}</code>
+                            <code className="assessment-evidence-id" title={id}>
+                                {shortEvidenceId(id)}
+                            </code>
                         </dd>
                     </div>
                     {Object.entries(item.fields).map(([key, value]) => (

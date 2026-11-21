@@ -86,6 +86,10 @@
     padding-top: 13px;
 }
 
+.assessment-evidence-id {
+    font-size: 12px;
+}
+
 .queue-v2 .group-link {
     display: flex;
     flex-direction: column;
