@@ -19,6 +19,7 @@ export default defineConfig({
         "queue-assessment.check.ts",
         "row-targets.check.ts",
         "disposition-labels.check.ts",
+        "quiet-heatmap.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",

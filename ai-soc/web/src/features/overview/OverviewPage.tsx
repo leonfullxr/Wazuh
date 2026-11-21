@@ -533,7 +533,10 @@ function AlertTimeHeatmap({
     }
 
     const days = dayLabels(t);
-    const peak = `${copy.peakTotal}: ${days[heatmap.peak.day]} ${formatHeatmapHour(heatmap.peak.hour)} · ${heatmap.peak.count.toLocaleString()} ${copy.alerts} · ${copy.coverage} ${formatCoverageDuration(heatmap.peak.coverageMs, t)}`;
+    const peak =
+        heatmap.peak.count === 0
+            ? copy.noAlerts
+            : `${copy.peakTotal}: ${days[heatmap.peak.day]} ${formatHeatmapHour(heatmap.peak.hour)} · ${heatmap.peak.count.toLocaleString()} ${copy.alerts} · ${copy.coverage} ${formatCoverageDuration(heatmap.peak.coverageMs, t)}`;
     const cutoff = heatmap.confirmedThrough
         ? `${copy.confirmedThrough} ${formatTime(new Date(heatmap.confirmedThrough).toISOString(), timezone)}`
         : null;
@@ -878,6 +881,7 @@ function dayLabels(t: Translate): string[] {
 function heatmapCopy(t: Translate): {
     title: string;
     peakTotal: string;
+    noAlerts: string;
     timezoneUnavailable: string;
     timezoneUnavailableDescription: string;
     dataUnconfirmed: string;
@@ -893,6 +897,7 @@ function heatmapCopy(t: Translate): {
         ? {
               title: "Cuándo ocurren las alertas",
               peakTotal: "Total máximo",
+              noAlerts: "Ninguna alerta en las horas confirmadas",
               timezoneUnavailable: "No disponible para esta zona horaria.",
               timezoneUnavailableDescription:
                   "Los intervalos UTC no coinciden con horas locales completas; no se muestran datos para evitar una agrupación incorrecta.",
@@ -909,6 +914,7 @@ function heatmapCopy(t: Translate): {
         : {
               title: "When alerts happen",
               peakTotal: "Peak total",
+              noAlerts: "No alerts in the confirmed hours",
               timezoneUnavailable: "Unavailable for this timezone.",
               timezoneUnavailableDescription:
                   "UTC buckets do not align to whole local hours, so no potentially misbinned data is shown.",
