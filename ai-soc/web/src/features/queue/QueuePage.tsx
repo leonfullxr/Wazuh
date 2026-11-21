@@ -411,7 +411,7 @@ export function QueuePage({
                     )}
                     {(bulkLabel === "false_positive" || bulkReason === "other") && (
                         <label>
-                            {t("reason")}
+                            {t("m3DispositionNote")}
                             <input
                                 maxLength={2000}
                                 value={bulkNote}
@@ -1080,7 +1080,7 @@ function GroupDrawer({
                 )}
                 {(label === "false_positive" || reason === "other") && (
                     <label>
-                        {t("reason")}
+                        {t("m3DispositionNote")}
                         <textarea
                             maxLength={2000}
                             disabled={busy}
