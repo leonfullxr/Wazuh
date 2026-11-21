@@ -416,8 +416,26 @@ def catalog(saved: dict[str, dict] | None = None) -> list[dict]:
             raise ValueError("Invalid saved investigation rule groups")
         schema = copy.deepcopy(_SCHEMA)
         schema["required"] = ["agent_id", "from", "to"]
-        tools.append({"name": name, "description": "Run an operator-approved investigation.", "inputSchema": schema})
+        tools.append({"name": name, "description": _saved_description(name, definition), "inputSchema": schema})
     return tools
+
+
+def _saved_description(name: str, definition: dict) -> str:
+    """Name the reviewed definition. Operator strings are flattened so a newline cannot add a sentence."""
+    version = " ".join(definition["version"].split())[:32] or "unspecified"
+    groups = []
+    for group in definition["rule_groups"]:
+        cleaned = " ".join(group.split())[:64]
+        if cleaned:
+            groups.append(cleaned)
+    listed = ", ".join(groups)
+    return (
+        f"Saved investigation {name}, definition version {version}. "
+        f"Read-only alert timeline for one agent, filtered to rule groups: {listed}. "
+        "from and to are required absolute ISO 8601 timestamps with a timezone; "
+        "the window must be positive and at most 24 hours. "
+        "Returns per-source coverage, a point-in-time agent status, and evidence_ref values. Not a verdict."
+    )
 
 
 async def execute(ctx: InvestigationContext, name: str, args: dict, saved: dict[str, dict] | None = None) -> dict:
