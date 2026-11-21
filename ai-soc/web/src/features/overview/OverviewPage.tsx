@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
     Bar,
@@ -512,6 +512,42 @@ function EmptyPanel({ text }: { text: string }) {
     return <p className="overview-v2-empty">{text}</p>;
 }
 
+function HeatmapScroller({ children, label }: { children: ReactNode; label: string }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [more, setMore] = useState(false);
+    useEffect(() => {
+        const element = ref.current;
+        if (!element) return;
+        const update = () => {
+            setMore(element.scrollWidth - element.clientWidth - element.scrollLeft > 1);
+        };
+        update();
+        const frame = requestAnimationFrame(update);
+        element.addEventListener("scroll", update, { passive: true });
+        const observer = new ResizeObserver(update);
+        observer.observe(element);
+        const grid = element.firstElementChild;
+        if (grid) observer.observe(grid);
+        return () => {
+            cancelAnimationFrame(frame);
+            element.removeEventListener("scroll", update);
+            observer.disconnect();
+        };
+    }, []);
+    return (
+        <div
+            ref={ref}
+            className="overview-v2-heatmap-scroll"
+            data-overflow={more ? "more" : undefined}
+            tabIndex={0}
+            role="region"
+            aria-label={label}
+        >
+            {children}
+        </div>
+    );
+}
+
 function AlertTimeHeatmap({
     heatmap,
     timezone,
@@ -546,12 +582,7 @@ function AlertTimeHeatmap({
     return (
         <Panel className="workspace-panel overview-v2-heatmap-panel">
             <PanelHeading title={copy.title} description={subtitle} />
-            <div
-                className="overview-v2-heatmap-scroll"
-                tabIndex={0}
-                role="region"
-                aria-label={copy.title}
-            >
+            <HeatmapScroller label={copy.title}>
                 <div className="overview-v2-heatmap" aria-hidden="true">
                     <span />
                     {Array.from({ length: 24 }, (_, hour) => (
@@ -572,7 +603,7 @@ function AlertTimeHeatmap({
                         />
                     ))}
                 </div>
-            </div>
+            </HeatmapScroller>
             <table className="sr-only">
                 <caption>
                     {copy.title}. {subtitle}

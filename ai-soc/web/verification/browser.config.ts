@@ -25,6 +25,7 @@ export default defineConfig({
         "disposition-note.check.ts",
         "citation-label.check.ts",
         "copy-names.check.ts",
+        "heatmap-scroll.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",
