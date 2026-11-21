@@ -496,23 +496,27 @@ export function QueuePage({
                                                     type="button"
                                                     onClick={() => setSelectedId(group.group_id)}
                                                 >
-                                                    {group.title}
-                                                </button>
-                                                <span className="table-secondary queue-v2-entity">
-                                                    {group.primary_entity && (
-                                                        <span>{group.primary_entity.kind}</span>
-                                                    )}
-                                                    <code>
-                                                        {group.primary_entity?.value ??
-                                                            group.rule_id ??
-                                                            "—"}
-                                                    </code>
-                                                </span>
-                                                {reasons.length > 0 && (
-                                                    <span className="table-secondary queue-v2-reasons">
-                                                        {reasons.join(" · ")}
+                                                    <span className="group-link-title">
+                                                        {group.title}
                                                     </span>
-                                                )}
+                                                    <span className="table-secondary queue-v2-entity">
+                                                        {group.primary_entity && (
+                                                            <span>
+                                                                {group.primary_entity.kind}
+                                                            </span>
+                                                        )}
+                                                        <code>
+                                                            {group.primary_entity?.value ??
+                                                                group.rule_id ??
+                                                                "—"}
+                                                        </code>
+                                                    </span>
+                                                    {reasons.length > 0 && (
+                                                        <span className="table-secondary queue-v2-reasons">
+                                                            {reasons.join(" · ")}
+                                                        </span>
+                                                    )}
+                                                </button>
                                             </td>
                                             <td>
                                                 {group.score !== null && (
