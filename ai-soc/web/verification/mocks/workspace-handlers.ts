@@ -12,11 +12,15 @@ import {
     opsMetrics,
     qualityMetrics,
     queueRows,
+    authGroupAssessment,
     updateMockDisposition,
     updateMockWorkState,
 } from "./workspace-group-fixtures";
 import type { components } from "../../../contracts/workspace/v1/types.ts";
 import {
+    validateAssessmentDetail,
+    validateAssessmentReview,
+    validateAssessmentReviewRequest,
     validateAssignRequest,
     validateAssetUpsertRequest,
     validateBulkActionRequest,
@@ -69,6 +73,18 @@ export function resetM3WorkspaceMocks(): void {
     if (typeof sessionStorage !== "undefined") sessionStorage.removeItem(incidentStorageKey);
 }
 
+const assessmentReviews: components["schemas"]["AssessmentReview"][] = [];
+const emptyAssessment = (): components["schemas"]["AssessmentDetail"] => ({
+    summary: { state: "no_assessment", verdict: null, band: null },
+    request_id: null,
+    revision: null,
+    outcome: null,
+    evidence: [],
+    gaps: {},
+    missing_fields: [],
+    provenance: null,
+    reviews: [],
+});
 const error = (status: number, code: string, message: string) =>
     HttpResponse.json(
         {
@@ -135,7 +151,11 @@ export const workspaceHandlers = [
             return error(403, "CSRF_DENIED", "Write security headers are required.");
         const body = await readObject(request);
         if (new URLSearchParams(location.search).get("scenario") === "workspace_conflict")
-            return error(409, "VERSION_CONFLICT", "Candidate evidence changed. Refresh and review.");
+            return error(
+                409,
+                "VERSION_CONFLICT",
+                "Candidate evidence changed. Refresh and review.",
+            );
         if (String(params.chainId) !== chainState.detail.chain_id)
             return error(404, "RESOURCE_UNKNOWN", "Chain candidate not found.");
         if (!matchesChainPins(body))
@@ -584,6 +604,45 @@ export const workspaceHandlers = [
                 (group.score === null ? min === 0 : group.score >= min),
         );
         return HttpResponse.json({ items, next_cursor: null, limit: 50 });
+    }),
+    http.get("/v1/workspace/groups/:groupId/assessment", ({ params, request }) => {
+        const mode = state(new URL(request.url));
+        if (mode === "denied")
+            return error(403, "WORKSPACE_DENIED", "Assessment access is denied.");
+        if (mode === "assessment_error")
+            return error(503, "UNAVAILABLE", "Assessment is unavailable.");
+        const detail =
+            String(params.groupId) === "group-auth-001"
+                ? {
+                      ...authGroupAssessment,
+                      reviews: assessmentReviews.map((review) => ({ ...review })),
+                  }
+                : emptyAssessment();
+        return validateAssessmentDetail(detail)
+            ? HttpResponse.json(detail)
+            : error(500, "INVALID_FIXTURE", "Synthetic assessment fixture is invalid.");
+    }),
+    http.post("/v1/workspace/groups/:groupId/assessment/review", async ({ request }) => {
+        if (!hasWriteHeaders(request))
+            return error(403, "CSRF_DENIED", "Write security headers are required.");
+        const body: unknown = await request.json();
+        if (!validateAssessmentReviewRequest(body))
+            return error(422, "INVALID_REQUEST", "Assessment review is invalid.");
+        const verdict = body.decision === "override" ? body.verdict : "likely_malicious";
+        if (!verdict) return error(422, "INVALID_REQUEST", "Assessment review is invalid.");
+        const review: components["schemas"]["AssessmentReview"] = {
+            review_id: crypto.randomUUID(),
+            request_id: body.request_id,
+            decision: body.decision,
+            verdict,
+            reason: body.reason,
+            actor_key: "analyst:mock",
+            at: new Date().toISOString(),
+        };
+        if (!validateAssessmentReview(review))
+            return error(500, "INVALID_FIXTURE", "Synthetic assessment review is invalid.");
+        assessmentReviews.unshift(review);
+        return HttpResponse.json(review);
     }),
     http.get("/v1/workspace/groups/:groupId", ({ params, request }) => {
         const url = new URL(request.url);
