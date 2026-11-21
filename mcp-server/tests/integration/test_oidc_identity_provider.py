@@ -363,6 +363,24 @@ class TestCallback:
         r = await client.get("/oauth/callback", params={"state": idp_state, "code": "bad"})
         assert parse_qs(urlparse(r.headers["location"]).query)["error"] == ["access_denied"]
 
+    async def test_browser_sees_the_failure_and_a_spec_return_link(self, client, idp):
+        """A browser is not bounced. The return link is the RFC 6749 error redirect."""
+        idp_state, _, _ = await _start_login(client)
+        r = await client.get(
+            "/oauth/callback",
+            params={"state": idp_state, "error": "login_required", "error_description": "secret internals"},
+            headers={"Accept": "text/html"},
+        )
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("text/html")
+        assert "secret internals" not in r.text
+        assert "Sign-in stopped" in r.text
+        href = r.text.split('class="go primary" href="', 1)[1].split('"', 1)[0].replace("&amp;", "&")
+        back = parse_qs(urlparse(href).query)
+        assert back["error"] == ["access_denied"]
+        assert back["state"] == ["client-state-xyz"]
+        assert urlparse(href).netloc == "claude.ai"
+
     @pytest.mark.parametrize(
         "mutate",
         [

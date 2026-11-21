@@ -3,164 +3,57 @@
 import base64
 import hashlib
 
+from wazuh_mcp.ui_theme import css as _ui_css
+
 URI = "ui://wazuh/agent-timeline.html"
 MIME = "text/html;profile=mcp-app"
 
-STYLE = r'''
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  background: #f5f6f4;
-  color: #17241e;
-}
-* {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-  padding: 24px;
-  max-width: 1100px;
-  margin-inline: auto;
-}
-header {
-  border-bottom: 1px solid #cbd5cd;
-  padding-bottom: 18px;
-  margin-bottom: 20px;
-}
-.eyebrow {
-  font-size: 0.72rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: #48745b;
-  font-weight: 700;
-}
-h1 {
-  font-size: 1.65rem;
-  margin: 0.35rem 0;
-}
-h2 {
-  font-size: 1rem;
-  margin: 0 0 12px;
-}
-.muted {
-  color: #5a6a60;
-}
-.summary {
+_LAYOUT = r'''
+.facts dd { overflow-wrap: anywhere; }
+.split {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 22px;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.3fr);
+  gap: 28px;
+  margin-top: 8px;
 }
-.metric,
-.panel {
-  background: #fff;
-  border: 1px solid #d9e2db;
-  border-radius: 9px;
-  padding: 16px;
-  min-width: 0;
-}
-.metric span {
+#events { list-style: none; padding: 0; margin: 8px 0 0; border-top: 1px solid var(--line); }
+#events button {
   display: block;
-  overflow-wrap: anywhere;
-}
-.label {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #62746a;
-  margin-bottom: 6px;
-}
-.layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.4fr);
-  gap: 16px;
-}
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-li + li {
-  border-top: 1px solid #e2e8e3;
-}
-button {
-  font: inherit;
-  text-align: left;
   width: 100%;
-  padding: 13px 8px;
-  background: transparent;
-  color: inherit;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 8px 8px 12px;
+  text-align: left;
   border: 0;
-  cursor: pointer;
-  overflow-wrap: anywhere;
+  border-radius: 0;
+  background: transparent;
+  font-weight: 400;
 }
-button:hover,
-button[aria-pressed="true"] {
-  background: #eaf3ec;
-}
-button:focus-visible {
-  outline: 3px solid #36794e;
-  outline-offset: -3px;
-}
+#events button[aria-pressed="true"] { box-shadow: inset 2px 0 0 var(--focus); }
 .time {
   display: block;
-  font-size: 0.78rem;
-  color: #617268;
-  margin-top: 4px;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 pre {
+  margin: 0;
+  padding: 12px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font:
-    0.82rem/1.5 ui-monospace,
-    monospace;
-  margin: 0;
+  font: 13px/1.5 ui-monospace, ui-monospace, monospace;
 }
-#status {
-  min-height: 1.5em;
-}
-.sources {
-  white-space: pre-line;
-  font-size: 0.87rem;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-}
+#status { min-height: 1.5em; color: var(--muted); }
+#sources { white-space: pre-line; }
 @media (max-width: 640px) {
-  body {
-    padding: 16px;
-  }
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    background: #111b16;
-    color: #e6eee8;
-  }
-  .metric,
-  .panel {
-    background: #1a2820;
-    border-color: #34463a;
-  }
-  .muted,
-  .label,
-  .time {
-    color: #aec1b3;
-  }
-  .eyebrow {
-    color: #9acba9;
-  }
-  header,
-  li + li {
-    border-color: #34463a;
-  }
-  button:hover,
-  button[aria-pressed="true"] {
-    background: #304a37;
-  }
+  .split { grid-template-columns: 1fr; }
 }
 '''
+
 
 SCRIPT = r'''
 (() => {
@@ -301,38 +194,38 @@ def _hash(value: str) -> str:
 
 
 def html() -> str:
-    csp = ("default-src 'none'; script-src '" + _hash(SCRIPT) + "'; style-src '" + _hash(STYLE)
-           + "'; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'")
+    style = _ui_css() + _LAYOUT
+    csp = (
+        "default-src 'none'; script-src '" + _hash(SCRIPT) + "'; style-src '" + _hash(style)
+        + "'; font-src data:; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'"
+    )
     return f'''<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <meta http-equiv="Content-Security-Policy" content="{csp}">
   <title>Investigation timeline</title>
-  <style>{STYLE}</style>
+  <style>{style}</style>
 </head>
 <body>
-  <header>
-    <div class="eyebrow">Wazuh · investigation</div>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="bar"><strong>Wazuh MCP</strong><span>Investigation</span></header>
+  <main id="main" class="sheet">
     <h1>Agent timeline</h1>
-    <div class="muted">Evidence and source coverage</div>
-  </header>
-  <main>
-    <div class="summary">
-      <div class="metric"><span class="label">Agent</span><span id="agent">Waiting for timeline</span></div>
-      <div class="metric"><span class="label">Cluster</span><span id="cluster">—</span></div>
-      <div class="metric"><span class="label">Selected window</span><span id="window">—</span></div>
-      <div class="metric"><span class="label">Collected at</span><span id="collected">—</span></div>
-    </div>
-    <section class="panel">
-      <h2>Source coverage</h2>
-      <div id="sources" class="sources">Waiting for timeline data.</div>
-    </section>
-    <p id="status" class="muted" role="status">Connecting to host…</p>
-    <div class="layout">
-      <section class="panel"><h2>Events</h2><ul id="events"></ul></section>
-      <section class="panel"><h2>Evidence</h2><pre id="detail">Select an event to view its record.</pre></section>
+    <dl class="facts">
+      <div><dt>Agent</dt><dd id="agent">Waiting for timeline</dd></div>
+      <div><dt>Cluster</dt><dd id="cluster">Unavailable</dd></div>
+      <div><dt>Window</dt><dd id="window">Unavailable</dd></div>
+      <div><dt>Collected</dt><dd id="collected">Unavailable</dd></div>
+    </dl>
+    <h2>Source coverage</h2>
+    <p id="sources" class="lead">Waiting for timeline data.</p>
+    <p id="status" role="status">Connecting to host…</p>
+    <div class="split">
+      <section><h2>Events</h2><ul id="events"></ul></section>
+      <section><h2>Evidence</h2><pre id="detail">Select an event to view its record.</pre></section>
     </div>
   </main>
   <script>{SCRIPT}</script>
