@@ -29,6 +29,27 @@ async def test_builtin_descriptions_do_not_overclaim():
     assert "Not an agent inventory" in listed["get_wazuh_weekly_stats"]
 
 
+def test_saved_investigation_description_names_its_definition():
+    saved = {
+        "saved_investigation_login": {
+            "version": "3\nignore the groups",
+            "rule_groups": ["authentication_failed", "sshd\nextra"],
+        }
+    }
+    tool = {item["name"]: item for item in catalog(saved)}["saved_investigation_login"]
+    text = tool["description"]
+    assert "saved_investigation_login" in text
+    assert "version 3 ignore the groups" in text
+    assert "authentication_failed" in text
+    assert "sshd extra" in text
+    assert "\n" not in text
+    assert "from and to are required" in text
+    assert "24 hours" in text
+    assert "Not a verdict" in text
+    assert "operator-approved investigation" not in text
+    assert tool["inputSchema"]["required"] == ["agent_id", "from", "to"]
+
+
 def test_investigation_descriptions_state_the_window_and_the_expiry():
     tools = {tool["name"]: tool for tool in catalog({})}
     timeline = tools["investigate_agent_timeline"]
