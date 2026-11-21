@@ -15,10 +15,10 @@ from wazuh_mcp.api.wazuh_client import WazuhClient
 from wazuh_mcp.config import get_config
 from wazuh_mcp.monitoring import setup_monitoring_middleware
 from wazuh_mcp.security import security_middleware
-from wazuh_mcp.session_store import SessionStoreUnavailable
+from wazuh_mcp.session_store import RedisSessionStore, SessionStoreUnavailable
 
 from . import ops, state, transport
-from .constants import CORS_MAX_AGE_SECONDS, MCP_PROTOCOL_VERSION
+from .constants import CORS_MAX_AGE_SECONDS, MCP_PROTOCOL_VERSION, MODERN_PROTOCOL_VERSIONS
 from .http_security import RateLimited
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,11 @@ async def lifespan(app: FastAPI):
         raise ConfigurationError(f"Required Wazuh Manager settings are not set: {', '.join(_missing)}")
 
     logger.info(f"Wazuh MCP v{__version__} starting up...")
-    logger.info(f"MCP Protocol: {MCP_PROTOCOL_VERSION}")
+    logger.info(
+        "MCP protocols: %s stateless; legacy handshake %s",
+        ", ".join(MODERN_PROTOCOL_VERSIONS),
+        MCP_PROTOCOL_VERSION,
+    )
     logger.info(f"Wazuh Host: {get_config().WAZUH_HOST}")
     logger.info(f"CORS Origins: {get_config().ALLOWED_ORIGINS}")
     logger.info(f"Auth Mode: {get_config().AUTH_MODE}")
@@ -75,8 +79,12 @@ async def lifespan(app: FastAPI):
             state._oauth_manager = init_oauth_manager(cfg)
             oauth_router = create_oauth_router(state._oauth_manager)
             app.include_router(oauth_router)
-            logger.info("OAuth 2.0 with DCR initialized")
-            logger.info("   OAuth endpoints: /oauth/authorize, /oauth/token, /oauth/register")
+            if cfg.OAUTH_ENABLE_DCR:
+                logger.info("OAuth 2.0 initialized with dynamic client registration")
+                logger.info("   OAuth endpoints: /oauth/authorize, /oauth/token, /oauth/register")
+            else:
+                logger.info("OAuth 2.0 initialized (dynamic client registration is off)")
+                logger.info("   OAuth endpoints: /oauth/authorize, /oauth/token")
             logger.info("   Discovery: /.well-known/oauth-authorization-server")
         except Exception as e:
             logger.error(f"OAuth initialization failed: {e}")
@@ -155,7 +163,10 @@ async def lifespan(app: FastAPI):
         )
 
     # Initialize Wazuh client (will be available after yield)
-    logger.info("Server startup complete with high availability features enabled")
+    if isinstance(state._session_store, RedisSessionStore):
+        logger.info("Server startup complete (Redis session store)")
+    else:
+        logger.info("Server startup complete")
 
     yield  # Server is running
 
