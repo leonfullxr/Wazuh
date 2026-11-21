@@ -11,7 +11,13 @@ const port = Number(process.env.WEB_PORT ?? 5184);
 
 export default defineConfig({
     testDir: "./browser",
-    testMatch: ["routes.check.ts", "theme.check.ts", "investigate.check.ts", "m3.check.ts"],
+    testMatch: [
+        "routes.check.ts",
+        "theme.check.ts",
+        "investigate.check.ts",
+        "m3.check.ts",
+        "severity-tags.check.ts",
+    ],
     fullyParallel: false,
     reporter: "list",
     use: {
