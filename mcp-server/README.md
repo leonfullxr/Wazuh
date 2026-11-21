@@ -84,6 +84,8 @@ set -a; . ./.env; set +a              # the server reads the environment, not .e
 
 Requires Python 3.11 or later. Optional extras: `redis` (Redis session store) and `gcf` (`RESPONSE_FORMAT=gcf`).
 
+To run without a Wazuh cluster, use the stdlib Manager and Indexer stand-in in [dev/README.md](dev/README.md). It does not need Docker.
+
 ### Tests
 
 ```bash
