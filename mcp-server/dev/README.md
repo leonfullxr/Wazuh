@@ -106,3 +106,19 @@ export WAZUH_INVESTIGATIONS_FILE=/tmp/wazuh-investigations.json
 ```
 
 Start the server with the same Manager and Indexer variables as above. `investigate_agent_timeline` needs absolute `from` and `to` timestamps (ISO 8601 with a timezone, at most 24 hours apart).
+
+## Mock OpenID Connect provider
+
+`dev/mock_idp.py` is an HTTPS IdP on `https://127.0.0.1:8443`. Discovery requires https, and the MCP server verifies the certificate, so export the printed `SSL_CERT_FILE` into the `wazuh-mcp` process.
+
+```bash
+python3 dev/mock_idp.py
+export SSL_CERT_FILE=<printed cert>
+export AUTH_MODE=oauth OAUTH_ISSUER_URL=http://127.0.0.1:3002
+export OAUTH_IDP_ISSUER=https://127.0.0.1:8443
+export OAUTH_IDP_CLIENT_ID=wazuh-mcp OAUTH_IDP_CLIENT_SECRET=mock-secret
+export OAUTH_IDP_GROUP_SCOPE_MAP='{"responders":"wazuh:read wazuh:write"}'
+export OAUTH_IDP_DEFAULT_SCOPE=wazuh:read
+```
+
+Continue on the sign-in page issues an ID token for `analyst@example.com` in the `responders` group (`wazuh:read wazuh:write` with the map above). Deny sends `access_denied` back through `/oauth/callback`.
