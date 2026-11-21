@@ -196,10 +196,30 @@ export function QueuePage({
                 note,
                 propagate_to_members: propagateToMembers,
             }),
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ["workspace", "queue"] });
+        },
         onSuccess: (saved, variables) => {
             const key = ["workspace", "group", siteId, variables.id];
             queryClient.setQueryData<GroupDetail>(key, (current) =>
                 current ? { ...current, disposition: saved } : current,
+            );
+            queryClient.setQueriesData<api.QueuePage>(
+                { queryKey: ["workspace", "queue"] },
+                (current) =>
+                    current
+                        ? {
+                              ...current,
+                              items: current.items.map((row) =>
+                                  row.group.group_id === variables.id
+                                      ? {
+                                            ...row,
+                                            group: { ...row.group, disposition: saved },
+                                        }
+                                      : row,
+                              ),
+                          }
+                        : current,
             );
         },
         onSettled: () => {
