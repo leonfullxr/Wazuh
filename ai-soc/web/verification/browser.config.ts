@@ -24,6 +24,7 @@ export default defineConfig({
         "overview-cards.check.ts",
         "disposition-note.check.ts",
         "citation-label.check.ts",
+        "copy-names.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",
