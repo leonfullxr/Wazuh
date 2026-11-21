@@ -92,3 +92,17 @@ WAZUH_INDEXER_HOST=http://127.0.0.1 WAZUH_INDEXER_PORT=9200 \
 ```
 
 The script initializes, lists tools, prompts, and resources, then calls one tool from each toolset, including active response. It writes the full text to `/tmp/wazuh-mcp-transcript.json`.
+
+## Investigations
+
+One alert description is the literal string `<script>alert(1)</script>` so a viewer can be checked for HTML injection. Evidence reads honor `_source_includes`, which the timeline digest requires.
+
+```bash
+export WAZUH_INVESTIGATION_KEYS="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+cat > /tmp/wazuh-investigations.json <<'EOF'
+{"tie_breaker":"event.id","tie_breaker_verified":true,"saved":{}}
+EOF
+export WAZUH_INVESTIGATIONS_FILE=/tmp/wazuh-investigations.json
+```
+
+Start the server with the same Manager and Indexer variables as above. `investigate_agent_timeline` needs absolute `from` and `to` timestamps (ISO 8601 with a timezone, at most 24 hours apart).
