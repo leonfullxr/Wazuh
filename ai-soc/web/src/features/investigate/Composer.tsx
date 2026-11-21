@@ -99,7 +99,7 @@ export function Composer({
                     {t("timezone")}: {Intl.DateTimeFormat().resolvedOptions().timeZone}
                 </span>
                 <span className="muted submit-hint">{t("submitHint")}</span>
-                <button className="btn primary" disabled={!canAsk} onClick={onSubmit}>
+                <button className="btn brand" disabled={!canAsk} onClick={onSubmit}>
                     {pending ? (
                         <>
                             <LoaderCircle className="spin" size={16} />

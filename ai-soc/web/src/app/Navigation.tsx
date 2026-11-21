@@ -12,18 +12,15 @@ import {
     Menu,
     Search,
     Server,
-    ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { RuntimeBootstrapResponse } from "../api/client";
 import type { Locale } from "../i18n";
 import { StatusPill } from "../components/ui/status-pill";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../components/ui/sheet";
 import { ThemeMenu } from "../components/theme/theme-menu";
-import { CommandPalette } from "./CommandPalette";
 import { CustomRange } from "./CustomRange";
-import type { AlertDrilldown } from "../features/overview/OverviewPage";
 
 export const nav = [
     { id: "overview", icon: LayoutDashboard },
@@ -47,9 +44,6 @@ export type Route =
     | (typeof nav)[number]["id"]
     | (typeof dashboardNav)[number]["id"]
     | (typeof secondaryNav)[number]["id"];
-const commandRoutes: readonly Route[] = [...nav, ...dashboardNav, ...secondaryNav].map(
-    (item) => item.id,
-);
 export type NavigationProfile = "full" | "local";
 const localDashboardNav = dashboardNav.filter((item) => item.id === "metrics");
 const localSecondaryNav: (typeof secondaryNav)[number][] = [];
@@ -58,6 +52,24 @@ function navigationGroups(profile: NavigationProfile) {
     return profile === "local"
         ? { main: nav, dashboards: localDashboardNav, secondary: localSecondaryNav }
         : { main: nav, dashboards: dashboardNav, secondary: secondaryNav };
+}
+export function commandRouteIds(profile: NavigationProfile): readonly Route[] {
+    const groups = navigationGroups(profile);
+    return [...groups.main, ...groups.dashboards, ...groups.secondary].map((item) => item.id);
+}
+export function useMinWidth(query: string): boolean {
+    const [matches, setMatches] = useState(() =>
+        typeof window.matchMedia === "function" ? window.matchMedia(query).matches : true,
+    );
+    useEffect(() => {
+        if (typeof window.matchMedia !== "function") return;
+        const media = window.matchMedia(query);
+        const onChange = () => setMatches(media.matches);
+        onChange();
+        media.addEventListener("change", onChange);
+        return () => media.removeEventListener("change", onChange);
+    }, [query]);
+    return matches;
 }
 export function routeFromHash(): Route | null {
     const hash = location.hash.replace(/^#\/?/, "");
@@ -71,12 +83,14 @@ export function NavigationRail({
     route,
     setRoute,
     footer,
+    search,
     t,
     profile = "full",
 }: {
     route: Route;
     setRoute: (route: Route) => void;
     footer: ReactNode;
+    search?: ReactNode;
     t: Translate;
     profile?: NavigationProfile;
 }) {
@@ -88,63 +102,62 @@ export function NavigationRail({
             </a>
             <aside className="rail">
                 <div className="brand">
-                    <span className="brand-mark">
-                        <ShieldCheck size={21} aria-hidden="true" />
-                    </span>
-                    <span>
-                        Wazuh <strong>AI SOC</strong>
-                    </span>
+                    <span className="brand-name">Wazuh</span>
+                    <span className="brand-product">SOC</span>
                 </div>
-                <div className="rail-caption">{t("workspaceCaption")}</div>
-                <nav aria-label={t("mainNavigation")}>
-                    {groups.main.map((item) => (
-                        <a
-                            key={item.id}
-                            href={`#${item.id}`}
-                            aria-current={route === item.id ? "page" : undefined}
-                            onClick={() => setRoute(item.id)}
-                        >
-                            <item.icon size={17} />
-                            {t(item.id)}
-                        </a>
-                    ))}
-                </nav>
-                {groups.dashboards.length > 0 && (
-                    <div className="rail-caption secondary-caption">{t("dashboards")}</div>
-                )}
-                {groups.dashboards.length > 0 && (
-                    <nav aria-label={t("dashboards")}>
-                        {groups.dashboards.map((item) => (
+                {search && <div className="rail-search">{search}</div>}
+                <div className="rail-scroll">
+                    <div className="rail-caption">{t("workspaceCaption")}</div>
+                    <nav aria-label={t("mainNavigation")}>
+                        {groups.main.map((item) => (
                             <a
                                 key={item.id}
                                 href={`#${item.id}`}
                                 aria-current={route === item.id ? "page" : undefined}
                                 onClick={() => setRoute(item.id)}
                             >
-                                <item.icon size={17} />
+                                <item.icon size={16} strokeWidth={1.75} />
                                 {t(item.id)}
                             </a>
                         ))}
                     </nav>
-                )}
-                {groups.secondary.length > 0 && (
-                    <div className="rail-caption secondary-caption">{t("secondaryTools")}</div>
-                )}
-                {groups.secondary.length > 0 && (
-                    <nav aria-label={t("secondaryTools")}>
-                        {groups.secondary.map((item) => (
-                            <a
-                                key={item.id}
-                                href={`#${item.id}`}
-                                aria-current={route === item.id ? "page" : undefined}
-                                onClick={() => setRoute(item.id)}
-                            >
-                                <item.icon size={17} />
-                                {t(item.id)}
-                            </a>
-                        ))}
-                    </nav>
-                )}
+                    {groups.dashboards.length > 0 && (
+                        <div className="rail-caption secondary-caption">{t("dashboards")}</div>
+                    )}
+                    {groups.dashboards.length > 0 && (
+                        <nav aria-label={t("dashboards")}>
+                            {groups.dashboards.map((item) => (
+                                <a
+                                    key={item.id}
+                                    href={`#${item.id}`}
+                                    aria-current={route === item.id ? "page" : undefined}
+                                    onClick={() => setRoute(item.id)}
+                                >
+                                    <item.icon size={16} strokeWidth={1.75} />
+                                    {t(item.id)}
+                                </a>
+                            ))}
+                        </nav>
+                    )}
+                    {groups.secondary.length > 0 && (
+                        <div className="rail-caption secondary-caption">{t("secondaryTools")}</div>
+                    )}
+                    {groups.secondary.length > 0 && (
+                        <nav aria-label={t("secondaryTools")}>
+                            {groups.secondary.map((item) => (
+                                <a
+                                    key={item.id}
+                                    href={`#${item.id}`}
+                                    aria-current={route === item.id ? "page" : undefined}
+                                    onClick={() => setRoute(item.id)}
+                                >
+                                    <item.icon size={16} strokeWidth={1.75} />
+                                    {t(item.id)}
+                                </a>
+                            ))}
+                        </nav>
+                    )}
+                </div>
                 <div className="rail-bottom">{footer}</div>
             </aside>
         </>
@@ -166,8 +179,7 @@ export function ContextHeader({
     windowTo,
     onCustomRange,
     footer,
-    onNavigate,
-    onSearch,
+    search,
     t,
     profile = "full",
 }: {
@@ -185,15 +197,11 @@ export function ContextHeader({
     windowTo: string;
     onCustomRange: (range: { from: string; to: string }) => void;
     footer: ReactNode;
-    onNavigate: (route: Route) => void;
-    onSearch: (filters: AlertDrilldown) => void;
+    search?: ReactNode;
     t: Translate;
     profile?: NavigationProfile;
 }) {
     const groups = navigationGroups(profile);
-    const visibleCommandRoutes = [...groups.main, ...groups.dashboards, ...groups.secondary].map(
-        (item) => item.id,
-    );
     return (
         <header className="topbar">
             <Sheet>
@@ -252,18 +260,12 @@ export function ContextHeader({
                 </SheetContent>
             </Sheet>
             <div className="top-title">
-                <span className="top-product">AI SOC</span>
+                <span className="top-product">Wazuh</span>
                 <ChevronRight size={13} aria-hidden="true" />
                 <strong>{t(route)}</strong>
             </div>
             <div className="top-controls">
-                <CommandPalette
-                    locale={locale}
-                    routes={profile === "full" ? commandRoutes : visibleCommandRoutes}
-                    t={t}
-                    onNavigate={onNavigate}
-                    onSearch={onSearch}
-                />
+                {search}
                 <label className="top-site">
                     <span className="sr-only">{t("site")}</span>
                     <Server size={14} aria-hidden="true" />
@@ -428,7 +430,7 @@ function MobileNavGroup({
             {items.map((item) => (
                 <SheetClose asChild key={item.id}>
                     <a href={`#${item.id}`} aria-current={route === item.id ? "page" : undefined}>
-                        <item.icon size={16} aria-hidden="true" />
+                        <item.icon size={16} strokeWidth={1.75} aria-hidden="true" />
                         {t(item.id)}
                     </a>
                 </SheetClose>

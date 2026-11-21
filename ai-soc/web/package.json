@@ -23,8 +23,9 @@
     "workspace-validators:check": "node scripts/generate-workspace-validators.mjs --check"
   },
   "dependencies": {
-    "@fontsource-variable/source-sans-3": "5.3.1",
-    "@fontsource/jetbrains-mono": "5.2.6",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans": "5.3.0",
+    "@fontsource/source-serif-4": "5.3.1",
     "@radix-ui/react-dialog": "1.1.15",
     "@radix-ui/react-select": "2.2.6",
     "@radix-ui/react-slot": "1.2.3",

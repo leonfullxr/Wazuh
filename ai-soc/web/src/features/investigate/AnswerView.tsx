@@ -145,7 +145,7 @@ export function AnswerView({
                     ))}
                     {checked.length > 0 && (
                         <button
-                            className="btn primary"
+                            className="btn brand"
                             onClick={onContinue}
                             disabled={questionPending}
                         >

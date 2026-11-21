@@ -55,27 +55,27 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    font-weight: 650;
+    font-weight: 600;
     letter-spacing: -0.015em;
 }
 
 .local-login-eyebrow {
     margin: 3.5rem 0 0.65rem;
-    color: var(--accent);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .local-login-intro h1 {
-    max-width: 12ch;
+    max-width: 14ch;
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(2.2rem, 5vw, 4rem);
-    font-weight: 650;
-    line-height: 0.98;
-    letter-spacing: -0.055em;
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
 }
 
 .local-login-intro > p:not(.local-login-eyebrow) {

@@ -44,11 +44,14 @@ import { words, fmt } from "../i18n/answer-copy";
 import { workspaceWords } from "../i18n/workspace-copy";
 export { errorCopy, judgments, outcomes, reasons, removed } from "../i18n/answer-enums";
 
+import { CommandPalette } from "./CommandPalette";
 import {
+    commandRouteIds,
     ContextHeader,
     NavigationRail,
     routeFromHash,
     ShellStatus,
+    useMinWidth,
     type Route,
 } from "./Navigation";
 import { EmptyInvestigate, PageHeading } from "./PageHeading";
@@ -491,6 +494,16 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
             dispatch({ type: "page-error", context, error: errorText(e, locale) });
         }
     }
+    const desktopNav = useMinWidth("(min-width: 1024px)");
+    const commandSearch = (
+        <CommandPalette
+            locale={locale}
+            routes={commandRouteIds(isLocal ? "local" : "full")}
+            t={t}
+            onNavigate={navigate}
+            onSearch={openAlertDrilldown}
+        />
+    );
     const shellStatus = (
         <ShellStatus
             bootstrap={bootstrap}
@@ -508,6 +521,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                 route={route}
                 setRoute={navigate}
                 footer={shellStatus}
+                search={desktopNav ? commandSearch : undefined}
                 t={t}
                 profile={isLocal ? "local" : "full"}
             />
@@ -517,8 +531,6 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                 )}
                 <ContextHeader
                     route={route}
-                    onNavigate={navigate}
-                    onSearch={openAlertDrilldown}
                     locale={locale}
                     setLocale={setLocale}
                     bootstrap={bootstrap}
@@ -538,6 +550,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                         updateUrl({ range, from: null, to: null, cursor: null });
                     }}
                     footer={shellStatus}
+                    search={desktopNav ? undefined : commandSearch}
                     t={t}
                     profile={isLocal ? "local" : "full"}
                 />
