@@ -18,6 +18,7 @@ from wazuh_mcp.session_store import SessionStoreUnavailable
 from . import sessions, state
 from .constants import (
     CACHEABLE_METHOD_TTLS,
+    DISCOVERY_METHODS,
     LEGACY_PROTOCOL_VERSIONS,
     MAX_BATCH_SIZE,
     MCP_ERRORS,
@@ -370,10 +371,33 @@ async def mcp_streamable_http_endpoint(
     # Only validate if Origin is present; if present and invalid, return 403
     validate_origin_header(origin, state.config.ALLOWED_ORIGINS)
 
-    # Rate limiting - key on the authenticated principal + trusted-proxy IP
-    allowed, retry_after = state.rate_limiter.is_allowed(_rate_limit_key(request, auth_token))
+    # Discovery methods have their own budget so tools/list does not spend the tool bucket.
+    # Invalid JSON still counts against the tool bucket. A batch that mixes discovery with
+    # anything else counts as a tool call.
+    body = None
+    invalid_json = False
+    if request.method == "POST":
+        try:
+            body = parse_json_body_safe(await request.body(), max_depth=MAX_JSON_DEPTH)
+        except (json.JSONDecodeError, ValueError):
+            invalid_json = True
+    methods = set()
+    if isinstance(body, dict) and isinstance(body.get("method"), str):
+        methods.add(body["method"])
+    elif isinstance(body, list):
+        for message in body:
+            if isinstance(message, dict) and isinstance(message.get("method"), str):
+                methods.add(message["method"])
+    discovery = bool(methods) and methods <= DISCOVERY_METHODS
+    limiter = state.discovery_rate_limiter if discovery else state.rate_limiter
+    allowed, retry_after = limiter.is_allowed(_rate_limit_key(request, auth_token))
     if not allowed:
-        raise _rate_limited_response(retry_after)
+        raise _rate_limited_response(retry_after, "discovery" if discovery else "tools")
+    if invalid_json:
+        return JSONResponse(
+            content=create_error_response(None, MCP_ERRORS["PARSE_ERROR"], "Invalid JSON").dict(),
+            status_code=400,
+        )
 
     # Track active connections (metrics tracked after processing)
     ACTIVE_CONNECTIONS.inc()
@@ -381,24 +405,12 @@ async def mcp_streamable_http_endpoint(
     _status_code = 200  # Track actual status code for metrics
 
     try:
-        # Parse POST bodies first: modern (2026-07-28) requests are stateless and
-        # bypass legacy session handling entirely
-        body = None
-        if request.method == "POST":
-            try:
-                # Depth-capped parse: a deeply nested payload otherwise raises RecursionError
-                # (not JSONDecodeError), which would escape as a 500 and burn CPU per request.
-                body = parse_json_body_safe(await request.body(), max_depth=MAX_JSON_DEPTH)
-            except (json.JSONDecodeError, ValueError):
-                return JSONResponse(
-                    content=create_error_response(None, MCP_ERRORS["PARSE_ERROR"], "Invalid JSON").dict(),
-                    status_code=400,
-                )
-            if is_modern_request(body, mcp_protocol_version):
-                # Modern era: no session is minted or echoed; Mcp-Session-Id is ignored
-                return await handle_modern_request(
-                    body, extract_modern_meta(body), request, auth_token, mcp_protocol_version, origin
-                )
+        # POST bodies are parsed above, before the rate-limit bucket is chosen.
+        if request.method == "POST" and is_modern_request(body, mcp_protocol_version):
+            # Modern era: no session is minted or echoed; Mcp-Session-Id is ignored
+            return await handle_modern_request(
+                body, extract_modern_meta(body), request, auth_token, mcp_protocol_version, origin
+            )
 
         # Legacy era - session validation per MCP Streamable HTTP spec:
         # If client provides session ID but session doesn't exist, return 404

@@ -271,11 +271,18 @@ async def _rate_limited(request: Request, exc: RateLimited):
     if request.url.path in {"/", "/mcp"}:
         from .constants import MCP_ERRORS
 
+        if getattr(exc, "budget", "tools") == "discovery":
+            message = (
+                "Discovery rate limit exceeded (initialize, tools/list, prompts/list, resources/list). "
+                f"Retry after {wait} seconds."
+            )
+        else:
+            message = f"Rate limit exceeded. Retry after {wait} seconds."
         return transport._modern_error_response(
             None,
             MCP_ERRORS["RATE_LIMITED"],
-            f"Rate limit exceeded. Retry after {wait} seconds.",
-            data={"retry_after_seconds": wait},
+            message,
+            data={"retry_after_seconds": wait, "budget": getattr(exc, "budget", "tools")},
             status_code=429,
             headers=headers,
         )

@@ -13,7 +13,7 @@ from wazuh_mcp.resilience import GracefulShutdown
 from wazuh_mcp.security import RateLimiter
 from wazuh_mcp.session_store import create_session_store
 
-from .constants import RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
+from .constants import DISCOVERY_RATE_LIMIT_REQUESTS, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
 from .http_security import validate_cors_origins
 from .sessions import SessionManager
 
@@ -96,13 +96,21 @@ investigation_config = load_investigation_config(
 # Initialize rate limiter
 # Honour RATE_LIMIT_REQUESTS / RATE_LIMIT_WINDOW here too (validated at startup in security.py);
 # the MCP endpoints used hard-coded constants, so the documented knobs never reached them.
+_rate_window = validate_positive_int(
+    os.getenv("RATE_LIMIT_WINDOW", str(RATE_LIMIT_WINDOW_SECONDS)), "RATE_LIMIT_WINDOW", max_val=86400
+)
 rate_limiter = RateLimiter(
     max_requests=validate_positive_int(
         os.getenv("RATE_LIMIT_REQUESTS", str(RATE_LIMIT_REQUESTS)), "RATE_LIMIT_REQUESTS"
     ),
-    window_seconds=validate_positive_int(
-        os.getenv("RATE_LIMIT_WINDOW", str(RATE_LIMIT_WINDOW_SECONDS)), "RATE_LIMIT_WINDOW", max_val=86400
+    window_seconds=_rate_window,
+)
+discovery_rate_limiter = RateLimiter(
+    max_requests=validate_positive_int(
+        os.getenv("DISCOVERY_RATE_LIMIT_REQUESTS", str(DISCOVERY_RATE_LIMIT_REQUESTS)),
+        "DISCOVERY_RATE_LIMIT_REQUESTS",
     ),
+    window_seconds=_rate_window,
 )
 
 # Initialize graceful shutdown manager
