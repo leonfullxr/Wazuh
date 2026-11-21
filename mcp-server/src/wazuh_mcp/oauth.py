@@ -835,6 +835,39 @@ class OAuthManager:
 
 _NO_STORE = {"Cache-Control": "no-store", "Pragma": "no-cache"}
 
+# Inline only: the authorize response CSP is default-src 'none'; style-src 'unsafe-inline'.
+_CONSENT_CSS = """
+:root { color-scheme: light dark; --bg:#eef2ef; --card:#fff; --ink:#17241e; --muted:#5c6d63; --line:#d5e0d8;
+  --accent:#1f6b45; --accent-ink:#fff; --warn-bg:#fff6e8; --warn:#8a4b08; --err:#9d1230; --chip:#e7f2eb; --chip-ink:#1d4d34; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#101814; --card:#1a2820; --ink:#e7f0ea; --muted:#b7c7bd; --line:#31483c;
+    --accent:#3d9a68; --accent-ink:#06210f; --warn-bg:#3a2a12; --warn:#f0c27a; --err:#ffb3c0; --chip:#24382c; --chip-ink:#c9ead6; }
+}
+* { box-sizing: border-box; }
+body { margin:0; min-height:100vh; font:16px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--ink);
+  display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; }
+.card { width:min(100%, 32rem); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 24px; }
+.eyebrow { margin:0 0 8px; font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+h1 { font-size:1.55rem; line-height:1.2; margin:0 0 12px; }
+p { margin:0 0 14px; }
+.label { font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+.scopes { list-style:none; display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:0 0 14px; }
+.scope { background:var(--chip); color:var(--chip-ink); border-radius:999px; padding:4px 10px; font: .9rem ui-monospace, monospace; }
+.scope.write { background:var(--warn-bg); color:var(--warn); }
+.warn { background:var(--warn-bg); color:var(--warn); border-radius:10px; padding:10px 12px; }
+.err { color:var(--err); font-weight:650; }
+label { display:block; font-weight:650; margin:8px 0 6px; }
+input[type=password] { width:100%; min-height:44px; padding:10px 12px; font:inherit; color:inherit; background:transparent;
+  border:1px solid var(--line); border-radius:10px; }
+input:focus-visible, button:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+.actions { display:flex; gap:10px; margin-top:16px; }
+button { min-height:44px; padding:10px 16px; font:inherit; font-weight:650; border-radius:10px; border:1px solid transparent; cursor:pointer; }
+.primary { background:var(--accent); color:var(--accent-ink); flex:1; }
+.secondary { background:transparent; color:inherit; border-color:var(--line); }
+.fine { color:var(--muted); font-size:.85rem; margin:16px 0 0; }
+@media (max-width: 480px) { body { padding:12px; } .card { padding:22px 16px; } .actions { flex-direction:column-reverse; } }
+"""
+
 
 def _s256(verifier: str) -> str:
     """PKCE S256 challenge for the IdP leg (base64url, unpadded)."""
@@ -846,6 +879,59 @@ def _s256(verifier: str) -> str:
 def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
     """Create FastAPI router for OAuth endpoints."""
     router = APIRouter(prefix="/oauth", tags=["OAuth"])
+
+    def _page_headers(redirect_origin: str) -> dict:
+        # Chrome applies form-action to the redirect that follows the POST, so the client's
+        # (already validated) redirect origin must be allowed or the 303 back is blocked.
+        return {
+            "Cache-Control": "no-store",
+            "X-Frame-Options": "DENY",
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
+            f"form-action 'self' {redirect_origin}; frame-ancestors 'none'",
+            "Referrer-Policy": "no-referrer",
+        }
+
+    def _redirect_origin(redirect_uri: str) -> str:
+        redirect = urlparse(redirect_uri)
+        return f"{redirect.scheme}://" + re.sub(r"[^A-Za-z0-9.:\[\]-]", "", redirect.netloc)
+
+    def _browser_error(status: int) -> HTMLResponse:
+        """HTML for a browser that followed a bad authorize link. Do not echo the query string."""
+        if status == 401:
+            title, text = (
+                "This application is not recognized",
+                "This Wazuh MCP server does not recognize that application. Start the connection from the application again.",
+            )
+        else:
+            title, text = (
+                "This sign-in request was rejected",
+                "The sign-in request is missing a required value, or it asks to return to a site this server does not allow.",
+            )
+        body = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>{html.escape(title)}</title><style>{_CONSENT_CSS}</style></head>
+<body><main class="card"><p class="eyebrow">Wazuh MCP</p><h1>{html.escape(title)}</h1>
+<p>{html.escape(text)}</p></main></body></html>"""
+        return HTMLResponse(
+            body,
+            status_code=status,
+            headers={
+                "Cache-Control": "no-store",
+                "X-Frame-Options": "DENY",
+                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'none'; frame-ancestors 'none'",
+                "Referrer-Policy": "no-referrer",
+            },
+        )
+
+    def _prefers_html(request: Request) -> bool:
+        """True when the client asked for HTML ahead of JSON. ``*/*`` stays JSON for API clients."""
+        for part in request.headers.get("accept", "").split(","):
+            media = part.split(";", 1)[0].strip().lower()
+            if media == "text/html":
+                return True
+            if media in {"application/json", "*/*"}:
+                return False
+        return False
 
     def _login_page(client, redirect_uri, scope, state, code_challenge, error: Optional[str] = None, status=200):
         """Consent/login form. The user proves who they are with their wazuh_ API key; the
@@ -863,34 +949,32 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
                 ("code_challenge_method", "S256"),
             )
         )
-        err = f'<p class="err">{esc(error)}</p>' if error else ""
+        scopes = [part for part in (scope or "").split() if part]
+        pills = "".join(
+            f'<li class="scope{" write" if part == "wazuh:write" else ""}">{esc(part)}</li>' for part in scopes
+        )
+        write_note = (
+            "<p class=\"warn\">wazuh:write can block addresses, isolate hosts, and run other active responses. "
+            "Approve it only if you intend this application to do that.</p>"
+            if "wazuh:write" in scopes
+            else ""
+        )
+        err = f'<p class="err" role="alert">{esc(error)}</p>' if error else ""
+        host = esc(urlparse(redirect_uri).netloc)
         body = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Authorize access to Wazuh</title>
-<style>body{{font:15px system-ui,sans-serif;max-width:26rem;margin:4rem auto;padding:0 1rem;color:#1a1a1a}}
-input[type=password]{{width:100%;padding:.55rem;font:inherit;box-sizing:border-box}}
-button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}}code{{font-size:.9em}}</style>
-</head><body><h1>Authorize {esc(client.client_name)}</h1>
-<p><strong>{esc(client.client_name)}</strong> is requesting access to this Wazuh MCP server
-(<code>{esc(scope)}</code>). Access is limited to what your API key allows.</p>{err}
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>Authorize access to Wazuh</title><style>{_CONSENT_CSS}</style></head>
+<body><main class="card"><p class="eyebrow">Wazuh MCP</p><h1>Authorize {esc(client.client_name)}</h1>
+<p><strong>{esc(client.client_name)}</strong> is asking to use this server. After you approve, the browser returns to <strong>{host}</strong>. The API key is checked here and is not sent to {esc(client.client_name)}.</p>
+<p class="label">Requested access</p><ul class="scopes">{pills}</ul>{write_note}{err}
 <form method="post" action="authorize">{hidden}
 <label for="api_key">Your Wazuh MCP API key</label>
-<input id="api_key" name="api_key" type="password" autocomplete="current-password" required placeholder="wazuh_...">
-<button type="submit">Authorize</button></form></body></html>"""
-        # Chrome applies form-action to the redirect that follows the POST, so the client's
-        # (already validated) redirect origin must be allowed or the 303 back is blocked.
-        redirect = urlparse(redirect_uri)
-        redirect_origin = f"{redirect.scheme}://" + re.sub(r"[^A-Za-z0-9.:\[\]-]", "", redirect.netloc)
-        return HTMLResponse(
-            body,
-            status_code=status,
-            headers={
-                "Cache-Control": "no-store",
-                "X-Frame-Options": "DENY",
-                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
-                f"form-action 'self' {redirect_origin}; frame-ancestors 'none'",
-                "Referrer-Policy": "no-referrer",
-            },
-        )
+<input id="api_key" name="api_key" type="password" autocomplete="current-password" placeholder="wazuh_..." spellcheck="false">
+<div class="actions"><button type="submit" name="decision" value="deny" class="secondary">Deny</button>
+<button type="submit" name="decision" value="allow" class="primary">Authorize</button></div>
+</form><p class="fine">Access is still limited to what this API key allows. Closing the tab leaves the application waiting; Deny sends it back.</p>
+</main></body></html>"""
+        return HTMLResponse(body, status_code=status, headers=_page_headers(_redirect_origin(redirect_uri)))
 
     def _check_request(client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, redirect_status=307):
         """Validate an authorization request. Returns (client, error_response)."""
@@ -1057,6 +1141,8 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
             client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method
         )
         if error:
+            if _prefers_html(request):
+                return _browser_error(getattr(error, "status_code", 400) or 400)
             return error
         if scope is None:
             scope = oauth_manager.bound_scope(None, client)
@@ -1070,7 +1156,8 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
         response_type: str = Form(...),
         client_id: str = Form(...),
         redirect_uri: str = Form(...),
-        api_key: str = Form(...),
+        api_key: Optional[str] = Form(default=None),
+        decision: Optional[str] = Form(default=None),
         scope: Optional[str] = Form(default=None),
         state: Optional[str] = Form(default=None),
         code_challenge: Optional[str] = Form(default=None),
@@ -1084,7 +1171,14 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
             client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, redirect_status=303
         )
         if error:
+            if _prefers_html(request):
+                return _browser_error(getattr(error, "status_code", 400) or 400)
             return error
+        if decision == "deny":
+            params = {"error": "access_denied", "error_description": "The resource owner denied the request"}
+            if state:
+                params["state"] = state
+            return _client_redirect(redirect_uri, params, status_code=303, headers=_NO_STORE)
         if scope is None:
             scope = oauth_manager.bound_scope(None, client)
         if oauth_manager.requires_idp:
@@ -1096,6 +1190,10 @@ button{{margin-top:1rem;padding:.55rem 1.1rem;font:inherit}}.err{{color:#b00020}
 
         from wazuh_mcp.auth import auth_manager
 
+        if not api_key or not api_key.strip():
+            return _login_page(
+                client, redirect_uri, scope, state, code_challenge, error="Enter your API key.", status=400
+            )
         key = auth_manager.validate_api_key(api_key.strip())
         if key is None:
             logger.warning(f"OAuth login failed for client {client_id}: invalid API key")

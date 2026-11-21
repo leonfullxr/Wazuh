@@ -203,3 +203,38 @@ async def test_reserved_redirect_keys_rejected_at_registration_and_authorization
     _, challenge = _pkce()
     response = await env.client.post("/oauth/authorize", data={**_params(challenge), "redirect_uri": redirect, "api_key": env.writer})
     assert response.status_code == 400 and "location" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_consent_page_names_scopes_and_can_deny(env):
+    _, challenge = _pkce()
+    page = await env.client.get("/oauth/authorize", params=_params(challenge))
+    assert page.status_code == 200
+    assert 'name="decision" value="deny"' in page.text
+    assert "wazuh:write" in page.text
+    assert "active responses" in page.text
+    assert "claude.ai" in page.text
+    assert "color-scheme: light dark" in page.text
+    denied = await env.client.post(
+        "/oauth/authorize", data={**_params(challenge), "decision": "deny"}
+    )
+    assert denied.status_code == 303
+    query = parse_qs(urlparse(denied.headers["location"]).query)
+    assert query["error"] == ["access_denied"]
+    assert query["state"] == ["s1"]
+    assert "code" not in query
+    assert not env.mgr.authorization_codes
+
+
+@pytest.mark.asyncio
+async def test_unknown_client_is_html_for_browsers(env):
+    _, challenge = _pkce()
+    params = {**_params(challenge), "client_id": '"><script>alert(1)</script>'}
+    page = await env.client.get("/oauth/authorize", params=params, headers={"Accept": "text/html"})
+    assert page.status_code == 401
+    assert page.headers["content-type"].startswith("text/html")
+    assert "<script>alert" not in page.text
+    assert "not recognized" in page.text
+    api = await env.client.get("/oauth/authorize", params=params)
+    assert api.status_code == 401
+    assert api.json()["error"] == "invalid_client"
