@@ -522,6 +522,25 @@ class TestEndpointGuards:
             ]
         assert codes[:5] == [401] * 5 and 429 in codes[5:]
 
+    @pytest.mark.asyncio
+    async def test_mcp_rate_limit_is_a_jsonrpc_error(self, monkeypatch):
+        monkeypatch.setattr(mcp_server.state.rate_limiter, "is_allowed", lambda key: (False, 17))
+        async with _http() as client:
+            resp = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 7, "method": "ping"})
+        assert resp.status_code == 429
+        assert resp.headers["retry-after"] == "17"
+        body = resp.json()
+        assert body["jsonrpc"] == "2.0"
+        assert body["id"] is None
+        assert body["error"]["code"] == mcp_server.constants.MCP_ERRORS["RATE_LIMITED"]
+        assert body["error"]["message"] == "Rate limit exceeded. Retry after 17 seconds."
+        assert body["error"]["data"]["retry_after_seconds"] == 17
+        # Shape the MCP SDK accepts as a JSON-RPC error before it will show the message:
+        # jsonrpc, id, and error.code/error.message. The SDK is not a server dependency.
+        assert set(body) >= {"jsonrpc", "id", "error"}
+        assert isinstance(body["error"]["code"], int)
+        assert "17" in body["error"]["message"]
+
 
 class TestResources:
     async def _read(self, monkeypatch, uri, stub):
