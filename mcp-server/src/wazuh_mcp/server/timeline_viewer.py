@@ -3,164 +3,64 @@
 import base64
 import hashlib
 
+from wazuh_mcp.ui_theme import bar as _bar
+from wazuh_mcp.ui_theme import css as _ui_css
+
 URI = "ui://wazuh/agent-timeline.html"
 MIME = "text/html;profile=mcp-app"
 
-STYLE = r'''
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  background: #f5f6f4;
-  color: #17241e;
-}
-* {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-  padding: 24px;
-  max-width: 1100px;
-  margin-inline: auto;
-}
-header {
-  border-bottom: 1px solid #cbd5cd;
-  padding-bottom: 18px;
-  margin-bottom: 20px;
-}
-.eyebrow {
-  font-size: 0.72rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: #48745b;
-  font-weight: 700;
-}
-h1 {
-  font-size: 1.65rem;
-  margin: 0.35rem 0;
-}
-h2 {
-  font-size: 1rem;
-  margin: 0 0 12px;
-}
-.muted {
-  color: #5a6a60;
-}
-.summary {
+_LAYOUT = r'''
+.timeline-head { max-width: 68rem; margin: 0 auto; padding: 28px 28px 8px; }
+.timeline-head .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 16px 28px; border-top: 0; }
+.timeline-head .facts div { display: block; border-bottom: 0; padding: 0; }
+time { display: inline; }
+.workspace {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 22px;
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  min-height: calc(100vh - 64px);
+  border-top: 1px solid var(--line);
 }
-.metric,
-.panel {
-  background: #fff;
-  border: 1px solid #d9e2db;
-  border-radius: 9px;
-  padding: 16px;
-  min-width: 0;
-}
-.metric span {
+.events-pane { border-right: 1px solid var(--line); padding: 16px 0 32px; min-width: 0; }
+.evidence-pane { padding: 16px 28px 40px; min-width: 0; }
+.events-pane h2, .evidence-pane h2 { margin: 0 20px 8px; }
+#events { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+#events button {
   display: block;
-  overflow-wrap: anywhere;
-}
-.label {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #62746a;
-  margin-bottom: 6px;
-}
-.layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.4fr);
-  gap: 16px;
-}
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-li + li {
-  border-top: 1px solid #e2e8e3;
-}
-button {
-  font: inherit;
-  text-align: left;
   width: 100%;
-  padding: 13px 8px;
-  background: transparent;
-  color: inherit;
+  min-height: 48px;
+  margin: 0;
+  padding: 8px 20px;
+  text-align: left;
   border: 0;
-  cursor: pointer;
-  overflow-wrap: anywhere;
+  border-radius: 0;
+  background: transparent;
+  font-weight: 600;
+  font-size: 16px;
 }
-button:hover,
-button[aria-pressed="true"] {
-  background: #eaf3ec;
-}
-button:focus-visible {
-  outline: 3px solid #36794e;
-  outline-offset: -3px;
-}
-.time {
-  display: block;
-  font-size: 0.78rem;
-  color: #617268;
-  margin-top: 4px;
-}
+#events button[aria-selected="true"] { box-shadow: inset 3px 0 0 var(--focus); background: var(--field); }
+#events time { display: block; margin-top: 2px; }
 pre {
+  margin: 0;
+  padding: 16px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 2px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font:
-    0.82rem/1.5 ui-monospace,
-    monospace;
-  margin: 0;
+  font: 15px/1.55 "Source Code Pro", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
-#status {
-  min-height: 1.5em;
-}
-.sources {
-  white-space: pre-line;
-  font-size: 0.87rem;
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 640px) {
-  body {
-    padding: 16px;
-  }
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    background: #111b16;
-    color: #e6eee8;
-  }
-  .metric,
-  .panel {
-    background: #1a2820;
-    border-color: #34463a;
-  }
-  .muted,
-  .label,
-  .time {
-    color: #aec1b3;
-  }
-  .eyebrow {
-    color: #9acba9;
-  }
-  header,
-  li + li {
-    border-color: #34463a;
-  }
-  button:hover,
-  button[aria-pressed="true"] {
-    background: #304a37;
-  }
+#status { min-height: 1.5em; }
+#sources { white-space: pre-line; max-width: 70ch; }
+@media (max-width: 800px) {
+  .timeline-head { padding: 20px 16px 8px; }
+  .timeline-head .facts { grid-template-columns: 1fr; gap: 12px 0; }
+  .workspace { grid-template-columns: 1fr; }
+  .events-pane { border-right: 0; border-bottom: 1px solid var(--line); }
+  .evidence-pane { padding: 16px; }
 }
 '''
+
 
 SCRIPT = r'''
 (() => {
@@ -173,6 +73,44 @@ SCRIPT = r'''
     current = null;
   const put = (id, value) => {
     $(id).textContent = value == null ? "Unavailable" : String(value);
+  };
+  const stamp = (iso) => {
+    const node = document.createElement("time");
+    if (iso == null || iso === "") {
+      node.textContent = "Unavailable";
+      return node;
+    }
+    const date = new Date(iso);
+    const raw = String(iso);
+    if (Number.isNaN(date.getTime())) {
+      node.textContent = raw;
+      node.dateTime = raw;
+      node.title = raw;
+      return node;
+    }
+    const exact = date.toISOString();
+    node.dateTime = exact;
+    node.title = exact;
+    node.textContent = new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+    return node;
+  };
+  const localText = (iso) => {
+    const date = new Date(iso);
+    if (iso == null || iso === "" || Number.isNaN(date.getTime())) return iso == null || iso === "" ? "unavailable" : String(iso);
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+    }).format(date);
+  };
+  const fillTime = (id, iso) => $(id).replaceChildren(stamp(iso));
+  const fillSpan = (id, start, end) => {
+    const node = $(id);
+    node.replaceChildren(stamp(start), document.createTextNode(" to "), stamp(end));
   };
   const send = (message) =>
     host.postMessage({ jsonrpc: "2.0", ...message }, "*");
@@ -188,16 +126,13 @@ SCRIPT = r'''
     current = data;
     put("agent", data.agent_id);
     put("cluster", data.cluster);
-    put(
-      "window",
-      `${data.window?.from ?? "Unavailable"} → ${data.window?.to ?? "Unavailable"}`,
-    );
-    put("collected", data.collected_at);
+    fillSpan("window", data.window?.from, data.window?.to);
+    fillTime("collected", data.collected_at);
     const alerts = data.sources?.alerts || {},
       agent = data.sources?.agent_status || {};
     put(
       "sources",
-      `Alerts: ${alerts.status ?? "unavailable"} · ${alerts.returned ?? 0} returned · matched: ${alerts.matched ?? "unknown"} · truncated: ${alerts.truncated === true ? "yes" : "no"}\nAgent status: ${agent.status ?? "unavailable"} · observed: ${agent.observed_at ?? "unavailable"} · ${agent.observation?.status ?? "unavailable"}`,
+      `Alerts: ${alerts.status ?? "unavailable"} · ${alerts.returned ?? 0} returned · matched: ${alerts.matched ?? "unknown"} · truncated: ${alerts.truncated === true ? "yes" : "no"}\nAgent status: ${agent.status ?? "unavailable"} · observed: ${localText(agent.observed_at)} · ${agent.observation?.status ?? "unavailable"}`,
     );
     const list = $("events");
     list.replaceChildren();
@@ -207,39 +142,63 @@ SCRIPT = r'''
         ? `${data.events.length} events, oldest first. Select an event to retrieve current evidence.`
         : "No events returned. Check source coverage before drawing conclusions.",
     );
+    const choose = (button) => {
+      for (const other of list.querySelectorAll("button")) {
+        other.setAttribute("aria-selected", "false");
+        other.tabIndex = -1;
+      }
+      button.setAttribute("aria-selected", "true");
+      button.tabIndex = 0;
+      button.focus();
+      put("detail", "Retrieving evidence…");
+      const id = nextId++;
+      pending.clear();
+      pending.set(id, true);
+      send({
+        id,
+        method: "tools/call",
+        params: {
+          name: "get_investigation_evidence",
+          arguments: {
+            evidence_ref: button.dataset.ref,
+            cluster_id: current.cluster,
+          },
+        },
+      });
+    };
+    let first = true;
     for (const item of data.events) {
       if (!item || typeof item.evidence_ref !== "string") continue;
       const li = document.createElement("li"),
         button = document.createElement("button"),
-        time = document.createElement("span");
+        rule = document.createElement("span");
       button.type = "button";
-      button.textContent = `Rule ${item.rule_id ?? "unavailable"}`;
-      time.className = "time";
-      time.textContent = item.at ?? "Time unavailable";
-      button.append(time);
-      button.addEventListener("click", () => {
-        for (const other of list.querySelectorAll("button"))
-          other.setAttribute("aria-pressed", "false");
-        button.setAttribute("aria-pressed", "true");
-        put("detail", "Retrieving evidence…");
-        const id = nextId++;
-        pending.clear();
-        pending.set(id, true);
-        send({
-          id,
-          method: "tools/call",
-          params: {
-            name: "get_investigation_evidence",
-            arguments: {
-              evidence_ref: item.evidence_ref,
-              cluster_id: current.cluster,
-            },
-          },
-        });
-      });
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", "false");
+      button.tabIndex = first ? 0 : -1;
+      first = false;
+      button.dataset.ref = item.evidence_ref;
+      rule.textContent = `Rule ${item.rule_id ?? "unavailable"}`;
+      button.append(rule, stamp(item.at));
+      button.addEventListener("click", () => choose(button));
       li.append(button);
       list.append(li);
     }
+    list.onkeydown = (event) => {
+      const buttons = [...list.querySelectorAll("button")];
+      if (!buttons.length) return;
+      const focused = buttons.indexOf(document.activeElement);
+      const selected = buttons.findIndex((button) => button.getAttribute("aria-selected") === "true");
+      const from = focused >= 0 ? focused : Math.max(selected, 0);
+      let next = from;
+      if (event.key === "ArrowDown") next = selected < 0 ? from : Math.min(buttons.length - 1, from + 1);
+      else if (event.key === "ArrowUp") next = selected < 0 ? from : Math.max(0, from - 1);
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = buttons.length - 1;
+      else return;
+      event.preventDefault();
+      choose(buttons[next]);
+    };
   }
   window.addEventListener("message", (event) => {
     const msg = event.data;
@@ -301,38 +260,46 @@ def _hash(value: str) -> str:
 
 
 def html() -> str:
-    csp = ("default-src 'none'; script-src '" + _hash(SCRIPT) + "'; style-src '" + _hash(STYLE)
-           + "'; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'")
+    style = _ui_css() + _LAYOUT
+    csp = (
+        "default-src 'none'; script-src '" + _hash(SCRIPT) + "'; style-src '" + _hash(style)
+        + "'; font-src data:; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'"
+    )
     return f'''<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <meta http-equiv="Content-Security-Policy" content="{csp}">
   <title>Investigation timeline</title>
-  <style>{STYLE}</style>
+  <style>{style}</style>
 </head>
 <body>
-  <header>
-    <div class="eyebrow">Wazuh · investigation</div>
-    <h1>Agent timeline</h1>
-    <div class="muted">Evidence and source coverage</div>
-  </header>
-  <main>
-    <div class="summary">
-      <div class="metric"><span class="label">Agent</span><span id="agent">Waiting for timeline</span></div>
-      <div class="metric"><span class="label">Cluster</span><span id="cluster">—</span></div>
-      <div class="metric"><span class="label">Selected window</span><span id="window">—</span></div>
-      <div class="metric"><span class="label">Collected at</span><span id="collected">—</span></div>
-    </div>
-    <section class="panel">
+  <a class="skip" href="#main">Skip to content</a>
+  {_bar("Investigation")}
+  <main id="main">
+    <div class="timeline-head">
+      <h1>Agent timeline</h1>
+      <dl class="facts">
+        <div><dt>Agent</dt><dd id="agent">Waiting for timeline</dd></div>
+        <div><dt>Cluster</dt><dd id="cluster">Unavailable</dd></div>
+        <div><dt>Window</dt><dd id="window">Unavailable</dd></div>
+        <div><dt>Collected</dt><dd id="collected">Unavailable</dd></div>
+      </dl>
       <h2>Source coverage</h2>
-      <div id="sources" class="sources">Waiting for timeline data.</div>
-    </section>
-    <p id="status" class="muted" role="status">Connecting to host…</p>
-    <div class="layout">
-      <section class="panel"><h2>Events</h2><ul id="events"></ul></section>
-      <section class="panel"><h2>Evidence</h2><pre id="detail">Select an event to view its record.</pre></section>
+      <p id="sources">Waiting for timeline data.</p>
+      <p id="status" role="status">Connecting to host…</p>
+    </div>
+    <div class="workspace">
+      <section class="events-pane" aria-labelledby="events-heading">
+        <h2 id="events-heading">Events</h2>
+        <ul id="events" role="listbox" aria-label="Timeline events"></ul>
+      </section>
+      <section class="evidence-pane" aria-labelledby="evidence-heading">
+        <h2 id="evidence-heading">Evidence</h2>
+        <pre id="detail">Select an event to view its record.</pre>
+      </section>
     </div>
   </main>
   <script>{SCRIPT}</script>

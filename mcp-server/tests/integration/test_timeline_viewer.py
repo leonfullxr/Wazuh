@@ -21,6 +21,10 @@ async def test_viewer_resource_with_forbidden_default(monkeypatch):
     assert content["mimeType"] == "text/html;profile=mcp-app"
     assert "connect-src 'none'" in content["text"]
     assert "'unsafe-inline'" not in content["text"]
+    assert 'role="listbox"' in content["text"]
+    assert "ArrowDown" in content["text"]
+    assert "dateTime" in content["text"]
+    assert "Source Code Pro" in content["text"]
     monkeypatch.setattr(cluster_policy, "authorize_cluster", lambda token, cluster, scope: False)
     assert (await handlers.handle_resources_list({}, session))["resources"] == []
     with pytest.raises(handlers.ResourceNotFound):

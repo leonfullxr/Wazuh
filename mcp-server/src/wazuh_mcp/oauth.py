@@ -22,15 +22,21 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from jwt.exceptions import PyJWTError as JWTError
 
 from wazuh_mcp.oidc import IdentityDenied, IdPError, OIDCProvider
+from wazuh_mcp.ui_theme import bar as _bar
+from wazuh_mcp.ui_theme import css as _ui_css
 
 logger = logging.getLogger(__name__)
 
 _RESERVED_CALLBACK_KEYS = {"code", "state", "iss", "error", "error_description", "error_uri"}
 
 
-def _client_redirect(uri: str, params: dict, *, status_code: int = 307, headers=None):
+def _client_location(uri: str, params: dict) -> str:
     separator = "" if uri.endswith(("?", "&")) else ("&" if "?" in uri else "?")
-    return RedirectResponse(uri + separator + urlencode(params), status_code=status_code, headers=headers)
+    return uri + separator + urlencode(params)
+
+
+def _client_redirect(uri: str, params: dict, *, status_code: int = 307, headers=None):
+    return RedirectResponse(_client_location(uri, params), status_code=status_code, headers=headers)
 
 
 # OAuth 2.0 Error Codes (RFC 6749)
@@ -835,39 +841,6 @@ class OAuthManager:
 
 _NO_STORE = {"Cache-Control": "no-store", "Pragma": "no-cache"}
 
-# Inline only: the authorize response CSP is default-src 'none'; style-src 'unsafe-inline'.
-_CONSENT_CSS = """
-:root { color-scheme: light dark; --bg:#eef2ef; --card:#fff; --ink:#17241e; --muted:#5c6d63; --line:#d5e0d8;
-  --accent:#1f6b45; --accent-ink:#fff; --warn-bg:#fff6e8; --warn:#8a4b08; --err:#9d1230; --chip:#e7f2eb; --chip-ink:#1d4d34; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg:#101814; --card:#1a2820; --ink:#e7f0ea; --muted:#b7c7bd; --line:#31483c;
-    --accent:#3d9a68; --accent-ink:#06210f; --warn-bg:#3a2a12; --warn:#f0c27a; --err:#ffb3c0; --chip:#24382c; --chip-ink:#c9ead6; }
-}
-* { box-sizing: border-box; }
-body { margin:0; min-height:100vh; font:16px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--ink);
-  display:flex; align-items: safe center; justify-content:center; padding:32px 16px; }
-.card { width:min(100%, 32rem); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 24px; }
-.eyebrow { margin:0 0 8px; font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
-h1 { font-size:1.55rem; line-height:1.2; margin:0 0 12px; }
-p { margin:0 0 14px; }
-.label { font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700; }
-.scopes { list-style:none; display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:0 0 14px; }
-.scope { background:var(--chip); color:var(--chip-ink); border-radius:999px; padding:4px 10px; font: .9rem ui-monospace, monospace; }
-.scope.write { background:var(--warn-bg); color:var(--warn); }
-.warn { background:var(--warn-bg); color:var(--warn); border-radius:10px; padding:10px 12px; }
-.err { color:var(--err); font-weight:650; }
-label { display:block; font-weight:650; margin:8px 0 6px; }
-input[type=password] { width:100%; min-height:44px; padding:10px 12px; font:inherit; color:inherit; background:transparent;
-  border:1px solid var(--line); border-radius:10px; }
-input:focus-visible, button:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
-.actions { display:flex; gap:10px; margin-top:16px; }
-button { min-height:44px; padding:10px 16px; font:inherit; font-weight:650; border-radius:10px; border:1px solid transparent; cursor:pointer; }
-.primary { background:var(--accent); color:var(--accent-ink); flex:1; }
-.secondary { background:transparent; color:inherit; border-color:var(--line); }
-.fine { color:var(--muted); font-size:.85rem; margin:16px 0 0; }
-@media (max-width: 480px) { body { padding:12px; } .card { padding:22px 16px; } .actions { flex-direction:column-reverse; } }
-"""
-
 
 def _s256(verifier: str) -> str:
     """PKCE S256 challenge for the IdP leg (base64url, unpadded)."""
@@ -880,14 +853,15 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
     """Create FastAPI router for OAuth endpoints."""
     router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
-    def _page_headers(redirect_origin: str) -> dict:
+    def _page_headers(form_action: str) -> dict:
         # Chrome applies form-action to the redirect that follows the POST, so the client's
         # (already validated) redirect origin must be allowed or the 303 back is blocked.
+        # font-src data: is the vendored Source Sans 3 and Source Code Pro. Nothing else is loaded.
         return {
             "Cache-Control": "no-store",
             "X-Frame-Options": "DENY",
-            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
-            f"form-action 'self' {redirect_origin}; frame-ancestors 'none'",
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; font-src data:; "
+            f"img-src 'none'; base-uri 'none'; form-action {form_action}; frame-ancestors 'none'",
             "Referrer-Policy": "no-referrer",
         }
 
@@ -895,33 +869,41 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         redirect = urlparse(redirect_uri)
         return f"{redirect.scheme}://" + re.sub(r"[^A-Za-z0-9.:\[\]-]", "", redirect.netloc)
 
+    def _document(title: str, main: str) -> str:
+        esc = html.escape
+        return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>{esc(title)}</title><style>{_ui_css()}</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+{_bar("Sign-in")}
+<main id="main">{main}</main></body></html>"""
+
     def _browser_error(status: int) -> HTMLResponse:
         """HTML for a browser that followed a bad authorize link. Do not echo the query string."""
         if status == 401:
             title, text = (
-                "This application is not recognized",
-                "This Wazuh MCP server does not recognize that application. Start the connection from the application again.",
+                "Application not recognized",
+                "This server does not recognize that application. Start again from the application.",
             )
         else:
             title, text = (
-                "This sign-in request was rejected",
-                "The sign-in request is missing a required value, or it asks to return to a site this server does not allow.",
+                "Sign-in request rejected",
+                "A required value is missing, or the return address is not registered.",
             )
-        body = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
-<title>{html.escape(title)}</title><style>{_CONSENT_CSS}</style></head>
-<body><main class="card"><p class="eyebrow">Wazuh MCP</p><h1>{html.escape(title)}</h1>
-<p>{html.escape(text)}</p></main></body></html>"""
-        return HTMLResponse(
-            body,
-            status_code=status,
-            headers={
-                "Cache-Control": "no-store",
-                "X-Frame-Options": "DENY",
-                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'none'; frame-ancestors 'none'",
-                "Referrer-Policy": "no-referrer",
-            },
+        main = f'<div class="sheet"><h1>{html.escape(title)}</h1><p class="lead">{html.escape(text)}</p></div>'
+        return HTMLResponse(_document(title, main), status_code=status, headers=_page_headers("'none'"))
+
+    def _stopped_page(redirect_uri: str, params: dict, text: str) -> HTMLResponse:
+        """Browser page for an IdP or token failure. The link is the RFC 6749 error redirect."""
+        location = _client_location(redirect_uri, params)
+        host = html.escape(urlparse(redirect_uri).netloc)
+        title = "Sign-in stopped"
+        main = (
+            f'<div class="sheet"><h1>{title}</h1><p class="lead">{html.escape(text)}</p>'
+            f'<p class="actions"><a class="go primary" href="{html.escape(location, quote=True)}">'
+            f"Return to {host}</a></p></div>"
         )
+        return HTMLResponse(_document(title, main), status_code=200, headers=_page_headers("'none'"))
 
     def _prefers_html(request: Request) -> bool:
         """True when the client asked for HTML ahead of JSON. ``*/*`` stays JSON for API clients."""
@@ -950,31 +932,37 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
             )
         )
         scopes = [part for part in (scope or "").split() if part]
-        pills = "".join(
-            f'<li class="scope{" write" if part == "wazuh:write" else ""}">{esc(part)}</li>' for part in scopes
+        notes = {
+            "wazuh:read": "Read alerts, agents, and configuration.",
+            "wazuh:write": "Can run active response, including blocking an address or isolating a host.",
+        }
+        rows = "".join(
+            f'<li class="{"write" if part == "wazuh:write" else ""}">'
+            f'<span class="name">{esc(part)}</span><span class="note">{esc(notes.get(part, "Requested scope."))}</span></li>'
+            for part in scopes
         )
-        write_note = (
-            "<p class=\"warn\">wazuh:write can block addresses, isolate hosts, and run other active responses. "
-            "Approve it only if you intend this application to do that.</p>"
-            if "wazuh:write" in scopes
-            else ""
-        )
-        err = f'<p class="err" role="alert">{esc(error)}</p>' if error else ""
+        err = f'<p class="alert" role="alert">{esc(error)}</p>' if error else ""
         host = esc(urlparse(redirect_uri).netloc)
-        body = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
-<title>Authorize access to Wazuh</title><style>{_CONSENT_CSS}</style></head>
-<body><main class="card"><p class="eyebrow">Wazuh MCP</p><h1>Authorize {esc(client.client_name)}</h1>
-<p><strong>{esc(client.client_name)}</strong> is asking to use this server. After you approve, the browser returns to <strong>{host}</strong>. The API key is checked here and is not sent to {esc(client.client_name)}.</p>
-<p class="label">Requested access</p><ul class="scopes">{pills}</ul>{write_note}{err}
+        title = f"Authorize {client.client_name}"
+        main = f"""<div class="split-page"><section>
+<h1>{esc(title)}</h1>
+<p class="lead">The API key is checked on this server. The browser then returns to {host}.</p>
+<dl class="facts"><div><dt>Application</dt><dd>{esc(client.client_name)}</dd></div>
+<div><dt>Returns to</dt><dd>{host}</dd></div></dl>
+<h2>Access</h2><ul class="access">{rows}</ul>
+</section>
+<section class="form-pane">{err}
 <form method="post" action="authorize">{hidden}
-<label for="api_key">Your Wazuh MCP API key</label>
+<label for="api_key">API key</label>
 <input id="api_key" name="api_key" type="password" autocomplete="current-password" placeholder="wazuh_..." spellcheck="false">
-<div class="actions"><button type="submit" name="decision" value="deny" class="secondary">Deny</button>
-<button type="submit" name="decision" value="allow" class="primary">Authorize</button></div>
-</form><p class="fine">Access is still limited to what this API key allows. Closing the tab leaves the application waiting; Deny sends it back.</p>
-</main></body></html>"""
-        return HTMLResponse(body, status_code=status, headers=_page_headers(_redirect_origin(redirect_uri)))
+<div class="actions"><button type="submit" name="decision" value="allow" class="primary">Authorize</button>
+<button type="submit" name="decision" value="deny">Deny</button></div>
+</form></section></div>"""
+        return HTMLResponse(
+            _document(title, main),
+            status_code=status,
+            headers=_page_headers(f"'self' {_redirect_origin(redirect_uri)}"),
+        )
 
     def _check_request(client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, redirect_status=307):
         """Validate an authorization request. Returns (client, error_response)."""
@@ -1026,12 +1014,16 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
                 code_challenge=_s256(pending.idp_code_verifier),
             )
         except ValueError as e:
-            params = urlencode({"error": str(e).split(":")[0], "state": state or ""})
-            return RedirectResponse(f"{redirect_uri}?{params}", headers=_NO_STORE)
+            params = {"error": str(e).split(":")[0] or "invalid_request", "state": state or ""}
+            if _prefers_html(request):
+                return _stopped_page(redirect_uri, params, "The identity provider rejected this sign-in request.")
+            return _client_redirect(redirect_uri, params, headers=_NO_STORE)
         except IdPError as e:
             logger.error(f"IdP unavailable during authorize: {e}")
-            params = urlencode({"error": "temporarily_unavailable", "state": state or ""})
-            return RedirectResponse(f"{redirect_uri}?{params}", headers=_NO_STORE)
+            params = {"error": "temporarily_unavailable", "state": state or ""}
+            if _prefers_html(request):
+                return _stopped_page(redirect_uri, params, "The identity provider is unavailable. Try again shortly.")
+            return _client_redirect(redirect_uri, params, headers=_NO_STORE)
         return RedirectResponse(location, headers=_NO_STORE)
 
     @router.get("/callback")
@@ -1051,6 +1043,12 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         # be tied to a client redirect, so it is answered directly (no redirect).
         pending = oauth_manager.consume_pending_login(state or "")
         if pending is None:
+            if _prefers_html(request):
+                main = (
+                    '<div class="sheet"><h1>Sign-in session expired</h1>'
+                    '<p class="lead">This sign-in session is unknown or has expired. Start again from the application.</p></div>'
+                )
+                return HTMLResponse(_document("Sign-in session expired", main), status_code=400, headers=_page_headers("'none'"))
             return JSONResponse(
                 {"error": "invalid_request", "error_description": "Unknown or expired login state"},
                 status_code=400,
@@ -1062,11 +1060,17 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         except ValueError:
             return JSONResponse({"error": "invalid_request", "error_description": "Invalid redirect_uri"}, status_code=400, headers=_NO_STORE)
 
-        def _deny(err: str, description: str) -> RedirectResponse:
-            """Send the MCP client an OAuth error redirect (with its own state), never IdP text."""
+        def _deny(err: str, description: str):
+            """Send the MCP client an OAuth error (with its own state), never IdP text.
+
+            A browser sees the reason and a link that is the RFC 6749 redirect.
+            Any other client is redirected immediately.
+            """
             params = {"error": err, "error_description": description}
             if pending.state:
                 params["state"] = pending.state
+            if _prefers_html(request):
+                return _stopped_page(pending.redirect_uri, params, description)
             return _client_redirect(pending.redirect_uri, params, headers=_NO_STORE)
 
         if error:

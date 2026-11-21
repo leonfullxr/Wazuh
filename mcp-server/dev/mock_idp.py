@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import html
 import json
 import ssl
 import subprocess
@@ -35,6 +36,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt.algorithms import RSAAlgorithm
 
+from wazuh_mcp.ui_theme import bar, css
+
 ISSUER = "https://127.0.0.1:8443"
 KID = "mock-idp-1"
 _PRIVATE = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -46,35 +49,21 @@ _PENDING: dict[str, dict] = {}
 _CODES: dict[str, dict] = {}
 _LOCK = threading.Lock()
 
-_CSS = """
-:root { color-scheme: light dark; --bg:#eef2ef; --card:#fff; --ink:#17241e; --line:#d5e0d8; --accent:#1f6b45; --accent-ink:#fff; --muted:#5c6d63; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg:#101814; --card:#1a2820; --ink:#e7f0ea; --line:#31483c; --accent:#3d9a68; --accent-ink:#06210f; --muted:#b7c7bd; }
+_PAGE_HEADERS = {
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
 }
-* { box-sizing: border-box; }
-body { margin:0; min-height:100vh; display:flex; align-items: safe center; justify-content:center; padding:32px 16px;
-  font:16px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--ink); }
-main { width:min(100%, 28rem); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 24px; }
-h1 { font-size:1.4rem; margin:0 0 8px; }
-p { margin:0 0 12px; }
-.eyebrow { margin:0 0 8px; font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
-label { display:block; font-weight:650; margin:8px 0 6px; }
-input { width:100%; min-height:44px; padding:10px 12px; font:inherit; color:inherit; background:transparent; border:1px solid var(--line); border-radius:10px; }
-.actions { display:flex; gap:10px; margin-top:16px; }
-button { min-height:44px; padding:10px 16px; font:inherit; font-weight:650; border-radius:10px; cursor:pointer; }
-.primary { background:var(--accent); color:var(--accent-ink); border:0; flex:1; }
-.secondary { background:transparent; color:inherit; border:1px solid var(--line); }
-.err { color:#9d1230; font-weight:650; }
-@media (prefers-color-scheme: dark) { .err { color:#ffb3c0; } }
-@media (max-width: 480px) { .actions { flex-direction:column-reverse; } main { padding:22px 16px; } }
-"""
 
 
 def _page(title: str, body: str, status: int = 200) -> tuple[int, bytes]:
-    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title>
-<style>{_CSS}</style></head><body><main><p class="eyebrow">Mock identity provider</p>{body}</main></body></html>"""
-    return status, html.encode()
+    document = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>{html.escape(title)}</title><style>{css()}</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+{bar("Local identity provider")}
+<main id="main"><div class="sheet">{body}</div></main></body></html>"""
+    return status, document.encode()
 
 
 def _s256(verifier: str) -> str:
@@ -109,6 +98,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        if content_type.startswith("text/html"):
+            for key, value in _PAGE_HEADERS.items():
+                self.send_header(key, value)
         for key, value in (extra or {}).items():
             self.send_header(key, value)
         self.end_headers()
@@ -147,26 +139,26 @@ class Handler(BaseHTTPRequestHandler):
             query = self._query()
             needed = ("client_id", "redirect_uri", "state", "nonce", "code_challenge")
             if any(not query.get(name) for name in needed):
-                _, body = _page("Sign-in request rejected", "<h1>This sign-in request was rejected</h1><p>A required parameter is missing.</p>", 400)
+                _, body = _page("Sign-in request rejected", "<h1>Sign-in request rejected</h1><p class=\"lead\">A required parameter is missing.</p>", 400)
                 self._send(400, body, "text/html; charset=utf-8")
                 return
             hidden = "".join(
-                f'<input type="hidden" name="{name}" value="{query[name][0]}">'
+                f'<input type="hidden" name="{html.escape(name)}" value="{html.escape(query[name][0], quote=True)}">'
                 for name in ("client_id", "redirect_uri", "state", "nonce", "code_challenge", "scope")
                 if query.get(name)
             )
             _, body = _page(
                 "Sign in",
-                "<h1>Sign in to Wazuh</h1>"
-                "<p>This mock provider will return an ID token for the address below, in the responders group.</p>"
+                "<h1>Sign in</h1>"
+                "<p class=\"lead\">This local provider issues an ID token for the address below, in the responders group.</p>"
                 f'<form method="post" action="/authorize">{hidden}'
-                '<label for="email">Email</label><input id="email" name="email" type="email" value="analyst@example.com" required>'
-                '<div class="actions"><button class="secondary" name="decision" value="deny">Deny</button>'
-                '<button class="primary" name="decision" value="allow">Continue</button></div></form>',
+                '<label for="email">Email</label><input id="email" name="email" type="email" value="analyst@example.com" autocomplete="username" required>'
+                '<div class="actions"><button class="primary" name="decision" value="allow">Continue</button>'
+                '<button name="decision" value="deny">Deny</button></div></form>',
             )
             self._send(200, body, "text/html; charset=utf-8")
             return
-        _, body = _page("Not found", "<h1>This page does not exist</h1>", 404)
+        _, body = _page("Not found", "<h1>Not found</h1><p class=\"lead\">This page does not exist.</p>", 404)
         self._send(404, body, "text/html; charset=utf-8")
 
     def do_POST(self) -> None:  # noqa: N802
@@ -176,7 +168,7 @@ class Handler(BaseHTTPRequestHandler):
             redirect = (form.get("redirect_uri") or [""])[0]
             state = (form.get("state") or [""])[0]
             if not redirect:
-                _, body = _page("Sign-in request rejected", "<h1>Missing redirect</h1>", 400)
+                _, body = _page("Sign-in request rejected", "<h1>Sign-in request rejected</h1><p class=\"lead\">The return address is missing.</p>", 400)
                 self._send(400, body, "text/html; charset=utf-8")
                 return
             if (form.get("decision") or ["allow"])[0] == "deny":
