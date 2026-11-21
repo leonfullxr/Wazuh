@@ -535,13 +535,11 @@ class TestEndpointGuards:
         assert body["error"]["code"] == mcp_server.constants.MCP_ERRORS["RATE_LIMITED"]
         assert body["error"]["message"] == "Rate limit exceeded. Retry after 17 seconds."
         assert body["error"]["data"]["retry_after_seconds"] == 17
-        # The same check the official MCP SDK uses before it will show the message.
-        from mcp.client.streamable_http import jsonrpc_message_adapter
-        from mcp.shared.exceptions import JSONRPCError
-
-        parsed = jsonrpc_message_adapter.validate_json(resp.content, by_name=False)
-        assert isinstance(parsed, JSONRPCError)
-        assert "17" in parsed.error.message
+        # Shape the MCP SDK accepts as a JSON-RPC error before it will show the message:
+        # jsonrpc, id, and error.code/error.message. The SDK is not a server dependency.
+        assert set(body) >= {"jsonrpc", "id", "error"}
+        assert isinstance(body["error"]["code"], int)
+        assert "17" in body["error"]["message"]
 
 
 class TestResources:
