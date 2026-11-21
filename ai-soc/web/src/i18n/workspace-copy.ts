@@ -846,3 +846,10 @@ const es = {
 
 export const workspaceWords = { en, es } satisfies Record<Locale, typeof en>;
 export type WorkspaceKey = keyof typeof en;
+
+/** Analyst-facing false-positive reason. Unknown codes stay as stored. */
+export function falsePositiveReasonText(t: (key: string) => string, code: string): string {
+    const key = `m3Reason_${code}`;
+    const label = t(key);
+    return label === key ? code : label;
+}

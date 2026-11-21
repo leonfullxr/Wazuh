@@ -18,6 +18,7 @@ import {
 import { WorkspaceRequestError } from "../../api/workspace";
 import { Tag } from "../../components/ui/tag";
 import { statusTags, type WorkStatus } from "../../lib/semantic";
+import { falsePositiveReasonText } from "../../i18n/workspace-copy";
 import { humanizeKey, isFlatRecord } from "../../lib/utils";
 import { IdValue, NarrativePanel } from "./NarrativePanel";
 import "./incident-v2.css";
@@ -1345,7 +1346,8 @@ function IncidentDetailView({
                                     </span>
                                     {item.reason_code && (
                                         <p>
-                                            {t("m3FpReason")}: {item.reason_code}
+                                            {t("m3FpReason")}:{" "}
+                                            {falsePositiveReasonText(t, item.reason_code)}
                                         </p>
                                     )}
                                     {item.note && <p>{item.note}</p>}
