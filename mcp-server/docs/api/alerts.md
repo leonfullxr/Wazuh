@@ -137,6 +137,7 @@ Summarizes every alert in a time window using Indexer aggregations. There is no 
 
 | Name | Type | Required | Default | Constraints |
 |------|------|----------|---------|-------------|
+| `time_range` | string | no | none | `1h`, `6h`, `12h`, `1d`, `24h`, `7d`, `30d`. Same shorthand as the other alert tools. Sets the start to `now-<time_range>`. Do not combine with `timestamp_start`. |
 | `timestamp_start` | string | no | `now-24h` | ISO 8601 or date math |
 | `timestamp_end` | string | no | `now` | ISO 8601 or date math |
 | `top_rules` | integer | no | `50` | 1 to 500 |
@@ -144,6 +145,7 @@ Summarizes every alert in a time window using Indexer aggregations. There is no 
 
 ### Notes
 
+- `time_range` is the shorthand the other alert tools already take (`{"time_range": "7d"}` is `timestamp_start: "now-7d"`). Omit it to pass `timestamp_start` yourself. Sending both is an error.
 - Returns `total_alerts`, the `top_rules` rule IDs by count (with description and level), up to 20 rule levels in `by_level`, and the `top_agents` agents by count. Agents are bucketed by `agent.name`.
 - The result is not wrapped in a `data` object.
 
