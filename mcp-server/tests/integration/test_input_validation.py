@@ -564,6 +564,28 @@ class TestEndpointGuards:
             assert again.status_code == 429
             assert again.json()["error"]["message"].startswith("Rate limit exceeded.")
 
+    @pytest.mark.asyncio
+    async def test_prompt_and_resource_reads_use_the_discovery_budget(self, monkeypatch):
+        from wazuh_mcp.security import RateLimiter
+
+        monkeypatch.setattr(mcp_server.state, "rate_limiter", RateLimiter(max_requests=1, window_seconds=60))
+        monkeypatch.setattr(mcp_server.state, "discovery_rate_limiter", RateLimiter(max_requests=3, window_seconds=60))
+        reads = [
+            {"jsonrpc": "2.0", "id": 1, "method": "resources/templates/list"},
+            {"jsonrpc": "2.0", "id": 1, "method": "prompts/get", "params": {"name": "security_investigation"}},
+            {"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": {"uri": "wazuh://manager/info"}},
+        ]
+        async with _http() as client:
+            responses = [await client.post("/mcp", json=body) for body in reads]
+            assert [response.status_code for response in responses] == [200, 200, 200]
+            blocked = await client.post("/mcp", json=reads[0])
+            assert blocked.status_code == 429
+            assert "resources/templates/list" in blocked.json()["error"]["message"]
+            assert blocked.json()["error"]["data"]["budget"] == "discovery"
+            # None of those reads spent the single tool-call slot.
+            ping = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 2, "method": "ping"})
+            assert ping.status_code == 200
+
 
 class TestResources:
     async def _read(self, monkeypatch, uri, stub):
