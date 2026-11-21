@@ -21,6 +21,7 @@ export default defineConfig({
         "disposition-labels.check.ts",
         "quiet-heatmap.check.ts",
         "queue-disposition-row.check.ts",
+        "overview-cards.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",
