@@ -71,7 +71,7 @@ MAX_TOOL_RESPONSE_CHARS = validate_positive_int(
 
 
 async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict[str, Any]:
-    """Handle tools/call method - All 55 Wazuh Security Tools with comprehensive validation."""
+    """Handle tools/call method - Wazuh security tools with comprehensive validation."""
     tool_name = params.get("name")
     arguments = params.get("arguments", {})
 
@@ -582,7 +582,7 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
             _success = True
             return _tool_result(f"Remoted Statistics:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")
 
-        elif tool_name == "get_wazuh_log_collector_stats":
+        elif tool_name in {"get_wazuh_log_collector_stats", "get_wazuh_analysisd_stats"}:
             result = present_manager_payload(await wazuh_client.get_log_collector_stats(), single=True)
             _success = True
             return _tool_result(f"Analysisd Statistics:\n{render_json(result, max_chars=MAX_TOOL_RESPONSE_CHARS)}")

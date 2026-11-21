@@ -81,7 +81,7 @@ Then point Open WebUI (or LibreChat) at `http://localhost:11434` and add the MCP
 
 ## Trim the tool catalogue
 
-Every request carries every tool definition (~6.6k tokens for all 55). Measured with the eval below on qwen3.5:9b (Ollama, Apple M5, temperature 0):
+Every request carries every tool definition. The live catalogue is 56 tools, including the deprecated `get_wazuh_log_collector_stats` alias of `get_wazuh_analysisd_stats`. The table below is the earlier measurement of the 55-tool catalogue on qwen3.5:9b (Ollama, Apple M5, temperature 0):
 
 | Catalogue | Tokens | Scenarios passed | Median response |
 |---|---|---|---|

@@ -177,7 +177,7 @@ Active-response tools report `execution_status: "dispatched"`: Wazuh accepted th
 
 - **The client cannot reach the server.** The MCP endpoint is `/mcp` (`/` also works; `/sse` returns 410), and the server itself speaks plain HTTP only. A client that requires HTTPS or runs outside your network needs a TLS-terminating reverse proxy in front of it. See [Claude Integration](CLAUDE_INTEGRATION.md) for client-specific setup.
 - **The connector gets a 403 `Origin not allowed`.** Add the client's origin to `ALLOWED_ORIGINS`. Matching is exact.
-- **Tools list is shorter than expected.** `tools/list` returns only what the token's scopes allow (41 read tools and 14 write tools) and what `WAZUH_TOOLSETS` / `WAZUH_DISABLED_TOOLS` leave enabled.
+- **Tools list is shorter than expected.** `tools/list` returns only what the token's scopes allow (42 read tools and 14 write tools) and what `WAZUH_TOOLSETS` / `WAZUH_DISABLED_TOOLS` leave enabled.
 
 ## Collecting information for a bug report
 

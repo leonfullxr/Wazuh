@@ -259,7 +259,7 @@ with httpx.Client(base_url=BASE) as client:
 
 Do not send an `Origin` header from scripts unless it is listed in `ALLOWED_ORIGINS`; a local test with `Origin: http://localhost` returned `403 {"detail":"Origin not allowed: http://localhost"}`.
 
-Read-only tokens see 41 tools; tokens with `wazuh:write` see all 55 (plus `list_wazuh_clusters` in [multi-cluster](MULTI_CLUSTER.md) mode).
+Read-only tokens see 42 tools; tokens with `wazuh:write` see all 56 (plus `list_wazuh_clusters` in [multi-cluster](MULTI_CLUSTER.md) mode). `get_wazuh_log_collector_stats` remains as a deprecated alias of `get_wazuh_analysisd_stats`.
 
 ---
 

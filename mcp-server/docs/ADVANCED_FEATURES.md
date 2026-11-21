@@ -198,7 +198,7 @@ The server is dual-era:
 |---------|---------|
 | Transport | Streamable HTTP on `/mcp` (POST, GET for SSE, DELETE). `/sse` returns `410`. |
 | Responses | POST requests are answered with JSON. GET with `Accept: text/event-stream` opens an SSE stream; GET without it returns `405`. |
-| Tools | 55 (56 in multi-cluster mode) |
+| Tools | 56 (57 in multi-cluster mode) |
 | Prompts | 5: `security_investigation`, `threat_hunt`, `compliance_audit`, `vulnerability_assessment`, `iso27001_assessment` |
 | Resources | 6 resources and 3 resource templates; no subscriptions |
 | Completions | `completion/complete` |

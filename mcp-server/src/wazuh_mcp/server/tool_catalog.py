@@ -12,7 +12,7 @@ from .tool_policy import WRITE_SCOPE_TOOLS, _get_tool_scope
 
 
 async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _schema_introspection: bool = False) -> Dict[str, Any]:
-    """Handle tools/list method - All 55 Wazuh Security Tools with pagination.
+    """Handle tools/list method - Wazuh security tools with pagination.
     Filters tools based on session token scopes."""
     _cursor = params.get("cursor")  # Reserved for future pagination
     tools = [
@@ -542,8 +542,20 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession, *, _sch
             "inputSchema": {"type": "object", "properties": {}, "required": []},
         },
         {
+            "name": "get_wazuh_analysisd_stats",
+            "description": (
+                "Return wazuh-analysisd statistics from GET /manager/stats/analysisd: events decoded, "
+                "processed and dropped, queue usage, and alerts written. Not agent logcollector statistics."
+            ),
+            "inputSchema": {"type": "object", "properties": {}, "required": []},
+        },
+        {
             "name": "get_wazuh_log_collector_stats",
-            "description": "Get Wazuh manager analysisd statistics (event decoding/rule matching throughput)",
+            "description": (
+                "Deprecated alias of get_wazuh_analysisd_stats. Same handler and the same "
+                "GET /manager/stats/analysisd result (events decoded, processed and dropped, alerts written). "
+                "Not agent logcollector statistics. Prefer get_wazuh_analysisd_stats."
+            ),
             "inputSchema": {"type": "object", "properties": {}, "required": []},
         },
         {

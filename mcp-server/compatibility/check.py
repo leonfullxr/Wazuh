@@ -21,7 +21,7 @@ READS = {
     "/manager/logs": ("manager:read", "search_wazuh_manager_logs, get_wazuh_manager_error_logs"),
     "/manager/stats": ("manager:read", "get_wazuh_statistics"),
     "/manager/stats/weekly": ("manager:read", "get_wazuh_weekly_stats"),
-    "/manager/stats/analysisd": ("manager:read", "get_wazuh_log_collector_stats, get_iso27001_dashboard"),
+    "/manager/stats/analysisd": ("manager:read", "get_wazuh_analysisd_stats, get_wazuh_log_collector_stats, get_iso27001_dashboard"),
     "/manager/stats/remoted": ("manager:read", "get_wazuh_remoted_stats"),
     "/cluster/healthcheck": ("cluster:read", "get_wazuh_cluster_health"),
     "/cluster/nodes": ("cluster:read", "get_wazuh_cluster_nodes"),

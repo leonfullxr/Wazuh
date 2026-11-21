@@ -14,7 +14,7 @@ wazuh-mcp is a Model Context Protocol (MCP) server that exposes the Wazuh Manage
 
 ## Overview
 
-- **Tools:** 55 tools in 8 toolsets: alerts, agents, vulnerabilities, threat analysis, compliance (PCI-DSS, HIPAA, SOX, GDPR, NIST, ISO 27001:2022), web search, manager/cluster health, and active response with verification and rollback. Also 5 guided prompts, 6 resources and 3 resource templates. In multi-cluster mode a 56th tool, `list_wazuh_clusters`, is added.
+- **Tools:** 56 tools in 8 toolsets: alerts, agents, vulnerabilities, threat analysis, compliance (PCI-DSS, HIPAA, SOX, GDPR, NIST, ISO 27001:2022), web search, manager/cluster health, and active response with verification and rollback. Also 5 guided prompts, 6 resources and 3 resource templates. In multi-cluster mode a 57th tool, `list_wazuh_clusters`, is added.
 - **Read-only by default:** the 14 state-changing tools require the `wazuh:write` scope, which is never granted implicitly.
 - **MCP transport:** Streamable HTTP at `/mcp`. Serves protocol revision 2026-07-28 (stateless requests) and the `initialize` handshake for 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05. The legacy HTTP+SSE endpoint `/sse` returns `410 Gone`.
 - **Authentication:** bearer tokens minted from an API key; OAuth 2.0 (authorization code + PKCE) with sign-in by API key or at an OpenID Connect provider (Entra ID, Google Workspace, Okta, Keycloak); or no auth for local development.
@@ -129,7 +129,7 @@ For smaller models, expose fewer tools with `WAZUH_TOOLSETS` / `WAZUH_DISABLED_T
 
 ## Tools
 
-55 tools, grouped into toolsets that can be enabled with `WAZUH_TOOLSETS` (comma-separated; default all). R = `wazuh:read`, W = `wazuh:write`.
+56 tools, grouped into toolsets that can be enabled with `WAZUH_TOOLSETS` (comma-separated; default all). R = `wazuh:read`, W = `wazuh:write`.
 
 | Toolset | Count | Tools |
 |---------|-------|-------|
@@ -139,13 +139,13 @@ For smaller models, expose fewer tools with `WAZUH_TOOLSETS` / `WAZUH_DISABLED_T
 | `analysis` | 5 R | `analyze_security_threat`, `check_ioc_reputation`, `perform_risk_assessment`, `get_top_security_threats`, `generate_security_report` |
 | `web_search` | 1 R | `search_external_context`: You.com web search; returns a "not enabled" result unless `YDC_API_KEY` is set |
 | `compliance` | 6 R | `run_compliance_check` (PCI-DSS, HIPAA, SOX, GDPR, NIST, ISO27001), `get_iso27001_dashboard`, `get_iso27001_control_detail`, `get_iso27001_gap_analysis`, `get_iso27001_alerts`, `get_sca_policy_checks` |
-| `system` | 10 R | `get_wazuh_statistics`, `get_wazuh_weekly_stats`, `get_wazuh_cluster_health`, `get_wazuh_cluster_nodes`, `get_wazuh_rules_summary`, `get_wazuh_remoted_stats`, `get_wazuh_log_collector_stats`, `search_wazuh_manager_logs`, `get_wazuh_manager_error_logs`, `validate_wazuh_connection` |
+| `system` | 11 R | `get_wazuh_statistics`, `get_wazuh_weekly_stats`, `get_wazuh_cluster_health`, `get_wazuh_cluster_nodes`, `get_wazuh_rules_summary`, `get_wazuh_remoted_stats`, `get_wazuh_analysisd_stats`, `get_wazuh_log_collector_stats` (deprecated alias), `search_wazuh_manager_logs`, `get_wazuh_manager_error_logs`, `validate_wazuh_connection` |
 | `response` (containment) | 9 W | `wazuh_block_ip`, `wazuh_isolate_host`, `wazuh_kill_process`, `wazuh_disable_user`, `wazuh_quarantine_file`, `wazuh_firewall_drop`, `wazuh_host_deny`, `wazuh_active_response`, `wazuh_restart` |
 | `response` (rollback) | 5 W | `wazuh_unisolate_host`, `wazuh_enable_user`, `wazuh_restore_file`, `wazuh_firewall_allow`, `wazuh_host_allow` |
 | `response` (verification) | 5 R | `wazuh_check_blocked_ip`, `wazuh_check_agent_isolation`, `wazuh_check_process`, `wazuh_check_user_status`, `wazuh_check_file_quarantine` |
 
-- Totals: 41 read tools and 14 write tools in the default catalog. Tokens without `wazuh:write` do not see the write tools in `tools/list`.
-- In multi-cluster mode a 56th tool, `list_wazuh_clusters` (`system`, read), is added and every tool accepts an optional `cluster_id`.
+- Totals: 42 read tools and 14 write tools in the default catalog. `get_wazuh_log_collector_stats` is a deprecated alias of `get_wazuh_analysisd_stats`; both call `GET /manager/stats/analysisd`. Tokens without `wazuh:write` do not see the write tools in `tools/list`.
+- In multi-cluster mode a 57th tool, `list_wazuh_clusters` (`system`, read), is added and every tool accepts an optional `cluster_id`.
 - `WAZUH_DISABLED_TOOLS` hides individual tools. Hidden tools are removed from `tools/list` and refused by `tools/call`; unknown toolset or tool names stop the server at startup.
 - Every tool carries MCP annotations derived from its scope: read tools are `readOnlyHint: true`; containment tools are `destructiveHint: true`; rollback tools are `destructiveHint: false`; only `search_external_context` is `openWorldHint: true`.
 - Input schemas are closed (`additionalProperties: false`); undeclared arguments are refused.

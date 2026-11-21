@@ -70,6 +70,7 @@ TOOLSETS: Dict[str, FrozenSet[str]] = {
             "get_wazuh_rules_summary",
             "search_wazuh_manager_logs",
             "get_wazuh_manager_error_logs",
+            "get_wazuh_analysisd_stats",
             "get_wazuh_log_collector_stats",
             "get_wazuh_remoted_stats",
             "get_wazuh_weekly_stats",

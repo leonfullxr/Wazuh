@@ -211,7 +211,7 @@ curl -s -X POST $BASE/mcp "${H[@]}" -H "MCP-Session-Id: $SID" \
 curl -s -X DELETE $BASE/mcp -H "Authorization: Bearer $TOKEN" -H "MCP-Session-Id: $SID"   # 204
 ```
 
-`tools/list` returns only the tools the token's scopes allow: 41 for a read-only key, 55 with `wazuh:write` (56 in multi-cluster mode), fewer if toolsets are restricted.
+`tools/list` returns only the tools the token's scopes allow: 42 for a read-only key, 56 with `wazuh:write` (57 in multi-cluster mode), fewer if toolsets are restricted.
 
 ## Capacity and tuning
 
