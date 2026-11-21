@@ -80,7 +80,7 @@ where = ["src"]
 include = ["wazuh_mcp*"]
 
 [tool.setuptools.package-data]
-wazuh_mcp = ["fonts/*.woff2", "fonts/OFL.txt"]
+wazuh_mcp = ["fonts/*.woff2", "fonts/*.txt"]
 
 [tool.ruff]
 target-version = "py311"

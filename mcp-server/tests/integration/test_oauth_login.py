@@ -215,8 +215,10 @@ async def test_consent_page_names_scopes_and_can_deny(env):
     assert "active response" in page.text
     assert "claude.ai" in page.text
     assert "color-scheme: light dark" in page.text
-    assert 'class="bar"' in page.text
-    assert "font-family:Geist" in page.text
+    assert 'class="wordmark"' in page.text
+    assert "Source Sans 3" in page.text
+    assert "Source Code Pro" in page.text
+    assert 'class="split-page"' in page.text
     assert "align-items: safe center" not in page.text
     denied = await env.client.post(
         "/oauth/authorize", data={**_params(challenge), "decision": "deny"}

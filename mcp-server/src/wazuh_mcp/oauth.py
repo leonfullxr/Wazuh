@@ -22,6 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from jwt.exceptions import PyJWTError as JWTError
 
 from wazuh_mcp.oidc import IdentityDenied, IdPError, OIDCProvider
+from wazuh_mcp.ui_theme import bar as _bar
 from wazuh_mcp.ui_theme import css as _ui_css
 
 logger = logging.getLogger(__name__)
@@ -855,7 +856,7 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
     def _page_headers(form_action: str) -> dict:
         # Chrome applies form-action to the redirect that follows the POST, so the client's
         # (already validated) redirect origin must be allowed or the 303 back is blocked.
-        # font-src data: is the vendored Geist face. Nothing else is loaded.
+        # font-src data: is the vendored Source Sans 3 and Source Code Pro. Nothing else is loaded.
         return {
             "Cache-Control": "no-store",
             "X-Frame-Options": "DENY",
@@ -874,8 +875,8 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
 <title>{esc(title)}</title><style>{_ui_css()}</style></head>
 <body><a class="skip" href="#main">Skip to content</a>
-<header class="bar"><strong>Wazuh MCP</strong><span>Sign-in</span></header>
-<main id="main" class="sheet">{main}</main></body></html>"""
+{_bar("Sign-in")}
+<main id="main">{main}</main></body></html>"""
 
     def _browser_error(status: int) -> HTMLResponse:
         """HTML for a browser that followed a bad authorize link. Do not echo the query string."""
@@ -889,7 +890,7 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
                 "Sign-in request rejected",
                 "A required value is missing, or the return address is not registered.",
             )
-        main = f"<h1>{html.escape(title)}</h1><p class=\"lead\">{html.escape(text)}</p>"
+        main = f'<div class="sheet"><h1>{html.escape(title)}</h1><p class="lead">{html.escape(text)}</p></div>'
         return HTMLResponse(_document(title, main), status_code=status, headers=_page_headers("'none'"))
 
     def _stopped_page(redirect_uri: str, params: dict, text: str) -> HTMLResponse:
@@ -898,9 +899,9 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         host = html.escape(urlparse(redirect_uri).netloc)
         title = "Sign-in stopped"
         main = (
-            f"<h1>{title}</h1><p class=\"lead\">{html.escape(text)}</p>"
-            f"<p class=\"actions\"><a class=\"go primary\" href=\"{html.escape(location, quote=True)}\">"
-            f"Return to {host}</a></p>"
+            f'<div class="sheet"><h1>{title}</h1><p class="lead">{html.escape(text)}</p>'
+            f'<p class="actions"><a class="go primary" href="{html.escape(location, quote=True)}">'
+            f"Return to {host}</a></p></div>"
         )
         return HTMLResponse(_document(title, main), status_code=200, headers=_page_headers("'none'"))
 
@@ -943,17 +944,20 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         err = f'<p class="alert" role="alert">{esc(error)}</p>' if error else ""
         host = esc(urlparse(redirect_uri).netloc)
         title = f"Authorize {client.client_name}"
-        main = f"""<h1>{esc(title)}</h1>
+        main = f"""<div class="split-page"><section>
+<h1>{esc(title)}</h1>
 <p class="lead">The API key is checked on this server. The browser then returns to {host}.</p>
 <dl class="facts"><div><dt>Application</dt><dd>{esc(client.client_name)}</dd></div>
 <div><dt>Returns to</dt><dd>{host}</dd></div></dl>
-<h2>Access</h2><ul class="access">{rows}</ul>{err}
+<h2>Access</h2><ul class="access">{rows}</ul>
+</section>
+<section class="form-pane">{err}
 <form method="post" action="authorize">{hidden}
 <label for="api_key">API key</label>
 <input id="api_key" name="api_key" type="password" autocomplete="current-password" placeholder="wazuh_..." spellcheck="false">
 <div class="actions"><button type="submit" name="decision" value="allow" class="primary">Authorize</button>
 <button type="submit" name="decision" value="deny">Deny</button></div>
-</form>"""
+</form></section></div>"""
         return HTMLResponse(
             _document(title, main),
             status_code=status,
@@ -1041,8 +1045,8 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         if pending is None:
             if _prefers_html(request):
                 main = (
-                    "<h1>Sign-in session expired</h1>"
-                    "<p class=\"lead\">This sign-in session is unknown or has expired. Start again from the application.</p>"
+                    '<div class="sheet"><h1>Sign-in session expired</h1>'
+                    '<p class="lead">This sign-in session is unknown or has expired. Start again from the application.</p></div>'
                 )
                 return HTMLResponse(_document("Sign-in session expired", main), status_code=400, headers=_page_headers("'none'"))
             return JSONResponse(
