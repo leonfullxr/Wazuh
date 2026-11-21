@@ -17,6 +17,7 @@ export default defineConfig({
         "investigate.check.ts",
         "m3.check.ts",
         "queue-assessment.check.ts",
+        "row-targets.check.ts",
     ],
     fullyParallel: false,
     reporter: "list",

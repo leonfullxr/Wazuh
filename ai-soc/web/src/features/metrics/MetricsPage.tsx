@@ -364,7 +364,7 @@ export function MetricsPage({
                                                     setAssetError("");
                                                 }}
                                             >
-                                                {t("actions")}
+                                                {t("editAssetTags")}
                                             </button>
                                         </td>
                                     </tr>

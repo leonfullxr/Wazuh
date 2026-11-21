@@ -87,12 +87,37 @@
 }
 
 .queue-v2 .group-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    min-height: 44px;
     max-width: 420px;
+    padding: 2px 0 4px;
     color: var(--text);
+    font-weight: 400;
+    line-height: 20px;
+    text-align: left;
+}
+
+.queue-v2 .group-link-title {
     font-size: 15px;
     font-weight: 600;
     line-height: 20px;
-    text-align: left;
+}
+
+.queue-v2 .group-link .queue-v2-entity,
+.queue-v2 .group-link .queue-v2-reasons {
+    margin-top: 0;
+}
+
+.queue-v2 .group-link:hover {
+    text-decoration: none;
+}
+
+.queue-v2 .group-link:hover .group-link-title {
+    text-decoration: underline;
 }
 
 .queue-v2-entity {
