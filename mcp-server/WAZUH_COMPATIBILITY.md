@@ -51,7 +51,7 @@ from the Wazuh API specification; use them to build a least-privilege API user (
 | `GET /manager/logs` | `manager:read` | `search_wazuh_manager_logs`, `get_wazuh_manager_error_logs` (`limit` up to 500) |
 | `GET /manager/stats` | `manager:read` | `get_wazuh_statistics` |
 | `GET /manager/stats/weekly` | `manager:read` | `get_wazuh_weekly_stats` |
-| `GET /manager/stats/analysisd` | `manager:read` | `get_wazuh_log_collector_stats`, ISO 27001 dashboard and control detail (deprecated, see below) |
+| `GET /manager/stats/analysisd` | `manager:read` | `get_wazuh_analysisd_stats`, `get_wazuh_log_collector_stats` (deprecated alias), ISO 27001 dashboard and control detail (deprecated, see below) |
 | `GET /manager/stats/remoted` | `manager:read` | `get_wazuh_remoted_stats` (deprecated, see below) |
 | `GET /cluster/healthcheck` | `cluster:read` | `get_wazuh_cluster_health` |
 | `GET /cluster/nodes` | `cluster:read` | `get_wazuh_cluster_nodes` |

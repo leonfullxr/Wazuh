@@ -57,6 +57,7 @@ CALLS = [
     ("get_wazuh_cluster_nodes", {}),
     ("get_wazuh_rules_summary", {}),
     ("get_wazuh_remoted_stats", {}),
+    ("get_wazuh_analysisd_stats", {}),
     ("get_wazuh_log_collector_stats", {}),
     ("search_wazuh_manager_logs", {"query": "token", "limit": 5}),
     ("get_wazuh_manager_error_logs", {"limit": 5}),

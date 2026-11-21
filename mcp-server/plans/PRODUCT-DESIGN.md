@@ -39,7 +39,7 @@ Emit the sanitized object as MCP `structuredContent`. For clients that only cons
 
 ## P2. Give smaller models task-specific tool profiles
 
-Cloudflare exposes a large API through discovery and execution. Wazuh already has eight operator-configurable toolsets and 55 tools. Its project benchmark recorded median responses of 15.8 seconds with the full catalog and 10.9 seconds with a trimmed catalog, across different runnable scenario sets. That warrants a controlled comparison with identical cases. [Cloudflare Code Mode](https://blog.cloudflare.com/code-mode-mcp/) · [Wazuh local-model measurements](../docs/LOCAL_LLM.md#trim-the-tool-catalogue)
+Cloudflare exposes a large API through discovery and execution. Wazuh already has eight operator-configurable toolsets and 56 tools. Its project benchmark recorded median responses of 15.8 seconds with the full catalog and 10.9 seconds with a trimmed catalog, across different runnable scenario sets. That warrants a controlled comparison with identical cases. [Cloudflare Code Mode](https://blog.cloudflare.com/code-mode-mcp/) · [Wazuh local-model measurements](../docs/LOCAL_LLM.md#trim-the-tool-catalogue)
 
 **Pilot, small effort.** Define opinionated profiles for alert triage, compliance review and platform operations over the existing named toolsets. Resolve profiles on the server and intersect them with the operator allowlist, effective user scope and statically configured backends. Tool listing and direct calls must agree. Start with configuration presets and an operator-visible effective catalog. On-demand discovery adds another model round trip and client compatibility work; prototype it only if the presets miss frequent workflows.
 

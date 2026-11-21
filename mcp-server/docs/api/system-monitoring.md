@@ -10,7 +10,8 @@ Tools in the `system` toolset that report on the Wazuh Manager, its cluster and 
 | [`get_wazuh_cluster_nodes`](#get_wazuh_cluster_nodes) | Cluster node list | `GET /cluster/nodes` |
 | [`get_wazuh_rules_summary`](#get_wazuh_rules_summary) | Rule counts by level and group | `GET /rules` (all pages) |
 | [`get_wazuh_remoted_stats`](#get_wazuh_remoted_stats) | Agent communication daemon statistics | `GET /manager/stats/remoted` |
-| [`get_wazuh_log_collector_stats`](#get_wazuh_log_collector_stats) | Analysis daemon statistics | `GET /manager/stats/analysisd` |
+| [`get_wazuh_analysisd_stats`](#get_wazuh_analysisd_stats) | Analysis daemon statistics | `GET /manager/stats/analysisd` |
+| [`get_wazuh_log_collector_stats`](#get_wazuh_log_collector_stats) | Deprecated alias of `get_wazuh_analysisd_stats` | `GET /manager/stats/analysisd` |
 | [`validate_wazuh_connection`](#validate_wazuh_connection) | Manager API reachability and version | `GET /` |
 | [`list_wazuh_clusters`](#list_wazuh_clusters) | Configured clusters (multi-cluster mode only) | none |
 
@@ -204,9 +205,11 @@ Remoted Statistics:
 
 ---
 
-## get_wazuh_log_collector_stats
+## get_wazuh_analysisd_stats
 
-Returns statistics for `wazuh-analysisd`, the Manager's decoding and rule-matching daemon: events received, decoded (in total and per module), processed and dropped, queue usage, and alerts written. Despite the tool name, these are not agent logcollector statistics.
+Returns statistics for `wazuh-analysisd`, the Manager's decoding and rule-matching daemon: events received, decoded (in total and per module), processed and dropped, queue usage, and alerts written. These are not agent logcollector statistics.
+
+`get_wazuh_log_collector_stats` is a deprecated alias of this tool. It calls the same handler, so existing clients keep working. Prefer `get_wazuh_analysisd_stats`.
 
 - **Scope:** `wazuh:read`
 - **Data source:** Manager API, `GET /manager/stats/analysisd`
@@ -234,6 +237,10 @@ Analysisd Statistics:
   "events_dropped": 0
 }
 ```
+
+## get_wazuh_log_collector_stats
+
+Deprecated name for [`get_wazuh_analysisd_stats`](#get_wazuh_analysisd_stats). Same parameters, same `GET /manager/stats/analysisd` result. Prefer the new name.
 
 ---
 
@@ -280,7 +287,7 @@ Connection Validation:
 
 ## list_wazuh_clusters
 
-Lists the configured Wazuh clusters and the default cluster used when a call has no `cluster_id`. This tool exists only in multi-cluster mode, that is when a clusters file is loaded (see [MULTI_CLUSTER.md](../MULTI_CLUSTER.md)); it is not part of the 55-tool single-cluster catalogue.
+Lists the configured Wazuh clusters and the default cluster used when a call has no `cluster_id`. This tool exists only in multi-cluster mode, that is when a clusters file is loaded (see [MULTI_CLUSTER.md](../MULTI_CLUSTER.md)); it is not part of the 56-tool single-cluster catalogue.
 
 - **Scope:** `wazuh:read`
 - **Toolset:** `system`

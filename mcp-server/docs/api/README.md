@@ -1,6 +1,6 @@
 # Tool Reference
 
-Reference for the MCP tools exposed by Wazuh MCP 0.1.0. The server registers 55 tools; a 56th, `list_wazuh_clusters`, is added only in multi-cluster mode (see [Multi-cluster routing](#multi-cluster-routing)).
+Reference for the MCP tools exposed by Wazuh MCP 0.1.0. The server registers 56 tools; a 57th, `list_wazuh_clusters`, is added only in multi-cluster mode (see [Multi-cluster routing](#multi-cluster-routing)). `get_wazuh_log_collector_stats` is a deprecated alias of `get_wazuh_analysisd_stats`.
 
 Every parameter, type, default and limit on these pages is taken from the server's `tools/list` output (schemas in `src/wazuh_mcp/server/tool_catalog.py`) and the handler code (`src/wazuh_mcp/server/tool_calls.py`, with the Wazuh client in `src/wazuh_mcp/api/`). Example outputs show the shape of real responses; sample values are illustrative.
 
@@ -55,7 +55,8 @@ Scope `read` means the tool needs the `wazuh:read` scope; `write` means it needs
 | `get_wazuh_cluster_nodes` | read | Manager API | [system-monitoring](system-monitoring.md#get_wazuh_cluster_nodes) |
 | `get_wazuh_rules_summary` | read | Manager API | [system-monitoring](system-monitoring.md#get_wazuh_rules_summary) |
 | `get_wazuh_remoted_stats` | read | Manager API | [system-monitoring](system-monitoring.md#get_wazuh_remoted_stats) |
-| `get_wazuh_log_collector_stats` | read | Manager API | [system-monitoring](system-monitoring.md#get_wazuh_log_collector_stats) |
+| `get_wazuh_analysisd_stats` | read | Manager API | [system-monitoring](system-monitoring.md#get_wazuh_analysisd_stats) |
+| `get_wazuh_log_collector_stats` | read | Manager API | Deprecated alias of `get_wazuh_analysisd_stats`. [system-monitoring](system-monitoring.md#get_wazuh_log_collector_stats) |
 | `validate_wazuh_connection` | read | Manager API | [system-monitoring](system-monitoring.md#validate_wazuh_connection) |
 | `list_wazuh_clusters` | read | Server configuration | [system-monitoring](system-monitoring.md#list_wazuh_clusters) |
 | `search_wazuh_manager_logs` | read | Manager API | [log-management](log-management.md#search_wazuh_manager_logs) |

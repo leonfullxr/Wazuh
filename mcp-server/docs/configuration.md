@@ -203,7 +203,7 @@ With `REDIS_URL` set, the server starts even if Redis is unreachable. While Redi
 How tool exposure works:
 
 - **Hidden tools** are removed from `tools/list`. A `tools/call` for one returns an `isError` result: `Tool '<name>' is disabled on this server`. Scope filtering still applies to the tools that remain.
-- **Catalogue size:** the full catalogue of 55 tools is about 30 KB of JSON and is sent to the model with every request. Trimming it helps small local models most; see [Local LLMs](LOCAL_LLM.md).
+- **Catalogue size:** the full catalogue of 56 tools is about 30 KB of JSON and is sent to the model with every request. Trimming it helps small local models most; see [Local LLMs](LOCAL_LLM.md).
 - **External traffic:** `web_search` (`search_external_context`) is the only toolset that sends data outside your network. Drop it for air-gapped deployments.
 - **Annotations and schemas:** write tools carry the MCP tool annotations `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`; read tools carry `readOnlyHint` and `openWorldHint`. Every input schema is closed (`additionalProperties: false`). Annotations are hints for clients; the server still enforces authorization by scope.
 

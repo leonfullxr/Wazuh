@@ -11,7 +11,7 @@ The server reads `WAZUH_CLUSTERS_FILE` (default `./config/clusters.json`, relati
 | Clusters | One, from `WAZUH_HOST`, `WAZUH_INDEXER_HOST`, etc. | The environment cluster (id `default`) plus one per file entry |
 | Tool arguments | Unchanged | Every tool except `list_wazuh_clusters` gains an optional `cluster_id` |
 | `list_wazuh_clusters` | Not listed | Listed (in the `system` toolset) |
-| Tool count | 55 | 56 |
+| Tool count | 56 | 57 |
 
 `WAZUH_HOST`, `WAZUH_USER` and `WAZUH_PASS` are still required in multi-cluster mode (startup fails without them), because the environment cluster is always loaded as `default`. The id `default` is therefore reserved and cannot be used in the file.
 
