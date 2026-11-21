@@ -40,20 +40,18 @@ export function DashboardPage({ kind, t }: { kind: DashboardKind; t: Translate }
                     {t("openMetrics")}
                 </a>
             </Panel>
-            <div className="dashboard-v2-grid">
-                {widgets[kind].map(([titleKey, emptyKey]) => (
-                    <Panel className="workspace-panel dashboard-v2-widget" key={titleKey}>
-                        <div className="dashboard-v2-widget-heading">
-                            <h2>{t(titleKey)}</h2>
-                            <span>{t("notReported")}</span>
-                        </div>
-                        <div className="dashboard-v2-empty">
-                            <strong>{t("noDashboardData")}</strong>
+            <Panel className="workspace-panel dashboard-v2-index">
+                <h2>{t("noDashboardData")}</h2>
+                <p>{t("notReported")}</p>
+                <ul>
+                    {widgets[kind].map(([titleKey, emptyKey]) => (
+                        <li key={titleKey}>
+                            <h3>{t(titleKey)}</h3>
                             <p>{t(emptyKey)}</p>
-                        </div>
-                    </Panel>
-                ))}
-            </div>
+                        </li>
+                    ))}
+                </ul>
+            </Panel>
         </div>
     );
 }
