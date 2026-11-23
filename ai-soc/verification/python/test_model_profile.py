@@ -561,3 +561,118 @@ def test_authority_initial_absence_and_observed_alias_disappearance(tmp_path, mo
 def test_alias_rejects_non_normalized_spelling(tmp_path, alias):
     with pytest.raises(ValueError, match="invalid_model_configuration"):
         worker.load_config(config_file(tmp_path, authority_slot_directory=alias))
+
+
+def test_scheduler_handoff_holds_slot_until_last_descendant(tmp_path):
+    import ctypes
+    import os
+    import select
+    import signal
+
+    slot_path = tmp_path / "slot"
+    slot_path.mkdir(mode=0o700)
+    for name in ("guardian-ready", "descendant-ready", "guardian-stop", "descendant-stop"):
+        os.mkfifo(tmp_path / name, 0o600)
+    pipes = {
+        name: os.open(tmp_path / name, os.O_RDWR | os.O_NONBLOCK)
+        for name in ("guardian-ready", "descendant-ready", "guardian-stop", "descendant-stop")
+    }
+    guardian = tmp_path / "guardian"
+    guardian.write_text(
+        f"#!{sys.executable}\n"
+        + '''import fcntl, os, subprocess, sys
+from pathlib import Path
+assert sys.argv[1:3] == ["-m", "ai_soc.workspace.model.guardian"]
+assert sys.argv[3] == "--config" and sys.argv[5] == "--slot-fd"
+assert sys.argv[7] == "--legacy-slot-fd" and len(sys.argv) == 9
+root = Path(sys.argv[4]).parent
+slot_fd, legacy_fd = int(sys.argv[6]), int(sys.argv[8])
+slot, legacy = os.fstat(slot_fd), os.fstat(legacy_fd)
+fcntl.flock(slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+fcntl.flock(legacy_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+assert os.path.samestat(slot, (root / "slot").stat())
+assert os.path.samestat(legacy, (root / "slot/slot-0.lock").stat())
+code = """import os,sys
+from pathlib import Path
+root=Path(sys.argv[1]); fd=int(sys.argv[2]); s=os.fstat(fd)
+with open(root/'descendant-ready','w') as out:
+    print(f'{os.getpid()}:{s.st_dev}:{s.st_ino}',file=out,flush=True)
+with open(root/'descendant-stop','rb',buffering=0) as stop: stop.read(1)
+"""
+subprocess.Popen([sys.executable, "-c", code, str(root), str(slot_fd)],
+                 pass_fds=(slot_fd,), stdin=subprocess.DEVNULL,
+                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+with open(root / "guardian-ready", "w") as out:
+    print(os.getpid(), file=out, flush=True)
+with open(root / "guardian-stop", "rb", buffering=0) as stop:
+    stop.read(1)
+'''
+    )
+    guardian.chmod(0o700)
+    scheduler_code = """
+from contextlib import nullcontext
+from pathlib import Path
+from types import SimpleNamespace
+import sys
+from ai_soc.workspace.model import worker
+root=Path(sys.argv[1])
+config=worker.ModelConfig(frozenset({"site"}), "host", "runtime", root / "slot",
+    codex_path="/synthetic/codex", auth_path="/synthetic/auth", bwrap_path="/synthetic/bwrap",
+    authority_path=worker.host_authority_path())
+worker.site_transaction=lambda *args: nullcontext()
+worker.verify_binding=lambda *args, **kwargs: None
+worker.sys.executable=str(root / "guardian")
+assert worker.run_model_once(SimpleNamespace(info=SimpleNamespace(dsn="synthetic")),
+    config=config, config_path=root / "config.json", dsn="synthetic", wait=False) == 1
+"""
+    scheduler = subprocess.Popen(
+        [sys.executable, "-c", scheduler_code, str(tmp_path)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+    )
+    pids = []
+
+    def read_message(name):
+        assert select.select([pipes[name]], [], [], 10)[0], f"timed out waiting for {name}"
+        return os.read(pipes[name], 128).decode().strip()
+
+    def wait_exit(pid):
+        fd = ctypes.CDLL(None, use_errno=True).syscall(434, pid, 0)
+        if fd < 0:
+            error = ctypes.get_errno()
+            raise OSError(error, os.strerror(error))
+        try:
+            assert select.select([fd], [], [], 10)[0], f"process {pid} did not exit"
+        finally:
+            os.close(fd)
+
+    try:
+        assert scheduler.wait(timeout=10) == 0
+        guardian_pid = int(read_message("guardian-ready"))
+        pids.append(guardian_pid)
+        descendant_pid, device, inode = map(int, read_message("descendant-ready").split(":"))
+        pids.append(descendant_pid)
+        info = slot_path.stat()
+        assert (device, inode) == (info.st_dev, info.st_ino)
+        assert worker.acquire_slot(slot_path) is None
+        os.write(pipes["guardian-stop"], b"x")
+        wait_exit(guardian_pid)
+        pids.remove(guardian_pid)
+        assert worker.acquire_slot(slot_path) is None
+        os.write(pipes["descendant-stop"], b"x")
+        wait_exit(descendant_pid)
+        pids.remove(descendant_pid)
+        slot = worker.acquire_slot(slot_path)
+        assert slot is not None
+        slot.close()
+    finally:
+        if scheduler.poll() is None:
+            scheduler.kill()
+            scheduler.wait(timeout=10)
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        for fd in pipes.values():
+            os.close(fd)
