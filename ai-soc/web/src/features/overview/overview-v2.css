@@ -6,75 +6,10 @@
 .overview-v2 > :not(.overview-v2-volume, .overview-v2-context) {
     grid-column: 1 / -1;
 }
-.overview-v2-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
-    gap: 1px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-panel);
-    background: var(--border);
-}
-.overview-v2-metric {
-    min-width: 0;
-    min-height: 76px;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    align-items: baseline;
-    gap: 4px 8px;
-    padding: 14px 16px;
-    background: var(--surface);
-}
-.overview-v2-metric > span {
-    flex-basis: 100%;
-}
-.overview-v2-metric > .overview-v2-metric-detail {
-    flex-basis: auto;
-}
-.overview-v2-metric > span,
 .overview-v2-panel-head p {
     color: var(--dim, var(--text-muted));
     font-size: 12px;
     line-height: 16px;
-}
-.overview-v2-metric > strong[data-empty] {
-    color: var(--text-muted);
-    font-size: 20px;
-    font-weight: 400;
-}
-.overview-v2-metric > strong {
-    font: 500 28px/1.15 var(--font-ui);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.012em;
-}
-.overview-v2-metric > small {
-    width: fit-content;
-    min-height: 20px;
-    display: inline-flex;
-    align-items: center;
-    padding: 0 6px;
-    border: 1px solid var(--tag-neutral-border, var(--border));
-    border-radius: var(--radius-tag, 4px);
-    background: var(--tag-neutral-bg, var(--surface-2));
-    color: var(--tag-neutral-text, var(--text-2));
-    font-size: 12px;
-    font-weight: 500;
-}
-.overview-v2-metric > small[data-state="good"] {
-    border-color: var(--tag-green-border, var(--border));
-    background: var(--tag-green-bg, var(--surface-2));
-    color: var(--tag-green-text, var(--positive-text));
-}
-.overview-v2-metric > small[data-state="warning"] {
-    border-color: var(--tag-amber-border, var(--border));
-    background: var(--tag-amber-bg, var(--surface-2));
-    color: var(--tag-amber-text, var(--warning-text));
-}
-.overview-v2-metric > small[data-state="danger"] {
-    border-color: var(--tag-red-border, var(--border));
-    background: var(--tag-red-bg, var(--surface-2));
-    color: var(--tag-red-text, var(--negative-text));
 }
 .overview-v2-panel-head {
     display: flex;
@@ -92,76 +27,6 @@
 .overview-v2-panel-head p {
     margin: 3px 0 0;
 }
-.overview-v2-volume {
-    align-self: start;
-    padding: 18px 20px 16px;
-}
-.overview-v2-chart-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin: 0 0 12px;
-}
-.overview-v2-chart-toolbar .overview-v2-hour-select {
-    margin: 0;
-}
-.overview-v2-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 18px;
-    margin: 0;
-    color: var(--text-2, var(--text-muted));
-    font-size: 12px;
-}
-.overview-v2-legend > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.overview-v2-legend i {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-}
-.overview-v2-legend strong {
-    color: var(--text);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-.overview-v2-hour-select {
-    width: min(100%, 280px);
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 10px;
-    margin: 0 0 12px auto;
-    color: var(--text-2);
-    font-size: 12px;
-}
-.overview-v2-hour-select select {
-    width: 100%;
-    max-width: none;
-}
-.overview-v2-chart {
-    height: 216px;
-    min-width: 0;
-    padding: 8px 4px 0;
-}
-.overview-v2-chart .recharts-cartesian-grid line {
-    stroke: var(--border);
-}
-.overview-v2-chart .recharts-cartesian-axis-tick text {
-    fill: var(--dim);
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-}
-.overview-v2-chart .recharts-rectangle {
-    cursor: pointer;
-    transition: fill-opacity var(--time-hover) var(--ease-controls);
-}
 .overview-v2-band-series-one {
     background: var(--series-sev4);
 }
@@ -176,13 +41,6 @@
 }
 .overview-v2-band-unknown {
     background: var(--series-other);
-}
-.overview-v2-axis {
-    display: flex;
-    justify-content: space-between;
-    padding: 7px 0 0 26px;
-    color: var(--text-muted);
-    font-size: 11px;
 }
 .overview-v2-breakdown {
     display: grid;
@@ -367,80 +225,6 @@
     border-color: transparent;
     background: var(--surface-2);
 }
-.overview-v2-lists {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-5);
-}
-.overview-v2-context {
-    display: grid;
-    align-content: start;
-    min-width: 0;
-}
-.overview-v2-context .overview-v2-list {
-    padding: 16px 12px;
-    background: transparent;
-}
-.overview-v2-context .overview-v2-list + .overview-v2-list {
-    border-block-start: 1px solid var(--border);
-    border-radius: 0;
-}
-.overview-v2-list ol {
-    display: grid;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.overview-v2-list li {
-    min-height: 44px;
-    display: grid;
-    grid-template-columns: 22px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 1px solid var(--border-row, var(--stroke-weak));
-}
-.overview-v2-list li:last-child {
-    border-bottom: 0;
-}
-.overview-v2-rank {
-    color: var(--text-muted);
-    font: 400 11px/1 var(--font-code);
-    text-align: right;
-}
-.overview-v2-list li > button {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 1px;
-    padding: 8px 0;
-    border: 0;
-    background: transparent;
-    color: var(--text);
-    text-align: left;
-    cursor: pointer;
-}
-.overview-v2-list li > button:hover > span {
-    color: var(--accent);
-}
-.overview-v2-list li > button > span {
-    max-width: 100%;
-    overflow-wrap: anywhere;
-}
-.overview-v2-list code {
-    color: var(--text-muted);
-    font-size: 11px;
-}
-.overview-v2-list li > strong {
-    min-width: 30px;
-    padding: 5px 6px;
-    border-radius: var(--radius-tag);
-    color: var(--text-2);
-    text-align: center;
-    font: 650 13px/1 var(--font-ui);
-    font-variant-numeric: tabular-nums;
-}
 .overview-v2-empty {
     min-height: 94px;
     display: grid;
@@ -461,56 +245,11 @@
     .overview-v2 {
         grid-template-columns: minmax(0, 1fr);
     }
-    /* The side column is transparent on desktop. Once the lists stack, they need the same card as the chart. */
-    .overview-v2-context {
-        gap: var(--space-5);
-    }
-    .overview-v2-context .overview-v2-list {
-        padding: 16px 20px;
-        border-radius: var(--radius-card);
-        background: var(--surface);
-    }
-    .overview-v2-context .overview-v2-list + .overview-v2-list {
-        border-block-start: 0;
-    }
 }
 @media (max-width: 700px) {
-    .overview-v2-summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .overview-v2-lists {
-        grid-template-columns: 1fr;
-    }
-    .overview-v2-metric {
-        min-height: 66px;
-        padding: 10px 12px;
-    }
-    .overview-v2-metric:last-child:nth-child(odd) {
-        grid-column: 1 / -1;
-        min-height: 48px;
-    }
-    .overview-v2-metric:last-child:nth-child(odd) > span:first-child {
-        flex-basis: auto;
-        margin-inline-end: auto;
-    }
-    .overview-v2-metric > strong {
-        font-size: 22px;
-    }
-    .overview-v2-chart {
-        height: 200px;
-    }
-    .overview-v2-axis {
-        gap: 12px;
-        padding-left: 0;
-        font-size: 10px;
-    }
     .overview-v2-heatmap-panel {
         padding-right: 12px;
         padding-left: 12px;
-    }
-    .overview-v2-hour-select {
-        width: 100%;
-        margin-left: 0;
     }
     .overview-v2-breakdown {
         grid-template-columns: 1fr;
@@ -518,31 +257,6 @@
     .overview-v2-breakdown-actions {
         justify-content: flex-start;
     }
-}
-@media (prefers-reduced-motion: reduce) {
-    .overview-v2-chart .recharts-rectangle {
-        transition: none;
-    }
-}
-
-.overview-v2-list li > button > code.overview-v2-list-id {
-    color: var(--text);
-    font-size: 13px;
-}
-.overview-v2-list {
-    padding-bottom: 16px;
-}
-
-.overview-v2-lists {
-    align-items: stretch;
-}
-.overview-v2-chart {
-    padding-top: 4px;
-}
-
-.overview-v2-legend li,
-.overview-v2-legend > * {
-    white-space: nowrap;
 }
 
 /* Heatmap: shorter cells and quieter empty slots, so the hours with alerts carry the signal. */
@@ -558,32 +272,6 @@
     background: color-mix(in srgb, var(--surface-2) 55%, transparent);
 }
 
-/* Top lists: cards in a row share one height and every list row shares one type style. */
-.overview-v2-lists {
-    align-items: stretch;
-}
-
-.overview-v2-list .panel-heading,
-.overview-v2-list > header {
-    margin-bottom: 4px;
-}
-
-.overview-v2-list li > button > span,
-.overview-v2-list li > button > code.overview-v2-list-id {
-    font-size: 14px;
-    line-height: 20px;
-}
-
-/* Secondary rule and agent ids in top lists read at 12px. */
-.overview-v2-list li > button > code:not(.overview-v2-list-id) {
-    font-size: 12px;
-}
-
-/* Top-list cards use the page card gap in both directions. */
-.overview-v2-lists {
-    gap: 20px;
-}
-
 /* Heatmap axis labels match the chart ticks. */
 .overview-v2-heatmap-hour,
 .overview-v2-heatmap-day {
@@ -597,41 +285,4 @@
 /* Light theme: empty heatmap cells one step darker so the grid holds. */
 html:not(.dark) .overview-v2-heatmap-cell[data-empty] {
     background: color-mix(in srgb, var(--surface-2), black 3%);
-}
-
-/* The freshness pill follows the shared 20px pill spec and centres on the value line. */
-.overview-v2-metric > small {
-    box-sizing: border-box;
-    height: 20px;
-    min-height: 0;
-    padding: 0 7px;
-    line-height: 1;
-    font-size: 12px;
-    align-self: center;
-}
-
-/* The freshness pill is neutral; its dot carries the state. */
-.overview-v2-metric > small,
-.overview-v2-metric > small[data-state="good"],
-.overview-v2-metric > small[data-state="warning"] {
-    gap: 6px;
-    border-color: var(--tag-neutral-border);
-    background: var(--tag-neutral-bg);
-    color: var(--tag-neutral-text);
-}
-
-.overview-v2-metric > small[data-state]::before {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--text-muted);
-    content: "";
-}
-
-.overview-v2-metric > small[data-state="good"]::before {
-    background: var(--dot-good);
-}
-
-.overview-v2-metric > small[data-state="warning"]::before {
-    background: var(--dot-warn);
 }

@@ -1,6 +1,7 @@
 # Implementation spec for 2026-11-23
 
-Status: FINAL r2, gatekeeper approved
+Status: FINAL r2, gatekeeper approved. Section 8 records how the console
+redesign changed WS-B to WS-E.
 
 ## 0. Scope
 
@@ -450,3 +451,21 @@ and the parent .gitignore out of the PRs.
 | C6 | accept | Suppress the palette shortcut while a different modal is open and test one Escape. |
 | C7 | accept | Check the real public status, safe reason and outcome count for both retry policies. |
 | C8 | accept | Add signed bigint bounds, foreign-site claim/expiry cases and lexical versus resolved alias checks. |
+
+## 8. Changes after the console redesign
+
+The redesign (f2c5a8b) replaced the overview, queue, metrics, incident and
+dashboard markup after this spec was approved. Where this spec and the
+redesign disagree, the redesign wins.
+
+- **WS-B:** the Queue detail is an inline panel, not a dialog. The Queue
+  opener contract and its test no longer apply. The other five dialogs
+  keep theirs.
+- **WS-C:** superseded. The redesign colours every tag tone, so the quiet
+  status and disposition tags and the severity-only fill do not apply. #80
+  is closed.
+- **WS-D:** the redesign sets `.page-head h1` (Geist, 24px, weight 600), so
+  the serif title contract and B9 do not apply. Only the dashboard index
+  coverage shipped.
+- **WS-E:** the checks target the portfolio (`*-pp`) markup. Entity values
+  wrap anywhere, and the Metrics asset table scrolls on a phone.
