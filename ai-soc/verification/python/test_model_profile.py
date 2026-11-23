@@ -367,8 +367,10 @@ def test_alias_enrollment_requires_existing_lock_before_sql(tmp_path, monkeypatc
     monkeypatch.setattr(worker, "site_transaction", lambda *_: nullcontext())
 
     class Database:
-        def execute(self, *args):
-            raise AssertionError("enrollment reached SQL before validating the lock")
+        def execute(self, query, *args):
+            if query.startswith("SELECT"):
+                return SimpleNamespace(fetchone=lambda: None)
+            raise AssertionError("enrollment reached INSERT before validating the lock")
 
     with pytest.raises(FileNotFoundError):
         worker.provision_binding(Database(), config, now=datetime.now(UTC))
@@ -384,7 +386,7 @@ def test_slot_refuses_replaced_entry_after_lock(tmp_path, monkeypatch):
         result = original(fd, operation)
         if not (operation & fcntl.LOCK_UN) and worker.stat.S_ISREG(worker.os.fstat(fd).st_mode):
             path = tmp_path / "slot-0.lock"
-            path.unlink()
+            path.rename(tmp_path / "original-lock")
             path.touch(mode=0o600)
         return result
 
@@ -564,18 +566,28 @@ def test_alias_rejects_non_normalized_spelling(tmp_path, alias):
 
 
 def test_scheduler_handoff_holds_slot_until_last_descendant(tmp_path):
-    import ctypes
     import os
     import select
     import signal
 
     slot_path = tmp_path / "slot"
     slot_path.mkdir(mode=0o700)
-    for name in ("guardian-ready", "descendant-ready", "guardian-stop", "descendant-stop"):
+    for name in (
+        "guardian-ready",
+        "descendant-ready",
+        "guardian-stop",
+        "descendant-stop",
+        "guardian-life",
+        "descendant-life",
+    ):
         os.mkfifo(tmp_path / name, 0o600)
     pipes = {
         name: os.open(tmp_path / name, os.O_RDWR | os.O_NONBLOCK)
         for name in ("guardian-ready", "descendant-ready", "guardian-stop", "descendant-stop")
+    }
+    life_pipes = {
+        name: os.open(tmp_path / name, os.O_RDONLY | os.O_NONBLOCK)
+        for name in ("guardian-life", "descendant-life")
     }
     guardian = tmp_path / "guardian"
     guardian.write_text(
@@ -586,6 +598,7 @@ assert sys.argv[1:3] == ["-m", "ai_soc.workspace.model.guardian"]
 assert sys.argv[3] == "--config" and sys.argv[5] == "--slot-fd"
 assert sys.argv[7] == "--legacy-slot-fd" and len(sys.argv) == 9
 root = Path(sys.argv[4]).parent
+life = open(root / "guardian-life", "w")
 slot_fd, legacy_fd = int(sys.argv[6]), int(sys.argv[8])
 slot, legacy = os.fstat(slot_fd), os.fstat(legacy_fd)
 fcntl.flock(slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -595,9 +608,11 @@ assert os.path.samestat(legacy, (root / "slot/slot-0.lock").stat())
 code = """import os,sys
 from pathlib import Path
 root=Path(sys.argv[1]); fd=int(sys.argv[2]); s=os.fstat(fd)
+life=open(root/'descendant-life','w')
 with open(root/'descendant-ready','w') as out:
     print(f'{os.getpid()}:{s.st_dev}:{s.st_ino}',file=out,flush=True)
 with open(root/'descendant-stop','rb',buffering=0) as stop: stop.read(1)
+os.close(fd)
 """
 subprocess.Popen([sys.executable, "-c", code, str(root), str(slot_fd)],
                  pass_fds=(slot_fd,), stdin=subprocess.DEVNULL,
@@ -606,6 +621,8 @@ with open(root / "guardian-ready", "w") as out:
     print(os.getpid(), file=out, flush=True)
 with open(root / "guardian-stop", "rb", buffering=0) as stop:
     stop.read(1)
+os.close(slot_fd)
+os.close(legacy_fd)
 '''
     )
     guardian.chmod(0o700)
@@ -636,15 +653,10 @@ assert worker.run_model_once(SimpleNamespace(info=SimpleNamespace(dsn="synthetic
         assert select.select([pipes[name]], [], [], 10)[0], f"timed out waiting for {name}"
         return os.read(pipes[name], 128).decode().strip()
 
-    def wait_exit(pid):
-        fd = ctypes.CDLL(None, use_errno=True).syscall(434, pid, 0)
-        if fd < 0:
-            error = ctypes.get_errno()
-            raise OSError(error, os.strerror(error))
-        try:
-            assert select.select([fd], [], [], 10)[0], f"process {pid} did not exit"
-        finally:
-            os.close(fd)
+    def wait_exit(name):
+        fd = life_pipes[name]
+        assert select.select([fd], [], [], 10)[0], f"{name} did not close"
+        assert os.read(fd, 1) == b""
 
     try:
         assert scheduler.wait(timeout=10) == 0
@@ -656,11 +668,11 @@ assert worker.run_model_once(SimpleNamespace(info=SimpleNamespace(dsn="synthetic
         assert (device, inode) == (info.st_dev, info.st_ino)
         assert worker.acquire_slot(slot_path) is None
         os.write(pipes["guardian-stop"], b"x")
-        wait_exit(guardian_pid)
+        wait_exit("guardian-life")
         pids.remove(guardian_pid)
         assert worker.acquire_slot(slot_path) is None
         os.write(pipes["descendant-stop"], b"x")
-        wait_exit(descendant_pid)
+        wait_exit("descendant-life")
         pids.remove(descendant_pid)
         slot = worker.acquire_slot(slot_path)
         assert slot is not None
@@ -676,3 +688,136 @@ assert worker.run_model_once(SimpleNamespace(info=SimpleNamespace(dsn="synthetic
                 pass
         for fd in pipes.values():
             os.close(fd)
+        for fd in life_pipes.values():
+            os.close(fd)
+
+
+def test_manifest_replaced_by_directory_does_not_leak_fd(tmp_path, monkeypatch):
+    import os
+
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    authority = tmp_path / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}), "host", "runtime", slot, authority_path=authority
+    )
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    original = worker.os.open
+
+    def replace_before_open(path, *args, **kwargs):
+        if path == authority:
+            authority.rename(tmp_path / "old-authority")
+            authority.mkdir()
+        return original(path, *args, **kwargs)
+
+    before = len(os.listdir("/proc/self/fd"))
+    with monkeypatch.context() as patch:
+        patch.setattr(worker.os, "open", replace_before_open)
+        with pytest.raises(PermissionError, match="host_authority_changed"):
+            worker.verify_authority(config, slot.stat())
+    assert len(os.listdir("/proc/self/fd")) == before
+
+
+def test_manifest_parent_retarget_with_hardlink_is_detected(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    first, second = tmp_path / "first", tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+    parent = tmp_path / "parent"
+    parent.symlink_to(first, target_is_directory=True)
+    authority = parent / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}), "host", "runtime", slot, authority_path=authority
+    )
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    (second / "authority").hardlink_to(first / "authority")
+    original = Path.lstat
+
+    def retarget_after_lstat(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path == authority:
+            parent.unlink()
+            parent.symlink_to(second, target_is_directory=True)
+        return result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "lstat", retarget_after_lstat)
+        with pytest.raises(PermissionError, match="host_authority_changed"):
+            worker.verify_authority(config, slot.stat())
+
+
+def test_alias_disappearing_between_stat_and_resolve_is_changed(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(slot)
+    authority = tmp_path / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}),
+        "host",
+        "runtime",
+        slot,
+        authority_path=authority,
+        authority_slot_directory=alias,
+    )
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    original = Path.stat
+
+    def remove_after_stat(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path == alias:
+            alias.unlink()
+        return result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "stat", remove_after_stat)
+        with pytest.raises(PermissionError, match="authority_slot_directory_changed"):
+            worker.verify_authority(config, slot.stat())
+
+
+def test_slot_rejects_symlink_legacy_entry(tmp_path):
+    import errno
+
+    target = tmp_path / "target"
+    target.touch(mode=0o600)
+    (tmp_path / "slot-0.lock").symlink_to(target)
+    with pytest.raises(OSError) as error:
+        worker.acquire_slot(tmp_path, create=False)
+    assert error.value.errno == errno.ELOOP
+
+
+def test_production_broker_transport_inherits_slot_directory(tmp_path, monkeypatch):
+    import os
+
+    from ai_soc.workspace.model import cli_broker
+
+    slot = worker.acquire_slot(tmp_path)
+    assert slot is not None
+    executable = tmp_path / "transport"
+    executable.write_text(
+        f"#!{sys.executable}\n"
+        "import base64,json,os,sys\n"
+        "assert sys.argv[1:]==['-m','ai_soc.workspace.model.cli_transport']\n"
+        "sys.stdin.buffer.read()\n"
+        f"s=os.fstat({slot.fd})\n"
+        "body=f'{s.st_dev}:{s.st_ino}'.encode()\n"
+        "sys.stdout.write(json.dumps({'status':200,'body':base64.b64encode(body).decode()}))\n"
+    )
+    executable.chmod(0o700)
+    try:
+        info = os.fstat(slot.fd)
+        monkeypatch.setattr(cli_broker.sys, "executable", str(executable))
+        transport = cli_broker._BoundedHTTPSTransport(pass_fds=(slot.fd,))
+        status, body = transport(b"synthetic", {})
+        assert status == 200
+        assert body == f"{info.st_dev}:{info.st_ino}".encode()
+    finally:
+        slot.close()
