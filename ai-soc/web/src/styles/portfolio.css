@@ -138,6 +138,8 @@
 
 /* Tables */
 .pp-table-scroll {
+    /* Contain absolutely positioned descendants (sr-only header labels) so they scroll with the table. */
+    position: relative;
     overflow-x: auto;
 }
 .pp-table {
