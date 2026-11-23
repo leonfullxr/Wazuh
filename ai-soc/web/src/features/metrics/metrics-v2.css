@@ -455,3 +455,7 @@
 .metrics-v2-distribution > div:last-child dd {
     font-weight: 400;
 }
+
+.metrics-v2-volume .metrics-v2-table {
+    min-width: 520px;
+}

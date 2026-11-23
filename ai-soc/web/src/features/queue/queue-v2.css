@@ -797,3 +797,24 @@
 .assessment-knowledge-card code {
     overflow-wrap: anywhere;
 }
+
+@media (max-width: 760px) {
+    .queue-v2 .queue-table th:nth-child(5),
+    .queue-v2 .queue-table td:nth-child(5) {
+        display: table-cell;
+    }
+}
+
+@media (max-width: 480px) {
+    .queue-v2 .queue-table tbody tr {
+        grid-template-areas:
+            "check group status"
+            "check score status"
+            "check count status";
+    }
+
+    .queue-v2 .queue-table td:nth-child(5) {
+        display: block;
+        grid-area: count;
+    }
+}

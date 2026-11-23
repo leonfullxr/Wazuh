@@ -458,3 +458,26 @@
         padding-bottom: 16px;
     }
 }
+
+@media (max-width: 700px) {
+    .alerts-v2 .workspace-table th:nth-child(5),
+    .alerts-v2 .workspace-table td:nth-child(5) {
+        display: table-cell;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 480px) {
+    .alerts-v2 .workspace-table tbody tr {
+        grid-template-areas:
+            "desc desc action"
+            "host host action"
+            "level time action";
+    }
+
+    .alerts-v2 .workspace-table td:nth-child(5) {
+        display: block;
+        grid-area: host;
+        min-width: 0;
+    }
+}
