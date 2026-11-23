@@ -501,15 +501,19 @@ def recover_abandoned_calls(
     if host_id != sha256(Path("/etc/machine-id").read_bytes().strip()):
         raise PermissionError("recovery_requires_local_host")
     binding = conn.execute(
-        "SELECT slot_directory FROM narrative_runtime_bindings WHERE site_id=%s "
+        "SELECT slot_directory,directory_device,directory_inode FROM narrative_runtime_bindings "
+        "WHERE site_id=%s "
         "AND host_id=%s AND runtime_id=%s",
         (site_id, host_id, runtime_id),
     ).fetchone()
     if binding is None:
         raise PermissionError("recovery_requires_registered_host")
     actual = os.fstat(slot_fd)
-    expected = (Path(str(binding[0])) / "slot-0.lock").stat()
-    if (actual.st_dev, actual.st_ino) != (expected.st_dev, expected.st_ino):
+    expected = Path(str(binding[0])).stat()
+    if (actual.st_dev, actual.st_ino) != (expected.st_dev, expected.st_ino) or (
+        actual.st_dev,
+        actual.st_ino,
+    ) != (binding[1], binding[2]):
         raise PermissionError("recovery_slot_identity_mismatch")
     fcntl.flock(slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     rows = conn.execute(

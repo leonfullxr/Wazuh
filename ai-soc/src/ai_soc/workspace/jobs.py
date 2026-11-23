@@ -73,6 +73,7 @@ def _expire_exhausted(
     conn: psycopg.Connection[Any],
     *,
     now: datetime,
+    kind: str | None,
     job_kinds: frozenset[str] | None,
     target_job_id: int | None,
 ) -> None:
@@ -82,6 +83,7 @@ def _expire_exhausted(
             SELECT job_id FROM jobs
             WHERE site_id = current_setting('app.site_id', true)
               AND state = 'running' AND locked_until <= %s AND attempts >= %s
+              AND (%s::text IS NULL OR kind = %s)
               AND (%s::text[] IS NULL OR kind = ANY(%s))
               AND (%s::bigint IS NULL OR job_id = %s)
             ORDER BY locked_until, job_id
@@ -96,6 +98,8 @@ def _expire_exhausted(
         (
             now,
             MAX_ATTEMPTS,
+            kind,
+            kind,
             None if job_kinds is None else sorted(job_kinds),
             None if job_kinds is None else sorted(job_kinds),
             target_job_id,
@@ -121,10 +125,18 @@ def claim_job(
         raise PermissionError("worker is not configured for this site")
     if not worker_id or lease <= timedelta(0):
         raise ValueError("worker_id and a positive lease are required")
-    if target_job_id is not None and (type(target_job_id) is not int or target_job_id <= 0):
+    if target_job_id is not None and (
+        type(target_job_id) is not int or not 1 <= target_job_id <= 9223372036854775807
+    ):
         raise ValueError("target job ID must be positive")
     _require_site(conn, site_id)
-    _expire_exhausted(conn, now=now, job_kinds=job_kinds, target_job_id=target_job_id)
+    _expire_exhausted(
+        conn,
+        now=now,
+        kind=kind if target_job_id is not None else None,
+        job_kinds=job_kinds,
+        target_job_id=target_job_id,
+    )
     token = uuid4()
     with conn.cursor() as cursor:
         cursor.execute(

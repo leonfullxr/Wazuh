@@ -54,6 +54,10 @@ def run_once(
     """
     if not 1 <= batch_size <= 500:
         raise ValueError("worker batch size must be in 1..500")
+    if target_job_id is not None and (
+        type(target_job_id) is not int or not 1 <= target_job_id <= 9223372036854775807
+    ):
+        raise ValueError("target job ID must be in the signed bigint range")
     if target_job_id is not None and (batch_size != 1 or len(site_ids) != 1):
         raise ValueError("targeted run requires one site and a batch of one")
     if job_kinds is None:

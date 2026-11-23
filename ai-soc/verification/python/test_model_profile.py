@@ -153,14 +153,15 @@ def verify(profile):
 CodexProfile.verify_runtime = verify
 CodexProfile.verify = lambda *a: (_ for _ in ()).throw(AssertionError("account access forbidden"))
 guardian._short_transaction = lambda *args: nullcontext()
-guardian.verify_binding = lambda *args: None
+guardian.verify_binding = lambda *args, **kwargs: None
 guardian.recover_abandoned_calls = lambda *args, **kwargs: None
 def forbidden(*args, **kwargs):
     raise AssertionError("provider called")
 guardian.CodexCLIProvider = lambda profile: SimpleNamespace(generate=forbidden)
 conn = SimpleNamespace(execute=lambda *a: SimpleNamespace(fetchone=lambda: None))
 guardian.psycopg.connect = lambda *args, **kwargs: nullcontext(conn)
-sys.argv = ["guardian", "--config", sys.argv[1], "--slot-fd", sys.argv[2]]
+sys.argv = ["guardian", "--config", sys.argv[1], "--slot-fd", sys.argv[2],
+            "--legacy-slot-fd", sys.argv[3]]
 raise SystemExit(guardian.main())
 """
     seen = {}
@@ -168,8 +169,10 @@ raise SystemExit(guardian.main())
     def spawn(args, **kwargs):
         seen.update(kwargs)
         assert args[2:5] == ["ai_soc.workspace.model.guardian", "--config", str(path)]
+        assert args[-4:] == ["--slot-fd", str(slot.fd), "--legacy-slot-fd", str(slot.legacy_fd)]
+        assert kwargs["pass_fds"] == (slot.fd, slot.legacy_fd)
         child = original_popen(
-            [sys.executable, "-c", child_code, str(path), str(slot.fd)],
+            [sys.executable, "-c", child_code, str(path), str(slot.fd), str(slot.legacy_fd)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             **kwargs,
@@ -179,7 +182,7 @@ raise SystemExit(guardian.main())
 
     monkeypatch.setattr(worker, "acquire_slot", lambda *_: slot)
     monkeypatch.setattr(worker, "site_transaction", lambda *_: nullcontext())
-    monkeypatch.setattr(worker, "verify_binding", lambda *_: None)
+    monkeypatch.setattr(worker, "verify_binding", lambda *_, **_kwargs: None)
     monkeypatch.setattr(worker.subprocess, "Popen", spawn)
     conn = SimpleNamespace(info=SimpleNamespace(dsn="synthetic"))
     assert (
@@ -311,3 +314,250 @@ def test_alias_provision_cannot_create_slot_or_authority(tmp_path, monkeypatch):
         replace(config, authority_slot_directory=slot)
     with pytest.raises(ValueError):
         worker.load_config(config_file(tmp_path, authority_slot_directory="/a/../b"))
+
+
+def test_directory_lock_survives_replaced_legacy_entry(tmp_path):
+    slot = worker.acquire_slot(tmp_path)
+    assert slot is not None
+    try:
+        (tmp_path / "slot-0.lock").unlink()
+        code = (
+            "from pathlib import Path; from ai_soc.workspace.model.worker import acquire_slot; "
+            "import sys; slot=acquire_slot(Path(sys.argv[1])); "
+            "sys.exit(0 if slot is None else 1)"
+        )
+        assert (
+            subprocess.run([sys.executable, "-c", code, str(tmp_path)], check=False).returncode == 0
+        )
+    finally:
+        slot.close()
+    replacement = worker.acquire_slot(tmp_path)
+    assert replacement is not None
+    replacement.close()
+
+
+def test_slot_rejects_hardlinked_legacy_file(tmp_path):
+    path = tmp_path / "slot-0.lock"
+    path.touch(mode=0o600)
+    (tmp_path / "other").hardlink_to(path)
+    with pytest.raises(PermissionError, match="slot_file_changed"):
+        worker.acquire_slot(tmp_path)
+
+
+def test_alias_enrollment_requires_existing_lock_before_sql(tmp_path, monkeypatch):
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(slot)
+    authority = tmp_path / "authority"
+    monkeypatch.setattr(worker, "host_authority_path", lambda: authority)
+    config = worker.ModelConfig(
+        frozenset({"site"}),
+        worker.local_host_id(),
+        "runtime",
+        slot,
+        codex_path="/fixture/codex",
+        auth_path="/fixture/auth",
+        bwrap_path="/fixture/bwrap",
+        authority_path=authority,
+        authority_slot_directory=alias,
+    )
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    monkeypatch.setattr(worker, "site_transaction", lambda *_: nullcontext())
+
+    class Database:
+        def execute(self, *args):
+            raise AssertionError("enrollment reached SQL before validating the lock")
+
+    with pytest.raises(FileNotFoundError):
+        worker.provision_binding(Database(), config, now=datetime.now(UTC))
+    assert not (slot / "slot-0.lock").exists()
+
+
+def test_slot_refuses_replaced_entry_after_lock(tmp_path, monkeypatch):
+    import fcntl
+
+    original = worker.fcntl.flock
+
+    def replace_entry(fd, operation):
+        result = original(fd, operation)
+        if not (operation & fcntl.LOCK_UN) and worker.stat.S_ISREG(worker.os.fstat(fd).st_mode):
+            path = tmp_path / "slot-0.lock"
+            path.unlink()
+            path.touch(mode=0o600)
+        return result
+
+    monkeypatch.setattr(worker.fcntl, "flock", replace_entry)
+    with pytest.raises(PermissionError, match="slot_file_changed"):
+        worker.acquire_slot(tmp_path)
+    monkeypatch.setattr(worker.fcntl, "flock", original)
+    slot = worker.acquire_slot(tmp_path)
+    assert slot is not None
+    slot.close()
+
+
+def test_authority_observation_races(tmp_path, monkeypatch):
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(slot)
+    authority = tmp_path / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}),
+        "host",
+        "runtime",
+        slot,
+        authority_path=authority,
+        authority_slot_directory=alias,
+    )
+    material = worker.authority_material(config, slot.stat())
+    authority.write_bytes(material)
+    authority.chmod(0o600)
+    original_open = worker.os.open
+
+    def swap_alias(path, *args, **kwargs):
+        fd = original_open(path, *args, **kwargs)
+        if path == authority:
+            alias.unlink()
+            alias.symlink_to(slot)
+        return fd
+
+    with monkeypatch.context() as patch:
+        patch.setattr(worker.os, "open", swap_alias)
+        worker.verify_authority(config, slot.stat())
+
+    def replace_manifest(path, *args, **kwargs):
+        if path == authority:
+            replacement = tmp_path / "replacement"
+            replacement.write_bytes(material)
+            replacement.chmod(0o600)
+            replacement.replace(authority)
+        return original_open(path, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(worker.os, "open", replace_manifest)
+        with pytest.raises(PermissionError, match="host_authority_changed"):
+            worker.verify_authority(config, slot.stat())
+
+
+def test_legacy_only_holder_blocks_and_releases_directory(tmp_path):
+    path = tmp_path / "slot-0.lock"
+    path.touch(mode=0o600)
+    code = (
+        "import fcntl,sys; f=open(sys.argv[1], 'r+'); "
+        "fcntl.flock(f.fileno(),fcntl.LOCK_EX); print('ready',flush=True); sys.stdin.read()"
+    )
+    process = subprocess.Popen(
+        [sys.executable, "-c", code, str(path)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert process.stdout is not None and process.stdout.readline().strip() == "ready"
+        assert worker.acquire_slot(tmp_path) is None
+    finally:
+        assert process.stdin is not None
+        process.stdin.close()
+        assert process.wait(timeout=5) == 0
+    slot = worker.acquire_slot(tmp_path)
+    assert slot is not None
+    slot.close()
+
+
+def test_slot_rejects_link_added_before_flock(tmp_path, monkeypatch):
+    original = worker.fcntl.flock
+
+    def add_link(fd, operation):
+        if worker.stat.S_ISREG(worker.os.fstat(fd).st_mode):
+            (tmp_path / "other").hardlink_to(tmp_path / "slot-0.lock")
+        return original(fd, operation)
+
+    monkeypatch.setattr(worker.fcntl, "flock", add_link)
+    with pytest.raises(PermissionError, match="slot_file_changed"):
+        worker.acquire_slot(tmp_path)
+
+
+def test_sandbox_uses_one_directory_sync_fd(tmp_path):
+    from ai_soc.workspace.model.cli_profile import CallInputs
+
+    slot = worker.acquire_slot(tmp_path)
+    assert slot is not None
+    try:
+        inputs = CallInputs(tmp_path, tmp_path, tmp_path, tmp_path, tmp_path, "x", "y")
+        args = CodexProfile().argv(inputs, slot_fds=(slot.fd,))
+        assert args.count("--sync-fd") == 1
+        assert args[args.index("--sync-fd") + 1] == str(slot.fd)
+        assert str(slot.legacy_fd) not in args
+    finally:
+        slot.close()
+
+
+def test_alias_and_canonical_processes_share_directory_lock(tmp_path):
+    slot_path = tmp_path / "slot"
+    slot_path.mkdir(mode=0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(slot_path)
+    slot = worker.acquire_slot(slot_path)
+    assert slot is not None
+    code = (
+        "from pathlib import Path; from ai_soc.workspace.model.worker import "
+        "ModelConfig,_acquire_model_slot; import sys; "
+        "c=ModelConfig(frozenset({'s'}),'host','runtime',Path(sys.argv[1]),"
+        "authority_slot_directory=Path(sys.argv[2])); s=_acquire_model_slot(c); "
+        "sys.exit(0 if s is None else 1)"
+    )
+    try:
+        assert (
+            subprocess.run([sys.executable, "-c", code, str(slot_path), str(alias)]).returncode == 0
+        )
+    finally:
+        slot.close()
+    alias_slot = worker._acquire_model_slot(
+        worker.ModelConfig(
+            frozenset({"s"}), "host", "runtime", slot_path, authority_slot_directory=alias
+        )
+    )
+    assert alias_slot is not None
+    alias_slot.close()
+
+
+def test_authority_initial_absence_and_observed_alias_disappearance(tmp_path, monkeypatch):
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(slot)
+    authority = tmp_path / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}),
+        "host",
+        "runtime",
+        slot,
+        authority_path=authority,
+        authority_slot_directory=alias,
+    )
+    with pytest.raises(FileNotFoundError):
+        worker.verify_authority(config, slot.stat())
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    original = worker.os.open
+
+    def remove_alias(path, *args, **kwargs):
+        fd = original(path, *args, **kwargs)
+        if path == authority:
+            alias.unlink()
+        return fd
+
+    with monkeypatch.context() as patch:
+        patch.setattr(worker.os, "open", remove_alias)
+        with pytest.raises(PermissionError, match="authority_slot_directory_changed"):
+            worker.verify_authority(config, slot.stat())
+    with pytest.raises(FileNotFoundError):
+        worker.verify_authority(config, slot.stat())
+
+
+@pytest.mark.parametrize("alias", ["/a/./b", "/a//b", "/a/b/", "//a/b", "/a/../b", "/a/\x00b"])
+def test_alias_rejects_non_normalized_spelling(tmp_path, alias):
+    with pytest.raises(ValueError, match="invalid_model_configuration"):
+        worker.load_config(config_file(tmp_path, authority_slot_directory=alias))
