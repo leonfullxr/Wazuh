@@ -36,11 +36,19 @@ export function CommandPalette({
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dialogRef = useRef<HTMLDialogElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const closeRef = useRef<HTMLButtonElement>(null);
     const invokingElementRef = useRef<HTMLElement | null>(null);
     useEffect(() => {
         function keydown(event: KeyboardEvent) {
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
                 event.preventDefault();
+                if (
+                    !open &&
+                    document.querySelector(
+                        '[role="dialog"][data-state="open"], [role="dialog"][aria-modal="true"], dialog:modal',
+                    )
+                )
+                    return;
                 if (
                     !open &&
                     document.activeElement instanceof HTMLElement &&
@@ -150,6 +158,16 @@ export function CommandPalette({
                 ref={dialogRef}
                 className="command-dialog"
                 aria-labelledby="command-title"
+                onKeyDown={(event) => {
+                    if (event.key !== "Tab") return;
+                    if (event.shiftKey && document.activeElement === inputRef.current) {
+                        event.preventDefault();
+                        closeRef.current?.focus();
+                    } else if (!event.shiftKey && document.activeElement === closeRef.current) {
+                        event.preventDefault();
+                        inputRef.current?.focus();
+                    }
+                }}
                 onCancel={(event) => {
                     event.preventDefault();
                     close();
@@ -242,6 +260,7 @@ export function CommandPalette({
                 </div>
                 <button
                     type="button"
+                    ref={closeRef}
                     className="command-close"
                     aria-label={spanish ? "Cerrar" : "Close"}
                     onClick={close}
