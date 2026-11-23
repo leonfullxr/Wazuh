@@ -37,7 +37,12 @@ from ai_soc.workspace.model.narrate import (
     recover_abandoned_calls,
     supported_generation,
 )
-from ai_soc.workspace.model.worker import ModelConfig, load_config, verify_binding
+from ai_soc.workspace.model.worker import (
+    ModelConfig,
+    load_config,
+    verify_binding,
+    verify_slot_file,
+)
 from ai_soc.workspace.worker import LEASE
 
 ConnectionFactory = Callable[[], psycopg.Connection[Any]]
@@ -159,16 +164,10 @@ def run_guardian(
     fcntl.flock(slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     if legacy_slot_fd is not None:
         fcntl.flock(legacy_slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        legacy = os.fstat(legacy_slot_fd)
-        entry = os.stat("slot-0.lock", dir_fd=slot_fd, follow_symlinks=False)
-        if (
-            not stat.S_ISREG(legacy.st_mode)
-            or legacy.st_uid != os.geteuid()
-            or legacy.st_mode & 0o077
-            or legacy.st_nlink != 1
-            or not os.path.samestat(legacy, entry)
-        ):
-            raise PermissionError("inherited_slot_identity_mismatch")
+        try:
+            verify_slot_file(slot_fd, legacy_slot_fd)
+        except PermissionError:
+            raise PermissionError("inherited_slot_identity_mismatch") from None
         os.set_inheritable(legacy_slot_fd, False)
     os.set_inheritable(slot_fd, False)
     job_and_generation: tuple[Job, Generation] | None = None

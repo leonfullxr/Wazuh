@@ -185,7 +185,7 @@ def protected_directory(path: Path) -> os.stat_result:
     return info
 
 
-def _verify_slot_file(directory_fd: int, fd: int) -> None:
+def verify_slot_file(directory_fd: int, fd: int) -> None:
     info = os.fstat(fd)
     try:
         entry = os.stat("slot-0.lock", dir_fd=directory_fd, follow_symlinks=False)
@@ -229,7 +229,7 @@ def acquire_slot(directory: Path, *, create: bool = True) -> PhysicalSlot | None
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
             raise PermissionError("slot_file_must_be_private")
-        _verify_slot_file(directory_fd, fd)
+        verify_slot_file(directory_fd, fd)
         if not os.path.samestat(os.fstat(directory_fd), protected_directory(directory)):
             raise PermissionError("slot_directory_changed")
         return PhysicalSlot(directory_fd, fd)
@@ -281,7 +281,7 @@ def verify_authority(config: ModelConfig, info: os.stat_result) -> None:
                 target = alias.stat()
                 alias_observed = True
                 resolved = alias.resolve(strict=True)
-            except FileNotFoundError:
+            except (FileNotFoundError, NotADirectoryError):
                 if alias_observed:
                     raise PermissionError("authority_slot_directory_changed") from None
                 raise
@@ -408,7 +408,7 @@ def _provision_binding_locked(
                 os.fsync(stream.fileno())
     if not os.path.samestat(os.fstat(slot.fd), protected_directory(config.slot_directory)):
         raise PermissionError("slot_directory_changed")
-    _verify_slot_file(slot.fd, slot.legacy_fd)
+    verify_slot_file(slot.fd, slot.legacy_fd)
     for site_id in sorted(config.site_ids):
         with site_transaction(conn, site_id, config.site_ids):
             prior = conn.execute(
@@ -430,7 +430,7 @@ def _provision_binding_locked(
                     ),
                 )
             verify_binding(conn, config, site_id, slot_fd=slot.fd)
-            _verify_slot_file(slot.fd, slot.legacy_fd)
+            verify_slot_file(slot.fd, slot.legacy_fd)
 
 
 def provision_model_role(conn: psycopg.Connection[Any], role: str) -> None:

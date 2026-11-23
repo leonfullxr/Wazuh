@@ -918,3 +918,74 @@ def test_slot_rejects_changed_later_entry_metadata(tmp_path, monkeypatch, field)
         patch.setattr(worker.os, "stat", changed_entry)
         with pytest.raises(PermissionError, match="slot_file_changed"):
             worker.acquire_slot(tmp_path)
+
+
+def test_guardian_rejects_changed_later_entry_link_count(tmp_path, monkeypatch):
+    import os
+    import stat
+
+    slot = worker.acquire_slot(tmp_path)
+    assert slot is not None
+    config = worker.ModelConfig(frozenset({"site"}), "host", "runtime", tmp_path)
+    original = worker.os.stat
+
+    def two_links(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path == "slot-0.lock" and kwargs.get("follow_symlinks") is False:
+            values = list(result)
+            values[stat.ST_NLINK] = 2
+            return os.stat_result(values)
+        return result
+
+    def unreachable():
+        raise AssertionError("guardian reached the database boundary")
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(worker.os, "stat", two_links)
+            with pytest.raises(PermissionError, match="inherited_slot_identity_mismatch"):
+                guardian.run_guardian(
+                    config=config,
+                    slot_fd=slot.fd,
+                    legacy_slot_fd=slot.legacy_fd,
+                    connect=unreachable,
+                    profile=CodexProfile(auth_path="/synthetic/auth"),
+                    provider=SimpleNamespace(),
+                )
+    finally:
+        slot.close()
+
+
+def test_alias_parent_replaced_by_file_is_changed(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    alias_parent = tmp_path / "alias-parent"
+    alias_parent.mkdir()
+    alias = alias_parent / "alias"
+    alias.symlink_to(slot)
+    authority = tmp_path / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}),
+        "host",
+        "runtime",
+        slot,
+        authority_path=authority,
+        authority_slot_directory=alias,
+    )
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    original = Path.lstat
+
+    def replace_alias_parent(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path == authority and alias_parent.is_dir():
+            alias_parent.rename(tmp_path / "old-alias-parent")
+            alias_parent.write_text("replacement")
+        return result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "lstat", replace_alias_parent)
+        with pytest.raises(PermissionError, match="authority_slot_directory_changed"):
+            worker.verify_authority(config, slot.stat())
