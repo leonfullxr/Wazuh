@@ -42,6 +42,7 @@ def run_once(
     handler: BatchHandler = _ping_handler,
     batch_size: int = 1,
     job_kinds: frozenset[str] | None = None,
+    target_job_id: int | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> int:
     """Claim a bounded batch, then atomically handle it under its live lease locks.
@@ -49,9 +50,12 @@ def run_once(
     A crash between claim and handler leaves recoverable leases. Handler exceptions
     roll back all effects and successors before fenced retry scheduling. An expired
     handler cannot commit effects even if nobody has reclaimed its job yet.
+    A targeted run uses the same leases for one job at one configured site.
     """
     if not 1 <= batch_size <= 500:
         raise ValueError("worker batch size must be in 1..500")
+    if target_job_id is not None and (batch_size != 1 or len(site_ids) != 1):
+        raise ValueError("targeted run requires one site and a batch of one")
     if job_kinds is None:
         job_kinds = getattr(handler, "job_kinds", None)
     for site_id in sorted(site_ids):
@@ -67,6 +71,7 @@ def run_once(
                     authorized_sites=site_ids,
                     kind=claimed[0].kind if claimed else None,
                     job_kinds=job_kinds,
+                    target_job_id=target_job_id,
                 )
                 if job is None:
                     break

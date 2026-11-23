@@ -136,6 +136,7 @@ def run_guardian(
     provider: CodexCLIProvider | None = None,
     heartbeat_interval: float = 10.0,
     cancel_event: threading.Event | None = None,
+    retry_transient_errors: bool = True,
 ) -> int:
     """Execute at most one authorization. Return 1 for a call and 0 for no ready work."""
     profile = profile if profile is not None else config.codex_profile()
@@ -249,6 +250,7 @@ def run_guardian(
                         usage=TokenUsage(None, None, None) if failure is None else failure.usage,
                         provenance=None if failure is None else failure.provenance,
                         elapsed_ms=elapsed_ms,
+                        retry_transient_errors=retry_transient_errors,
                     )
                 return 1
             except LeaseLost:

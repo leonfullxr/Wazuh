@@ -375,6 +375,7 @@ def finish_call(
     usage: TokenUsage = UNKNOWN_USAGE,
     provenance: GenerationProvenance | None = None,
     elapsed_ms: int = 0,
+    retry_transient_errors: bool = True,
 ) -> bool:
     """Retain one safe receipt; publish only against the current evidence/desired fence."""
     lock_live_job(conn, job=job, worker_id=worker_id, now=now)
@@ -481,7 +482,7 @@ def finish_call(
             lease_token=job.lease_token,
             now=cast(datetime, final_now[0]),
             error=error_code or "provider_unavailable",
-            retryable=error_code in TRANSIENT_ERRORS,
+            retryable=retry_transient_errors and error_code in TRANSIENT_ERRORS,
         )
     return published
 
