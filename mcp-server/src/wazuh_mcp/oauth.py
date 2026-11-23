@@ -4,6 +4,7 @@ OAuth 2.0 implementation with Dynamic Client Registration (DCR) support.
 Implements MCP 2026-07-28 authentication specification for Claude Desktop integration.
 """
 
+import base64
 import hashlib
 import html
 import ipaddress
@@ -24,6 +25,7 @@ from jwt.exceptions import PyJWTError as JWTError
 from wazuh_mcp.oidc import IdentityDenied, IdPError, OIDCProvider
 from wazuh_mcp.ui_theme import bar as _bar
 from wazuh_mcp.ui_theme import css as _ui_css
+from wazuh_mcp.ui_theme import icon as _icon
 
 logger = logging.getLogger(__name__)
 
@@ -853,15 +855,26 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
     """Create FastAPI router for OAuth endpoints."""
     router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
+    # Show/Hide for the API key field. Hashed so the CSP still allows no other script.
+    _REVEAL_SCRIPT = (
+        'document.querySelectorAll("[data-reveal]").forEach(function(b){'
+        'var f=document.getElementById(b.getAttribute("aria-controls"));'
+        'b.hidden=false;b.addEventListener("click",function(){'
+        'var show=f.type==="password";f.type=show?"text":"password";'
+        'b.setAttribute("aria-pressed",String(show));b.textContent=show?"Hide":"Show";});});'
+        'var bad=document.querySelector("[aria-invalid=true]");if(bad)bad.focus();'
+    )
+    _REVEAL_HASH = "sha256-" + base64.b64encode(hashlib.sha256(_REVEAL_SCRIPT.encode()).digest()).decode()
+
     def _page_headers(form_action: str) -> dict:
         # Chrome applies form-action to the redirect that follows the POST, so the client's
         # (already validated) redirect origin must be allowed or the 303 back is blocked.
-        # font-src data: is the vendored Source Sans 3 and Source Code Pro. Nothing else is loaded.
+        # font-src data: is the vendored Geist. Nothing else is loaded.
         return {
             "Cache-Control": "no-store",
             "X-Frame-Options": "DENY",
-            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; font-src data:; "
-            f"img-src 'none'; base-uri 'none'; form-action {form_action}; frame-ancestors 'none'",
+            "Content-Security-Policy": f"default-src 'none'; script-src '{_REVEAL_HASH}'; style-src 'unsafe-inline'; "
+            f"font-src data:; img-src 'none'; base-uri 'none'; form-action {form_action}; frame-ancestors 'none'",
             "Referrer-Policy": "no-referrer",
         }
 
@@ -869,14 +882,22 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         redirect = urlparse(redirect_uri)
         return f"{redirect.scheme}://" + re.sub(r"[^A-Za-z0-9.:\[\]-]", "", redirect.netloc)
 
-    def _document(title: str, main: str) -> str:
+    def _document(title: str, main: str, host: str = "", script: bool = False) -> str:
         esc = html.escape
+        tail = f"<script>{_REVEAL_SCRIPT}</script>" if script else ""
         return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
 <title>{esc(title)}</title><style>{_ui_css()}</style></head>
 <body><a class="skip" href="#main">Skip to content</a>
-{_bar("Sign-in")}
-<main id="main">{main}</main></body></html>"""
+{_bar("Sign-in", host)}
+<main id="main">{main}</main>{tail}</body></html>"""
+
+    def _result(tone: str, glyph: str, title: str, text: str, after: str = "") -> str:
+        """One result card: tinted icon tile, H1, one sentence, then an optional action."""
+        return (
+            f'<div class="sheet"><span class="tile {tone}">{_icon(glyph, 20)}</span>'
+            f'<h1>{html.escape(title)}</h1><p class="lead">{html.escape(text)}</p>{after}</div>'
+        )
 
     def _browser_error(status: int) -> HTMLResponse:
         """HTML for a browser that followed a bad authorize link. Do not echo the query string."""
@@ -890,7 +911,7 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
                 "Sign-in request rejected",
                 "A required value is missing, or the return address is not registered.",
             )
-        main = f'<div class="sheet"><h1>{html.escape(title)}</h1><p class="lead">{html.escape(text)}</p></div>'
+        main = _result("err", "alert", title, text)
         return HTMLResponse(_document(title, main), status_code=status, headers=_page_headers("'none'"))
 
     def _stopped_page(redirect_uri: str, params: dict, text: str) -> HTMLResponse:
@@ -898,10 +919,10 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         location = _client_location(redirect_uri, params)
         host = html.escape(urlparse(redirect_uri).netloc)
         title = "Sign-in stopped"
-        main = (
-            f'<div class="sheet"><h1>{title}</h1><p class="lead">{html.escape(text)}</p>'
+        main = _result(
+            "", "x", title, text,
             f'<p class="actions"><a class="go primary" href="{html.escape(location, quote=True)}">'
-            f"Return to {host}</a></p></div>"
+            f"Return to {host}</a></p>",
         )
         return HTMLResponse(_document(title, main), status_code=200, headers=_page_headers("'none'"))
 
@@ -915,7 +936,7 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
                 return False
         return False
 
-    def _login_page(client, redirect_uri, scope, state, code_challenge, error: Optional[str] = None, status=200):
+    def _login_page(request, client, redirect_uri, scope, state, code_challenge, error: Optional[str] = None, status=200):
         """Consent/login form. The user proves who they are with their wazuh_ API key; the
         grant then carries that key's identity and is capped at that key's scopes."""
         esc = html.escape
@@ -931,35 +952,48 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
                 ("code_challenge_method", "S256"),
             )
         )
-        scopes = [part for part in (scope or "").split() if part]
-        notes = {
-            "wazuh:read": "Read alerts, agents, and configuration.",
-            "wazuh:write": "Can run active response, including blocking an address or isolating a host.",
+        name = esc(client.client_name)
+        scope_cards = {
+            "wazuh:read": ("", "eye", "Read your security data",
+                           "Alerts, agents, vulnerabilities, compliance results and manager configuration."),
+            "wazuh:write": ("warn", "bolt", "Make changes with active response",
+                            "Block an IP address, isolate a host, or run other response commands on your agents. "
+                            "Each action is logged with your key."),
         }
-        rows = "".join(
-            f'<li class="{"write" if part == "wazuh:write" else ""}">'
-            f'<span class="name">{esc(part)}</span><span class="note">{esc(notes.get(part, "Requested scope."))}</span></li>'
-            for part in scopes
-        )
-        err = f'<p class="alert" role="alert">{esc(error)}</p>' if error else ""
+        rows = ""
+        for part in (p for p in (scope or "").split() if p):
+            tone, glyph, head, text = scope_cards.get(part, ("", "shield", "Other access", "Requested scope."))
+            rows += (
+                f'<li class="card {tone}"><span class="icon">{_icon(glyph, 18)}</span><div>'
+                f'<p class="head">{esc(head)} <span class="tag">{esc(part)}</span></p><p>{esc(text)}</p></div></li>'
+            )
         host = esc(urlparse(redirect_uri).netloc)
-        title = f"Authorize {client.client_name}"
+        server = esc(urlparse(oauth_manager.get_issuer_url(request)).netloc)
+        invalid = ' aria-invalid="true" aria-describedby="api_key_error"' if error else ""
+        err = f'<p class="alert" id="api_key_error" role="alert">{esc(error)}</p>' if error else ""
+        title = f"Allow {client.client_name} to use this Wazuh server"
         main = f"""<div class="split-page"><section>
+<p class="eyebrow">Connect an application</p>
 <h1>{esc(title)}</h1>
-<p class="lead">The API key is checked on this server. The browser then returns to {host}.</p>
-<dl class="facts"><div><dt>Application</dt><dd>{esc(client.client_name)}</dd></div>
-<div><dt>Returns to</dt><dd>{host}</dd></div></dl>
-<h2>Access</h2><ul class="access">{rows}</ul>
+<p class="lead">Your API key is checked here, on the server, and is never sent to {name}. After you allow access, the browser returns to {host}.</p>
+<dl class="facts"><div><dt>Application</dt><dd>{name} <span class="chip"><span class="pre">client&nbsp;</span>{esc(client.client_id)}</span></dd></div>
+<div><dt>Returns to</dt><dd>{host}</dd></div>
+<div><dt>Wazuh server</dt><dd>{server}</dd></div></dl>
+<h2>What {name} asks for</h2><ul class="scopes">{rows}</ul>
+<p class="secondary" style="margin-top:12px">{name} gets at most what your API key allows. A read-only key grants read access only, even though write was requested.</p>
 </section>
-<section class="form-pane">{err}
+<section class="form-pane" aria-labelledby="signin-heading">
+<h2 id="signin-heading">Sign in with your API key</h2>
 <form method="post" action="authorize">{hidden}
 <label for="api_key">API key</label>
-<input id="api_key" name="api_key" type="password" autocomplete="current-password" placeholder="wazuh_..." spellcheck="false">
-<div class="actions"><button type="submit" name="decision" value="allow" class="primary">Authorize</button>
+<div class="reveal"><input id="api_key" name="api_key" type="password" autocomplete="current-password" placeholder="wazuh_..." spellcheck="false"{invalid}>
+<button type="button" data-reveal aria-controls="api_key" aria-pressed="false" hidden>Show</button></div>
+{err}<p class="hint" style="margin-top:6px">Starts with wazuh_. Ask your Wazuh administrator if you don't have one.</p>
+<div class="actions"><button type="submit" name="decision" value="allow" class="primary">Allow access</button>
 <button type="submit" name="decision" value="deny">Deny</button></div>
 </form></section></div>"""
         return HTMLResponse(
-            _document(title, main),
+            _document(title, main, server, script=True),
             status_code=status,
             headers=_page_headers(f"'self' {_redirect_origin(redirect_uri)}"),
         )
@@ -1044,9 +1078,10 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         pending = oauth_manager.consume_pending_login(state or "")
         if pending is None:
             if _prefers_html(request):
-                main = (
-                    '<div class="sheet"><h1>Sign-in session expired</h1>'
-                    '<p class="lead">This sign-in session is unknown or has expired. Start again from the application.</p></div>'
+                main = _result(
+                    "warn", "clock", "Sign-in session expired",
+                    "This sign-in took longer than 10 minutes or was already used. For your safety it can't be resumed.",
+                    '<p class="secondary">Start again from the application.</p>',
                 )
                 return HTMLResponse(_document("Sign-in session expired", main), status_code=400, headers=_page_headers("'none'"))
             return JSONResponse(
@@ -1152,7 +1187,7 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
             scope = oauth_manager.bound_scope(None, client)
         if oauth_manager.requires_idp:
             return await _start_idp_login(request, client, redirect_uri, scope, state, code_challenge)
-        return _login_page(client, redirect_uri, scope, state, code_challenge)
+        return _login_page(request, client, redirect_uri, scope, state, code_challenge)
 
     @router.post("/authorize")
     async def authorize_submit(
@@ -1196,13 +1231,20 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
 
         if not api_key or not api_key.strip():
             return _login_page(
-                client, redirect_uri, scope, state, code_challenge, error="Enter your API key.", status=400
+                request, client, redirect_uri, scope, state, code_challenge, error="Enter your API key.", status=400
             )
         key = auth_manager.validate_api_key(api_key.strip())
         if key is None:
             logger.warning(f"OAuth login failed for client {client_id}: invalid API key")
             return _login_page(
-                client, redirect_uri, scope, state, code_challenge, error="That API key isn't valid.", status=401
+                request,
+                client,
+                redirect_uri,
+                scope,
+                state,
+                code_challenge,
+                error="That API key wasn't accepted. Check that you copied all of it, including wazuh_.",
+                status=401,
             )
 
         # Requested & what the client is registered for & what this user's key allows
@@ -1210,6 +1252,7 @@ def create_oauth_router(oauth_manager: OAuthManager) -> APIRouter:
         granted = client_scope & set(key.scopes)
         if not granted:
             return _login_page(
+                request,
                 client,
                 redirect_uri,
                 scope,

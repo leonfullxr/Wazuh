@@ -24,7 +24,10 @@ async def test_viewer_resource_with_forbidden_default(monkeypatch):
     assert 'role="listbox"' in content["text"]
     assert "ArrowDown" in content["text"]
     assert "dateTime" in content["text"]
-    assert "Source Code Pro" in content["text"]
+    assert "font-family:'Geist'" in content["text"]
+    assert "Source Code Pro" not in content["text"]
+    # Alert strings reach the page only as text nodes.
+    assert "innerHTML" not in timeline_viewer.SCRIPT and "insertAdjacentHTML" not in timeline_viewer.SCRIPT
     monkeypatch.setattr(cluster_policy, "authorize_cluster", lambda token, cluster, scope: False)
     assert (await handlers.handle_resources_list({}, session))["resources"] == []
     with pytest.raises(handlers.ResourceNotFound):

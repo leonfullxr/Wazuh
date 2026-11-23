@@ -3,61 +3,66 @@
 import base64
 import hashlib
 
-from wazuh_mcp.ui_theme import bar as _bar
 from wazuh_mcp.ui_theme import css as _ui_css
+from wazuh_mcp.ui_theme import icon as _icon
 
 URI = "ui://wazuh/agent-timeline.html"
 MIME = "text/html;profile=mcp-app"
 
 _LAYOUT = r'''
-.timeline-head { max-width: 68rem; margin: 0 auto; padding: 28px 28px 8px; }
-.timeline-head .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 16px 28px; border-top: 0; }
-.timeline-head .facts div { display: block; border-bottom: 0; padding: 0; }
-time { display: inline; }
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
-  min-height: calc(100vh - 64px);
-  border-top: 1px solid var(--line);
-}
-.events-pane { border-right: 1px solid var(--line); padding: 16px 0 32px; min-width: 0; }
-.evidence-pane { padding: 16px 28px 40px; min-width: 0; }
-.events-pane h2, .evidence-pane h2 { margin: 0 20px 8px; }
-#events { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+body { min-height: 0; padding: 8px; }
+.frame { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.head { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.kicker { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; color: var(--muted); font-size: 12px; line-height: 18px; }
+.kicker svg { color: var(--accent); }
+.title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.head h1 { margin: 0; font-size: 20px; line-height: 28px; }
+.head .agent-id { color: var(--ink-2); }
+.inline-facts { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 8px 0 0; }
+.inline-facts div { display: flex; align-items: baseline; gap: 6px; }
+.coverage { display: grid; gap: 4px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.coverage h2 { margin: 0 0 4px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--muted); }
+.source { display: grid; grid-template-columns: 6.5rem auto 1fr; gap: 10px; align-items: center; padding: 6px 10px; background: var(--bg); border-radius: 8px; }
+.source .label { font-weight: 500; }
+.source .note { color: var(--ink-2); }
+#status { margin: 0; padding: 8px 20px 0; min-height: 0; color: var(--muted); font-size: 12px; line-height: 18px; }
+#status:empty { display: none; }
+.workspace { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 22rem; }
+.events-pane { border-right: 1px solid var(--line); padding: 12px 0; min-width: 0; }
+.evidence-pane { padding: 16px 20px 20px; min-width: 0; }
+.events-pane h2 { margin: 0 16px 8px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--muted); }
+#events { list-style: none; padding: 0; margin: 0; }
 #events button {
-  display: block;
-  width: 100%;
-  min-height: 48px;
-  margin: 0;
-  padding: 8px 20px;
-  text-align: left;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  font-weight: 600;
-  font-size: 16px;
+  display: grid; gap: 2px; justify-content: stretch; justify-items: start; width: 100%; min-height: 0; margin: 0; padding: 8px 16px;
+  text-align: left; border: 0; border-radius: 0; box-shadow: none; background: transparent;
+  font-weight: 400; line-height: 21px;
 }
-#events button[aria-selected="true"] { box-shadow: inset 3px 0 0 var(--focus); background: var(--field); }
-#events time { display: block; margin-top: 2px; }
-pre {
-  margin: 0;
-  padding: 16px;
-  background: var(--field);
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font: 15px/1.55 "Source Code Pro", ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-}
-#status { min-height: 1.5em; }
-#sources { white-space: pre-line; max-width: 70ch; }
-@media (max-width: 800px) {
-  .timeline-head { padding: 20px 16px 8px; }
-  .timeline-head .facts { grid-template-columns: 1fr; gap: 12px 0; }
+#events button:hover { background: var(--hover); }
+#events button[aria-selected="true"] { background: var(--accent-subtle); box-shadow: inset 3px 0 0 var(--accent); }
+#events button:focus-visible { outline-offset: -2px; }
+#events time { font-weight: 600; }
+#events .desc { font-weight: 500; overflow-wrap: anywhere; }
+#events .meta { color: var(--muted); font-size: 12px; line-height: 18px; }
+.empty { margin: 0 16px; color: var(--ink-2); }
+.empty strong { display: block; color: var(--ink); font-weight: 500; }
+.truncated { margin: 8px 16px 0; padding: 8px 10px; border-radius: 8px; background: var(--warn-subtle); color: var(--warn); font-size: 12px; line-height: 18px; }
+.ev-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.ev-title h2 { margin: 0; overflow-wrap: anywhere; }
+.segmented { display: inline-flex; padding: 2px; margin: 0 0 12px; gap: 2px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+.segmented button { min-height: 28px; padding: 0 10px; border: 0; box-shadow: none; background: transparent; color: var(--ink-2); border-radius: 6px; font-size: 13px; }
+.segmented button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 4%); }
+#fields { margin: 0; }
+#fields div { display: grid; grid-template-columns: 7rem 1fr; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.well, #raw { margin: 12px 0 0; padding: 12px; background: var(--panel-2); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-variant-numeric: tabular-nums; }
+#raw { margin: 0; }
+.footnote { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 18px; }
+@media (max-width: 640px) {
+  body { padding: 0; }
+  .frame { border-radius: 0; border-left: 0; border-right: 0; }
   .workspace { grid-template-columns: 1fr; }
   .events-pane { border-right: 0; border-bottom: 1px solid var(--line); }
-  .evidence-pane { padding: 16px; }
+  .source { grid-template-columns: 1fr auto; }
+  .source .note { grid-column: 1 / -1; }
 }
 '''
 
@@ -67,6 +72,12 @@ SCRIPT = r'''
   "use strict";
   const host = window.parent;
   const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = String(text);
+    return node;
+  };
   let ready = false,
     nextId = 2,
     pending = new Map(),
@@ -74,46 +85,102 @@ SCRIPT = r'''
   const put = (id, value) => {
     $(id).textContent = value == null ? "Unavailable" : String(value);
   };
-  const stamp = (iso) => {
-    const node = document.createElement("time");
-    if (iso == null || iso === "") {
-      node.textContent = "Unavailable";
-      return node;
-    }
+  const parse = (iso) => {
     const date = new Date(iso);
-    const raw = String(iso);
-    if (Number.isNaN(date.getTime())) {
-      node.textContent = raw;
-      node.dateTime = raw;
-      node.title = raw;
+    return iso == null || iso === "" || Number.isNaN(date.getTime()) ? null : date;
+  };
+  const fmt = (date, opts) =>
+    new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", hourCycle: "h23", ...opts }).format(date);
+  const hm = (date) => fmt(date, { hour: "2-digit", minute: "2-digit" });
+  const day = (date) => fmt(date, { day: "numeric", month: "short" });
+  const stamp = (iso, opts) => {
+    const node = document.createElement("time");
+    const date = parse(iso);
+    if (!date) {
+      node.textContent = iso == null || iso === "" ? "Unavailable" : String(iso);
       return node;
     }
-    const exact = date.toISOString();
-    node.dateTime = exact;
-    node.title = exact;
-    node.textContent = new Intl.DateTimeFormat(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
+    node.dateTime = node.title = date.toISOString();
+    node.textContent = opts ? fmt(date, opts) : `${day(date)}, ${hm(date)} UTC`;
     return node;
   };
-  const localText = (iso) => {
-    const date = new Date(iso);
-    if (iso == null || iso === "" || Number.isNaN(date.getTime())) return iso == null || iso === "" ? "unavailable" : String(iso);
-    return new Intl.DateTimeFormat(undefined, {
-      year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-    }).format(date);
-  };
-  const fillTime = (id, iso) => $(id).replaceChildren(stamp(iso));
-  const fillSpan = (id, start, end) => {
-    const node = $(id);
-    node.replaceChildren(stamp(start), document.createTextNode(" to "), stamp(end));
+  const tag = (tone, word) => el("span", `tag ${tone}`, word);
+  const source = (label, tone, word, note) => {
+    const row = el("div", "source");
+    row.append(el("span", "label", label), tag(tone, word), el("span", "note", note));
+    return row;
   };
   const send = (message) =>
     host.postMessage({ jsonrpc: "2.0", ...message }, "*");
+  const ref = (value) => {
+    const chip = el("span", "chip");
+    chip.title = "Evidence reference, valid for 15 minutes";
+    chip.append(el("span", "pre", "ev_"), document.createTextNode(`${String(value).slice(3, 11)}...`));
+    return chip;
+  };
+  function drawWindow(start, end) {
+    const a = parse(start), b = parse(end), node = $("window");
+    if (!a || !b) return node.replaceChildren(stamp(start), " to ", stamp(end));
+    const head = stamp(start), tail = stamp(end, { hour: "2-digit", minute: "2-digit" });
+    head.textContent = `${day(a)}, ${hm(a)}`;
+    tail.textContent = day(a) === day(b) ? hm(b) : `${day(b)}, ${hm(b)}`;
+    node.replaceChildren(head, " to ", tail, " UTC");
+  }
+  function drawSources(alerts, agent) {
+    const rows = [];
+    if (alerts.status === "complete")
+      rows.push(source("Alerts", "ok", "Complete", `${alerts.returned ?? 0} of ${alerts.matched ?? alerts.returned ?? 0} matching alerts shown`));
+    else if (alerts.status === "partial")
+      rows.push(source("Alerts", "warn", "Partial", alerts.matched == null ? `Latest ${alerts.returned ?? 0} matches shown, total unknown` : `Latest ${alerts.returned ?? 0} of ${alerts.matched} matches shown`));
+    else rows.push(source("Alerts", "err", "Unavailable", "The indexer didn't answer"));
+    const seen = parse(agent.observed_at), word = agent.observation?.status;
+    if (agent.status === "available" && word)
+      rows.push(source("Agent status", "ok", "Available", `${word[0].toUpperCase()}${word.slice(1)}${seen ? ` at ${hm(seen)}` : ""}, a reading at collection time, not history`));
+    else rows.push(source("Agent status", "err", "Unavailable", "The manager didn't answer, so the agent's current status is unknown"));
+    $("sources").replaceChildren(...rows);
+  }
+  function empty(strong, text) {
+    const p = el("p", "empty");
+    p.append(el("strong", null, strong), document.createTextNode(text));
+    return p;
+  }
+  function showView(raw) {
+    $("view-fields").setAttribute("aria-pressed", String(!raw));
+    $("view-raw").setAttribute("aria-pressed", String(raw));
+    $("fields-view").hidden = raw;
+    $("raw").hidden = !raw;
+  }
+  function drawEvidence(event) {
+    const rule = event.rule || {}, agent = event.agent || {}, data = event.data || {};
+    const mitre = rule.mitre?.id || rule.mitre?.technique;
+    const rows = [
+      ["Time", event.timestamp],
+      ["Rule", rule.id],
+      ["Level", rule.level],
+      ["Agent", agent.name && agent.id ? `${agent.name} (${agent.id})` : agent.name || agent.id],
+      ["Source IP", data.srcip],
+      ["User", data.srcuser || data.dstuser],
+      ["Location", event.location],
+      ["MITRE", Array.isArray(mitre) ? mitre.join(", ") : mitre],
+      ["Groups", Array.isArray(rule.groups) ? rule.groups.join(", ") : rule.groups],
+    ];
+    const list = $("fields");
+    list.replaceChildren();
+    for (const [label, value] of rows) {
+      if (value == null || value === "") continue;
+      const row = el("div");
+      row.append(el("dt", null, label), el("dd", null, value));
+      list.append(row);
+    }
+    const log = $("full-log");
+    log.hidden = !event.full_log;
+    log.replaceChildren();
+    if (event.full_log) log.append(el("dt", null, "Full log"), el("dd", "well", event.full_log));
+    $("raw").textContent = JSON.stringify(event, null, 2);
+    $("ev-heading").textContent = rule.description || `Rule ${rule.id ?? "unavailable"}`;
+    $("ev-body").hidden = false;
+    put("detail", "");
+  }
   function draw(data) {
     if (
       !data ||
@@ -124,24 +191,31 @@ SCRIPT = r'''
       return;
     }
     current = data;
-    put("agent", data.agent_id);
+    $("agent-name").textContent = data.agent_name || `Agent ${data.agent_id ?? "unavailable"}`;
+    $("agent-id").textContent = data.agent_name ? `Agent ${data.agent_id}` : "";
     put("cluster", data.cluster);
-    fillSpan("window", data.window?.from, data.window?.to);
-    fillTime("collected", data.collected_at);
+    drawWindow(data.window?.from, data.window?.to);
+    $("collected").replaceChildren(stamp(data.collected_at));
     const alerts = data.sources?.alerts || {},
       agent = data.sources?.agent_status || {};
-    put(
-      "sources",
-      `Alerts: ${alerts.status ?? "unavailable"} · ${alerts.returned ?? 0} returned · matched: ${alerts.matched ?? "unknown"} · truncated: ${alerts.truncated === true ? "yes" : "no"}\nAgent status: ${agent.status ?? "unavailable"} · observed: ${localText(agent.observed_at)} · ${agent.observation?.status ?? "unavailable"}`,
-    );
-    const list = $("events");
+    drawSources(alerts, agent);
+    put("status", "");
+    const list = $("events"), pane = $("events-pane");
     list.replaceChildren();
-    put(
-      "status",
-      data.events.length
-        ? `${data.events.length} events, oldest first. Select an event to retrieve current evidence.`
-        : "No events returned. Check source coverage before drawing conclusions.",
-    );
+    for (const node of pane.querySelectorAll(".empty, .truncated")) node.remove();
+    const items = data.events.filter((item) => item && typeof item.evidence_ref === "string");
+    $("events-heading").textContent = `${items.length} ${items.length === 1 ? "event" : "events"}, oldest first`;
+    if (!items.length) {
+      if (alerts.status === "complete" && alerts.matched === 0)
+        pane.append(empty("No alerts in this window.", ` The indexer answered and found nothing for this agent between ${$("window").textContent}. That is a real empty result, not missing data.`));
+      else if (alerts.status !== "complete" && alerts.status !== "partial")
+        pane.append(empty("Alerts couldn't be checked.", " The indexer was unreachable, so this is not evidence that nothing happened."));
+      else pane.append(empty("No events returned.", " Check source coverage before drawing conclusions."));
+    }
+    if (alerts.truncated === true)
+      pane.append(el("p", "truncated", alerts.matched == null
+        ? `Showing the latest ${alerts.returned ?? items.length} matches. Narrow the window to see earlier ones.`
+        : `Showing the latest ${alerts.returned ?? items.length} of ${alerts.matched} matches. Narrow the window to see earlier ones.`));
     const choose = (button) => {
       for (const other of list.querySelectorAll("button")) {
         other.setAttribute("aria-selected", "false");
@@ -150,7 +224,10 @@ SCRIPT = r'''
       button.setAttribute("aria-selected", "true");
       button.tabIndex = 0;
       button.focus();
-      put("detail", "Retrieving evidence…");
+      $("ev-body").hidden = true;
+      $("ev-heading").textContent = button.dataset.title;
+      $("ev-ref").replaceChildren(ref(button.dataset.ref));
+      put("detail", "Retrieving evidence...");
       const id = nextId++;
       pending.clear();
       pending.set(id, true);
@@ -167,19 +244,21 @@ SCRIPT = r'''
       });
     };
     let first = true;
-    for (const item of data.events) {
-      if (!item || typeof item.evidence_ref !== "string") continue;
+    for (const item of items) {
       const li = document.createElement("li"),
-        button = document.createElement("button"),
-        rule = document.createElement("span");
+        button = document.createElement("button");
+      li.setAttribute("role", "none");
       button.type = "button";
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", "false");
       button.tabIndex = first ? 0 : -1;
       first = false;
       button.dataset.ref = item.evidence_ref;
-      rule.textContent = `Rule ${item.rule_id ?? "unavailable"}`;
-      button.append(rule, stamp(item.at));
+      const title = item.description || `Rule ${item.rule_id ?? "unavailable"}`;
+      button.dataset.title = title;
+      button.append(stamp(item.at, { hour: "2-digit", minute: "2-digit", second: "2-digit" }), el("span", "desc", title));
+      if (item.description || item.level != null)
+        button.append(el("span", "meta", `Rule ${item.rule_id ?? "unavailable"}${item.level != null ? `, level ${item.level}` : ""}`));
       button.addEventListener("click", () => choose(button));
       li.append(button);
       list.append(li);
@@ -200,6 +279,8 @@ SCRIPT = r'''
       choose(buttons[next]);
     };
   }
+  $("view-fields").addEventListener("click", () => showView(false));
+  $("view-raw").addEventListener("click", () => showView(true));
   window.addEventListener("message", (event) => {
     const msg = event.data;
     if (event.source !== host || !msg || msg.jsonrpc !== "2.0") return;
@@ -234,10 +315,12 @@ SCRIPT = r'''
         msg.error ||
         msg.result?.isError ||
         !result ||
-        result.status !== "available"
+        result.status !== "available" ||
+        !result.event ||
+        typeof result.event !== "object"
       )
         put("detail", "Evidence unavailable or access has changed.");
-      else put("detail", JSON.stringify(result.event, null, 2));
+      else drawEvidence(result.event);
     }
     if (msg.method === "ui/resource-teardown" && msg.id != null)
       send({ id: msg.id, result: {} });
@@ -276,29 +359,38 @@ def html() -> str:
   <style>{style}</style>
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
-  {_bar("Investigation")}
-  <main id="main">
-    <div class="timeline-head">
-      <h1>Agent timeline</h1>
-      <dl class="facts">
-        <div><dt>Agent</dt><dd id="agent">Waiting for timeline</dd></div>
+  <main id="main" class="frame">
+    <header class="head">
+      <p class="kicker">{_icon("shield", 14)}Wazuh MCP / Investigation timeline</p>
+      <div class="title-row"><h1 id="agent-name">Agent timeline</h1><span class="agent-id" id="agent-id"></span></div>
+      <dl class="inline-facts">
         <div><dt>Cluster</dt><dd id="cluster">Unavailable</dd></div>
         <div><dt>Window</dt><dd id="window">Unavailable</dd></div>
         <div><dt>Collected</dt><dd id="collected">Unavailable</dd></div>
       </dl>
-      <h2>Source coverage</h2>
-      <p id="sources">Waiting for timeline data.</p>
-      <p id="status" role="status">Connecting to host…</p>
-    </div>
+    </header>
+    <section class="coverage" aria-labelledby="coverage-heading">
+      <h2 id="coverage-heading">Source coverage</h2>
+      <div id="sources"><p class="secondary">Waiting for timeline data.</p></div>
+    </section>
+    <p id="status" role="status">Connecting to host...</p>
     <div class="workspace">
-      <section class="events-pane" aria-labelledby="events-heading">
+      <section class="events-pane" id="events-pane" aria-labelledby="events-heading">
         <h2 id="events-heading">Events</h2>
-        <ul id="events" role="listbox" aria-label="Timeline events"></ul>
+        <ul id="events" role="listbox" aria-labelledby="events-heading"></ul>
       </section>
-      <section class="evidence-pane" aria-labelledby="evidence-heading">
-        <h2 id="evidence-heading">Evidence</h2>
-        <pre id="detail">Select an event to view its record.</pre>
+      <section class="evidence-pane" aria-labelledby="ev-heading">
+        <div class="ev-title"><h2 id="ev-heading">Evidence</h2><span id="ev-ref"></span></div>
+        <p id="detail" role="status">Select an event to view its record.</p>
+        <div id="ev-body" hidden>
+          <div class="segmented" role="group" aria-label="Evidence view">
+            <button type="button" id="view-fields" aria-pressed="true">Fields</button>
+            <button type="button" id="view-raw" aria-pressed="false">Raw record</button>
+          </div>
+          <div id="fields-view"><dl id="fields"></dl><dl id="full-log" hidden></dl></div>
+          <pre id="raw" hidden></pre>
+          <p class="footnote">Fetched again when you select it, with your current access. Values are shown as plain text.</p>
+        </div>
       </section>
     </div>
   </main>

@@ -77,7 +77,7 @@ Tokens survive restarts and work across replicas only if `AUTH_SECRET_KEY` is se
 |---------|-------|-----|
 | `401 {"detail":"Invalid or expired OAuth token"}` on `/mcp` | The access token expired (`OAUTH_ACCESS_TOKEN_TTL`), was revoked, `AUTH_SECRET_KEY` changed (or is unset and was regenerated at restart), or the API key the user signed in with was removed | Let the client refresh or re-authorize |
 | `404 {"detail":"OAuth not enabled. Set AUTH_MODE=oauth to enable."}` on `/.well-known/...` | The server is in bearer or authless mode | Set `AUTH_MODE=oauth` and run `docker compose up -d` |
-| The sign-in page says `That API key isn't valid.` | The pasted key is not configured | Use a key from `MCP_API_KEY` or `API_KEYS`. OAuth sign-in needs at least one configured key |
+| The sign-in page says `That API key wasn't accepted. Check that you copied all of it, including wazuh_.` | The pasted key is not configured | Use a key from `MCP_API_KEY` or `API_KEYS`. OAuth sign-in needs at least one configured key |
 | The sign-in page says `Your API key has none of the requested scopes.` | The key's scopes do not overlap with the client's request | Grant the key `wazuh:read` (and `wazuh:write` if needed) |
 | The client is redirected to the wrong host, or discovery metadata shows an internal URL | The issuer is derived from the request, and the proxy is not trusted | Set `OAUTH_ISSUER_URL` to the public URL, or add the proxy to `TRUSTED_PROXIES` |
 | `400 "Dynamic client registration is disabled"` from `/oauth/register` | `OAUTH_ENABLE_DCR` is off, which is the default | Enable it if your client requires DCR |

@@ -101,6 +101,8 @@ class TestNoAnonymousGrant:
         r, tokens = await _login(env, "wazuh_" + "x" * 43)
         assert r.status_code == 401 and tokens is None
         assert not env.mgr.authorization_codes
+        assert 'aria-invalid="true" aria-describedby="api_key_error"' in r.text
+        assert 'id="api_key_error" role="alert"' in r.text
 
     @pytest.mark.asyncio
     async def test_unregistered_redirect_is_not_followed(self, env):
@@ -216,8 +218,8 @@ async def test_consent_page_names_scopes_and_can_deny(env):
     assert "claude.ai" in page.text
     assert "color-scheme: light dark" in page.text
     assert 'class="wordmark"' in page.text
-    assert "Source Sans 3" in page.text
-    assert "Source Code Pro" in page.text
+    assert "font-family:'Geist'" in page.text
+    assert 'aria-pressed="false"' in page.text
     assert 'class="split-page"' in page.text
     assert "align-items: safe center" not in page.text
     denied = await env.client.post(
