@@ -61,6 +61,7 @@ import { OverviewPage, type AlertDrilldown } from "../features/overview/Overview
 import { AlertsPage, type AlertFilterPatch } from "../features/alerts/AlertsPage";
 import { QueuePage } from "../features/queue/QueuePage";
 import { MetricsPage } from "../features/metrics/MetricsPage";
+import { WorkspaceLoading } from "../features/workspace/WorkspaceStates";
 import { DashboardPage } from "../features/dashboards/DashboardPage";
 import { M3WorkspacePage } from "../features/incidents/M3WorkspacePage";
 import { ThemeProvider } from "../components/theme/theme-menu";
@@ -181,7 +182,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
         document.title = `AI SOC | ${t(route)}`;
     }, [route, locale]);
     useEffect(() => {
-        if (!bootstrap) return;
+        if (!bootstrap || sitesQuery.isLoading) return;
         const available = sitesQuery.data?.items ?? [];
         const nextSite = available.some((site) => site.site_id === selectedSite)
             ? selectedSite
@@ -196,7 +197,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
         const nextActiveModel = bootstrap.models.find((candidate) => candidate.id === nextModel);
         if (effort && !nextActiveModel?.efforts.some((candidate) => candidate === effort))
             setEffort("");
-    }, [bootstrap, effort, model, selectedSite, sitesQuery.data]);
+    }, [bootstrap, effort, model, selectedSite, sitesQuery.data, sitesQuery.isLoading]);
     useEffect(() => {
         const u = new URL(location.href);
         u.searchParams.set("scenario", scenario);
@@ -480,6 +481,11 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
         incidents: navOverview.data?.totals.open_incidents,
         chains: navChains.data?.items.length,
     };
+    const selectingInitialSite =
+        !selectedSite &&
+        (boot.isLoading ||
+            sitesQuery.isLoading ||
+            (!!bootstrap && (!!bootstrap.sites.length || !!sitesQuery.data?.items.length)));
     const alertFilters = {
         siteId: selectedSite,
         from,
@@ -609,7 +615,10 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                             }
                         />
                     )}
-                    {route === "queue" && (
+                    {route === "queue" && selectingInitialSite && (
+                        <WorkspaceLoading label={t("queue")} />
+                    )}
+                    {route === "queue" && !selectingInitialSite && (
                         <QueuePage
                             siteId={selectedSite}
                             from={from}
@@ -630,7 +639,10 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                             onFilters={(values) => updateUrl(values, "queue")}
                         />
                     )}
-                    {route === "metrics" && (
+                    {route === "metrics" && selectingInitialSite && (
+                        <WorkspaceLoading label={t("metrics")} />
+                    )}
+                    {route === "metrics" && !selectingInitialSite && (
                         <MetricsPage siteId={selectedSite} from={from} to={to} t={t} />
                     )}
                     {(route === "ai_quality" || route === "soc_operations") && (
