@@ -1,7 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Panel } from "../../components/ui/panel";
-import { Sheet, SheetContent } from "../../components/ui/sheet";
+import {
+    IdChip,
+    KeyHints,
+    ShareBar,
+    SlaText,
+    ViewTabs,
+    slaFrom,
+} from "../../components/ui/portfolio";
+import { createIncident } from "../../api/workspace-m3";
+import { useSamples } from "../workspace/samples";
 import { Tag } from "../../components/ui/tag";
 import { dispositionTags, statusTags } from "../../lib/semantic";
 import { humanizeKey, isFlatRecord } from "../../lib/utils";
@@ -9,12 +17,24 @@ import { WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates
 import * as api from "../../api/workspace";
 import type { DispositionLabel, GroupDetail, WorkStatus } from "../../api/workspace";
 import "./queue-v2.css";
-import { AssessmentPanel, assessmentLabel } from "./AssessmentPanel";
+import "./queue-pp.css";
+import { AssessmentPanel } from "./AssessmentPanel";
 import type { Locale } from "../../i18n";
 import { falsePositiveReasonText } from "../../i18n/workspace-copy";
 
 type Translate = (key: string) => string;
 type QueueFilterPatch = Record<string, string | null | undefined>;
+type QueueView = "all" | "near_sla" | "new" | "in_progress" | "closed";
+const ownerKeyStorage = "ai-soc:owner-key";
+function readMyOwnerKey(): string {
+    try {
+        const stored = localStorage.getItem(ownerKeyStorage);
+        if (stored) return stored;
+    } catch {
+        /* storage can be unavailable */
+    }
+    return import.meta.env.MODE === "live" ? "" : "analyst:demo";
+}
 const statusKeys: Record<WorkStatus, string> = {
     new: "newStatus",
     in_progress: "inProgress",
@@ -51,12 +71,27 @@ export function QueuePage({
     const queryClient = useQueryClient();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [ownerDraft, setOwnerDraft] = useState("");
     const [bulkLabel, setBulkLabel] = useState<DispositionLabel>("undetermined");
     const [bulkReason, setBulkReason] = useState("");
     const [bulkNote, setBulkNote] = useState("");
     const [propagate, setPropagate] = useState(false);
     const [actionMessage, setActionMessage] = useState("");
+    const [bulkMode, setBulkMode] = useState<"disposition" | null>(null);
+    const [dispositionIntent, setDispositionIntent] = useState<{
+        id: string;
+        label: DispositionLabel;
+    } | null>(null);
+    const [me, setMeState] = useState(readMyOwnerKey);
+    const setMe = (value: string) => {
+        setMeState(value);
+        try {
+            localStorage.setItem(ownerKeyStorage, value);
+        } catch {
+            /* storage can be unavailable; the key stays for this session */
+        }
+    };
+    const samples = useSamples();
+    const detailRef = useRef<HTMLElement>(null);
     const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
     const filterKey = params.toString();
     useEffect(() => {
@@ -77,10 +112,26 @@ export function QueuePage({
         ruleId: params.get("rule_id") ?? undefined,
         cursor: params.get("cursor") ?? undefined,
     };
+    const view: QueueView =
+        params.get("view") === "near_sla"
+            ? "near_sla"
+            : filters.status === "new" || filters.status === "in_progress" || filters.status === "closed"
+              ? filters.status
+              : "all";
     const queueQuery = useQuery({
         queryKey: ["workspace", "queue", filters],
         queryFn: ({ signal }) => api.listQueue(filters, signal),
     });
+    const allFilters: api.QueueFilters = { ...filters, status: undefined };
+    const allQuery = useQuery({
+        queryKey: ["workspace", "queue", allFilters],
+        queryFn: ({ signal }) => api.listQueue(allFilters, signal),
+    });
+    useEffect(() => {
+        if (selectedId || !queueQuery.data?.items.length) return;
+        if (!window.matchMedia?.("(min-width: 1100px)").matches) return;
+        setSelectedId(queueQuery.data.items[0]?.group.group_id ?? null);
+    }, [queueQuery.data, selectedId]);
     const detailQuery = useQuery({
         queryKey: ["workspace", "group", siteId, selectedId],
         queryFn: ({ signal }) => api.getGroup(siteId, selectedId ?? "", undefined, signal),
@@ -242,9 +293,38 @@ export function QueuePage({
     });
 
     const rows = queueQuery.data?.items ?? [];
+    const allRows = allQuery.data?.items ?? rows;
+    const slaFor = (groupId: string) => {
+        const sample = samples?.groupSla[groupId];
+        return sample ? slaFrom(sample) : undefined;
+    };
+    const nearSla = (groupId: string) => {
+        const state = slaFor(groupId)?.state;
+        return state === "near" || state === "breached";
+    };
+    const visibleRows = view === "near_sla" ? rows.filter((row) => nearSla(row.group.group_id)) : rows;
+    const countBy = (status: WorkStatus) =>
+        allRows.filter((row) => row.work_state.status === status).length;
+    const tabs = [
+        { id: "all" as const, label: t("queueViewAll"), count: allRows.length },
+        {
+            id: "near_sla" as const,
+            label: t("queueViewNearSla"),
+            count: samples ? allRows.filter((row) => nearSla(row.group.group_id)).length : null,
+            tone: "amber" as const,
+        },
+        { id: "new" as const, label: t("newStatus"), count: countBy("new") },
+        { id: "in_progress" as const, label: t("inProgress"), count: countBy("in_progress") },
+        { id: "closed" as const, label: t("closed"), count: countBy("closed") },
+    ];
+    const activeId = selectedId;
     const selectedCount = selectedIds.size;
     const patchFilter = (key: string, value: string | null) =>
         onFilters({ [key]: value, cursor: null });
+    const setView = (next: QueueView) => {
+        if (next === "near_sla") onFilters({ view: "near_sla", status: null, cursor: null });
+        else onFilters({ view: null, status: next === "all" ? null : next, cursor: null });
+    };
     const doBulk = (action: api.BulkAction) => {
         if (selectedCount === 0 || selectedCount > 100) {
             setActionMessage(t("bulkLimit"));
@@ -269,464 +349,460 @@ export function QueuePage({
             propagate_to_members: propagate,
         });
     };
+    const createFromSelection = (ids: string[]) => {
+        if (ids.length === 0) return;
+        void createIncident({ site_id: siteId, group_ids: ids, owner_key: me || null })
+            .then(() => {
+                setSelectedIds(new Set());
+                setActionMessage(t("incidentCreated"));
+                void queryClient.invalidateQueries({ queryKey: ["m3", "incidents", siteId] });
+            })
+            .catch((error: unknown) =>
+                setActionMessage(error instanceof Error ? error.message : t("requestFailed")),
+            );
+    };
+
+    // Queue shortcuts: J/K move, X select, A assign to me, F false positive, I create incident.
+    const keyState = useRef({ visibleRows, activeId, selectedIds, me });
+    keyState.current = { visibleRows, activeId, selectedIds, me };
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
+            const target = event.target as HTMLElement | null;
+            if (target?.closest("input, select, textarea, [contenteditable], [role='dialog']")) return;
+            const { visibleRows: list, activeId: current, selectedIds: picked, me: owner } =
+                keyState.current;
+            const index = list.findIndex((row) => row.group.group_id === current);
+            const key = event.key.toLowerCase();
+            if (key === "j" || key === "k") {
+                const next = list[Math.min(list.length - 1, Math.max(0, index + (key === "j" ? 1 : -1)))];
+                if (next) setSelectedId(next.group.group_id);
+            } else if (key === "x" && current) {
+                setSelectedIds((set) => {
+                    const next = new Set(set);
+                    if (next.has(current)) next.delete(current);
+                    else next.add(current);
+                    return next;
+                });
+            } else if (key === "a" && current && owner) {
+                assign.mutate({ id: current, owner });
+            } else if (key === "f" && current) {
+                setDispositionIntent({ id: current, label: "false_positive" });
+            } else if (key === "i") {
+                createFromSelection(picked.size ? [...picked] : current ? [current] : []);
+            } else return;
+            event.preventDefault();
+        };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
-        <div className="workspace-page queue-v2">
-            <Panel className="workspace-panel queue-v2-filters">
-                <div className="queue-filter-row">
-                    <label>
-                        {t("statusLabel")}
-                        <select
-                            aria-label={t("statusLabel")}
-                            value={filters.status ?? ""}
-                            onChange={(event) => patchFilter("status", event.target.value || null)}
-                        >
-                            <option value="">{t("allStatuses")}</option>
-                            {statuses.map((value) => (
-                                <option key={value} value={value}>
-                                    {t(statusKeys[value])}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <label>
-                        {t("owner")}
-                        <input
-                            className="id-input"
-                            key={`owner-${filters.ownerKey ?? ""}`}
-                            aria-label={t("owner")}
-                            defaultValue={filters.ownerKey ?? ""}
-                            placeholder={t("allOwners")}
-                            maxLength={256}
-                            onBlur={(event) =>
-                                patchFilter("owner_key", event.target.value.trim() || null)
-                            }
-                            onKeyDown={(event) => {
-                                if (event.key === "Enter") event.currentTarget.blur();
-                            }}
-                        />
-                    </label>
-                    <label>
-                        {t("score")}
-                        <select
-                            aria-label={t("score")}
-                            value={params.get("min_score") ?? ""}
-                            onChange={(event) =>
-                                patchFilter("min_score", event.target.value || null)
-                            }
-                        >
-                            <option value="">0–100</option>
-                            <option value="50">≥ 50</option>
-                            <option value="75">≥ 75</option>
-                        </select>
-                    </label>
-                    <label>
-                        {t("filterRule")}
-                        <input
-                            className="id-input"
-                            key={`rule-${filters.ruleId ?? ""}`}
-                            aria-label={t("filterRule")}
-                            defaultValue={filters.ruleId ?? ""}
-                            maxLength={128}
-                            onBlur={(event) =>
-                                patchFilter("rule_id", event.target.value.trim() || null)
-                            }
-                            onKeyDown={(event) => {
-                                if (event.key === "Enter") event.currentTarget.blur();
-                            }}
-                        />
-                    </label>
+        <div className="workspace-page queue-pp">
+            <div className="queue-pp-intro">
+                <p>{t("queueDescription")}</p>
+                <div className="queue-pp-sla-note">
+                    {samples && (
+                        <span>
+                            {t("triageSlaTarget").replace("{minutes}", String(samples.triageTargetMinutes))}
+                        </span>
+                    )}
+                    <a className="btn compact" href="#soc_operations">
+                        {t("slaReport")}
+                    </a>
                 </div>
-            </Panel>
-            {selectedCount > 0 && (
-                <Panel className="workspace-panel bulk-toolbar queue-v2-bulk">
-                    <span>{t("selectedCount").replace("{count}", String(selectedCount))}</span>
-                    <label>
-                        {t("owner")}
-                        <input
-                            className="id-input"
-                            aria-label={t("owner")}
-                            value={ownerDraft}
-                            onChange={(event) => setOwnerDraft(event.target.value)}
-                            placeholder="analyst:example"
-                        />
-                    </label>
-                    <button
-                        className="btn outline"
-                        type="button"
-                        disabled={selectedCount > 100 || bulk.isPending}
-                        onClick={() =>
-                            doBulk({ kind: "assign", owner_key: ownerDraft.trim() || null })
-                        }
+            </div>
+            <div className="tab-bar queue-pp-tabs">
+                <ViewTabs tabs={tabs} value={view} onChange={setView} label={t("savedViews")} />
+                <span className="queue-pp-tab-spacer" />
+                <label className="queue-pp-filter">
+                    {t("owner")}
+                    <input
+                        className="id-input"
+                        key={`owner-${filters.ownerKey ?? ""}`}
+                        aria-label={t("owner")}
+                        defaultValue={filters.ownerKey ?? ""}
+                        placeholder={t("allOwners")}
+                        maxLength={256}
+                        onBlur={(event) => patchFilter("owner_key", event.target.value.trim() || null)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") event.currentTarget.blur();
+                        }}
+                    />
+                </label>
+                <label className="queue-pp-filter">
+                    {t("score")}
+                    <select
+                        aria-label={t("score")}
+                        value={params.get("min_score") ?? ""}
+                        onChange={(event) => patchFilter("min_score", event.target.value || null)}
                     >
-                        {t("bulkAssign")}
+                        <option value="">0 to 100</option>
+                        <option value="50">50 and above</option>
+                        <option value="75">75 and above</option>
+                    </select>
+                </label>
+                <label className="queue-pp-filter">
+                    {t("filterRule")}
+                    <input
+                        className="id-input"
+                        key={`rule-${filters.ruleId ?? ""}`}
+                        aria-label={t("filterRule")}
+                        defaultValue={filters.ruleId ?? ""}
+                        placeholder="5763"
+                        maxLength={128}
+                        onBlur={(event) => patchFilter("rule_id", event.target.value.trim() || null)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") event.currentTarget.blur();
+                        }}
+                    />
+                </label>
+            </div>
+            {selectedCount > 0 && (
+                <div className="bulk-bar queue-pp-bulk" role="region" aria-label={t("bulkActions")}>
+                    <span className="bulk-bar-count">
+                        {t("selectedCount").replace("{count}", String(selectedCount))}
+                    </span>
+                    <span className="bulk-bar-note">{t("atomicAction")}</span>
+                    <button
+                        className="btn compact"
+                        type="button"
+                        disabled={!me || selectedCount > 100 || bulk.isPending}
+                        onClick={() => doBulk({ kind: "assign", owner_key: me })}
+                    >
+                        {t("assignToMe")}
+                    </button>
+                    <button
+                        className="btn compact"
+                        type="button"
+                        aria-expanded={bulkMode === "disposition"}
+                        onClick={() => {
+                            setBulkLabel("false_positive");
+                            setBulkMode(bulkMode === "disposition" ? null : "disposition");
+                        }}
+                    >
+                        {t("markFalsePositive")}
                     </button>
                     <select
+                        className="queue-pp-bulk-status"
                         aria-label={t("bulkStatus")}
-                        defaultValue=""
+                        value=""
                         disabled={bulk.isPending}
                         onChange={(event) => {
                             const value = parseStatus(event.target.value);
                             if (value) doBulk({ kind: "status", status: value });
                         }}
                     >
-                        <option value="">{t("bulkStatus")}</option>
+                        <option value="">{t("changeStatus")}</option>
                         {statuses.map((value) => (
                             <option key={value} value={value}>
                                 {t(statusKeys[value])}
                             </option>
                         ))}
                     </select>
-                    <label>
-                        {t("disposition")}
-                        <select
-                            value={bulkLabel}
-                            onChange={(event) => {
-                                const value = parseDispositionLabel(event.target.value);
-                                if (value) setBulkLabel(value);
-                            }}
-                        >
-                            <option value="true_positive">{t("truePositive")}</option>
-                            <option value="benign_true_positive">{t("benignTruePositive")}</option>
-                            <option value="false_positive">{t("falsePositiveDisposition")}</option>
-                            <option value="duplicate">{t("duplicate")}</option>
-                            <option value="undetermined">{t("undetermined")}</option>
-                        </select>
-                    </label>
-                    {bulkLabel === "false_positive" && (
-                        <label>
-                            {t("reason")}
-                            <select
-                                value={bulkReason}
-                                onChange={(event) => setBulkReason(event.target.value)}
-                            >
-                                <option value="">—</option>
-                                {fpReasons.map((value) => (
-                                    <option key={value} value={value}>
-                                        {falsePositiveReasonText(t, value)}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    )}
-                    {(bulkLabel === "false_positive" || bulkReason === "other") && (
-                        <label>
-                            {t("m3DispositionNote")}
-                            <input
-                                maxLength={2000}
-                                value={bulkNote}
-                                onChange={(event) => setBulkNote(event.target.value)}
-                            />
-                        </label>
-                    )}
-                    <label className="propagate-control">
-                        <input
-                            type="checkbox"
-                            checked={propagate}
-                            onChange={(event) => setPropagate(event.target.checked)}
-                        />
-                        {t("propagate")}
-                    </label>
                     <button
-                        className="btn outline"
+                        className="btn compact primary"
                         type="button"
-                        disabled={selectedCount > 100 || bulk.isPending}
-                        onClick={bulkDisposition}
+                        onClick={() => createFromSelection([...selectedIds])}
                     >
-                        {t("bulkDisposition")}
+                        {t("createIncident")}
                     </button>
-                </Panel>
+                    <button
+                        className="btn compact quiet"
+                        type="button"
+                        onClick={() => {
+                            setSelectedIds(new Set());
+                            setBulkMode(null);
+                        }}
+                    >
+                        {t("clear")}
+                    </button>
+                    {bulkMode === "disposition" && (
+                        <div className="queue-pp-bulk-form">
+                            <label className="pp-field">
+                                {t("disposition")}
+                                <select
+                                    value={bulkLabel}
+                                    onChange={(event) => {
+                                        const value = parseDispositionLabel(event.target.value);
+                                        if (value) setBulkLabel(value);
+                                    }}
+                                >
+                                    {dispositionLabels.map((value) => (
+                                        <option key={value} value={value}>
+                                            {t(labelKey(value))}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            {bulkLabel === "false_positive" && (
+                                <label className="pp-field">
+                                    {t("reasonRequiredLabel")}
+                                    <select value={bulkReason} onChange={(event) => setBulkReason(event.target.value)}>
+                                        <option value="">{t("chooseReason")}</option>
+                                        {fpReasons.map((value) => (
+                                            <option key={value} value={value}>
+                                                {falsePositiveReasonText(t, value)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
+                            <label className="pp-field">
+                                {t("m3DispositionNote")}
+                                <input
+                                    maxLength={2000}
+                                    value={bulkNote}
+                                    onChange={(event) => setBulkNote(event.target.value)}
+                                />
+                            </label>
+                            <label className="pp-check">
+                                <input
+                                    type="checkbox"
+                                    checked={propagate}
+                                    onChange={(event) => setPropagate(event.target.checked)}
+                                />
+                                {t("propagate")}
+                            </label>
+                            <button
+                                className="btn compact primary"
+                                type="button"
+                                disabled={selectedCount > 100 || bulk.isPending}
+                                onClick={bulkDisposition}
+                            >
+                                {t("bulkDisposition")}
+                            </button>
+                        </div>
+                    )}
+                </div>
             )}
             {actionMessage && (
                 <p className="workspace-action-message" role="status">
                     {actionMessage}
                 </p>
             )}
-            {queueQuery.isLoading ? (
-                <WorkspaceLoading label={t("queue")} />
-            ) : queueQuery.isError ? (
-                <WorkspaceFailure
-                    error={queueQuery.error}
-                    t={t}
-                    onRetry={() => void queueQuery.refetch()}
-                />
-            ) : (
-                <Panel className="workspace-panel table-panel queue-v2-table-panel">
-                    <div className="queue-v2-results-heading">
-                        <div>
-                            <h2>{t("groupsTitle")}</h2>
-                            <p>
-                                {rows.length.toLocaleString()}{" "}
-                                {t(rows.length === 1 ? "rowLoaded" : "rowsLoaded")}
-                            </p>
-                        </div>
-                        <p className="queue-v2-mobile-calibration">
-                            <Tag tone="amber">
-                                {t("score")} · {t("uncalibratedShort")}
-                            </Tag>
-                        </p>
-                    </div>
-                    <div
-                        className="table-scroll"
-                        role="region"
-                        aria-label={t("groupsTitle")}
-                        tabIndex={0}
-                    >
-                        <table className="workspace-table queue-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <span className="sr-only">{t("selectGroups")}</span>
-                                    </th>
-                                    <th>{t("group")}</th>
-                                    <th>
-                                        {t("score")}
-                                        <span className="queue-v2-calibration">
-                                            {t("uncalibratedShort")}
-                                        </span>
-                                    </th>
-                                    <th>{locale === "es" ? "Evaluación" : "Assessment"}</th>
-                                    <th>{t("groupCount")}</th>
-                                    <th>{t("owner")}</th>
-                                    <th>{t("statusLabel")}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map(
-                                    ({ group, work_state: workState, queue_reasons: reasons }) => (
-                                        <tr key={group.group_id}>
-                                            <td>
-                                                <input
-                                                    type="checkbox"
-                                                    aria-label={`${t("selectGroups")} ${group.title}`}
-                                                    checked={selectedIds.has(group.group_id)}
-                                                    onChange={(event) =>
-                                                        setSelectedIds((current) => {
-                                                            const next = new Set(current);
-                                                            if (event.target.checked)
-                                                                next.add(group.group_id);
-                                                            else next.delete(group.group_id);
-                                                            return next;
-                                                        })
-                                                    }
-                                                />
-                                            </td>
-                                            <td>
-                                                <button
-                                                    className="text-link group-link"
-                                                    type="button"
-                                                    onClick={() => setSelectedId(group.group_id)}
-                                                >
-                                                    <span className="group-link-title">
-                                                        {group.title}
-                                                    </span>
-                                                    <span className="table-secondary queue-v2-entity">
-                                                        {group.primary_entity && (
-                                                            <span>
-                                                                {group.primary_entity.kind}
-                                                            </span>
-                                                        )}
-                                                        <code>
-                                                            {group.primary_entity?.value ??
-                                                                group.rule_id ??
-                                                                "—"}
-                                                        </code>
-                                                    </span>
-                                                    {reasons.length > 0 && (
-                                                        <span className="table-secondary queue-v2-reasons">
-                                                            {reasons.join(" · ")}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            </td>
-                                            <td>
-                                                {group.score !== null && (
-                                                    <span
-                                                        className="queue-v2-score-label"
-                                                        aria-hidden="true"
-                                                    >
-                                                        {t("score")}
-                                                    </span>
-                                                )}
-                                                <div className="queue-v2-score">
-                                                    <strong
-                                                        data-pending={
-                                                            group.score === null || undefined
+            <div className="queue-pp-layout">
+                {queueQuery.isLoading ? (
+                    <WorkspaceLoading label={t("queue")} />
+                ) : queueQuery.isError ? (
+                    <WorkspaceFailure
+                        error={queueQuery.error}
+                        t={t}
+                        onRetry={() => void queueQuery.refetch()}
+                    />
+                ) : (
+                    <section className="pp-panel queue-pp-table-panel">
+                        <div className="table-scroll pp-table-scroll" role="region" aria-label={t("groupsTitle")} tabIndex={0}>
+                            <table className="pp-table queue-table queue-pp-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" className="queue-pp-check">
+                                            <span className="sr-only">{t("selectGroups")}</span>
+                                        </th>
+                                        <th scope="col">{t("group")}</th>
+                                        <th scope="col" className="queue-pp-score-col">
+                                            {t("score")}
+                                        </th>
+                                        <th scope="col" className="queue-pp-sla-col">
+                                            {t("triageSla")}
+                                        </th>
+                                        <th scope="col" className="is-num">
+                                            {t("alerts")}
+                                        </th>
+                                        <th scope="col">{t("statusLabel")}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {visibleRows.map(({ group, work_state: workState }) => {
+                                        const selected = group.group_id === activeId;
+                                        return (
+                                            <tr key={group.group_id} data-selected={selected || undefined}>
+                                                <td className="queue-pp-check">
+                                                    <input
+                                                        type="checkbox"
+                                                        aria-label={`${t("selectGroups")} ${group.title}`}
+                                                        checked={selectedIds.has(group.group_id)}
+                                                        onChange={(event) =>
+                                                            setSelectedIds((current) => {
+                                                                const next = new Set(current);
+                                                                if (event.target.checked) next.add(group.group_id);
+                                                                else next.delete(group.group_id);
+                                                                return next;
+                                                            })
                                                         }
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        className="group-link queue-pp-group"
+                                                        type="button"
+                                                        aria-pressed={selected}
+                                                        onClick={() => setSelectedId(group.group_id)}
                                                     >
-                                                        {group.score === null
-                                                            ? t("scorePending")
-                                                            : group.score.toFixed(1)}
-                                                    </strong>
-                                                    {group.score !== null && (
-                                                        <span
-                                                            className="queue-v2-score-track"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <span
-                                                                style={{
-                                                                    width: `${scorePercent(group.score)}%`,
-                                                                }}
-                                                            />
+                                                        <span className="group-link-title">{group.title}</span>
+                                                        <span className="queue-pp-meta">
+                                                            {group.primary_entity && (
+                                                                <span>
+                                                                    {t("on")}{" "}
+                                                                    <span className="ent">{group.primary_entity.value}</span>
+                                                                </span>
+                                                            )}
+                                                            {group.rule_id && (
+                                                                <span>
+                                                                    {t("rule")} {group.rule_id}
+                                                                </span>
+                                                            )}
+                                                            <span>{workState.owner_key ?? t("unassignedOwner")}</span>
+                                                            <span>
+                                                                {t("lastAlert")} {formatShortTime(group.last_ts)}
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                                <td>
+                                                    {group.score === null ? (
+                                                        <span className="t-secondary">{t("scorePending")}</span>
+                                                    ) : (
+                                                        <span className="queue-pp-score">
+                                                            <strong className="num">{group.score.toFixed(1)}</strong>
+                                                            <ShareBar share={scorePercent(group.score) / 100} />
                                                         </span>
                                                     )}
-                                                </div>
-                                                {group.computation_version && (
-                                                    <span className="table-secondary">
-                                                        <code>
-                                                            {
-                                                                group.computation_version.split(
-                                                                    ":",
-                                                                )[0]
-                                                            }
-                                                        </code>
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                {assessmentLabel(group.assessment, locale) || (
-                                                    <span className="muted">
-                                                        <span aria-hidden="true">—</span>
-                                                        <span className="sr-only">
-                                                            {t("noAssessmentAvailable")}
-                                                        </span>
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                {group.alert_count.toLocaleString()}
-                                                <span className="table-secondary">
-                                                    {formatTime(group.last_ts)}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                {workState.owner_key ? (
-                                                    <code>{workState.owner_key}</code>
-                                                ) : (
-                                                    t("unassigned")
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <Tag {...statusTags[workState.status]}>
-                                                        {t(statusKeys[workState.status])}
-                                                    </Tag>
-                                                </div>
-                                                {group.disposition && (
-                                                    <div>
-                                                        <Tag
-                                                            {...dispositionTags[
-                                                                group.disposition.label
-                                                            ]}
-                                                        >
-                                                            {t(labelKey(group.disposition.label))}
+                                                </td>
+                                                <td>
+                                                    <SlaText
+                                                        sla={slaFor(group.group_id)}
+                                                        bar
+                                                        notReported={t("notReportedShort")}
+                                                    />
+                                                </td>
+                                                <td className="is-num">{group.alert_count.toLocaleString()}</td>
+                                                <td>
+                                                    <span className="queue-pp-status">
+                                                        <Tag {...statusTags[workState.status]}>
+                                                            {t(statusKeys[workState.status])}
                                                         </Tag>
-                                                    </div>
-                                                )}
+                                                        {group.disposition && (
+                                                            <Tag {...dispositionTags[group.disposition.label]}>
+                                                                {t(labelKey(group.disposition.label))}
+                                                            </Tag>
+                                                        )}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                    {visibleRows.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="pp-table-empty">
+                                                {t("queueEmptyView")}
                                             </td>
                                         </tr>
-                                    ),
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                    {rows.length === 0 && <p className="muted">{t("noData")}</p>}
-                    <div className="page-controls">
-                        <button
-                            className="btn outline"
-                            type="button"
-                            disabled={!params.get("cursor")}
-                            onClick={() => patchFilter("cursor", null)}
-                        >
-                            {t("previous")}
-                        </button>
-                        <button
-                            className="btn outline"
-                            type="button"
-                            disabled={!queueQuery.data?.next_cursor}
-                            onClick={() =>
-                                patchFilter("cursor", queueQuery.data?.next_cursor ?? null)
-                            }
-                        >
-                            {t("next")}
-                        </button>
-                    </div>
-                </Panel>
-            )}
-            <Sheet
-                open={selectedId !== null}
-                onOpenChange={(open) => {
-                    if (!open) setSelectedId(null);
-                }}
-            >
-                {selectedId && (
-                    <SheetContent
-                        title={detail?.title ?? t("group")}
-                        closeLabel={t("detailsClose")}
-                    >
-                        {detailQuery.isLoading ? (
-                            <WorkspaceLoading label={t("group")} />
-                        ) : detailQuery.isError ? (
-                            <WorkspaceFailure
-                                error={detailQuery.error}
-                                t={t}
-                                onRetry={() => void detailQuery.refetch()}
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="pp-panel-foot">
+                            <KeyHints
+                                hints={[
+                                    { keys: ["J", "K"], label: t("keyMove") },
+                                    { keys: ["X"], label: t("keySelect") },
+                                    { keys: ["A"], label: t("assignToMe").toLocaleLowerCase() },
+                                    { keys: ["F"], label: t("falsePositiveDisposition").toLocaleLowerCase() },
+                                    { keys: ["I"], label: t("createIncident").toLocaleLowerCase() },
+                                ]}
                             />
-                        ) : detail ? (
-                            <GroupDrawer
-                                detail={detail}
-                                t={t}
-                                locale={locale}
-                                siteId={siteId}
-                                onInvestigate={
-                                    onInvestigate ? () => onInvestigate(detail) : undefined
-                                }
-                                busy={assign.isPending || status.isPending || disposition.isPending}
-                                onOpenAlert={onOpenAlert}
-                                membersLoading={memberPage.isPending}
-                                onLoadMoreMembers={() => {
-                                    const cursor = detail.members.next_cursor;
-                                    if (cursor) memberPage.mutate({ id: detail.group_id, cursor });
-                                }}
-                                onAssign={(owner) =>
-                                    assign.mutate(
-                                        { id: detail.group_id, owner },
-                                        {
-                                            onSuccess: () => setActionMessage(t("atomicAction")),
-                                            onError: (error) => setActionMessage(error.message),
-                                        },
-                                    )
-                                }
-                                onStatus={(next) =>
-                                    status.mutate(
-                                        {
-                                            id: detail.group_id,
-                                            next,
-                                            expected: detail.work_state.updated_at,
-                                        },
-                                        {
-                                            onSuccess: () => setActionMessage(t("atomicAction")),
-                                            onError: (error) => setActionMessage(error.message),
-                                        },
-                                    )
-                                }
-                                onDisposition={(value) =>
-                                    disposition.mutate(
-                                        { id: detail.group_id, ...value },
-                                        {
-                                            onSuccess: () => setActionMessage(t("atomicAction")),
-                                            onError: (error) => setActionMessage(error.message),
-                                        },
-                                    )
-                                }
-                            />
-                        ) : null}
-                    </SheetContent>
+                            <span className="queue-pp-foot-count">
+                                {visibleRows.length.toLocaleString()}{" "}
+                                {t(visibleRows.length === 1 ? "rowLoaded" : "rowsLoaded")}
+                            </span>
+                            <span className="page-controls">
+                                <button
+                                    className="btn compact"
+                                    type="button"
+                                    disabled={!params.get("cursor")}
+                                    onClick={() => patchFilter("cursor", null)}
+                                >
+                                    {t("previous")}
+                                </button>
+                                <button
+                                    className="btn compact"
+                                    type="button"
+                                    disabled={!queueQuery.data?.next_cursor}
+                                    onClick={() => patchFilter("cursor", queueQuery.data?.next_cursor ?? null)}
+                                >
+                                    {t("next")}
+                                </button>
+                            </span>
+                        </div>
+                    </section>
                 )}
-            </Sheet>
+                <aside
+                    className="pp-panel queue-pp-detail"
+                    aria-label={detail?.title ?? t("group")}
+                    ref={detailRef}
+                    tabIndex={-1}
+                >
+                    {!activeId ? (
+                        <p className="queue-pp-detail-empty">{t("queueSelectHint")}</p>
+                    ) : detailQuery.isLoading ? (
+                        <WorkspaceLoading label={t("group")} />
+                    ) : detailQuery.isError ? (
+                        <WorkspaceFailure error={detailQuery.error} t={t} onRetry={() => void detailQuery.refetch()} />
+                    ) : detail ? (
+                        <GroupPanel
+                            key={detail.group_id}
+                            detail={detail}
+                            t={t}
+                            locale={locale}
+                            siteId={siteId}
+                            me={me}
+                            onMe={setMe}
+                            intent={dispositionIntent?.id === detail.group_id ? dispositionIntent.label : null}
+                            onInvestigate={onInvestigate ? () => onInvestigate(detail) : undefined}
+                            busy={assign.isPending || status.isPending || disposition.isPending}
+                            onOpenAlert={onOpenAlert}
+                            membersLoading={memberPage.isPending}
+                            onLoadMoreMembers={() => {
+                                const cursor = detail.members.next_cursor;
+                                if (cursor) memberPage.mutate({ id: detail.group_id, cursor });
+                            }}
+                            onAssign={(owner) =>
+                                assign.mutate(
+                                    { id: detail.group_id, owner },
+                                    {
+                                        onSuccess: () => setActionMessage(t("atomicAction")),
+                                        onError: (error) => setActionMessage(error.message),
+                                    },
+                                )
+                            }
+                            onStatus={(next) =>
+                                status.mutate(
+                                    { id: detail.group_id, next, expected: detail.work_state.updated_at },
+                                    {
+                                        onSuccess: () => setActionMessage(t("atomicAction")),
+                                        onError: (error) => setActionMessage(error.message),
+                                    },
+                                )
+                            }
+                            onDisposition={(value) =>
+                                disposition.mutate(
+                                    { id: detail.group_id, ...value },
+                                    {
+                                        onSuccess: () => setActionMessage(t("dispositionRecorded")),
+                                        onError: (error) => setActionMessage(error.message),
+                                    },
+                                )
+                            }
+                        />
+                    ) : null}
+                </aside>
+            </div>
         </div>
     );
 }
+
 
 const statuses: WorkStatus[] = ["new", "in_progress", "resolved", "closed"];
 const dispositionLabels: DispositionLabel[] = [
@@ -747,11 +823,14 @@ function numericParam(value: string | null): number | undefined {
     const number = Number(value);
     return Number.isFinite(number) ? number : undefined;
 }
-function GroupDrawer({
+function GroupPanel({
     detail: group,
     t,
     locale,
     siteId,
+    me,
+    onMe,
+    intent,
     onInvestigate,
     busy,
     membersLoading,
@@ -765,6 +844,9 @@ function GroupDrawer({
     t: Translate;
     locale: Locale;
     siteId: string;
+    me: string;
+    onMe: (value: string) => void;
+    intent: DispositionLabel | null;
     onInvestigate?: () => void;
     busy: boolean;
     membersLoading: boolean;
@@ -780,12 +862,21 @@ function GroupDrawer({
     onOpenAlert: (alertKey: string) => void;
 }) {
     const [owner, setOwner] = useState(group.work_state.owner_key ?? "");
-    const [label, setLabel] = useState<DispositionLabel>("undetermined");
+    const [label, setLabel] = useState<DispositionLabel | null>(intent);
     const [reason, setReason] = useState("");
     const [note, setNote] = useState("");
-    const [propagate, setPropagate] = useState(false);
+    const [propagate, setPropagate] = useState(true);
+    const [suggestTuning, setSuggestTuning] = useState(false);
+    const [meDraft, setMeDraft] = useState("");
+    const [askMe, setAskMe] = useState(false);
     const [error, setError] = useState("");
+    useEffect(() => {
+        if (intent) setLabel(intent);
+    }, [intent]);
+    const host = group.primary_entity?.value;
+    const ruleText = group.rule_id ? `${t("rule")} ${group.rule_id}` : null;
     const save = () => {
+        if (!label) return;
         if (label === "false_positive" && !reason) {
             setError(t("reasonRequired"));
             return;
@@ -795,136 +886,285 @@ function GroupDrawer({
             return;
         }
         setError("");
+        const tuning =
+            label === "false_positive" && suggestTuning && group.rule_id
+                ? t("tuningSuggestionNote")
+                      .replace("{rule}", group.rule_id)
+                      .replace("{host}", host ?? t("anyHost"))
+                : "";
+        const fullNote = [note.trim(), tuning].filter(Boolean).join("\n");
         onDisposition({
             label,
-            reason: reason || null,
-            note: note.trim() || null,
-            propagateToMembers: propagate,
+            reason: label === "false_positive" ? reason || null : null,
+            note: fullNote || null,
+            propagateToMembers: label === "false_positive" ? propagate : false,
         });
     };
+    const assignToMe = () => {
+        if (me) onAssign(me);
+        else setAskMe(true);
+    };
+    const window = `${formatShortTime(group.first_ts)} to ${formatShortTime(group.last_ts)}`;
     return (
-        <div className="group-drawer-body queue-v2-drawer">
-            <div className="queue-v2-drawer-meta">
-                <code>{group.group_id}</code>
-                <div>
-                    <Tag {...statusTags[group.work_state.status]}>
-                        {t(statusKeys[group.work_state.status])}
-                    </Tag>
+        <div className="queue-pp-panel">
+            <header className="queue-pp-panel-head">
+                <div className="queue-pp-panel-ids">
+                    <Tag {...statusTags[group.work_state.status]}>{t(statusKeys[group.work_state.status])}</Tag>
                     {group.disposition && (
                         <Tag {...dispositionTags[group.disposition.label]}>
                             {t(labelKey(group.disposition.label))}
                         </Tag>
                     )}
+                    <IdChip kind="group" value={group.group_id} />
                 </div>
-            </div>
-            <div className="group-score-card">
-                <strong>{group.score === null ? t("scorePending") : group.score.toFixed(1)}</strong>
-                <span>{t("score")}</span>
-                <small>
-                    {group.computation_version ? (
+                <h2 className="t-page-title">{group.title}</h2>
+                <p className="queue-pp-summary">
+                    {group.alert_count.toLocaleString()} {t("alerts").toLocaleLowerCase()}
+                    {host && (
                         <>
-                            {t("uncalibratedShort")} · <code>{group.computation_version}</code>
+                            {" "}
+                            {t("on")} <span className="ent">{host}</span>
                         </>
-                    ) : (
-                        t("scorePendingDescription")
                     )}
-                </small>
-                {group.score !== null && (
-                    <span className="queue-v2-drawer-score" aria-hidden="true">
-                        <span style={{ width: `${scorePercent(group.score)}%` }} />
+                    {ruleText && (
+                        <>
+                            {" "}
+                            {t("fromRule")} {ruleText}
+                        </>
+                    )}
+                    , {window}
+                </p>
+            </header>
+
+            <section className="queue-pp-section" aria-labelledby="queue-triage-heading">
+                <div className="queue-pp-section-head">
+                    <h3 id="queue-triage-heading" className="t-sub">
+                        {t("triage")}
+                    </h3>
+                    <span className="t-secondary">
+                        {t("owner")}: {group.work_state.owner_key ?? t("unassignedOwner")}
                     </span>
+                </div>
+                <fieldset className="queue-pp-fieldset">
+                    <legend>{t("disposition")}</legend>
+                    <div className="choice-row">
+                        {dispositionLabels.map((value) => (
+                            <button
+                                key={value}
+                                type="button"
+                                className="choice"
+                                aria-pressed={label === value}
+                                disabled={busy}
+                                onClick={() => setLabel(value)}
+                            >
+                                {t(labelKey(value))}
+                            </button>
+                        ))}
+                    </div>
+                </fieldset>
+                {label === "false_positive" && (
+                    <div className="pp-note">
+                        <label className="pp-field">
+                            {t("reasonRequiredLabel")}
+                            <select value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)}>
+                                <option value="">{t("chooseReason")}</option>
+                                {fpReasons.map((value) => (
+                                    <option key={value} value={value}>
+                                        {falsePositiveReasonText(t, value)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="pp-check">
+                            <input
+                                type="checkbox"
+                                checked={propagate}
+                                disabled={busy}
+                                onChange={(event) => setPropagate(event.target.checked)}
+                            />
+                            {t("applyToAllAlerts").replace("{count}", group.alert_count.toLocaleString())}
+                        </label>
+                        {group.rule_id && (
+                            <label className="pp-check">
+                                <input
+                                    type="checkbox"
+                                    checked={suggestTuning}
+                                    disabled={busy}
+                                    onChange={(event) => setSuggestTuning(event.target.checked)}
+                                />
+                                {t("suggestTuning")
+                                    .replace("{rule}", group.rule_id)
+                                    .replace("{host}", host ?? t("anyHost"))}
+                            </label>
+                        )}
+                    </div>
                 )}
+                {label && (
+                    <label className="pp-field">
+                        {t("m3DispositionNote")}
+                        {reason === "other" ? "" : ` (${t("optional")})`}
+                        <textarea
+                            maxLength={2000}
+                            rows={2}
+                            disabled={busy}
+                            value={note}
+                            onChange={(event) => setNote(event.target.value)}
+                        />
+                    </label>
+                )}
+                {error && (
+                    <p className="alert error" role="alert">
+                        {error}
+                    </p>
+                )}
+                <div className="queue-pp-actions">
+                    <button className="btn primary" type="button" disabled={busy || !label} onClick={save}>
+                        {t("saveDisposition")}
+                    </button>
+                    <button className="btn" type="button" disabled={busy} onClick={assignToMe}>
+                        {t("assignToMe")}
+                    </button>
+                    <label className="queue-pp-status-select">
+                        <span className="sr-only">{t("statusLabel")}</span>
+                        <select
+                            aria-label={t("statusLabel")}
+                            disabled={busy}
+                            value={group.work_state.status}
+                            onChange={(event) => {
+                                const value = parseStatus(event.target.value);
+                                if (value) onStatus(value);
+                            }}
+                        >
+                            {statuses.map((value) => (
+                                <option key={value} value={value}>
+                                    {t(statusKeys[value])}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+                {askMe && (
+                    <form
+                        className="queue-pp-me"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            const value = meDraft.trim();
+                            if (!value) return;
+                            onMe(value);
+                            setAskMe(false);
+                            onAssign(value);
+                        }}
+                    >
+                        <label className="pp-field">
+                            {t("yourOwnerKey")}
+                            <input
+                                className="id-input"
+                                value={meDraft}
+                                placeholder="analyst:name"
+                                maxLength={256}
+                                onChange={(event) => setMeDraft(event.target.value)}
+                            />
+                        </label>
+                        <button className="btn compact" type="submit">
+                            {t("assign")}
+                        </button>
+                    </form>
+                )}
+            </section>
+
+            <div className="queue-pp-section queue-pp-assessment">
+                <AssessmentPanel
+                    siteId={siteId}
+                    group={group}
+                    locale={locale}
+                    t={t}
+                    onInvestigate={onInvestigate}
+                />
             </div>
-            <AssessmentPanel
-                siteId={siteId}
-                group={group}
-                locale={locale}
-                t={t}
-                onInvestigate={onInvestigate}
-            />
-            <dl className="alert-detail-list">
-                <dt>{t("group")}</dt>
-                <dd>
-                    <code>{group.group_id}</code>
-                </dd>
-                <dt>{t("m3MemberRevision")}</dt>
-                <dd>
-                    <code>{group.group_revision}</code>
-                </dd>
-                <dt>{t("groupCount")}</dt>
-                <dd>{group.alert_count}</dd>
-                <dt>{t("groupFirst")}</dt>
-                <dd>{formatTime(group.first_ts)}</dd>
-                <dt>{t("groupLast")}</dt>
-                <dd>{formatTime(group.last_ts)}</dd>
-                <dt>{t("scoreVersion")}</dt>
-                <dd>
-                    {group.computation_version ? (
-                        <code>{group.computation_version}</code>
-                    ) : (
-                        <span className="null-value">{"\u2014"}</span>
-                    )}
-                </dd>
-                <dt>{t("scoreDigest")}</dt>
-                <dd>
-                    <code>{group.input_digest ?? "—"}</code>
-                </dd>
-                <dt>{t("statusLabel")}</dt>
-                <dd>
-                    {t(statusKeys[group.work_state.status])} ·{" "}
-                    {formatTime(group.work_state.updated_at)}
-                </dd>
-                {group.primary_entity && (
-                    <>
-                        <dt>{humanizeKey(group.primary_entity.kind)}</dt>
-                        <dd>
-                            <code>{group.primary_entity.value}</code>
-                        </dd>
-                    </>
-                )}
-            </dl>
-            <section className="drawer-section">
-                <h3>{t("scoreExplanation")}</h3>
-                <ul className="score-components">
+
+            <details className="queue-pp-section queue-pp-why">
+                <summary>
+                    <span className="t-sub">
+                        {group.score === null
+                            ? t("scorePending")
+                            : t("whyItRanks").replace("{score}", group.score.toFixed(1))}
+                    </span>
+                    <span className="t-secondary">
+                        {group.computation_version ?? ""} · {t("uncalibratedShort")}
+                    </span>
+                </summary>
+                <ul className="queue-pp-components">
                     {group.components.map((component) => (
                         <li key={component.name}>
                             <div>
-                                <strong>{component.name}</strong>
-                                <span>{component.explanation}</span>
+                                <span className="cell-main">{component.name}</span>
+                                <span className="t-secondary">{component.explanation}</span>
                             </div>
-                            {/* Every card keeps a value in the top-right slot; missing ones show the dash. */}
                             {component.available ? (
-                                <code>
+                                <span className="num queue-pp-contribution" data-sign={component.contribution >= 0 ? "up" : "down"}>
                                     {component.contribution >= 0 ? "+" : ""}
                                     {component.contribution.toFixed(1)}
-                                </code>
+                                </span>
                             ) : (
-                                <code data-unavailable="true">{t("unavailableValue")}</code>
-                            )}
-                            {component.evidence_ids.length > 0 && (
-                                <small>
-                                    {t("evidenceLabel")}:{" "}
-                                    <code>{component.evidence_ids.join(", ")}</code>
-                                </small>
+                                <span className="t-secondary">{t("unavailableValue")}</span>
                             )}
                         </li>
                     ))}
                 </ul>
-            </section>
-            <section className="drawer-section">
-                <h3>{t("enrichmentProvenance")}</h3>
+                {group.input_digest && (
+                    <p className="t-secondary queue-pp-digest">
+                        {t("scoreDigest")}: <IdChip kind="revision" value={group.input_digest} />
+                    </p>
+                )}
+            </details>
+
+            <details className="queue-pp-section">
+                <summary>
+                    <span className="t-sub">{t("groupMembers")}</span>
+                    <span className="t-secondary num">{group.alert_count.toLocaleString()}</span>
+                </summary>
+                <ul className="queue-pp-members">
+                    {group.members.items.map((alert) => (
+                        <li key={alert.alert_key}>
+                            <button className="member-link" type="button" onClick={() => onOpenAlert(alert.alert_key)}>
+                                <span className="cell-main">
+                                    {alert.rule_description ?? (alert.rule_id ? `${t("rule")} ${alert.rule_id}` : t("alertSingular"))}
+                                </span>
+                                <span className="t-secondary">
+                                    {(alert.agent_name ?? alert.agent_id) && (
+                                        <>
+                                            <span className="ent">{alert.agent_name ?? alert.agent_id}</span> ·{" "}
+                                        </>
+                                    )}
+                                    {formatTime(alert.event_ts)}
+                                </span>
+                            </button>
+                            <IdChip kind="alert" value={alert.alert_key} />
+                        </li>
+                    ))}
+                </ul>
+                {group.members.next_cursor && (
+                    <button className="btn compact load-more" type="button" disabled={membersLoading} onClick={onLoadMoreMembers}>
+                        {membersLoading ? t("loading") : t("loadMoreMembers")}
+                    </button>
+                )}
+            </details>
+
+            <details className="queue-pp-section">
+                <summary>
+                    <span className="t-sub">{t("enrichmentProvenance")}</span>
+                    <span className="t-secondary num">{group.enrichments.length}</span>
+                </summary>
                 {group.enrichments.length === 0 ? (
-                    <p>{t("noData")}</p>
+                    <p className="t-secondary">{t("noData")}</p>
                 ) : (
                     group.enrichments.map((item) => (
                         <div className="provenance-row" key={item.enrichment_id}>
-                            <strong>{item.source}</strong>
+                            <span className="cell-main">{item.source}</span>
                             <dl className="provenance-fields">
                                 <div>
                                     <dt>{t("sourceVersion")}</dt>
-                                    <dd>
-                                        <code>{item.source_version}</code>
-                                    </dd>
+                                    <dd>{item.source_version}</dd>
                                 </div>
                                 <div>
                                     <dt>{t("fetchedAt")}</dt>
@@ -932,80 +1172,34 @@ function GroupDrawer({
                                 </div>
                                 <div>
                                     <dt>{t("expiresAt")}</dt>
-                                    <dd>
-                                        {item.expires_at ? (
-                                            formatTime(item.expires_at)
-                                        ) : (
-                                            <span className="null-value">{"\u2014"}</span>
-                                        )}
-                                    </dd>
+                                    <dd>{item.expires_at ? formatTime(item.expires_at) : "\u2014"}</dd>
                                 </div>
                             </dl>
                             {isFlatRecord(item.value) ? (
-                                <dl
-                                    className="provenance-fields"
-                                    aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
-                                >
+                                <dl className="provenance-fields" aria-label={`${t("enrichmentProvenance")}: ${item.source}`}>
                                     {Object.entries(item.value).map(([key, field]) => (
                                         <div key={key}>
                                             <dt>{humanizeKey(key)}</dt>
-                                            <dd>
-                                                {Array.isArray(field)
-                                                    ? field.join(", ")
-                                                    : String(field)}
-                                            </dd>
+                                            <dd>{Array.isArray(field) ? field.join(", ") : String(field)}</dd>
                                         </div>
                                     ))}
                                 </dl>
                             ) : (
-                                <pre
-                                    tabIndex={0}
-                                    role="group"
-                                    aria-label={`${t("enrichmentProvenance")}: ${item.source}`}
-                                >
+                                <pre tabIndex={0} role="group" aria-label={`${t("enrichmentProvenance")}: ${item.source}`}>
                                     {JSON.stringify(item.value, null, 2)}
                                 </pre>
                             )}
                         </div>
                     ))
                 )}
-            </section>
-            <section className="drawer-section">
-                <h3>{t("groupMembers")}</h3>
-                {group.members.items.map((alert) => (
-                    <button
-                        className="member-link"
-                        type="button"
-                        key={alert.alert_key}
-                        onClick={() => onOpenAlert(alert.alert_key)}
-                    >
-                        <span>{alert.rule_description ?? alert.rule_id ?? "Alert"}</span>
-                        <code>{alert.alert_key}</code>
-                        <small>
-                            {(alert.agent_name ?? alert.agent_id) ? (
-                                <code>{alert.agent_name ?? alert.agent_id}</code>
-                            ) : (
-                                <span className="null-value">{"\u2014"}</span>
-                            )}{" "}
-                            · {formatTime(alert.event_ts)}
-                        </small>
-                    </button>
-                ))}
-            </section>
-            {group.members.next_cursor && (
-                <button
-                    className="btn outline load-more"
-                    type="button"
-                    disabled={membersLoading}
-                    onClick={onLoadMoreMembers}
-                >
-                    {membersLoading ? t("loading") : t("loadMoreMembers")}
-                </button>
-            )}
-            <section className="drawer-section">
-                <h3>{t("ownerAndStatus")}</h3>
-                <div className="queue-v2-field-row">
-                    <label>
+            </details>
+
+            <details className="queue-pp-section">
+                <summary>
+                    <span className="t-sub">{t("reassign")}</span>
+                </summary>
+                <div className="queue-pp-reassign">
+                    <label className="pp-field">
                         {t("owner")}
                         <input
                             className="id-input"
@@ -1015,7 +1209,7 @@ function GroupDrawer({
                         />
                     </label>
                     <button
-                        className="btn outline"
+                        className="btn compact"
                         type="button"
                         disabled={busy || (!owner.trim() && !group.owner_key)}
                         onClick={() => onAssign(owner.trim() || null)}
@@ -1023,90 +1217,10 @@ function GroupDrawer({
                         {owner.trim() ? t("assign") : t("unassign")}
                     </button>
                 </div>
-                <label>
-                    {t("statusLabel")}
-                    <select
-                        aria-label={t("statusLabel")}
-                        disabled={busy}
-                        value={group.work_state.status}
-                        onChange={(event) => {
-                            const value = parseStatus(event.target.value);
-                            if (value) onStatus(value);
-                        }}
-                    >
-                        {statuses.map((value) => (
-                            <option key={value} value={value}>
-                                {t(statusKeys[value])}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-            </section>
-            <section className="drawer-section">
-                <h3>{t("disposition")}</h3>
-                <label>
-                    {t("dispositionField")}
-                    <select
-                        value={label}
-                        disabled={busy}
-                        onChange={(event) => {
-                            const value = parseDispositionLabel(event.target.value);
-                            if (value) setLabel(value);
-                        }}
-                    >
-                        <option value="true_positive">{t("truePositive")}</option>
-                        <option value="benign_true_positive">{t("benignTruePositive")}</option>
-                        <option value="false_positive">{t("falsePositiveDisposition")}</option>
-                        <option value="duplicate">{t("duplicate")}</option>
-                        <option value="undetermined">{t("undetermined")}</option>
-                    </select>
-                </label>
-                {label === "false_positive" && (
-                    <label>
-                        {t("reason")}
-                        <select
-                            value={reason}
-                            disabled={busy}
-                            onChange={(event) => setReason(event.target.value)}
-                        >
-                            <option value="">—</option>
-                            {fpReasons.map((value) => (
-                                <option key={value} value={value}>
-                                    {falsePositiveReasonText(t, value)}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                )}
-                {(label === "false_positive" || reason === "other") && (
-                    <label>
-                        {t("m3DispositionNote")}
-                        <textarea
-                            maxLength={2000}
-                            disabled={busy}
-                            value={note}
-                            onChange={(event) => setNote(event.target.value)}
-                        />
-                    </label>
-                )}
-                <label className="propagate-control">
-                    <input
-                        type="checkbox"
-                        checked={propagate}
-                        disabled={busy}
-                        onChange={(event) => setPropagate(event.target.checked)}
-                    />
-                    {t("propagate")}
-                </label>
-                {error && (
-                    <p className="alert error" role="alert">
-                        {error}
-                    </p>
-                )}
-                <button className="btn primary" type="button" disabled={busy} onClick={save}>
-                    {t("saveDisposition")}
-                </button>
-            </section>
+                <p className="t-secondary">
+                    {t("m3MemberRevision")}: <IdChip kind="revision" value={group.group_revision} />
+                </p>
+            </details>
         </div>
     );
 }
@@ -1129,6 +1243,12 @@ function scorePercent(score: number): number {
 }
 function formatTime(value: string): string {
     return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(value),
+    );
+}
+
+function formatShortTime(value: string): string {
+    return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(
         new Date(value),
     );
 }

@@ -12,7 +12,7 @@ test("the queue row identity opens the group", async ({ page }) => {
         .poll(async () => (await openGroup.boundingBox())?.height ?? 0)
         .toBeGreaterThanOrEqual(44);
     await openGroup.getByText("web-01").click();
-    await expect(page.getByRole("dialog").getByText("group-auth-001").first()).toBeVisible();
+    await expect(page.locator(".queue-pp-detail").getByRole("heading", { name: "Repeated SSH authentication failures" })).toBeVisible();
 });
 
 test("queue row identity stays a 44px target on a phone", async ({ page }) => {
@@ -25,7 +25,7 @@ test("queue row identity stays a 44px target on a phone", async ({ page }) => {
         .poll(async () => (await openGroup.boundingBox())?.height ?? 0)
         .toBeGreaterThanOrEqual(44);
     await openGroup.getByText("web-01").click();
-    await expect(page.getByRole("dialog").getByText("group-auth-001").first()).toBeVisible();
+    await expect(page.locator(".queue-pp-detail").getByRole("heading", { name: "Repeated SSH authentication failures" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
     );

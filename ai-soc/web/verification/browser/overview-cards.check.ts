@@ -1,15 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-test("ranked lists keep a card surface when the overview stacks", async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 900 });
+test("ranked tables keep a panel surface at every width", async ({ page }) => {
     await page.goto("/#overview");
-    const list = page.locator(".overview-v2-context .overview-v2-list").first();
-    await expect(list).toBeVisible();
-    await expect
-        .poll(() => list.evaluate((element) => getComputedStyle(element).backgroundColor))
-        .not.toBe("rgba(0, 0, 0, 0)");
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await expect
-        .poll(() => list.evaluate((element) => getComputedStyle(element).backgroundColor))
-        .toBe("rgba(0, 0, 0, 0)");
+    const table = page.locator(".overview-top").first();
+    await expect(table).toBeVisible();
+    for (const width of [768, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await expect
+            .poll(() => table.evaluate((element) => getComputedStyle(element).backgroundColor))
+            .not.toBe("rgba(0, 0, 0, 0)");
+    }
 });

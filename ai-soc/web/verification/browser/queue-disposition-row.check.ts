@@ -6,8 +6,8 @@ test("saving a disposition paints the tag on the queue row", async ({ page }) =>
     const row = page.getByRole("row", { name: /Repeated SSH authentication failures/ });
     await expect(row.getByText("False positive")).toHaveCount(0);
     await row.getByRole("button", { name: "Repeated SSH authentication failures" }).click();
-    const drawer = page.getByRole("dialog");
-    await drawer.getByRole("combobox", { name: "Label" }).selectOption("false_positive");
+    const drawer = page.locator(".queue-pp-detail");
+    await drawer.getByRole("button", { name: "False positive", exact: true }).click();
     await drawer.getByRole("combobox", { name: "Reason" }).selectOption("test_activity");
     const saved = page.waitForResponse(
         (response) => response.request().method() === "POST" && response.url().includes("/disposition"),

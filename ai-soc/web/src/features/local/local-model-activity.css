@@ -35,7 +35,7 @@
 
 .local-model-activity h2 {
     font-size: 0.82rem;
-    font-weight: 650;
+    font-weight: 600;
 }
 
 .local-model-activity-title p,
@@ -74,7 +74,7 @@
 .local-model-activity dd {
     margin: 0;
     font-size: 0.9rem;
-    font-weight: 650;
+    font-weight: 600;
     overflow-wrap: anywhere;
 }
 

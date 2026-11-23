@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Tag } from "../../components/ui/tag";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "../../api/workspace";
 import type { GroupDetail } from "../../api/workspace";
@@ -291,16 +292,17 @@ export function AssessmentPanel({
         );
     };
     return (
-        <section className="drawer-section" aria-label={copy.title}>
-            <h3>{copy.title}</h3>
-            {summary.state === "preview" && (
-                <a className="text-link" href="#ai_quality">
-                    {t("developmentScorecard")}
-                </a>
-            )}
-            <p>
-                <strong>{copy[summary.state]}</strong>
-            </p>
+        <section className="drawer-section assessment-pp" aria-label={copy.title}>
+            <div className="assessment-pp-head">
+                <h3 className="t-sub">{copy.title}</h3>
+                <Tag>{t("shadowMode")}</Tag>
+            </div>
+            <div className="assessment-pp-verdict">
+                {(summary.state === "preview" || summary.state === "stale") && summary.verdict && (
+                    <Tag tone={verdictTone(summary.verdict)}>{copy[summary.verdict]}</Tag>
+                )}
+                <span className="t-secondary">{copy[summary.state]}</span>
+            </div>
             {summary.state === "provider_unavailable" && (
                 <p>
                     {copy.deterministic}{" "}
@@ -308,14 +310,17 @@ export function AssessmentPanel({
                 </p>
             )}
             {outcome?.reason && <p>{reasonLabels[outcome.reason] ?? outcome.reason}</p>}
-            {(summary.state === "preview" || summary.state === "stale") && summary.verdict && (
-                <p>
-                    <strong>{copy[summary.verdict]}</strong>
+            {(summary.state === "preview" || summary.state === "stale") && summary.band && (
+                <p className="t-secondary">
+                    {copy.context}: {copy[summary.band]}
                 </p>
             )}
-            {(summary.state === "preview" || summary.state === "stale") && summary.band && (
-                <p>
-                    {copy.context}: {copy[summary.band]}
+            {summary.state === "preview" && (
+                <p className="t-secondary">
+                    {t("assessmentPreviewNote")}{" "}
+                    <a className="pp-link" href="#ai_quality">
+                        {t("developmentScorecard")}
+                    </a>
                 </p>
             )}
             {outcome?.flags?.map((flag) => (
@@ -620,4 +625,11 @@ export function assessmentLabel(
         return "";
     const copy = words[locale];
     return summary.verdict ? copy[summary.verdict] : copy[summary.state];
+}
+
+function verdictTone(verdict: string): "red" | "amber" | "green" | "neutral" {
+    if (verdict === "likely_malicious") return "red";
+    if (verdict === "needs_review" || verdict === "suspicious") return "amber";
+    if (verdict === "benign" || verdict === "likely_benign") return "green";
+    return "neutral";
 }

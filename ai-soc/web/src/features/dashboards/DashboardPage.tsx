@@ -1,5 +1,8 @@
 import { Panel } from "../../components/ui/panel";
+import { useSamples } from "../workspace/samples";
+import { OperationsDashboard, QualityDashboard } from "./DashboardCharts";
 import "./dashboard-v2.css";
+import "./dashboard-pp.css";
 
 type Translate = (key: string) => string;
 export type DashboardKind = "ai_quality" | "soc_operations";
@@ -27,6 +30,21 @@ const widgets = {
 export function DashboardPage({ kind, t }: { kind: DashboardKind; t: Translate }) {
     const description =
         kind === "ai_quality" ? t("aiQualityDescription") : t("socOperationsDescription");
+    const samples = useSamples();
+    if (samples)
+        return (
+            <div className="workspace-page dashboard-pp">
+                <p className="dash-sample-note">
+                    <span className="dot" data-tone="warn" />
+                    {t("sampleValuesNote")}
+                </p>
+                {kind === "ai_quality" ? (
+                    <QualityDashboard data={samples.quality} t={t} />
+                ) : (
+                    <OperationsDashboard data={samples.operations} t={t} />
+                )}
+            </div>
+        );
 
     return (
         <div className="workspace-page dashboard-v2">

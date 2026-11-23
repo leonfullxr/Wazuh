@@ -7,5 +7,5 @@ test("a quiet site does not call an empty hour the peak", async ({ page }) => {
     await expect(heatmap).toBeVisible();
     await expect(heatmap).toContainText("No alerts in the confirmed hours");
     await expect(heatmap).not.toContainText(/Peak total:.*0 alerts/);
-    await expect(page.locator(".overview-v2-metric").first()).toContainText("0");
+    await expect(page.locator(".summary-strip-item").first()).toContainText("0");
 });

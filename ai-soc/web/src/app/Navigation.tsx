@@ -86,6 +86,7 @@ export function NavigationRail({
     search,
     t,
     profile = "full",
+    counts = {},
 }: {
     route: Route;
     setRoute: (route: Route) => void;
@@ -93,8 +94,13 @@ export function NavigationRail({
     search?: ReactNode;
     t: Translate;
     profile?: NavigationProfile;
+    counts?: Partial<Record<Route, number | null | undefined>>;
 }) {
     const groups = navigationGroups(profile);
+    const count = (id: Route) =>
+        typeof counts[id] === "number" ? (
+            <span className="nav-count">{counts[id]}</span>
+        ) : null;
     return (
         <>
             <a className="skip-link" href="#main">
@@ -102,8 +108,7 @@ export function NavigationRail({
             </a>
             <aside className="rail">
                 <div className="brand">
-                    <span className="brand-name">Wazuh</span>
-                    <span className="brand-product">SOC</span>
+                    <span className="brand-name">Wazuh AI SOC</span>
                 </div>
                 {search && <div className="rail-search">{search}</div>}
                 <div className="rail-scroll">
@@ -118,6 +123,7 @@ export function NavigationRail({
                             >
                                 <item.icon size={16} strokeWidth={1.75} />
                                 {t(item.id)}
+                                {count(item.id)}
                             </a>
                         ))}
                     </nav>
@@ -387,6 +393,9 @@ export function ShellStatus({
                         : t(modeState === "loading" ? "modeLoading" : "modeUnavailable")}
                 </StatusPill>
                 <StatusPill tone="neutral">{t("readOnly")}</StatusPill>
+                <StatusPill tone="neutral">
+                    {t(bootstrap && bootstrap.models.length > 0 ? "modelShadow" : "modelOff")}
+                </StatusPill>
             </div>
             {(isMock || bootstrap?.mode === "fixture") && (
                 <div className="shell-dev">

@@ -7,11 +7,11 @@ test.beforeEach(async ({ page }) => {
 test("queue false-positive reasons and the duplicate tag use analyst labels", async ({ page }) => {
     await page.goto("/#queue");
     await page.getByRole("button", { name: "Repeated SSH authentication failures" }).click();
-    const drawer = page.getByRole("dialog");
-    await drawer.getByRole("combobox", { name: "Label" }).selectOption("false_positive");
+    const drawer = page.locator(".queue-pp-detail");
+    await drawer.getByRole("button", { name: "False positive", exact: true }).click();
     const reason = drawer.getByRole("combobox", { name: "Reason" });
     await expect(reason.locator("option")).toHaveText([
-        "—",
+        "Choose a reason",
         "Expected administrator activity",
         "Known scanner",
         "Misconfigured rule",
@@ -27,10 +27,10 @@ test("queue false-positive reasons and the duplicate tag use analyst labels", as
         await saved
     ).json();
     expect(payload.items[0]?.group.disposition?.label).toBe("false_positive");
-    const savedTag = drawer.locator(".queue-v2-drawer-meta");
+    const savedTag = drawer.locator(".queue-pp-panel-ids");
     await expect(savedTag).toContainText("False positive");
 
-    await drawer.getByRole("combobox", { name: "Label" }).selectOption("duplicate");
+    await drawer.getByRole("button", { name: "Duplicate", exact: true }).click();
     const savedDuplicate = page.waitForResponse(
         (response) => response.url().includes("/v1/workspace/queue") && response.ok(),
     );

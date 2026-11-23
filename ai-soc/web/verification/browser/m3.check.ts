@@ -15,8 +15,8 @@ async function selectIncident(page: Page, scenario = "") {
 }
 async function selectChain(page: Page, scenario = "") {
     await page.goto(`/${scenario ? `?scenario=${scenario}` : ""}#chains`);
-    await page.locator(".m3-list-item").filter({ hasText: demoChain.rule_id }).click();
-    await expect(page.getByRole("heading", { name: "Candidate evidence" })).toBeVisible();
+    await page.locator(".m3-list-item").filter({ hasText: "SSH brute force to persistence" }).click();
+    await expect(page.getByRole("heading", { name: "SSH brute force to persistence" })).toBeVisible();
 }
 async function assertAccessible(page: Page) {
     const results = await new AxeBuilder({ page }).analyze();
@@ -37,15 +37,9 @@ test("review chain evidence, promote the pinned version once, and find its incid
     });
     await selectChain(page);
     const stages = page.locator('[aria-labelledby="chain-stages-heading"]');
-    for (const text of [
-        "ssh_failure",
-        "ssh_success",
-        "sudo",
-        "Missing stages",
-        "persistence",
-        "Order tolerance applied to a syscheck persistence witness",
-    ])
+    for (const text of ["SSH failure", "SSH success", "Sudo", "Matched", "Missing"])
         await expect(stages).toContainText(text);
+    await expect(page.getByText(/order tolerance applied/)).toBeVisible();
     await page.getByLabel("Incident title override").fill("Synthetic promoted incident");
     const request = page.waitForRequest(
         (r) => r.method() === "POST" && r.url().endsWith("/promote"),
@@ -297,7 +291,7 @@ test("EN and ES keyboard interaction keeps focus and passes axe on loaded incide
     await expect(page.locator('[aria-labelledby="incident-narrative-heading"]')).toContainText(
         "Resumen de IA no validado",
     );
-    const spanishCitation = page.locator(".m3-citations button").last();
+    const spanishCitation = page.locator(".m3-citations .narrative-source").last();
     await spanishCitation.focus();
     await page.keyboard.press("Enter");
     await expect(spanishCitation).toBeFocused();

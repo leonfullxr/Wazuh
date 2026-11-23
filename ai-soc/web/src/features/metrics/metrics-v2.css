@@ -139,7 +139,7 @@
     grid-column: 3;
     grid-row: 1;
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 500;
     text-align: right;
     color: var(--text);
 }

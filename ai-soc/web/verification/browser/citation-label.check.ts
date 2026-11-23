@@ -4,7 +4,7 @@ test("an assessment citation names the rule instead of the raw evidence id", asy
     await page.addInitScript(() => localStorage.setItem("ai-soc-language", "en"));
     await page.goto("/#queue");
     await page.getByRole("button", { name: "Repeated SSH authentication failures" }).click();
-    const drawer = page.getByRole("dialog");
+    const drawer = page.locator(".queue-pp-detail");
     const citation = drawer.getByText("Rule 5712 · web-01 · 203.0.113.8").first();
     await expect(citation).toBeVisible();
     await citation.click();

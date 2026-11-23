@@ -54,25 +54,37 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { HashText } from "../../src/features/incidents/NarrativePanel";
 
 describe("HashText", () => {
-    it("keeps prose and compacts long hex hashes with the full value in the title", () => {
+    it("names a known group instead of its hash", () => {
+        const hash = "a".repeat(64);
+        const html = renderToStaticMarkup(
+            createElement(HashText, {
+                text: `Group ${hash} has a score.`,
+                locale: "en",
+                groupTitles: new Map([[hash, "Repeated SSH failures"]]),
+            }),
+        );
+        expect(html).toBe('Group <span class="ent">Repeated SSH failures</span> has a score.');
+    });
+    it("shows an unknown hash as a prefixed ID chip with the full value in the title", () => {
         const hash = "a".repeat(64);
         const html = renderToStaticMarkup(
             createElement(HashText, { text: `Group ${hash} has a score.`, locale: "en" }),
         );
         expect(html.startsWith("Group ")).toBe(true);
-        expect(html).toContain(`title="${hash}"`);
-        expect(html).toContain(`${"a".repeat(12)}…${"a".repeat(8)}`);
+        expect(html).toContain(`title="Full group ID: ${hash}"`);
+        expect(html).toContain("grp_</span>aaaaaa");
+        expect(html).not.toContain(`>${hash}<`);
         expect(html.endsWith(" has a score.")).toBe(true);
     });
-    it("sets hyphenated host ids in mono and leaves ordinary words alone", () => {
+    it("sets host ids as entities and rule numbers as plain text", () => {
         const html = renderToStaticMarkup(
             createElement(HashText, {
                 text: "Rule 5763 was observed on agent agent-042 for a first-page read.",
                 locale: "en",
             }),
         );
-        expect(html).toContain("agent <code>agent-042</code>");
-        expect(html).toContain("Rule <code>5763</code> was");
+        expect(html).toContain('agent <span class="ent">agent-042</span>');
+        expect(html).toContain("Rule 5763 was");
         expect(html).toContain("first-page read.");
     });
     it("renders ISO timestamps in prose as dates", () => {

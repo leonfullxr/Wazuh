@@ -5,16 +5,29 @@ import {
     BarChart,
     CartesianGrid,
     Cell,
+    LabelList,
     ReferenceDot,
     ResponsiveContainer,
     XAxis,
     YAxis,
 } from "recharts";
 import type { OverviewResponse, SiteSummary } from "../../api/workspace";
-import { getOverview } from "../../api/workspace";
+import { getOverview, listAssets, listQueue } from "../../api/workspace";
+import { BriefcaseBusiness } from "lucide-react";
+import { Tag } from "../../components/ui/tag";
+import {
+    ShareBar,
+    SlaText,
+    SummaryStrip,
+    slaFrom,
+    workStatusKeys,
+    workStatusTones,
+} from "../../components/ui/portfolio";
+import { useSamples } from "../workspace/samples";
 import { Panel } from "../../components/ui/panel";
 import { QuietSiteState, WorkspaceFailure, WorkspaceLoading } from "../workspace/WorkspaceStates";
 import "./overview-v2.css";
+import "./overview-pp.css";
 
 export type AlertDrilldown = {
     rule_id?: string;
@@ -88,6 +101,21 @@ export function OverviewPage({
         [checkpoint, from, hourly, timezone, to],
     );
 
+    const assets = useQuery({
+        queryKey: ["workspace", "assets", site?.site_id, ""],
+        queryFn: ({ signal }) => listAssets(site?.site_id ?? "", "", signal),
+        enabled: site !== undefined,
+    });
+    const criticality = useMemo(
+        () =>
+            new Map(
+                (assets.data?.items ?? [])
+                    .filter((asset) => asset.entity_kind === "host")
+                    .map((asset) => [asset.entity_value, asset.criticality]),
+            ),
+        [assets.data],
+    );
+
     if (query.isLoading) return <WorkspaceLoading label={t("loading")} />;
     if (query.isError || !query.data)
         return <WorkspaceFailure error={query.error} t={t} onRetry={() => void query.refetch()} />;
@@ -109,14 +137,43 @@ export function OverviewPage({
         (peak, group) => (!peak || group.total > peak.total ? group : peak),
         undefined,
     );
-    const workloadMetrics = [
-        { label: t("groupsTotal"), value: data.totals.groups },
-        { label: openIncidentsLabel(t), value: data.totals.open_incidents },
-        { label: t("unassigned"), value: data.totals.unassigned_actionable },
+    const quietHours = chart.groups.filter((group) => group.total === 0).length;
+    const unassigned = data.totals.unassigned_actionable;
+    const strip = [
+        {
+            label: t("alertsTotal"),
+            value: data.totals.alerts.toLocaleString(),
+            note: [...chart.totals.keys()].length === 1
+                ? levelLabel([...chart.totals.keys()][0] ?? "", t).toLocaleLowerCase()
+                : undefined,
+        },
+        {
+            label: t("busiestHour"),
+            value: peakGroup ? peakGroup.total.toLocaleString() : "\u2014",
+            note: peakGroup ? formatShortHour(peakGroup.hour, timezone) : undefined,
+        },
+        {
+            label: t("groupsToTriage"),
+            value: data.totals.groups == null ? "\u2014" : data.totals.groups.toLocaleString(),
+            note:
+                unassigned == null
+                    ? undefined
+                    : `${unassigned.toLocaleString()} ${t("unassignedShort")}`,
+        },
+        {
+            label: t("lag"),
+            value: formatDuration(data.freshness.lag_seconds),
+            note: (
+                <span className="overview-freshness" data-state={freshnessStateKind(data.freshness.state)}>
+                    <span className="dot" data-tone={dotTone(freshnessStateKind(data.freshness.state))} />
+                    {freshness}
+                </span>
+            ),
+        },
     ];
 
     return (
-        <div className="workspace-page overview-v2">
+        <div className="workspace-page overview-pp pp-stack">
             {stale && (
                 <section className="alert error ingestion-alert" role="alert">
                     <div>
@@ -131,23 +188,7 @@ export function OverviewPage({
                 </section>
             )}
 
-            <section className="overview-v2-summary" aria-label={t("overview")}>
-                <Metric label={t("alertsTotal")} value={data.totals.alerts} />
-                <Metric
-                    label={t("busiestHour")}
-                    value={peakGroup?.total}
-                    detail={peakGroup ? formatShortHour(peakGroup.hour, timezone) : undefined}
-                />
-                {workloadMetrics.map(({ label, value }) =>
-                    value == null ? null : <Metric key={label} label={label} value={value} />,
-                )}
-                <Metric
-                    label={t("lag")}
-                    value={formatDuration(data.freshness.lag_seconds)}
-                    state={freshness}
-                    stateKind={freshnessStateKind(data.freshness.state)}
-                />
-            </section>
+            <SummaryStrip items={strip} label={t("overview")} className="overview-summary" />
 
             {empty ? (
                 <>
@@ -160,169 +201,240 @@ export function OverviewPage({
                 </>
             ) : (
                 <>
-                    <Panel className="workspace-panel overview-v2-volume">
-                        <PanelHeading
-                            title={t("hourlyVolume")}
-                            description={`${data.totals.alerts.toLocaleString()} ${t("alerts").toLocaleLowerCase()} · ${formatWindow(from, to, timezone)}`}
-                        />
-                        {chart.groups.length === 0 ? (
-                            <EmptyPanel text={t("noData")} />
-                        ) : (
-                            <>
-                                <div className="overview-v2-chart-toolbar">
-                                    <ChartLegend totals={chart.totals} t={t} />
-                                    <label className="overview-v2-hour-select">
+                    <div className="pp-grid">
+                        <section className="pp-panel pp-panel-pad pp-wide overview-volume" aria-labelledby="overview-volume-heading">
+                            <div className="overview-volume-head">
+                                <div>
+                                    <h2 id="overview-volume-heading" className="t-section">
+                                        {t("hourlyVolume")}
+                                    </h2>
+                                    <p className="t-secondary">
+                                        {data.totals.alerts.toLocaleString()}{" "}
+                                        {t("alerts").toLocaleLowerCase()} ·{" "}
+                                        {formatWindow(from, to, timezone)}
+                                    </p>
+                                </div>
+                                {chart.groups.length > 0 && (
+                                    <label className="overview-hour-select">
                                         <span>{t("eventTime")}</span>
                                         <select
                                             value={activeHour}
-                                            onChange={(event) =>
-                                                setSelectedHour(event.target.value)
-                                            }
+                                            onChange={(event) => setSelectedHour(event.target.value)}
                                         >
                                             {chart.groups.map((group) => (
                                                 <option key={group.hour} value={group.hour}>
                                                     {formatShortHour(group.hour, timezone)} ·{" "}
                                                     {group.total.toLocaleString()}{" "}
                                                     {t(
-                                                        group.total === 1
-                                                            ? "alertSingular"
-                                                            : "alerts",
+                                                        group.total === 1 ? "alertSingular" : "alerts",
                                                     ).toLocaleLowerCase()}
                                                 </option>
                                             ))}
                                         </select>
                                     </label>
-                                </div>
-                                <div
-                                    className="overview-v2-chart"
-                                    role="img"
-                                    aria-label={`${t("hourlyVolume")}. ${data.totals.alerts.toLocaleString()} ${t("alerts").toLocaleLowerCase()}.`}
-                                >
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart
-                                            data={chart.data}
-                                            margin={{ top: 10, right: 18, bottom: 0, left: 2 }}
-                                            barCategoryGap="28%"
-                                            accessibilityLayer={false}
-                                        >
-                                            <XAxis
-                                                dataKey="hour"
-                                                tickFormatter={(hour: string) =>
-                                                    formatTick(hour, timezone)
-                                                }
-                                                interval="equidistantPreserveStart"
-                                                minTickGap={40}
-                                                axisLine={{ stroke: "var(--border-strong)" }}
-                                                tickLine={false}
-                                                height={22}
-                                            />
-                                            <CartesianGrid
-                                                vertical={false}
-                                                stroke="var(--border)"
-                                            />
-                                            <YAxis
-                                                domain={[0, yTicks.at(-1) ?? 1]}
-                                                ticks={yTicks}
-                                                width={24}
-                                                axisLine={false}
-                                                tickLine={false}
-                                            />
-                                            {[...chart.series].reverse().map((series) => (
+                                )}
+                            </div>
+                            {chart.groups.length === 0 ? (
+                                <EmptyPanel text={t("noData")} />
+                            ) : (
+                                <>
+                                    <div
+                                        className="overview-chart"
+                                        role="img"
+                                        aria-label={`${t("hourlyVolume")}. ${data.totals.alerts.toLocaleString()} ${t("alerts").toLocaleLowerCase()}.${peakGroup ? ` ${t("peak")} ${peakGroup.total.toLocaleString()}, ${formatShortHour(peakGroup.hour, timezone)}.` : ""}`}
+                                    >
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={chart.data}
+                                                margin={{ top: 18, right: 4, bottom: 0, left: 0 }}
+                                                barCategoryGap="22%"
+                                                accessibilityLayer={false}
+                                            >
+                                                <XAxis
+                                                    dataKey="hour"
+                                                    tickFormatter={(hour: string) => formatTick(hour, timezone)}
+                                                    interval="equidistantPreserveStart"
+                                                    minTickGap={40}
+                                                    axisLine={{ stroke: "var(--border-strong)" }}
+                                                    tickLine={false}
+                                                    height={22}
+                                                    tick={{ fontSize: 11, fill: "var(--text-muted)" }}
+                                                />
+                                                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                                                <YAxis
+                                                    domain={[0, yTicks.at(-1) ?? 1]}
+                                                    ticks={yTicks}
+                                                    width={22}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 11, fill: "var(--text-muted)" }}
+                                                />
                                                 <Bar
-                                                    key={series.band}
-                                                    dataKey={series.dataKey}
-                                                    stackId="alerts"
-                                                    fill={`var(--${bandVariable(series.band)})`}
+                                                    dataKey="total"
                                                     isAnimationActive={false}
-                                                    maxBarSize={28}
+                                                    maxBarSize={18}
+                                                    radius={[3, 3, 0, 0]}
                                                     onClick={(_, index) => {
                                                         const datum = chart.data[index];
                                                         if (datum) setSelectedHour(datum.hour);
                                                     }}
                                                 >
-                                                    {chart.data.map((datum) => {
-                                                        const selected = datum.hour === activeHour;
-                                                        return (
-                                                            <Cell
-                                                                key={`${series.band}-${datum.hour}`}
-                                                                fill={`var(--${bandVariable(series.band)})`}
-                                                                fillOpacity={selected ? 1 : 0.82}
-                                                                stroke="none"
-                                                            />
-                                                        );
-                                                    })}
+                                                    {chart.data.map((datum) => (
+                                                        <Cell
+                                                            key={datum.hour}
+                                                            fill={
+                                                                datum.hour === peakGroup?.hour
+                                                                    ? "var(--accent-hover)"
+                                                                    : "var(--bar-fill)"
+                                                            }
+                                                            fillOpacity={
+                                                                datum.hour === activeHour || datum.hour === peakGroup?.hour
+                                                                    ? 1
+                                                                    : 0.85
+                                                            }
+                                                            stroke="none"
+                                                            cursor="pointer"
+                                                        />
+                                                    ))}
+                                                    <LabelList
+                                                        dataKey="total"
+                                                        position="top"
+                                                        content={(props) => {
+                                                            const { x, y, width, index } = props as {
+                                                                x?: number;
+                                                                y?: number;
+                                                                width?: number;
+                                                                index?: number;
+                                                            };
+                                                            const datum = index === undefined ? undefined : chart.data[index];
+                                                            if (!datum || datum.hour !== peakGroup?.hour) return null;
+                                                            return (
+                                                                <text
+                                                                    x={(x ?? 0) + (width ?? 0) / 2}
+                                                                    y={(y ?? 0) - 5}
+                                                                    textAnchor="middle"
+                                                                    fontSize={11}
+                                                                    fontWeight={500}
+                                                                    fill="var(--text)"
+                                                                >
+                                                                    {datum.total}
+                                                                </text>
+                                                            );
+                                                        }}
+                                                    />
                                                 </Bar>
-                                            ))}
-                                            <ReferenceDot
-                                                x={activeHour}
-                                                y={0}
-                                                r={3}
-                                                fill="var(--accent)"
-                                                stroke="var(--surface)"
-                                                strokeWidth={1}
-                                                ifOverflow="visible"
-                                                isFront
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                {activeGroup && (
-                                    <HourBreakdown
-                                        group={activeGroup}
-                                        viewFrom={from}
-                                        viewTo={to}
-                                        timezone={timezone}
-                                        t={t}
-                                        onDrilldown={onDrilldown}
-                                    />
-                                )}
-                            </>
-                        )}
-                    </Panel>
-                    <div className="overview-v2-context">
-                        <TopList
-                            title={t("topRules")}
-                            items={data.top_rules}
+                                                <ReferenceDot
+                                                    x={activeHour}
+                                                    y={0}
+                                                    r={3}
+                                                    fill="var(--accent)"
+                                                    stroke="var(--surface)"
+                                                    strokeWidth={1}
+                                                    ifOverflow="visible"
+                                                    isFront
+                                                />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="overview-volume-foot">
+                                        {peakGroup && (
+                                            <span>
+                                                {t("peak")}{" "}
+                                                <b>
+                                                    {peakGroup.total.toLocaleString()}{" "}
+                                                    {t(peakGroup.total === 1 ? "alertSingular" : "alerts").toLocaleLowerCase()}
+                                                </b>{" "}
+                                                {formatShortHour(peakGroup.hour, timezone)}
+                                            </span>
+                                        )}
+                                        <span>
+                                            {t("quietHours")}{" "}
+                                            <b>
+                                                {quietHours} / {chart.groups.length}
+                                            </b>
+                                        </span>
+                                        <span>
+                                            {t("checkpoint")}: {formatTime(data.freshness.checkpoint_at, timezone)}
+                                        </span>
+                                    </div>
+                                    {activeGroup && (
+                                        <HourBreakdown
+                                            group={activeGroup}
+                                            viewFrom={from}
+                                            viewTo={to}
+                                            timezone={timezone}
+                                            t={t}
+                                            onDrilldown={onDrilldown}
+                                        />
+                                    )}
+                                </>
+                            )}
+                        </section>
+                        <NeedsAttention
+                            siteId={site?.site_id ?? ""}
+                            from={from}
+                            to={to}
+                            openIncidents={data.totals.open_incidents}
                             t={t}
-                            mono
+                        />
+                    </div>
+
+                    <div className="pp-grid">
+                        <TopTable
+                            id="overview-rules"
+                            title={t("topRules")}
+                            column={t("rule")}
+                            items={data.top_rules}
+                            total={data.totals.alerts}
+                            t={t}
+                            sub={(item) => `${t("rule")} ${item.key}`}
                             onSelect={(item) => onDrilldown({ rule_id: item.key })}
                         />
-                        <TopList
+                        <TopTable
+                            id="overview-agents"
                             title={t("topAgents")}
+                            column={t("agent")}
                             items={data.top_agents}
+                            total={data.totals.alerts}
                             t={t}
-                            mono
-                            monoLabel
+                            entity
+                            sub={(item) => `${t("agent")} ${item.key}`}
+                            criticality={(item) => criticality.get(item.label)}
                             onSelect={(item) => onDrilldown({ agent_id: item.key })}
                         />
                     </div>
 
                     <AlertTimeHeatmap heatmap={heatmap} timezone={timezone} t={t} />
 
-                    <div className="overview-v2-lists">
-                        <TopList
+                    <div className="pp-grid overview-lists">
+                        <TopTable
+                            id="overview-tactics"
                             title={t("topTactics")}
+                            column={t("tactic")}
                             items={data.top_tactics}
+                            total={data.totals.alerts}
                             t={t}
                             onSelect={(item) => onDrilldown({ tactic: item.key })}
                         />
-                        <TopList
+                        <TopTable
+                            id="overview-ips"
                             title={t("topIps")}
+                            column={t("sourceIp")}
                             items={data.top_src_ips}
+                            total={data.totals.alerts}
                             t={t}
-                            mono
-                            onSelect={(item) =>
-                                onDrilldown({ entity_kind: "ip", entity: item.key })
-                            }
+                            entity
+                            onSelect={(item) => onDrilldown({ entity_kind: "ip", entity: item.key })}
                         />
-                        <TopList
+                        <TopTable
+                            id="overview-users"
                             title={t("topUsers")}
+                            column={t("user")}
                             items={data.top_users}
+                            total={data.totals.alerts}
                             t={t}
-                            mono
-                            onSelect={(item) =>
-                                onDrilldown({ entity_kind: "user", entity: item.key })
-                            }
+                            entity
+                            onSelect={(item) => onDrilldown({ entity_kind: "user", entity: item.key })}
                         />
                     </div>
                 </>
@@ -345,30 +457,201 @@ export function OverviewPage({
     );
 }
 
-function Metric({
-    label,
-    value,
-    detail,
-    state,
-    stateKind = "neutral",
+function dotTone(kind: "good" | "warning" | "danger" | "neutral"): string {
+    return kind === "good" ? "good" : kind === "warning" ? "warn" : kind === "danger" ? "bad" : "neutral";
+}
+
+
+function NeedsAttention({
+    siteId,
+    from,
+    to,
+    openIncidents,
+    t,
 }: {
-    label: string;
-    value: number | string | null | undefined;
-    detail?: string;
-    state?: string;
-    stateKind?: "good" | "warning" | "danger" | "neutral";
+    siteId: string;
+    from: string;
+    to: string;
+    openIncidents: number | null | undefined;
+    t: Translate;
 }) {
-    const formatted = typeof value === "number" ? value.toLocaleString() : (value ?? "—");
+    const samples = useSamples();
+    const queue = useQuery({
+        queryKey: ["workspace", "queue", siteId, { from, to }],
+        queryFn: ({ signal }) => listQueue({ siteId, from, to }, signal),
+        enabled: !!siteId,
+    });
+    const rows = (queue.data?.items ?? [])
+        .filter((row) => row.work_state.status === "new" || row.work_state.status === "in_progress")
+        .slice()
+        .sort((left, right) => (right.group.score ?? -1) - (left.group.score ?? -1))
+        .slice(0, 3);
     return (
-        <div className="overview-v2-metric">
-            <span>{label}</span>
-            <strong data-empty={value === null || value === undefined || undefined}>
-                {formatted}
-            </strong>
-            {detail && <span className="overview-v2-metric-detail">{detail}</span>}
-            {state && <small data-state={stateKind}>{state}</small>}
-        </div>
+        <section className="pp-panel pp-narrow overview-attention" aria-labelledby="overview-attention-heading">
+            <div className="pp-panel-head">
+                <div>
+                    <h2 id="overview-attention-heading" className="t-section">
+                        {t("needsAttention")}
+                    </h2>
+                </div>
+                <a href="#queue">{t("openQueue")}</a>
+            </div>
+            {queue.isLoading ? (
+                <p className="overview-attention-empty">{t("loading")}</p>
+            ) : rows.length === 0 ? (
+                <p className="overview-attention-empty">{t("nothingNeedsAttention")}</p>
+            ) : (
+                <ul className="overview-attention-list">
+                    {rows.map((row) => {
+                        const sla = samples?.groupSla[row.group.group_id];
+                        const status = row.work_state.status;
+                        return (
+                            <li key={row.group.group_id}>
+                                <a href={`#queue`} className="overview-attention-row">
+                                    <span className="overview-attention-score num">
+                                        {row.group.score === null ? "\u2014" : row.group.score.toFixed(1)}
+                                    </span>
+                                    <span className="overview-attention-main">
+                                        <span className="overview-attention-title">{row.group.title}</span>
+                                        <span className="overview-attention-meta">
+                                            <Tag tone={workStatusTones[status]}>{t(workStatusKeys[status])}</Tag>
+                                            {row.group.primary_entity && (
+                                                <span>
+                                                    {t("on")} <span className="ent">{row.group.primary_entity.value}</span>
+                                                </span>
+                                            )}
+                                            <span>{row.work_state.owner_key ?? t("unassignedOwner")}</span>
+                                            <SlaText
+                                                sla={sla ? slaFrom(sla) : undefined}
+                                                notReported={t("slaNotReported")}
+                                            />
+                                        </span>
+                                    </span>
+                                </a>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+            {typeof openIncidents === "number" && (
+                <a className="overview-attention-foot" href="#incidents">
+                    <BriefcaseBusiness size={16} aria-hidden="true" />
+                    <span>
+                        {openIncidents.toLocaleString()}{" "}
+                        {t(openIncidents === 1 ? "openIncidentSingular" : "openIncidentPlural")}
+                    </span>
+                    <span className="pp-link">{t("view")}</span>
+                </a>
+            )}
+        </section>
     );
+}
+
+type TopItem = OverviewResponse["top_rules"][number];
+
+function TopTable({
+    id,
+    title,
+    column,
+    items,
+    total,
+    t,
+    entity = false,
+    sub,
+    criticality,
+    onSelect,
+}: {
+    id: string;
+    title: string;
+    column: string;
+    items: TopItem[];
+    total: number;
+    t: Translate;
+    entity?: boolean;
+    sub?: (item: TopItem) => string;
+    criticality?: (item: TopItem) => number | undefined;
+    onSelect: (item: TopItem) => void;
+}) {
+    const listed = items.reduce((sum, item) => sum + item.count, 0);
+    const other = Math.max(0, total - listed);
+    return (
+        <section className="pp-panel overview-top" aria-labelledby={`${id}-heading`}>
+            <div className="pp-panel-head">
+                <div>
+                    <h2 id={`${id}-heading`} className="t-section">
+                        {title}
+                    </h2>
+                </div>
+            </div>
+            {items.length === 0 ? (
+                <EmptyPanel text={t("noData")} />
+            ) : (
+                <div className="pp-table-scroll">
+                    <table className="pp-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">{column}</th>
+                                <th scope="col" className="share-col">
+                                    {t("shareOfAlerts")}
+                                </th>
+                                <th scope="col" className="is-num">
+                                    {t("alerts")}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map((item) => {
+                                const level = criticality?.(item);
+                                return (
+                                    <tr key={`${item.key}-${item.label}`}>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="overview-top-link"
+                                                onClick={() => onSelect(item)}
+                                            >
+                                                <span className={entity ? "ent" : "cell-main"}>{item.label}</span>
+                                                {level !== undefined && level > 0 && (
+                                                    <Tag tone={level >= 3 ? "red" : level >= 2 ? "amber" : "neutral"}>
+                                                        {criticalityLabel(level, t)}
+                                                    </Tag>
+                                                )}
+                                            </button>
+                                            {sub && item.key !== item.label && (
+                                                <span className="cell-sub">{sub(item)}</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <ShareBar share={total ? item.count / total : 0} />
+                                        </td>
+                                        <td className="is-num">{item.count.toLocaleString()}</td>
+                                    </tr>
+                                );
+                            })}
+                            {other > 0 && (
+                                <tr className="overview-top-other">
+                                    <td>
+                                        <span className="cell-main">{t("otherRows")}</span>
+                                        <span className="cell-sub">{t("allRemaining")}</span>
+                                    </td>
+                                    <td>
+                                        <ShareBar share={total ? other / total : 0} muted />
+                                    </td>
+                                    <td className="is-num">{other.toLocaleString()}</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
+    );
+}
+
+function criticalityLabel(level: number, t: Translate): string {
+    if (level >= 3) return t("criticalityHigh");
+    if (level >= 2) return t("criticalityMedium");
+    return t("criticalityLow");
 }
 
 function PanelHeading({ title, description }: { title: string; description?: string }) {
@@ -449,65 +732,6 @@ function HourBreakdown({
                 })}
             </div>
         </div>
-    );
-}
-
-function ChartLegend({ totals, t }: { totals: Map<string, number>; t: Translate }) {
-    return (
-        <div className="overview-v2-legend" aria-label={t("filterLevel")}>
-            {orderedBands([...totals.keys()]).map((band) => (
-                <span key={band}>
-                    <i className={`overview-v2-band-${bandClass(band)}`} aria-hidden="true" />
-                    {levelLabel(band, t)}{" "}
-                    <strong>{(totals.get(band) ?? 0).toLocaleString()}</strong>
-                </span>
-            ))}
-        </div>
-    );
-}
-
-function TopList({
-    title,
-    items,
-    t,
-    mono = false,
-    monoLabel = false,
-    onSelect,
-}: {
-    title: string;
-    items: OverviewResponse["top_rules"];
-    t: Translate;
-    mono?: boolean;
-    /** Labels that are identifiers themselves (host names) render in mono too. */
-    monoLabel?: boolean;
-    onSelect: (item: OverviewResponse["top_rules"][number]) => void;
-}) {
-    return (
-        <Panel className="workspace-panel overview-v2-list">
-            <PanelHeading title={title} />
-            {items.length === 0 ? (
-                <EmptyPanel text={t("noData")} />
-            ) : (
-                <ol>
-                    {items.map((item, index) => (
-                        <li key={`${item.key}-${item.label}`}>
-                            <span className="overview-v2-rank" aria-hidden="true">
-                                {index + 1}
-                            </span>
-                            <button type="button" onClick={() => onSelect(item)}>
-                                {mono && (monoLabel || item.key === item.label) ? (
-                                    <code className="overview-v2-list-id">{item.label}</code>
-                                ) : (
-                                    <span>{item.label}</span>
-                                )}
-                                {mono && item.key !== item.label && <code>{item.key}</code>}
-                            </button>
-                            <strong>{item.count.toLocaleString()}</strong>
-                        </li>
-                    ))}
-                </ol>
-            )}
-        </Panel>
     );
 }
 
@@ -1012,13 +1236,6 @@ function bandClass(band: string): string {
     if (band === "0-6") return "series-four";
     return "unknown";
 }
-function bandVariable(band: string): string {
-    if (band === "13-15") return "series-sev4";
-    if (band === "10-12") return "series-sev3";
-    if (band === "7-9") return "series-sev2";
-    if (band === "0-6") return "series-sev1";
-    return "series-other";
-}
 function levelRange(band: string): { min: number; max: number } | null {
     const match = /^(\d+)-(\d+)$/.exec(band);
     if (!match) return null;
@@ -1041,9 +1258,6 @@ function freshnessStateKind(state: string): "good" | "warning" | "danger" | "neu
     if (state === "lagging") return "warning";
     if (state === "auth_failed" || state === "unreachable") return "danger";
     return "neutral";
-}
-function openIncidentsLabel(t: Translate): string {
-    return t("incidents") === "Incidentes" ? "Incidentes abiertos" : "Open incidents";
 }
 function clippedHourRange(
     hour: string,

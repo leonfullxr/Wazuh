@@ -26,7 +26,7 @@
     --color-surface-subtle: var(--surface-2);
     --color-ink: var(--text);
     --radius-control: 8px;
-    --radius-panel: 12px;
+    --radius-panel: 10px;
     --shadow-float: var(--shadow-float);
 }
 :root {
@@ -49,8 +49,8 @@ body {
     min-width: 320px;
     min-height: 100vh;
     background: var(--canvas);
-    font-size: 14.5px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 21px;
 }
 h1,
 h2,
@@ -192,7 +192,7 @@ select {
     height: var(--header-height);
     flex: none;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
     padding-inline: 16px;
     border-bottom: 1px solid var(--border);
@@ -201,7 +201,7 @@ select {
 .brand-name {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 20px;
+    font-size: 15px;
     line-height: 1;
     letter-spacing: -0.02em;
 }
@@ -230,10 +230,11 @@ select {
     display: inline-flex;
 }
 .rail-caption {
-    padding: 14px 16px 6px;
-    color: var(--dim);
+    padding: 14px 22px 4px;
+    color: var(--text-muted);
     font-size: 12px;
-    font-weight: 500;
+    line-height: 18px;
+    font-weight: 400;
 }
 .rail nav {
     padding: 0 12px;
@@ -245,14 +246,15 @@ select {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 36px;
-    padding: 4px 11px;
-    border-radius: var(--radius-control);
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
     color: var(--text-2);
     text-decoration: none;
-    font-size: 14.5px;
-    font-weight: 400;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
     transition:
         background-color var(--time-control) var(--ease-controls),
         color var(--time-control) var(--ease-controls);
@@ -271,14 +273,24 @@ select {
 }
 .rail nav a[aria-current="page"],
 .mobile-nav a[aria-current="page"] {
-    background: var(--hover);
+    background: var(--selected);
     color: var(--text);
     box-shadow: none;
-    font-weight: 600;
 }
 .rail nav a[aria-current="page"] svg,
 .mobile-rail-section a[aria-current="page"] svg {
-    color: var(--text);
+    color: var(--accent);
+}
+.nav-count {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+/* Muted text is under 4.5:1 on the dark selected row. */
+a[aria-current="page"] > .nav-count {
+    color: var(--text-secondary);
 }
 .rail-bottom {
     margin-top: auto;
@@ -289,8 +301,9 @@ select {
 }
 .shell-status {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 .shell-dev {
     display: grid;
@@ -308,7 +321,9 @@ select {
     border-radius: 0;
     background: transparent;
     color: var(--text-2);
-    font-weight: 450;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 400;
 }
 .shell-dev label {
     display: grid;
@@ -403,9 +418,9 @@ select {
 }
 .workspace {
     width: 100%;
-    max-width: 1480px;
+    max-width: var(--content-max);
     margin: 0 auto;
-    padding: 20px 24px 40px;
+    padding: 28px 24px 48px;
     outline: none;
 }
 .page-head {
@@ -414,17 +429,17 @@ select {
 .page-head h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 32px;
-    line-height: 1.15;
-    letter-spacing: -0.018em;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: -0.02em;
 }
 .page-head p {
     max-width: 65ch;
     margin: 4px 0 0;
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.4;
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 21px;
 }
 .muted {
     color: var(--text-muted);
@@ -527,7 +542,7 @@ select {
     background: transparent;
     color: var(--text-2);
     font-size: 12px;
-    font-weight: 550;
+    font-weight: 500;
     cursor: pointer;
     transition:
         color var(--time-hover) var(--ease-controls),
@@ -892,7 +907,7 @@ select {
     color: var(--text);
     box-shadow: var(--control-shadow);
     font-size: 14px;
-    font-weight: 550;
+    font-weight: 500;
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
@@ -1006,7 +1021,7 @@ select {
     background: var(--tag-neutral-bg);
     color: var(--tag-neutral-text);
     font-size: 12px;
-    font-weight: 550;
+    font-weight: 500;
     white-space: nowrap;
 }
 .status-pill-positive {
@@ -1151,7 +1166,7 @@ code,
     background: var(--accent-wash);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
     color: var(--text);
-    font-weight: 550;
+    font-weight: 500;
 }
 .topic-jump a[aria-current="location"] > span:first-child {
     background: var(--accent);
@@ -1397,7 +1412,7 @@ tbody tr:hover {
     border-radius: 999px;
     background: var(--tag-green-bg);
     color: var(--tag-green-text);
-    font-weight: 550;
+    font-weight: 500;
 }
 .fetch-check-outcome[data-outcome="failed"] {
     border-color: var(--tag-red-border);
@@ -1918,7 +1933,7 @@ tbody tr:hover {
 }
 .top-count {
     color: var(--text);
-    font-weight: 650;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
 .freshness-footnote {
@@ -2089,7 +2104,7 @@ tbody tr:hover {
 }
 .score-components li strong {
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 500;
 }
 .drawer-section p,
 .drawer-section ul {
@@ -2139,7 +2154,7 @@ tbody tr:hover {
 }
 .bulk-toolbar > span {
     margin-right: auto;
-    font-weight: 650;
+    font-weight: 600;
 }
 .bulk-toolbar .propagate-control,
 .propagate-control {
@@ -2158,7 +2173,7 @@ tbody tr:hover {
 }
 .group-link {
     max-width: 320px;
-    font-weight: 650;
+    font-weight: 600;
 }
 .group-score-card {
     display: grid;
@@ -2218,7 +2233,7 @@ tbody tr:hover {
 }
 .provenance-row > strong {
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 500;
 }
 .score-components li small,
 .provenance-row pre {
@@ -2345,7 +2360,7 @@ tbody tr:hover {
     font-size: 12px;
 }
 .table-primary {
-    font-weight: 650;
+    font-weight: 600;
 }
 @media (max-width: 1000px) {
     .topbar {

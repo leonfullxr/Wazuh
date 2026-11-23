@@ -7,10 +7,10 @@ test.beforeEach(async ({ page }) => {
 
 test("a queue group shows its synthetic AI assessment", async ({ page }) => {
     await page.goto("/#queue");
+    // The assessment verdict lives in the detail panel; the row shows score, SLA and status.
     const row = page.getByRole("row", { name: /Repeated SSH authentication failures/ });
-    await expect(row).toContainText("Likely malicious");
     await row.getByRole("button", { name: "Repeated SSH authentication failures" }).click();
-    const drawer = page.getByRole("dialog");
+    const drawer = page.locator(".queue-pp-detail");
     await expect(drawer.getByRole("heading", { name: "AI assessment" })).toBeVisible();
     await expect(drawer.getByText("Workspace data is unavailable")).toHaveCount(0);
     await expect(drawer.getByText("Likely malicious")).toBeVisible();
@@ -40,12 +40,12 @@ test("a queue group shows its synthetic AI assessment", async ({ page }) => {
 test("a failed assessment stays in the assessment section", async ({ page }) => {
     await page.goto("/?scenario=workspace_assessment_error#queue");
     await page.getByRole("button", { name: "Repeated SSH authentication failures" }).click();
-    const drawer = page.getByRole("dialog");
+    const drawer = page.locator(".queue-pp-detail");
     await expect(
         drawer.getByRole("heading", { name: "AI assessment is unavailable" }),
     ).toBeVisible();
     await expect(drawer.getByText("Assessment is unavailable.")).toBeVisible();
     await expect(drawer.getByText("Workspace data is unavailable")).toHaveCount(0);
-    await expect(drawer.getByText("Alerts in group")).toBeVisible();
+    await expect(drawer.getByRole("heading", { name: "Triage" })).toBeVisible();
     await expect(drawer.getByRole("button", { name: "Retry" })).toBeVisible();
 });

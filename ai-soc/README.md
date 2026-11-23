@@ -4,9 +4,9 @@ Wazuh AI SOC is a self-hosted analyst workspace. It reads alerts from your Wazuh
 
 ## Console preview
 
-These screenshots show the workspace with synthetic Wazuh alerts.
+These screenshots show the workspace with synthetic Wazuh alerts. The dashboards and the SLA, entity-graph and AI-verdict fields use sample values from the verification build, because the workspace contracts do not report them yet.
 
-![Overview with alert volume, an hourly heatmap, and ranked rules and agents](docs/screenshots/console/overview-light.png)
+![Overview with summary figures, hourly alert volume, the groups that need attention, and ranked rules and agents](docs/screenshots/console/overview-light.png)
 
 <details>
 <summary>More desktop screenshots</summary>
@@ -17,15 +17,31 @@ These screenshots show the workspace with synthetic Wazuh alerts.
 
 ### Queue
 
-![Dark Queue with alert groups ranked by priority score](docs/screenshots/console/queue-dark.png)
+![Dark Queue with saved views, triage SLA, and the triage panel for the selected group](docs/screenshots/console/queue-dark.png)
 
 ### Chain candidates
 
-![Dark Chain candidates view with ordered stages and evidence](docs/screenshots/console/chain-dark.png)
+![Dark Chain candidates view with stage cards, link reasons, and pinned scores](docs/screenshots/console/chain-dark.png)
 
 ### Incident detail
 
-![Selected incident with its priority, evidence timeline, and cited AI narrative](docs/screenshots/console/incident-light.png)
+![Incident with its status, fact strip, section tabs, and attack chain stepper](docs/screenshots/console/incident-light.png)
+
+### Entity graph
+
+![Entity graph linking a source IP to a host and user, with the expected next stage dashed](docs/screenshots/console/entity-graph-light.png)
+
+### AI SOC quality
+
+![AI SOC quality dashboard with answer outcomes, AI verdict against analyst, and validator removals](docs/screenshots/console/quality-light.png)
+
+### SOC operations
+
+![SOC operations dashboard with SLA health, backlog flow, and the triage funnel](docs/screenshots/console/operations-light.png)
+
+### Metrics
+
+![Metrics with operations figures and time-to-acknowledge and time-to-triage distributions against target](docs/screenshots/console/metrics-light.png)
 
 </details>
 
@@ -34,11 +50,15 @@ These screenshots show the workspace with synthetic Wazuh alerts.
 
 ### Overview on mobile
 
-![Mobile Overview with summary metrics and hourly alert volume](docs/screenshots/console/overview-mobile.png)
+![Mobile Overview with summary figures and hourly alert volume](docs/screenshots/console/overview-mobile.png)
 
 ### Alerts on mobile
 
 ![Mobile Alerts with a filter grid and alert results](docs/screenshots/console/alerts-mobile.png)
+
+### Queue on mobile
+
+![Mobile Queue with saved views, stacked filters, and the group table](docs/screenshots/console/queue-mobile.png)
 
 </details>
 

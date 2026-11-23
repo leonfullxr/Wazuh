@@ -10,7 +10,7 @@
     color: var(--text-2);
     box-shadow: var(--control-shadow);
     font-size: 12px;
-    font-weight: 550;
+    font-weight: 500;
     cursor: pointer;
     transition: border-color var(--time-control) var(--ease-controls);
 }

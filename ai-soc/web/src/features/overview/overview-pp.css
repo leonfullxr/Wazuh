@@ -1,0 +1,199 @@
+/* Overview, PortfolioProof layout. The heatmap and hour breakdown keep their v2 rules. */
+.overview-freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.overview-volume {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.overview-volume-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+}
+.overview-volume-head > div {
+    flex: 1;
+    min-width: 200px;
+}
+.overview-volume-head p {
+    margin: 0;
+}
+.overview-hour-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.overview-hour-select select {
+    height: var(--control-height-compact);
+    max-width: 220px;
+}
+.overview-chart {
+    height: 220px;
+    min-width: 0;
+}
+.overview-volume-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--text-2);
+}
+.overview-volume-foot b {
+    color: var(--text);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+.overview-volume .overview-v2-breakdown {
+    margin: 0;
+    padding: 12px;
+    border-radius: var(--radius-control);
+    background: var(--surface-2);
+}
+
+/* Needs attention */
+.overview-attention {
+    display: flex;
+    flex-direction: column;
+}
+.overview-attention .pp-panel-head {
+    padding-bottom: 12px;
+    align-items: center;
+}
+.overview-attention-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.overview-attention-row {
+    display: flex;
+    gap: 12px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+}
+.overview-attention-row:hover {
+    background: var(--hover);
+}
+.overview-attention-score {
+    width: 40px;
+    flex: none;
+    font-size: 15px;
+    line-height: 21px;
+    font-weight: 600;
+}
+.overview-attention-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.overview-attention-title {
+    font-weight: 500;
+}
+.overview-attention-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--text-muted);
+}
+.overview-attention-meta .sla-text {
+    font-size: 12px;
+}
+.overview-attention-empty {
+    margin: 0;
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-2);
+}
+.overview-attention-foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 13px;
+    text-decoration: none;
+}
+.overview-attention-foot > span:first-of-type {
+    flex: 1;
+}
+.overview-attention-foot svg {
+    color: var(--text-muted);
+}
+.overview-attention-foot:hover .pp-link {
+    text-decoration: underline;
+}
+
+/* Top tables */
+.overview-top {
+    overflow: hidden;
+}
+.overview-top .pp-panel-head {
+    padding-bottom: 12px;
+}
+.overview-top tbody tr {
+    height: 52px;
+}
+.overview-top-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+.overview-top-link:hover > span:first-child {
+    color: var(--accent-text);
+    text-decoration: underline;
+}
+.overview-lists > * {
+    flex-basis: 300px;
+}
+.overview-lists .share-col {
+    width: 32%;
+}
+
+/* Heatmap: count only, coverage stays in the title and the table for screen readers */
+.overview-v2-heatmap-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+}
+.overview-v2-heatmap-cell {
+    background: var(--heat-0);
+    border-radius: 3px;
+}
+.overview-v2-heatmap-cell > small {
+    display: none;
+}
+.overview-v2-heatmap-cell[data-intensity="1"] {
+    background: var(--heat-1);
+}
+:root:not(.dark) .overview-v2-heatmap-cell[data-intensity="4"] > *,
+.dark .overview-v2-heatmap-cell[data-intensity="4"] > * {
+    color: #ffffff;
+}
+.overview-v2-heatmap-cell[data-empty] {
+    background: var(--heat-0);
+}

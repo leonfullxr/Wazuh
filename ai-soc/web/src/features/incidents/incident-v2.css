@@ -361,7 +361,7 @@
 
 .m3-page .m3-trust-note {
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 500;
     line-height: 20px;
 }
 
@@ -777,7 +777,7 @@
     min-height: 36px;
     color: var(--text-2);
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 500;
     cursor: pointer;
 }
 
@@ -1438,7 +1438,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head {
     gap: 6px;
     color: var(--text-2);
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 500;
     cursor: pointer;
 }
 
@@ -1563,7 +1563,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
     border-color: var(--dot-warn);
     background: var(--tag-amber-bg);
     color: var(--tag-amber-text);
-    font-weight: 650;
+    font-weight: 600;
 }
 
 .m3-incident-filters {
@@ -1639,7 +1639,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
 }
 .m3-activity-heading h3 {
     font-size: 17px;
-    font-weight: 650;
+    font-weight: 600;
 }
 .m3-activity-heading > span {
     color: var(--text-muted);

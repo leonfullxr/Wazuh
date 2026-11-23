@@ -7,7 +7,8 @@ import type {
 } from "../../../contracts/v1/generated/types.ts";
 import { useBootstrap, useAsk } from "../api/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { listWorkspaceSites, WorkspaceRequestError } from "../api/workspace";
+import { getOverview, listWorkspaceSites, WorkspaceRequestError } from "../api/workspace";
+import { listChains } from "../api/workspace-m3";
 import { resolveWindow } from "./state/time-window";
 import { byteCount, buildContinuationRequest } from "./state/answer-format";
 import {
@@ -461,6 +462,24 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                       selectedSite,
               }
             : undefined);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const navOverview = useQuery({
+        queryKey: ["workspace", "overview", site?.site_id, from, to, timezone],
+        queryFn: ({ signal }) =>
+            getOverview({ siteId: site?.site_id ?? "", from, to, timezone }, signal),
+        enabled: site !== undefined,
+    });
+    const navChains = useQuery({
+        queryKey: ["m3", "chains", selectedSite, ""],
+        queryFn: ({ signal }) => listChains({ siteId: selectedSite }, signal),
+        enabled: !!selectedSite,
+    });
+    const navCounts = {
+        alerts: navOverview.data?.totals.alerts,
+        queue: navOverview.data?.totals.groups,
+        incidents: navOverview.data?.totals.open_incidents,
+        chains: navChains.data?.items.length,
+    };
     const alertFilters = {
         siteId: selectedSite,
         from,
@@ -521,6 +540,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                 route={route}
                 setRoute={navigate}
                 footer={shellStatus}
+                counts={navCounts}
                 search={desktopNav ? commandSearch : undefined}
                 t={t}
                 profile={isLocal ? "local" : "full"}
@@ -564,7 +584,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                             site={site}
                             from={from}
                             to={to}
-                            timezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                            timezone={timezone}
                             t={t}
                             onDrilldown={openAlertDrilldown}
                         />
@@ -622,6 +642,8 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                             siteId={selectedSite}
                             locale={locale}
                             t={t}
+                            onNavigate={navigate}
+                            onSearchAlerts={openAlertDrilldown}
                             onInvestigate={
                                 isLocal
                                     ? undefined
@@ -711,7 +733,7 @@ function AppContent({ localSession }: { localSession: LocalSession | null }) {
                                             active?.replay_request.continue_topic_ids ?? []
                                         }
                                         locale={locale}
-                                        timezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                                        timezone={timezone}
                                         t={t}
                                         headingRef={answerHeadingRef}
                                         mapped={mapped}
