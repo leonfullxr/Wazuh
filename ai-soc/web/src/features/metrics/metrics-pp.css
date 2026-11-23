@@ -115,6 +115,9 @@
 .metrics-pp-assets {
     overflow: hidden;
 }
+.metrics-pp-assets .pp-table {
+    min-width: 680px; /* scroll on a phone instead of crushing the host column */
+}
 .metrics-pp-assets tr[data-selected] td {
     background: var(--row-selected);
 }
