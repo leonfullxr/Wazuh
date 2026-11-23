@@ -5,6 +5,7 @@ export type TagTone = "neutral" | "blue" | "green" | "amber" | "orange" | "red" 
 export type SemanticTag = Readonly<{
     tone: TagTone;
     dot: boolean;
+    variant?: "severity";
 }>;
 
 export type WorkStatus = "new" | "acknowledged" | "in_progress" | "resolved" | "closed";
@@ -23,10 +24,10 @@ export type Framework = "MITRE" | "PCI" | "GDPR" | "NIST";
 const tag = (tone: TagTone, dot = false): SemanticTag => ({ tone, dot });
 
 export function severityTag(level: number | "info"): SemanticTag {
-    if (level === "info") return tag("neutral");
-    if (level >= 12) return tag("red", true);
-    if (level >= 7) return tag("amber", true);
-    return tag("neutral", true);
+    if (level === "info" || !Number.isInteger(level) || level < 0 || level > 15)
+        return { ...tag("neutral"), variant: "severity" };
+    const tone = level >= 12 ? "red" : level >= 10 ? "orange" : level >= 7 ? "amber" : "green";
+    return { ...tag(tone, true), variant: "severity" };
 }
 
 export const statusTags = {

@@ -3,13 +3,12 @@ import { answerStatusTags, healthTags, judgmentStateTags, severityTag, statusTag
 
 describe("semantic tags", () => {
     it("keeps severity boundaries and dots consistent", () => {
-        expect([0, 6, 7, 11, 12, 14, 15].map(severityTag)).toEqual([
-            { tone: "neutral", dot: true }, { tone: "neutral", dot: true },
-            { tone: "amber", dot: true }, { tone: "amber", dot: true },
-            { tone: "red", dot: true }, { tone: "red", dot: true },
-            { tone: "red", dot: true },
-        ]);
-        expect(severityTag("info")).toEqual({ tone: "neutral", dot: false });
+        expect([0, 6, 7, 9, 10, 11, 12, 15].map(severityTag)).toEqual(
+            ["green", "green", "amber", "amber", "orange", "orange", "red", "red"].map(
+                (tone) => ({ tone, dot: true, variant: "severity" }),
+            ),
+        );
+        expect(severityTag("info")).toEqual({ tone: "neutral", dot: false, variant: "severity" });
     });
 
     it("distinguishes outcomes, status, and health", () => {

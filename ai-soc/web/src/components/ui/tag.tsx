@@ -15,11 +15,23 @@ const toneDots = {
     teal: null,
 } satisfies Record<TagTone, string | null>;
 
+const severityClasses = {
+    neutral: "",
+    blue: "",
+    green: "border-[var(--severity-green-border)] bg-[var(--severity-green-bg)] text-[var(--severity-green-text)]",
+    amber: "border-[var(--severity-amber-border)] bg-[var(--severity-amber-bg)] text-[var(--severity-amber-text)]",
+    orange: "border-[var(--severity-orange-border)] bg-[var(--severity-orange-bg)] text-[var(--severity-orange-text)]",
+    red: "border-[var(--severity-red-border)] bg-[var(--severity-red-bg)] text-[var(--severity-red-text)]",
+    purple: "",
+    teal: "",
+} satisfies Record<TagTone, string>;
+
 export type TagProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
     children: ReactNode;
     tone?: TagTone;
     dot?: boolean;
     mono?: boolean;
+    variant?: "quiet" | "severity";
 };
 
 export function Tag({
@@ -27,6 +39,7 @@ export function Tag({
     tone = "neutral",
     dot = false,
     mono = false,
+    variant = "quiet",
     className,
     ...props
 }: TagProps) {
@@ -38,10 +51,12 @@ export function Tag({
             className={cn(
                 "tag inline-flex h-[20px] max-w-full shrink-0 items-center gap-[6px] whitespace-nowrap rounded-[var(--radius-tag)] border border-[var(--tag-neutral-border)] bg-[var(--tag-neutral-bg)] px-[7px] text-[12px] font-medium leading-none text-[var(--tag-neutral-text)]",
                 bad && "font-semibold text-[var(--text)]",
+                variant === "severity" && severityClasses[tone],
                 mono && "font-mono",
                 className,
             )}
             data-tone={tone}
+            data-variant={variant}
             {...props}
         >
             {dotClass && (

@@ -79,6 +79,18 @@
     --tag-teal-bg: rgb(20 110 110 / 8%);
     --tag-teal-border: rgb(20 110 110 / 28%);
     --tag-teal-text: #0f6e6c;
+    --severity-green-bg: var(--tag-green-bg);
+    --severity-green-border: var(--tag-green-border);
+    --severity-green-text: #12662b;
+    --severity-amber-bg: var(--tag-amber-bg);
+    --severity-amber-border: var(--tag-amber-border);
+    --severity-amber-text: #704900;
+    --severity-orange-bg: var(--tag-orange-bg);
+    --severity-orange-border: var(--tag-orange-border);
+    --severity-orange-text: #843900;
+    --severity-red-bg: var(--tag-red-bg);
+    --severity-red-border: var(--tag-red-border);
+    --severity-red-text: #92251f;
     /* Severity for data marks. Distinct from --status-* / --dot-* below. */
     --severity-critical: #9d2c2c;
     --severity-high: #c65d12;
@@ -225,6 +237,10 @@
     --tag-teal-bg: rgb(47 181 163 / 12%);
     --tag-teal-border: rgb(47 181 163 / 32%);
     --tag-teal-text: #7ad4c6;
+    --severity-green-text: #5dce70;
+    --severity-amber-text: #e2b340;
+    --severity-orange-text: #f0a36a;
+    --severity-red-text: #ff8d86;
     --severity-critical: #e07a72;
     --severity-high: #e08a45;
     --severity-medium: #d4b15a;
