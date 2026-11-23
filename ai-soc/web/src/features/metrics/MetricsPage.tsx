@@ -122,7 +122,7 @@ export function MetricsPage({
     const targets = samples?.slaTargetsSeconds;
     return (
         <div className="workspace-page metrics-pp pp-stack">
-            <section aria-labelledby="metrics-ops-heading" className="metrics-pp-ops">
+            <section className="metrics-pp-ops">
                 <div className="metrics-pp-head">
                     <h2 id="metrics-ops-heading" className="t-section">
                         {t("operationalMetrics")}
