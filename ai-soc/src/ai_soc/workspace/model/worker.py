@@ -191,12 +191,17 @@ def _verify_slot_file(directory_fd: int, fd: int) -> None:
         entry = os.stat("slot-0.lock", dir_fd=directory_fd, follow_symlinks=False)
     except FileNotFoundError:
         raise PermissionError("slot_file_changed") from None
+    if not os.path.samestat(info, entry):
+        raise PermissionError("slot_file_changed")
     if (
         not stat.S_ISREG(info.st_mode)
         or info.st_uid != os.geteuid()
         or info.st_mode & 0o077
         or info.st_nlink != 1
-        or not os.path.samestat(info, entry)
+        or not stat.S_ISREG(entry.st_mode)
+        or entry.st_uid != os.geteuid()
+        or entry.st_mode & 0o077
+        or entry.st_nlink != 1
     ):
         raise PermissionError("slot_file_changed")
 
@@ -297,7 +302,7 @@ def verify_authority(config: ModelConfig, info: os.stat_result) -> None:
                 path.parent.resolve(strict=True) / path.name != locator
                 or _authority_identity(path.lstat()) != observed
             )
-        except FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError):
             return True
 
     if locator_changed():
@@ -425,6 +430,7 @@ def _provision_binding_locked(
                     ),
                 )
             verify_binding(conn, config, site_id, slot_fd=slot.fd)
+            _verify_slot_file(slot.fd, slot.legacy_fd)
 
 
 def provision_model_role(conn: psycopg.Connection[Any], role: str) -> None:

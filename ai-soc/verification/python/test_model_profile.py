@@ -794,10 +794,20 @@ def test_slot_rejects_symlink_legacy_entry(tmp_path):
     assert error.value.errno == errno.ELOOP
 
 
-def test_production_broker_transport_inherits_slot_directory(tmp_path, monkeypatch):
+def test_provider_default_broker_transport_inherits_slot_directory(tmp_path, monkeypatch):
     import os
 
-    from ai_soc.workspace.model import cli_broker
+    from ai_soc.workspace.model import cli_broker, cli_provider
+
+    class ProbeComplete(Exception):
+        pass
+
+    instances = []
+
+    class CapturingBroker(cli_broker.InferenceBroker):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            instances.append(self)
 
     slot = worker.acquire_slot(tmp_path)
     assert slot is not None
@@ -815,9 +825,96 @@ def test_production_broker_transport_inherits_slot_directory(tmp_path, monkeypat
     try:
         info = os.fstat(slot.fd)
         monkeypatch.setattr(cli_broker.sys, "executable", str(executable))
-        transport = cli_broker._BoundedHTTPSTransport(pass_fds=(slot.fd,))
-        status, body = transport(b"synthetic", {})
-        assert status == 200
-        assert body == f"{info.st_dev}:{info.st_ino}".encode()
+        monkeypatch.setattr(cli_broker, "load_credentials", lambda *args, **kwargs: object())
+        monkeypatch.setattr(cli_provider, "InferenceBroker", CapturingBroker)
+        monkeypatch.setattr(cli_provider, "_request_payload", lambda _pack: b"synthetic")
+        monkeypatch.setattr(CodexProfile, "verify", lambda _self: object())
+        monkeypatch.setattr(CodexProfile, "prepare_inputs", lambda *args, **kwargs: object())
+        monkeypatch.setattr(CodexProfile, "argv", lambda *args, **kwargs: ("synthetic",))
+
+        def run_probe(*args, **kwargs):
+            status, body = instances[0]._transport(b"synthetic", {})
+            assert status == 200
+            assert body == f"{info.st_dev}:{info.st_ino}".encode()
+            raise ProbeComplete
+
+        monkeypatch.setattr(cli_provider, "run_bounded", run_probe)
+        incident, revision = UUID(int=1), UUID(int=2)
+        pack = SimpleNamespace(site_id="site", incident_id=incident, incident_revision_id=revision)
+        request = cli_provider.GenerationRequest(pack, "site", incident, revision)
+        profile = CodexProfile(auth_path="/synthetic/auth", state_directory=tmp_path / "state")
+        with pytest.raises(ProbeComplete):
+            cli_provider.CodexCLIProvider(profile).generate(request, slot_fds=(slot.fd,))
     finally:
         slot.close()
+
+
+def test_slot_rejects_link_added_between_fstat_and_entry_stat(tmp_path, monkeypatch):
+    import os
+
+    original = worker.os.stat
+
+    def link_before_entry_stat(path, *args, **kwargs):
+        if path == "slot-0.lock" and kwargs.get("follow_symlinks") is False:
+            (tmp_path / "added-link").hardlink_to(tmp_path / "slot-0.lock")
+        return original(path, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(worker.os, "stat", link_before_entry_stat)
+        with pytest.raises(PermissionError, match="slot_file_changed"):
+            worker.acquire_slot(tmp_path)
+    assert os.stat(tmp_path / "slot-0.lock").st_nlink == 2
+
+
+def test_manifest_parent_replaced_by_file_is_changed(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    slot = tmp_path / "slot"
+    slot.mkdir(mode=0o700)
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    authority = parent / "authority"
+    config = worker.ModelConfig(
+        frozenset({"site"}), "host", "runtime", slot, authority_path=authority
+    )
+    authority.write_bytes(worker.authority_material(config, slot.stat()))
+    authority.chmod(0o600)
+    original = Path.lstat
+
+    def replace_parent(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path == authority:
+            parent.rename(tmp_path / "old-parent")
+            parent.write_text("replacement")
+        return result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "lstat", replace_parent)
+        with pytest.raises(PermissionError, match="host_authority_changed"):
+            worker.verify_authority(config, slot.stat())
+
+
+@pytest.mark.parametrize("field", ["mode", "owner", "type"])
+def test_slot_rejects_changed_later_entry_metadata(tmp_path, monkeypatch, field):
+    import os
+    import stat
+
+    original = worker.os.stat
+
+    def changed_entry(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path == "slot-0.lock" and kwargs.get("follow_symlinks") is False:
+            values = list(result)
+            if field == "mode":
+                values[stat.ST_MODE] |= 0o044
+            elif field == "owner":
+                values[stat.ST_UID] += 1
+            else:
+                values[stat.ST_MODE] = stat.S_IFIFO | 0o600
+            return os.stat_result(values)
+        return result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(worker.os, "stat", changed_entry)
+        with pytest.raises(PermissionError, match="slot_file_changed"):
+            worker.acquire_slot(tmp_path)
