@@ -79,15 +79,19 @@ and this round does not touch them.
 
 ## 7. Outcome of this round
 
-| Work | PR |
-| --- | --- |
-| Slot admission, targeted claim, transient settlement | #100 |
-| #77 dialog focus trap | #99 |
-| #71 severity fills | #80 |
-| #73 compact titles and dashboard coverage | #81 |
-| #76 overflow under stress data | #98 |
-| Queue and Metrics row swap before site selection (flaky row-target checks) | #101 |
-| #72 and superseded #82 | closed, fixed by #94 |
+The console redesign (f2c5a8b) landed on `main` during the round. The UI
+PRs were rebased onto it.
+
+| Work | PR | Result |
+| --- | --- | --- |
+| Slot admission, targeted claim, transient settlement | #100 | Merged. |
+| #77 dialog focus trap | #99 | Merged. The redesign replaced the Queue sheet with an inline panel, so five dialogs remain. |
+| #71 severity fills | #80 | Closed. The redesign gives every tag tone a tinted fill. |
+| #73 compact titles and dashboard coverage | #81 | Merged as dashboard coverage only. The redesign sets the page title style. |
+| #76 overflow under stress data | #98 | Ported to the redesigned screens. |
+| Queue and Metrics row swap before site selection (flaky row-target checks) | #101 | Merged, with a fix for a hidden table label that widened the Metrics page on a phone. |
+| Duplicate Metrics landmark after the redesign | #103 | Merged. |
+| #72 and superseded #82 | closed, fixed by #94 | |
 
 The specification and its review disposition are in
 [implementation_spec.md](implementation_spec.md).
