@@ -118,23 +118,6 @@
     flex-direction: column;
     gap: 24px;
 }
-.pp-page-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-.pp-page-head > div:first-child {
-    flex: 1 1 360px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.pp-page-head p {
-    margin: 0;
-    color: var(--text-2);
-}
 
 /* Tables */
 .pp-table-scroll {

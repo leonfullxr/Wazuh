@@ -8,46 +8,6 @@
     margin: 0;
 }
 
-.queue-v2-filters {
-    padding: 16px 20px;
-    background: var(--surface-2, var(--surface-subtle));
-}
-
-.queue-v2 .queue-filter-row {
-    gap: 12px;
-}
-
-.queue-v2 .queue-filter-row label {
-    min-width: 136px;
-}
-
-.queue-v2 .queue-filter-row input,
-.queue-v2 .queue-filter-row select,
-.queue-v2 .bulk-toolbar input:not([type="checkbox"]),
-.queue-v2 .bulk-toolbar select,
-.queue-v2-drawer input:not([type="checkbox"]),
-.queue-v2-drawer select {
-    min-height: var(--control-height, 32px);
-}
-
-.queue-v2-bulk {
-    position: sticky;
-    z-index: 5;
-    top: calc(var(--topbar-height, var(--header-height)) + 8px);
-    border-color: var(--border-strong, var(--stroke-strong));
-    background: var(--surface, var(--bg));
-}
-
-.queue-v2-table-panel {
-    min-width: 0;
-}
-
-.queue-v2-table-panel .table-scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-}
-
 .queue-v2 .queue-table {
     min-width: 0;
     width: 100%;
@@ -111,11 +71,6 @@
     line-height: 20px;
 }
 
-.queue-v2 .group-link .queue-v2-entity,
-.queue-v2 .group-link .queue-v2-reasons {
-    margin-top: 0;
-}
-
 .queue-v2 .group-link:hover {
     text-decoration: none;
 }
@@ -124,158 +79,7 @@
     text-decoration: underline;
 }
 
-.queue-v2-entity {
-    display: flex !important;
-    align-items: center;
-    gap: 6px;
-    margin-top: 3px;
-}
-
-.queue-v2-entity > span {
-    color: var(--text-2, var(--text-tertiary));
-}
-
-.queue-v2-entity code,
-.queue-v2-drawer-meta code,
-.queue-v2-drawer .alert-detail-list code {
-    color: inherit;
-    font-family: var(--font-code);
-    font-size: inherit;
-    overflow-wrap: anywhere;
-}
-
-.queue-v2-reasons {
-    max-width: 480px;
-    margin-top: 3px;
-    line-height: 16px;
-}
-
-.queue-v2-score {
-    display: grid;
-    grid-template-columns: auto 56px;
-    align-items: center;
-    gap: 8px;
-}
-
-.queue-v2-score > strong {
-    font-family: var(--font-ui);
-    font-size: 14px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.queue-v2-score > strong[data-pending] {
-    color: var(--text-2);
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.queue-v2-score-track,
-.queue-v2-drawer-score {
-    display: block !important;
-    height: 4px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: var(--selected, var(--surface-raised));
-}
-
-.queue-v2-score-track > span,
-.queue-v2-drawer-score > span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--text);
-}
-
-.queue-v2-drawer-meta {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.queue-v2-drawer-meta > code {
-    min-width: 0;
-    color: var(--text-muted);
-    font-size: 11px;
-}
-
-.queue-v2-drawer-meta > div {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
-}
-
-.queue-v2-drawer .group-score-card {
-    grid-template-columns: auto 1fr;
-    border: 1px solid var(--border, var(--stroke-subtle));
-    border-radius: var(--radius-panel, var(--radius-card));
-    background: var(--surface-2, var(--surface-subtle));
-}
-
-.queue-v2-drawer .group-score-card strong {
-    font-family: var(--font-ui);
-    font-size: 28px;
-    font-weight: 500;
-    letter-spacing: -0.012em;
-    font-variant-numeric: tabular-nums;
-}
-
-.queue-v2-drawer-score {
-    grid-column: 1 / -1;
-    height: 6px;
-    margin-top: 6px;
-}
-
-.queue-v2-drawer .score-components li,
-.queue-v2-drawer .provenance-row,
-.queue-v2-drawer .member-link {
-    border-color: var(--border, var(--stroke-subtle));
-    border-radius: var(--radius-panel, var(--radius-card));
-    background: var(--surface, var(--bg));
-}
-
-.queue-v2-drawer .score-components li {
-    padding: 10px 12px;
-}
-
-.queue-v2-drawer .score-components li > code {
-    color: var(--text);
-    font-family: var(--font-ui);
-    font-variant-numeric: tabular-nums;
-}
-
-.queue-v2-drawer .score-components li > code[data-unavailable] {
-    color: var(--text-muted);
-}
-
 @media (max-width: 760px) {
-    .queue-v2-intro {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .queue-v2-bulk {
-        position: static;
-    }
-
-    .queue-v2 .bulk-toolbar {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .queue-v2 .queue-filter-row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-    }
-
-    .queue-v2 .queue-filter-row label {
-        min-width: 0;
-    }
 
     /* Phones keep group, score and status; the drawer holds the rest. */
     .queue-v2 .queue-table {
@@ -295,15 +99,6 @@
         display: none;
     }
 
-    .queue-v2-score {
-        grid-template-columns: auto;
-    }
-
-    .queue-v2-table-panel,
-    .queue-v2-filters {
-        padding: 12px;
-    }
-
     .queue-v2 .queue-table th,
     .queue-v2 .queue-table td {
         padding: 8px 6px;
@@ -317,10 +112,6 @@
     }
 
     .queue-v2 .queue-table th:nth-child(3) {
-        white-space: normal;
-    }
-
-    .queue-v2-score > strong[data-pending] {
         white-space: normal;
     }
 
@@ -342,40 +133,9 @@
     .queue-v2 .queue-table td:nth-child(7) {
         width: 88px;
     }
-
-    .queue-v2-reasons,
-    .queue-v2-score + .table-secondary {
-        display: none !important;
-    }
-
-    .queue-v2-score-track {
-        display: none !important;
-    }
-
-    .queue-v2 .queue-filter-row label,
-    .queue-v2 .bulk-toolbar label,
-    .queue-v2 .queue-filter-row input,
-    .queue-v2 .queue-filter-row select,
-    .queue-v2 .bulk-toolbar input,
-    .queue-v2 .bulk-toolbar select {
-        width: 100%;
-        max-width: none;
-    }
-
-    .queue-v2-drawer-meta {
-        flex-direction: column;
-    }
-
-    .queue-v2-drawer-meta > div {
-        justify-content: flex-start;
-    }
 }
 
 /* Narrow phones: each group is a stacked row (title, then score; status on the right). */
-/* Phone-only label; the desktop table has a Priority score column header. */
-.queue-v2 .queue-table .queue-v2-score-label {
-    display: none;
-}
 
 @media (max-width: 480px) {
     .queue-v2 .queue-table,
@@ -438,117 +198,10 @@
         gap: 8px;
     }
 
-    .queue-v2 .queue-table .queue-v2-score-label {
-        display: inline;
-        color: var(--text-muted);
-        font-size: 12px;
-    }
-
     .queue-v2 .queue-table td:nth-child(7) {
         grid-area: status;
         width: auto;
     }
-
-    .queue-v2-score > strong[data-pending] {
-        white-space: nowrap;
-    }
-}
-
-/* Same card grammar as Alerts: titled table card with a count badge, filters across the card. */
-.queue-v2-results-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    margin-bottom: 12px;
-}
-
-.queue-v2-results-heading h2 {
-    margin: 0;
-    font: 600 15px/1.35 var(--font-ui);
-    letter-spacing: 0;
-}
-
-.queue-v2-results-heading p {
-    margin: 2px 0 0;
-    color: var(--text-muted);
-    font-size: 12px;
-    line-height: 18px;
-}
-
-.queue-v2-calibration {
-    display: block;
-    margin-top: 2px;
-    color: var(--text-muted);
-    font-size: 12px;
-    font-weight: 400;
-    letter-spacing: 0;
-    text-transform: none;
-}
-.queue-v2-mobile-calibration {
-    display: none;
-}
-
-@media (min-width: 761px) {
-    .queue-v2 .queue-filter-row {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .queue-v2 .queue-filter-row label,
-    .queue-v2 .queue-filter-row input,
-    .queue-v2 .queue-filter-row select {
-        width: 100%;
-        min-width: 0;
-        max-width: none;
-    }
-}
-
-@media (max-width: 480px) {
-    .queue-v2-results-heading {
-        margin-bottom: 0;
-    }
-    .queue-v2-results-heading > .queue-v2-mobile-calibration {
-        display: block;
-        margin: 2px 0 0;
-    }
-}
-
-/* One border level in the drawer: items inside a section are rows with hairline dividers,
-   not bordered cards; the score hero keeps only a background tint. */
-.queue-v2-drawer .score-components li,
-.queue-v2-drawer .provenance-row,
-.queue-v2-drawer .member-link {
-    padding: 10px 0;
-    border: 0;
-    border-bottom: 1px solid var(--border-row);
-    border-radius: 0;
-    background: transparent;
-}
-
-.queue-v2-drawer .score-components li:last-child,
-.queue-v2-drawer .provenance-row:last-child,
-.queue-v2-drawer .member-link:last-of-type {
-    border-bottom: 0;
-}
-
-.queue-v2-drawer .member-link:hover {
-    background: transparent;
-}
-
-.queue-v2-drawer .member-link:hover > span:first-child {
-    color: var(--accent-text);
-}
-
-.queue-v2-drawer .group-score-card {
-    border: 0;
-    background: var(--surface-tile);
-}
-
-/* Enrichment provenance values share the drawer's value column (156px label + 12px gap). */
-.queue-v2-drawer .provenance-fields > div {
-    grid-template-columns: 156px minmax(0, 1fr);
 }
 
 /* Assessment is a short verdict. The count column stays on one line beside it. */
@@ -556,142 +209,6 @@
 .queue-v2 .queue-table td:nth-child(4) {
     min-width: 9rem;
     text-align: left;
-}
-
-.queue-v2-drawer-score,
-.queue-v2-drawer-score > span {
-    border-radius: 999px;
-}
-
-.queue-v2-drawer-score {
-    overflow: hidden;
-}
-
-/* Filter cards share the standard card surface on Alerts and Queue. */
-.queue-v2-filters {
-    background: var(--surface);
-}
-
-/* Load more sits on the right like every other drawer action. */
-.queue-v2-drawer .load-more {
-    align-self: flex-end;
-    justify-self: end;
-    margin-left: auto;
-}
-
-/* Load more sits 12px under the member list it extends. */
-.queue-v2-drawer .load-more {
-    margin-top: -6px;
-}
-
-/* The drawer's group id reads at the shared 12px secondary-id size. */
-.queue-v2-drawer-meta > code {
-    font-size: 12px;
-}
-
-/* One key-value pitch (27px) and one 13px value size across the drawer. */
-.queue-v2-drawer .provenance-fields {
-    row-gap: 6px;
-}
-
-.queue-v2-drawer .provenance-fields dd code {
-    font-size: 13px;
-}
-
-/* Score components follow the drawer's label/value grammar: name in the label column, value on
-   the value column, explanation and evidence full width beneath. */
-.queue-v2-drawer .score-components li {
-    grid-template-columns: minmax(156px, 0.7fr) minmax(0, 1.3fr);
-    column-gap: 12px;
-    row-gap: 2px;
-}
-
-.queue-v2-drawer .score-components li > div {
-    display: contents;
-}
-
-.queue-v2-drawer .score-components li > div > strong {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.queue-v2-drawer .score-components li > code {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: start;
-}
-
-.queue-v2-drawer .score-components li > div > span,
-.queue-v2-drawer .score-components li > small {
-    grid-column: 1 / -1;
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-/* Load more sits 12px under the last member row. */
-.queue-v2-drawer .load-more {
-    margin-top: -14px;
-}
-
-/* Component names use the drawer's label style; the value carries the emphasis. */
-.queue-v2-drawer .score-components li > div > strong {
-    color: var(--text-muted);
-    font-size: 13px;
-    font-weight: 400;
-}
-
-.queue-v2-drawer .score-components li {
-    row-gap: 4px;
-}
-
-/* Member titles sit one step under the drawer section heading. */
-.queue-v2-drawer .member-link > span:first-child {
-    font-weight: 500;
-}
-
-/* Every provenance row keeps the 27px pitch, including the last one. */
-.queue-v2-drawer .provenance-row {
-    row-gap: 6px;
-}
-
-/* Score components are one group: 16px apart, hairlines only between drawer sections. */
-.queue-v2-drawer .score-components {
-    gap: 16px;
-}
-
-.queue-v2-drawer .score-components li {
-    padding: 0;
-    border-bottom: 0;
-}
-
-/* Enrichment provenance opens like Score components: subheading under the heading, rows 8px below. */
-.queue-v2-drawer .drawer-section > .provenance-row:first-of-type {
-    padding-top: 0;
-}
-
-.queue-v2-drawer .provenance-row > .provenance-fields:first-of-type {
-    margin-top: 4px;
-}
-
-/* The score bar sits 8px after its number; the cell reads as one unit. */
-.queue-v2-score {
-    justify-content: start;
-}
-
-/* Score component values use the grid's regular weight; a missing one is muted sans. */
-.queue-v2-drawer .score-components li > code {
-    font-weight: 400;
-}
-
-.queue-v2-drawer .score-components li > code[data-unavailable] {
-    color: var(--text-muted);
-    font-family: var(--font-ui);
-}
-
-/* Score component notes sit under the value they explain (value column). */
-.queue-v2-drawer .score-components li > div > span,
-.queue-v2-drawer .score-components li > small {
-    grid-column: 2;
 }
 
 /* Owner and status share one grid: both fields end on the same edge, Unassign in the trailing slot. */

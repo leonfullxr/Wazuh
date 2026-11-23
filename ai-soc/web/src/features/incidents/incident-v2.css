@@ -2,16 +2,6 @@
     --m3-section-gap: 32px;
 }
 
-.m3-grid {
-    gap: 20px;
-}
-
-.m3-detail > section,
-.m3-detail > .m3-two-column,
-.m3-detail > .m3-actions {
-    margin-top: var(--m3-section-gap);
-}
-
 .m3-list {
     gap: 4px;
     margin-inline: -12px;
@@ -21,28 +11,7 @@
     justify-self: end;
 }
 
-.m3-empty-detail {
-    min-height: 264px;
-}
-
 .m3-page .panel-head h2 {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.m3-detail > .panel-head + .m3-meta,
-.m3-detail > h2 + .m3-meta {
-    margin-top: 14px;
-}
-
-.m3-detail > .panel-head h2,
-.m3-detail > h2 {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-}
-
-.m3-detail h3 {
     font-size: 14px;
     font-weight: 600;
 }
@@ -136,8 +105,7 @@
 }
 
 .m3-list-item small,
-.m3-meta code,
-.m3-detail td code {
+.m3-meta code {
     font-family: var(--font-code);
 }
 
@@ -196,10 +164,6 @@
     justify-self: start;
 }
 
-.m3-detail > .m3-two-column {
-    column-gap: 32px;
-}
-
 .m3-graph-empty-copy p {
     margin: 0;
     color: var(--text-muted);
@@ -235,92 +199,6 @@
     text-align: right;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.m3-timeline-marker {
-    position: relative;
-    align-self: stretch;
-    width: 16px;
-}
-
-.m3-timeline-marker::before {
-    position: absolute;
-    top: 4px;
-    left: 3px;
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--surface);
-    border-radius: 50%;
-    background: var(--series-other);
-    box-shadow: 0 0 0 1px var(--border-strong);
-    content: "";
-}
-
-.m3-timeline-marker::after {
-    position: absolute;
-    top: 16px;
-    bottom: -20px;
-    left: 8px;
-    width: 1px;
-    background: var(--border-strong);
-    content: "";
-}
-
-.m3-timeline li:last-child .m3-timeline-marker::after {
-    content: none;
-}
-
-.m3-timeline-event {
-    display: grid;
-    min-width: 0;
-    gap: 2px;
-}
-
-.m3-timeline-event > strong {
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 18px;
-}
-
-.m3-timeline-event > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--text-muted);
-    font: 11px/18px var(--font-code);
-}
-
-.m3-timeline-event .m3-evidence {
-    margin-top: 8px;
-}
-
-/* Detail tables sit directly on the card like every other table (no second border level). */
-.m3-detail .table-wrap {
-    border: 0;
-    border-radius: 0;
-}
-
-.m3-detail table {
-    border-collapse: collapse;
-    font-size: 12px;
-}
-
-.m3-detail th,
-.m3-detail td {
-    height: var(--table-row-height);
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border-row);
-    text-align: left;
-    vertical-align: middle;
-}
-
-.m3-detail tbody tr:last-child td {
-    border-bottom: 0;
-}
-
-.m3-detail th {
-    color: var(--text-2);
-    font-weight: 500;
 }
 
 /* Single-field forms sit on one row; forms with a textarea stack with the action on the right. */
@@ -419,12 +297,6 @@
     font-size: 12.5px;
 }
 
-@media (max-width: 1000px) {
-    .m3-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 640px) {
     .m3-page {
         --m3-section-gap: 20px;
@@ -453,20 +325,6 @@
         grid-template-columns: 54px 14px minmax(0, 1fr);
         gap: 6px;
     }
-}
-
-.m3-list-item .m3-list-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.m3-list-item .m3-list-meta code {
-    margin-left: -2px;
-    color: var(--text-2);
-    font-family: var(--font-code);
-    font-size: 12px;
 }
 
 .m3-meta dd .tag {
@@ -523,46 +381,6 @@
     }
 }
 
-/* One rhythm for detail sections: a hairline with 20px either side. */
-.m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
-.m3-detail > .m3-two-column,
-.m3-detail > .m3-actions {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-row);
-}
-
-.m3-detail > section > h3:first-child,
-.m3-detail > .m3-two-column h3 {
-    margin-top: 0;
-}
-
-/* Evidence groups: one-line ids, wider group column, top-aligned cells. */
-.m3-detail td {
-    vertical-align: top;
-}
-
-.m3-detail td:first-child {
-    min-width: 220px;
-}
-
-.m3-detail td:nth-child(2) code {
-    max-width: 18ch;
-}
-
-.m3-detail td:last-child {
-    white-space: nowrap;
-}
-
-.m3-detail td small,
-.m3-detail td code {
-    display: block;
-    max-width: 30ch;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 /* Membership edits: add and remove side by side, action below. */
 .m3-page .m3-inline-form:has(label + label):not(:has(select)) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -574,10 +392,6 @@
 
 .m3-graph-empty-copy p {
     text-wrap: balance;
-}
-
-.m3-grid > .panel > .m3-list:last-child {
-    margin-bottom: 0;
 }
 
 /* Membership history and other evidence rows: null values recede. */
@@ -593,12 +407,6 @@
     white-space: normal;
 }
 
-/* One label column (200px) for every key/value list on a detail page; inset cards subtract
-   their 12px padding so values line up with the outer column. */
-.m3-detail .m3-meta {
-    grid-template-columns: 200px minmax(0, 1fr);
-}
-
 .m3-provenance > .m3-meta {
     grid-template-columns: 200px minmax(0, 1fr) 200px minmax(0, 1fr);
 }
@@ -609,11 +417,6 @@
 
 .m3-provenance > .m3-meta dd:last-of-type {
     grid-column: 2 / -1;
-}
-
-/* Full-width section cards align with the meta value column (200px + 14px gap); narrow cards keep a short one. */
-.m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
-    grid-template-columns: 202px minmax(0, 1fr);
 }
 
 .m3-timeline .m3-evidence-fields > div,
@@ -653,7 +456,6 @@
 }
 
 @media (max-width: 640px) {
-    .m3-detail .m3-meta,
     .m3-provenance > .m3-meta {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -661,10 +463,6 @@
     .m3-provenance > .m3-meta dt:last-of-type,
     .m3-provenance > .m3-meta dd:last-of-type {
         grid-column: auto;
-    }
-
-    .m3-detail > section > .m3-evidence > li > .m3-evidence-fields > div {
-        grid-template-columns: 96px minmax(0, 1fr);
     }
 }
 
@@ -700,46 +498,14 @@
     font-size: 12.5px;
 }
 
-.m3-timeline-event > strong > code {
-    font-family: var(--font-code);
-    font-weight: 600;
-}
-
 /* The next section draws the divider, so the narrative's last block does not. */
 .m3-provenance > .m3-meta:last-child {
     border-bottom: 0;
     padding-bottom: 0;
 }
 
-.m3-timeline-event > .m3-evidence {
-    margin-top: 6px;
-}
-
-.m3-timeline-event .m3-evidence > li {
-    padding-top: 0;
-}
-
-.m3-timeline-event > span .copy-value {
-    color: inherit;
-    font-size: 11px;
-    line-height: 18px;
-    vertical-align: top;
-}
-
 .m3-detail :is(.m3-stage-head, .m3-stage-lead) > code {
     font-size: 12.5px;
-}
-
-.m3-missing {
-    margin: 4px 0 0;
-    color: var(--text-2);
-    font-size: 13px;
-}
-
-.m3-detail td .copy-value {
-    max-width: 100%;
-    color: inherit;
-    font-size: 12px;
 }
 
 .m3-list-item > strong > code {
@@ -925,27 +691,6 @@
     font-weight: 400;
 }
 
-/* Detail tables use the 13px body size; only the hash sub-line stays small. */
-.m3-detail td {
-    font-size: 13px;
-}
-
-.m3-detail td > strong {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-/* Timeline marker: a solid dot, not a ring (the rail between events stays). */
-.m3-timeline-marker::before {
-    top: 5px;
-    left: 4px;
-    width: 8px;
-    height: 8px;
-    border: 0;
-    background: var(--text-muted);
-    box-shadow: none;
-}
-
 /* Evidence groups: auto column sizing with tighter cells; the group name keeps one line. */
 section[aria-labelledby="incident-members-heading"] th,
 section[aria-labelledby="incident-members-heading"] td {
@@ -976,41 +721,12 @@ section[aria-labelledby="incident-members-heading"] > h4 {
 }
 
 /* Wide screens: the list column stays in view while the detail scrolls. */
-@media (min-width: 1201px) {
-    .m3-grid {
-        align-items: start;
-    }
-
-    .m3-grid > .panel:first-child {
-        position: sticky;
-        top: calc(var(--header-height) + 16px);
-    }
-}
-
-/* Detail tables start and end on the same edges as the label column and section headings. */
-.m3-detail section table th:first-child,
-.m3-detail section table td:first-child {
-    padding-left: 0;
-}
-
-.m3-detail section table th:last-child,
-.m3-detail section table td:last-child {
-    padding-right: 0;
-}
 
 /* Record names that are identifiers (history actions) are mono, like every other id. */
 .m3-work-history li > strong {
     font-family: var(--font-code);
     font-size: 13px;
     font-weight: 600;
-}
-
-/* Chain decisions: both fields side by side, then one right-aligned action row. */
-.m3-actions-row {
-    display: flex;
-    grid-column: 1 / -1;
-    justify-content: flex-end;
-    gap: 8px;
 }
 
 /* Mono subheadings (history actions) stay below their sans section titles. */
@@ -1034,11 +750,6 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
     width: auto;
 }
 
-.m3-actions-title {
-    grid-column: 1 / -1;
-    margin: 0;
-}
-
 /* Evidence group counts get fixed columns and room before the event time. */
 section[aria-labelledby="incident-members-heading"] th:nth-child(3),
 section[aria-labelledby="incident-members-heading"] th:nth-child(4) {
@@ -1050,22 +761,6 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
     padding-right: 16px;
 }
 
-/* Timeline identifier line at the shared secondary metadata size. */
-.m3-timeline-event > span {
-    font-size: 12px;
-}
-
-/* List cards: the page title names the list; the head is a toolbar with a count and Refresh. */
-.m3-grid > .panel:first-child > .panel-head {
-    justify-content: space-between;
-    align-items: center;
-}
-
-.m3-list-count {
-    color: var(--text-2);
-    font-size: 13px;
-}
-
 /* Chain decisions: each button sits inline after its own field, like Owner and Save owner. */
 .m3-actions form {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1075,14 +770,6 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
 
 .m3-actions form > .btn {
     justify-self: auto;
-}
-
-.m3-detail > .m3-actions {
-    padding-top: 20px;
-}
-
-.m3-detail > .m3-actions > .m3-actions-title {
-    margin: 0;
 }
 
 /* Narrative: a clear gap after the trust note; inline mono ids keep the prose line height. */
@@ -1119,18 +806,9 @@ section[aria-labelledby="incident-members-heading"] td:nth-child(4) {
     font-size: 13px;
 }
 
-.m3-missing {
-    margin-top: 0;
-}
-
 /* The weak-links subheading sits closer to the list above it. */
 section[aria-labelledby="chain-links-heading"] > h4 {
     margin-top: 12px;
-}
-
-/* The two decision pairs sit further apart than a field and its button. */
-.m3-detail > .m3-actions {
-    column-gap: 32px;
 }
 
 /* Single-field stage values share a fixed slot, so the labels stack in one column. */
@@ -1167,15 +845,6 @@ section[aria-labelledby="chain-links-heading"] > h4 {
     min-width: 0;
 }
 
-/* Missing stages read as one more label/value row. */
-.m3-missing-row {
-    margin: 10px 0 0;
-}
-
-.m3-detail > section > .m3-missing-row > div {
-    grid-template-columns: 202px minmax(0, 1fr);
-}
-
 /* Event names in work history stay below their section title. */
 .m3-work-history li > strong {
     font-weight: 400;
@@ -1186,20 +855,6 @@ section[aria-labelledby="chain-links-heading"] > h4 {
     border-color: var(--border-row);
 }
 
-/* Top-level detail sections: 32px above the hairline, 20px below; headings step 18 / 16 / 12px. */
-.m3-detail > section:not(.m3-graph-empty):not(.m3-narrative),
-.m3-detail > .m3-two-column,
-.m3-detail > .m3-actions {
-    margin-top: var(--m3-section-gap);
-}
-
-.m3-detail .panel-head > h2 {
-    font-size: 18px;
-}
-
-.m3-detail > section > h3,
-.m3-detail > .m3-two-column > section > h3,
-.m3-detail > .m3-actions > .m3-actions-title,
 .m3-narrative > .panel-head h3 {
     font-size: 16px;
 }
@@ -1209,25 +864,9 @@ section[aria-labelledby="chain-links-heading"] > h4 {
     margin-bottom: 0;
 }
 
-.m3-detail .m3-missing-row {
-    margin: 0;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-row);
-}
-
 /* Wrapped list titles take less room. */
 .m3-list-item strong {
     line-height: 18px;
-}
-
-/* One row pitch for every label/value list on detail pages (29px, like the meta block). */
-.m3-detail > section .m3-evidence-fields {
-    display: grid;
-    row-gap: 8px;
-}
-
-.m3-detail .m3-timeline .m3-evidence-fields {
-    row-gap: 4px;
 }
 
 /* Stage rows: 40px, pill centred; the Missing stages row matches. */
@@ -1243,30 +882,9 @@ section[aria-labelledby="chain-stages-heading"] .m3-evidence > li > .m3-stage-ro
     flex: 1;
 }
 
-.m3-detail .m3-missing-row {
-    padding-top: 0;
-}
-
-.m3-detail .m3-missing-row > div {
-    min-height: 40px;
-    align-items: center;
-}
-
 /* The graph notice closes the key-value block instead of taking a section slot. */
 .m3-detail > .m3-meta:has(+ .m3-graph-empty) {
     border-bottom: 0;
-}
-
-.m3-detail > .m3-meta + .m3-graph-empty {
-    margin-top: 4px;
-}
-
-/* A date line opens each day of the timeline. */
-.m3-timeline > li.m3-timeline-day {
-    display: block;
-    padding: 0 0 8px;
-    color: var(--text-2);
-    font-size: 13px;
 }
 
 /* The weak-links subheading groups with its rows: about 20px above, 8px below. */
@@ -1284,56 +902,9 @@ section[aria-labelledby="chain-stages-heading"] .m3-evidence {
     padding-bottom: 0;
 }
 
-.m3-detail > .m3-meta + .m3-graph-empty {
-    min-height: 0;
-    margin-top: 8px;
-    padding: 0;
-    border: 0;
-    background: none;
-}
-
-.m3-detail > .m3-graph-empty .m3-graph-empty-copy {
-    display: grid;
-    grid-template-columns: var(--m3-record-label-width) minmax(0, 1fr);
-    column-gap: 14px;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-}
-
-.m3-detail > .m3-graph-empty .m3-graph-empty-copy h3,
-.m3-detail > .m3-graph-empty .m3-graph-empty-copy p {
-    margin: 0;
-    color: var(--text-2);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 21px;
-}
-
-.m3-detail > .m3-graph-empty .m3-graph-empty-copy p {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
 /* Stage pills share one edge at the end of the label column. */
 .m3-stage-row > .m3-stage-lead > code + * {
     margin-left: auto;
-}
-
-.m3-missing-row dd > code {
-    font-family: var(--font-code);
-    font-size: 12.5px;
-}
-
-/* Missing stages: a 10px inset under the closing hairline, no reserved height, so the
-   standard 32px reaches the next section. */
-.m3-detail .m3-missing-row {
-    padding-top: 10px;
-}
-
-.m3-detail .m3-missing-row > div {
-    min-height: 0;
 }
 
 /* "Candidate evidence" is a section name, not a record title: section size, no rule under it. */
@@ -1347,31 +918,9 @@ section[aria-labelledby="chain-detail-heading"] > .m3-meta {
     border-top: 0;
 }
 
-/* Every section closes 32px above the next hairline: the last list, row or disclosure adds no
-   trailing space of its own. */
-.m3-detail > section > .m3-evidence:last-child,
-.m3-detail > section > .m3-timeline:last-child,
-.m3-detail > section > details:last-child,
-.m3-detail > .m3-narrative > :last-child {
-    margin-bottom: 0;
-}
-
-.m3-detail > section > .m3-evidence:last-child > li:last-child {
-    padding-bottom: 0;
-}
-
-.m3-detail .m3-timeline > li:last-child .m3-evidence {
-    margin-bottom: 0;
-}
-
 /* The trust note sits 16px above the prose it qualifies. */
 .m3-narrative .m3-trust-note {
     margin-bottom: 16px;
-}
-
-/* Timeline rule ids read as mono at the row size. */
-.m3-timeline-event > strong > code {
-    font-size: 13px;
 }
 
 /* Stage pills share both edges. */
@@ -1491,17 +1040,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
     display: flex;
     flex-direction: column;
 }
-
-.m3-detail > .m3-empty-detail {
-    flex: 1;
-}
-
-/* Keep record metadata and the graph coverage notice on the same reading surface. */
-.m3-detail {
-    --m3-record-label-width: clamp(105px, 30%, 200px);
-}
-.m3-detail > .m3-meta:has(+ .m3-graph-empty),
-.m3-detail > .m3-meta + .m3-graph-empty {
+.m3-detail > .m3-meta:has(+ .m3-graph-empty) {
     background: var(--surface-2);
 }
 .m3-detail > .m3-meta:has(+ .m3-graph-empty) {
@@ -1509,25 +1048,9 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
     padding: 14px 16px 0;
     border-radius: var(--radius-control) var(--radius-control) 0 0;
 }
-.m3-detail > .m3-meta dd {
-    min-width: 0;
-}
-.m3-detail > .m3-meta dd > code {
-    white-space: normal;
-    overflow-wrap: anywhere;
-}
-.m3-detail > .m3-meta + .m3-graph-empty {
-    margin-top: 0;
-    padding: 8px 16px 14px;
-    border-radius: 0 0 var(--radius-control) var(--radius-control);
-}
-.m3-detail .panel-head > h2,
 #chain-detail-heading {
     font: 600 clamp(1.3rem, 1rem + 0.7vw, 1.8rem) / 1.18 var(--font-display);
 }
-.m3-detail > section > h3,
-.m3-detail > .m3-two-column > section > h3,
-.m3-detail > .m3-actions > .m3-actions-title,
 .m3-narrative > .panel-head h3 {
     font-family: var(--font-display);
     font-weight: 600;
@@ -1553,8 +1076,7 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
 }
 
 @media (max-width: 640px) {
-    .m3-detail > .m3-meta:has(+ .m3-graph-empty),
-    .m3-detail > .m3-graph-empty .m3-graph-empty-copy {
+    .m3-detail > .m3-meta:has(+ .m3-graph-empty) {
         grid-template-columns: minmax(0, 1fr);
     }
 }
@@ -1565,54 +1087,12 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
     color: var(--tag-amber-text);
     font-weight: 600;
 }
-
-.m3-incident-filters {
-    display: grid;
-    gap: 8px;
-    margin: 0 0 12px;
-    padding: 0 0 12px;
-    border: 0;
-    border-bottom: 1px solid var(--border-row);
-    color: var(--text-2);
-    font-size: 13px;
-}
-.m3-incident-filters label:not(.m3-assignment-filter) {
-    display: grid;
-    gap: 4px;
-}
-.m3-incident-filters select {
-    width: 100%;
-    max-width: none;
-}
 .m3-assignment-filter {
     display: flex;
     align-items: center;
     gap: 8px;
     min-height: 24px;
     cursor: pointer;
-}
-.m3-incident-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 116px), 1fr));
-    gap: 8px 16px;
-    margin: 0;
-    padding: 12px 16px;
-    border-radius: var(--radius-control);
-    background: var(--surface-2);
-}
-.m3-incident-summary dt {
-    color: var(--text-2);
-    font-size: 13px;
-}
-.m3-incident-summary dd {
-    margin: 3px 0 0;
-    min-height: 22px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-.m3-incident-summary code {
-    overflow-wrap: anywhere;
-    font-size: 12px;
 }
 .m3-incident-record {
     margin-top: 10px;
@@ -1631,29 +1111,8 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
 .m3-incident-detail > section[aria-labelledby="incident-timeline-heading"] {
     margin-top: 16px;
 }
-.m3-activity-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.m3-activity-heading h3 {
-    font-size: 17px;
-    font-weight: 600;
-}
-.m3-activity-heading > span {
-    color: var(--text-muted);
-    font-family: var(--font-code);
-    font-size: 11px;
-}
-.m3-incident-detail .m3-timeline-marker::before {
-    background: var(--accent);
-}
 .m3-incident-detail .m3-timeline > li:not(.m3-timeline-day) {
     padding-block: 5px 13px;
-}
-.m3-incident-detail .m3-timeline-marker::after {
-    bottom: -18px;
 }
 .m3-event > summary {
     flex-wrap: wrap;
@@ -1671,32 +1130,11 @@ section[aria-labelledby="incident-detail-heading"] > .panel-head > h2 {
 .m3-event .m3-meta dd {
     min-width: 0;
 }
-.m3-event-labels {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 12px;
-    margin-inline-start: 16px;
-    color: var(--text-2);
-    font-size: 13px;
-}
-.m3-event-labels:empty {
-    display: none;
-}
-.m3-event-labels code {
-    color: var(--text);
-    font-size: 12px;
-    overflow-wrap: anywhere;
-}
 .m3-incident-back {
     display: none;
 }
 
 @media (max-width: 700px) {
-    .m3-incident-layout[data-incident-selected] > .m3-incident-list,
-    .m3-incident-layout:not([data-incident-selected]) > .m3-incident-detail {
-        display: none;
-    }
     .m3-incident-back {
         display: inline-flex;
         margin-bottom: 12px;
