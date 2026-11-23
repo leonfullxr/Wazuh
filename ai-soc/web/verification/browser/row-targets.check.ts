@@ -55,3 +55,24 @@ test("alert evidence and asset edit controls meet the 24px target", async ({ pag
     await edit().click();
     await expect(page.getByRole("heading", { name: "web-01" })).toBeVisible();
 });
+
+test("site-scoped rows wait for the initial site selection", async ({ page }) => {
+    const unscoped: string[] = [];
+    page.on("request", (request) => {
+        const url = new URL(request.url());
+        if (
+            ["/v1/workspace/queue", "/v1/workspace/assets"].includes(url.pathname) &&
+            !url.searchParams.get("site_id")
+        ) {
+            unscoped.push(url.pathname);
+        }
+    });
+    await page.goto("/?delay_bootstrap=1#queue");
+    const row = page.getByRole("button", { name: /Repeated SSH authentication failures/ });
+    await expect(row).toBeVisible();
+    await expect(page).toHaveURL(/site_id=/);
+    await page.goto("/?delay_bootstrap=1#metrics");
+    await expect(page.getByRole("button", { name: "Edit tags" }).first()).toBeVisible();
+    await expect(page).toHaveURL(/site_id=/);
+    expect(unscoped).toEqual([]);
+});
