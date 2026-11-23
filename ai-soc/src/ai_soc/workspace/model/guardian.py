@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import os
 import signal
+import stat
 import threading
 import time
 from collections.abc import Callable, Iterator
@@ -35,7 +37,12 @@ from ai_soc.workspace.model.narrate import (
     recover_abandoned_calls,
     supported_generation,
 )
-from ai_soc.workspace.model.worker import ModelConfig, load_config, verify_binding
+from ai_soc.workspace.model.worker import (
+    ModelConfig,
+    load_config,
+    verify_binding,
+    verify_slot_file,
+)
 from ai_soc.workspace.worker import LEASE
 
 ConnectionFactory = Callable[[], psycopg.Connection[Any]]
@@ -131,11 +138,13 @@ def run_guardian(
     *,
     config: ModelConfig,
     slot_fd: int,
+    legacy_slot_fd: int | None = None,
     connect: ConnectionFactory,
     profile: CodexProfile | None = None,
     provider: CodexCLIProvider | None = None,
     heartbeat_interval: float = 10.0,
     cancel_event: threading.Event | None = None,
+    retry_transient_errors: bool = True,
 ) -> int:
     """Execute at most one authorization. Return 1 for a call and 0 for no ready work."""
     profile = profile if profile is not None else config.codex_profile()
@@ -144,9 +153,22 @@ def run_guardian(
     if not 0 < heartbeat_interval <= 10:
         raise ValueError("invalid_heartbeat_interval")
     info = os.fstat(slot_fd)
-    expected = (config.slot_directory / "slot-0.lock").stat()
-    if (info.st_dev, info.st_ino) != (expected.st_dev, expected.st_ino):
+    expected = config.slot_directory.stat()
+    if (
+        not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or info.st_mode & 0o077
+        or (info.st_dev, info.st_ino) != (expected.st_dev, expected.st_ino)
+    ):
         raise PermissionError("inherited_slot_identity_mismatch")
+    fcntl.flock(slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    if legacy_slot_fd is not None:
+        fcntl.flock(legacy_slot_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            verify_slot_file(slot_fd, legacy_slot_fd)
+        except PermissionError:
+            raise PermissionError("inherited_slot_identity_mismatch") from None
+        os.set_inheritable(legacy_slot_fd, False)
     os.set_inheritable(slot_fd, False)
     job_and_generation: tuple[Job, Generation] | None = None
     call_id: UUID | None = None
@@ -154,7 +176,7 @@ def run_guardian(
     with connect() as conn:
         for site_id in sorted(config.site_ids):
             with _short_transaction(conn, site_id, config.site_ids):
-                verify_binding(conn, config, site_id)
+                verify_binding(conn, config, site_id, slot_fd=slot_fd)
                 recover_abandoned_calls(
                     conn,
                     site_id=site_id,
@@ -249,6 +271,7 @@ def run_guardian(
                         usage=TokenUsage(None, None, None) if failure is None else failure.usage,
                         provenance=None if failure is None else failure.provenance,
                         elapsed_ms=elapsed_ms,
+                        retry_transient_errors=retry_transient_errors,
                     )
                 return 1
             except LeaseLost:
@@ -270,6 +293,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--slot-fd", type=int, required=True)
+    parser.add_argument("--legacy-slot-fd", type=int, required=True)
     args = parser.parse_args()
     config = load_config(args.config)
     dsn = os.environ.get("WS_MODEL_DATABASE_URL")
@@ -286,12 +310,14 @@ def main() -> int:
         count = run_guardian(
             config=config,
             slot_fd=args.slot_fd,
+            legacy_slot_fd=args.legacy_slot_fd,
             connect=lambda: psycopg.connect(dsn, connect_timeout=3),
             cancel_event=cancelled,
         )
         return 0 if count else 3
     finally:
         os.close(args.slot_fd)
+        os.close(args.legacy_slot_fd)
 
 
 if __name__ == "__main__":

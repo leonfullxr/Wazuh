@@ -45,6 +45,7 @@ class ModelConfig:
     bwrap_path: str | None = None
     authority_path: Path | None = None
     state_directory: Path = DEFAULT_STATE_DIRECTORY
+    authority_slot_directory: Path | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -60,6 +61,15 @@ class ModelConfig:
                 for path in (self.codex_path, self.auth_path, self.bwrap_path)
             )
             or (self.authority_path is not None and not self.authority_path.is_absolute())
+            or (
+                self.authority_slot_directory is not None
+                and (
+                    not self.authority_slot_directory.is_absolute()
+                    or "\x00" in str(self.authority_slot_directory)
+                    or ".." in self.authority_slot_directory.parts
+                    or self.authority_slot_directory == self.slot_directory
+                )
+            )
         ):
             raise ValueError("invalid_model_configuration")
 
@@ -103,18 +113,30 @@ def load_config(path: Path) -> ModelConfig:
         "bwrap_path",
         "authority_path",
         "state_directory",
+        "authority_slot_directory",
     }:
         raise ValueError("unknown_model_configuration_field")
     if not isinstance(data.get("site_ids"), list) or not all(
         isinstance(site, str) for site in cast(list[object], data["site_ids"])
     ):
         raise ValueError("invalid_model_sites")
-    for key in ("codex_path", "auth_path", "bwrap_path", "authority_path", "state_directory"):
+    for key in (
+        "codex_path",
+        "auth_path",
+        "bwrap_path",
+        "authority_path",
+        "state_directory",
+        "authority_slot_directory",
+    ):
         if key in data and (
             not isinstance(data[key], str)
             or not data[key]
             or "\x00" in data[key]
             or not Path(data[key]).is_absolute()
+            or (
+                key == "authority_slot_directory"
+                and (data[key] != os.path.normpath(data[key]) or data[key].startswith("//"))
+            )
         ):
             raise ValueError("invalid_model_configuration")
     return ModelConfig(
@@ -128,16 +150,21 @@ def load_config(path: Path) -> ModelConfig:
         data.get("bwrap_path"),
         Path(data["authority_path"]) if "authority_path" in data else None,
         Path(data["state_directory"]) if "state_directory" in data else DEFAULT_STATE_DIRECTORY,
+        Path(data["authority_slot_directory"]) if "authority_slot_directory" in data else None,
     )
 
 
 class PhysicalSlot:
     """A shared open-file-description lock; release by closing, never LOCK_UN."""
 
-    def __init__(self, fd: int):
+    def __init__(self, fd: int, legacy_fd: int):
         self.fd = fd
+        self.legacy_fd = legacy_fd
 
     def close(self) -> None:
+        if self.legacy_fd >= 0:
+            os.close(self.legacy_fd)
+            self.legacy_fd = -1
         if self.fd >= 0:
             os.close(self.fd)
             self.fd = -1
@@ -158,23 +185,58 @@ def protected_directory(path: Path) -> os.stat_result:
     return info
 
 
-def acquire_slot(directory: Path) -> PhysicalSlot | None:
-    protected_directory(directory)
-    fd = os.open(
-        directory / "slot-0.lock", os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600
-    )
+def verify_slot_file(directory_fd: int, fd: int) -> None:
+    info = os.fstat(fd)
     try:
+        entry = os.stat("slot-0.lock", dir_fd=directory_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        raise PermissionError("slot_file_changed") from None
+    if not os.path.samestat(info, entry):
+        raise PermissionError("slot_file_changed")
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.geteuid()
+        or info.st_mode & 0o077
+        or info.st_nlink != 1
+        or not stat.S_ISREG(entry.st_mode)
+        or entry.st_uid != os.geteuid()
+        or entry.st_mode & 0o077
+        or entry.st_nlink != 1
+    ):
+        raise PermissionError("slot_file_changed")
+
+
+def acquire_slot(directory: Path, *, create: bool = True) -> PhysicalSlot | None:
+    expected = protected_directory(directory)
+    directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    fd = -1
+    flags = os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+    try:
+        info = os.fstat(directory_fd)
+        if not os.path.samestat(info, expected):
+            raise PermissionError("slot_directory_changed")
+        try:
+            fcntl.flock(directory_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fd = os.open(
+                "slot-0.lock", flags | (os.O_CREAT if create else 0), 0o600, dir_fd=directory_fd
+            )
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            if fd >= 0:
+                os.close(fd)
+            os.close(directory_fd)
+            return None
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
             raise PermissionError("slot_file_must_be_private")
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            os.close(fd)
-            return None
-        return PhysicalSlot(fd)
+        verify_slot_file(directory_fd, fd)
+        if not os.path.samestat(os.fstat(directory_fd), protected_directory(directory)):
+            raise PermissionError("slot_directory_changed")
+        return PhysicalSlot(directory_fd, fd)
     except BaseException:
-        os.close(fd)
+        if fd >= 0:
+            os.close(fd)
+        os.close(directory_fd)
         raise
 
 
@@ -183,7 +245,7 @@ def authority_material(config: ModelConfig, info: os.stat_result) -> bytes:
         {
             "host_id": config.host_id,
             "runtime_id": config.runtime_id,
-            "slot_directory": str(config.slot_directory),
+            "slot_directory": str(config.authority_slot_directory or config.slot_directory),
             "device": info.st_dev,
             "inode": info.st_ino,
         },
@@ -191,26 +253,106 @@ def authority_material(config: ModelConfig, info: os.stat_result) -> bytes:
     ).encode()
 
 
+def _authority_identity(info: os.stat_result) -> tuple[int, ...]:
+    return (
+        info.st_dev,
+        info.st_ino,
+        info.st_uid,
+        info.st_mode,
+        info.st_nlink,
+        info.st_size,
+        info.st_mtime_ns,
+        info.st_ctime_ns,
+    )
+
+
 def verify_authority(config: ModelConfig, info: os.stat_result) -> None:
     assert config.authority_path is not None
-    fd = os.open(config.authority_path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
-    with os.fdopen(fd, "rb") as stream:
-        meta = os.fstat(stream.fileno())
+    path = config.authority_path
+
+    alias_observed = False
+
+    def check_alias() -> None:
+        nonlocal alias_observed
+        alias = config.authority_slot_directory
+        if alias is not None:
+            try:
+                canonical = protected_directory(config.slot_directory)
+                target = alias.stat()
+                alias_observed = True
+                resolved = alias.resolve(strict=True)
+            except (FileNotFoundError, NotADirectoryError):
+                if alias_observed:
+                    raise PermissionError("authority_slot_directory_changed") from None
+                raise
+            if (
+                resolved != config.slot_directory
+                or (canonical.st_dev, canonical.st_ino) != (info.st_dev, info.st_ino)
+                or (target.st_dev, target.st_ino) != (info.st_dev, info.st_ino)
+            ):
+                raise PermissionError("authority_slot_directory_changed")
+
+    check_alias()
+    locator = path.parent.resolve(strict=True) / path.name
+    observed = _authority_identity(path.lstat())
+
+    def locator_changed() -> bool:
+        try:
+            return (
+                path.parent.resolve(strict=True) / path.name != locator
+                or _authority_identity(path.lstat()) != observed
+            )
+        except (FileNotFoundError, NotADirectoryError):
+            return True
+
+    if locator_changed():
+        raise PermissionError("host_authority_changed")
+    if not stat.S_ISREG(observed[3]):
+        raise PermissionError("host_runtime_already_bound")
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError:
+        reason = "host_authority_changed" if locator_changed() else "host_runtime_already_bound"
+        raise PermissionError(reason) from None
+    try:
+        meta = os.fstat(fd)
+        if _authority_identity(meta) != observed:
+            raise PermissionError("host_authority_changed")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            material = stream.read(4097)
+        check_alias()
+        if locator_changed() or _authority_identity(os.fstat(fd)) != observed:
+            raise PermissionError("host_authority_changed")
         if (
-            not stat.S_ISREG(meta.st_mode)
-            or meta.st_uid != os.geteuid()
+            meta.st_uid != os.geteuid()
             or meta.st_mode & 0o077
-            or stream.read(4097) != authority_material(config, info)
+            or material != authority_material(config, info)
         ):
             raise PermissionError("host_runtime_already_bound")
+    finally:
+        os.close(fd)
 
 
-def verify_binding(conn: psycopg.Connection[Any], config: ModelConfig, site_id: str) -> None:
+def _acquire_model_slot(config: ModelConfig) -> PhysicalSlot | None:
+    if config.authority_slot_directory is not None:
+        return acquire_slot(config.slot_directory, create=False)
+    return acquire_slot(config.slot_directory)
+
+
+def verify_binding(
+    conn: psycopg.Connection[Any], config: ModelConfig, site_id: str, *, slot_fd: int | None = None
+) -> None:
     config.require_configured()
     if config.host_id != local_host_id():
         raise PermissionError("configured_host_is_not_local")
     info = protected_directory(config.slot_directory)
+    if slot_fd is not None and not os.path.samestat(info, os.fstat(slot_fd)):
+        raise PermissionError("slot_directory_changed")
     verify_authority(config, info)
+    if slot_fd is not None and not os.path.samestat(
+        os.fstat(slot_fd), protected_directory(config.slot_directory)
+    ):
+        raise PermissionError("slot_directory_changed")
     row = conn.execute(
         "SELECT host_id,runtime_id,slot_directory,directory_device,directory_inode,"
         "slot_count FROM narrative_runtime_bindings WHERE site_id=%s",
@@ -232,22 +374,41 @@ def provision_binding(conn: psycopg.Connection[Any], config: ModelConfig, *, now
     config.require_configured()
     if config.host_id != local_host_id():
         raise PermissionError("configured_host_is_not_local")
-    config.slot_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if config.authority_slot_directory is None:
+        config.slot_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    slot = _acquire_model_slot(config)
+    if slot is None:
+        raise PermissionError("slot_busy")
+    with slot:
+        _provision_binding_locked(conn, config, now=now, slot=slot)
+
+
+def _provision_binding_locked(
+    conn: psycopg.Connection[Any], config: ModelConfig, *, now: datetime, slot: PhysicalSlot
+) -> None:
     info = protected_directory(config.slot_directory)
+    if not os.path.samestat(info, os.fstat(slot.fd)):
+        raise PermissionError("slot_directory_changed")
     # A host manifest prevents other databases and checkouts inventing a second slot.
     assert config.authority_path is not None
     manifest_path = config.authority_path
-    manifest_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    material = authority_material(config, info)
-    try:
-        fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
-    except FileExistsError:
+    if config.authority_slot_directory is not None:
         verify_authority(config, info)
     else:
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(material)
-            stream.flush()
-            os.fsync(stream.fileno())
+        manifest_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        material = authority_material(config, info)
+        try:
+            fd = os.open(manifest_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
+        except FileExistsError:
+            verify_authority(config, info)
+        else:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(material)
+                stream.flush()
+                os.fsync(stream.fileno())
+    if not os.path.samestat(os.fstat(slot.fd), protected_directory(config.slot_directory)):
+        raise PermissionError("slot_directory_changed")
+    verify_slot_file(slot.fd, slot.legacy_fd)
     for site_id in sorted(config.site_ids):
         with site_transaction(conn, site_id, config.site_ids):
             prior = conn.execute(
@@ -268,7 +429,8 @@ def provision_binding(conn: psycopg.Connection[Any], config: ModelConfig, *, now
                         now,
                     ),
                 )
-            verify_binding(conn, config, site_id)
+            verify_binding(conn, config, site_id, slot_fd=slot.fd)
+            verify_slot_file(slot.fd, slot.legacy_fd)
 
 
 def provision_model_role(conn: psycopg.Connection[Any], role: str) -> None:
@@ -358,7 +520,7 @@ def model_status(
                         generation, profile
                     ):
                         counts["blocked"] += 1
-    slot = acquire_slot(config.slot_directory)
+    slot = _acquire_model_slot(config)
     held = slot is None
     if slot is not None:
         slot.close()
@@ -381,13 +543,13 @@ def run_model_once(
 ) -> int:
     """Acquire before admission; guardian inherits ownership and performs the DB claim."""
     config.require_configured()
-    slot = acquire_slot(config.slot_directory)
+    slot = _acquire_model_slot(config)
     if slot is None:
         return 0
     try:
         for site_id in sorted(config.site_ids):
             with site_transaction(conn, site_id, config.site_ids):
-                verify_binding(conn, config, site_id)
+                verify_binding(conn, config, site_id, slot_fd=slot.fd)
         env = {
             "PATH": "/usr/bin:/bin",
             "LANG": "C.UTF-8",
@@ -403,8 +565,10 @@ def run_model_once(
                 str(config_path),
                 "--slot-fd",
                 str(slot.fd),
+                "--legacy-slot-fd",
+                str(slot.legacy_fd),
             ],
-            pass_fds=(slot.fd,),
+            pass_fds=(slot.fd, slot.legacy_fd),
             close_fds=True,
             start_new_session=True,
             env=env,

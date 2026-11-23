@@ -205,6 +205,10 @@ Declare absolute `codex_path`, `auth_path`, `bwrap_path` and `authority_path` va
 
 The `authority_path` must equal `<OS-account-home>/.local/state/ai-soc/narrative-runtime.json`, using the account home from the OS user database. This independent anchor ignores `HOME` and prevents another configuration from registering a second authority. Every participating checkout and database must declare that authority and the same physical `slot_directory`. The authority binds the host, runtime, slot path, device and inode. Use a separate `state_directory` per checkout. Moving local state does not create another inference slot; descendants retain the inherited file-descriptor lock until they exit.
 
+All participating processes must use one cooperating service account, one trusted authority, and a local filesystem that supports Linux flock. The service account and administrator control the manifest and its parent directories.
+
+Before enabling this version, stop old schedulers and drain all old guardians and cost-bearing descendants sharing the authority. Repeat the drain before rollback. Mixed active versions are unsupported: the legacy lock contends while its entry is intact, but old processes cannot enforce the directory lock and a surviving new sandbox holds only the directory lock. No manifest rewrite or machine-wide path migration is required.
+
 Existing configurations need these explicit fields before use. This change does not migrate authority files or rewrite database bindings. Preserve existing authority and physical slot identities. A changed executable path changes the execution identity, so previously frozen generations stay blocked rather than being rewritten or attempted. Qualify the selected runtime before use.
 
 Use these commands to operate the model process:
