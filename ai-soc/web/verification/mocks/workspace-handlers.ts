@@ -101,6 +101,24 @@ const state = (url: URL) => {
     if (scenario?.startsWith("workspace_")) return scenario.slice("workspace_".length);
     return url.searchParams.get("ws_state");
 };
+const stressHost = "web-01.edge.authentication.cluster.prod.soc.example.invalid";
+const stressRule =
+    "Repeated SSH authentication failures from one external source continued past the host lockout threshold and were correlated with a privileged session on the same agent.";
+const stressTags = [
+    "internet-facing",
+    "production",
+    "pci",
+    "crown-jewel",
+    "linux",
+    "ssh",
+    "dmz",
+    "monitored",
+    "tier-0",
+    "patch-lag",
+    "customer-facing",
+    "soar-owned",
+];
+const stressCount = 12_345_678;
 
 export const workspaceHandlers = [
     http.get("/v1/workspace/chains", ({ request }) => {
@@ -536,6 +554,15 @@ export const workspaceHandlers = [
             bounds.freshness.last_success_at = null;
             bounds.freshness.lag_seconds = null;
         }
+        if (mode === "stress") {
+            bounds.totals.alerts = stressCount;
+            bounds.top_rules = bounds.top_rules.map((item, index) =>
+                index === 0 ? { ...item, label: stressRule, count: stressCount } : item,
+            );
+            bounds.top_agents = bounds.top_agents.map((item, index) =>
+                index === 0 ? { ...item, label: stressHost, count: stressCount } : item,
+            );
+        }
         return HttpResponse.json(bounds);
     }),
     http.get("/v1/workspace/alerts", ({ request }) => {
@@ -565,7 +592,15 @@ export const workspaceHandlers = [
         const pageSize = 2;
         const cursor = url.searchParams.get("cursor");
         const offset = cursor === "next" ? pageSize : 0;
-        const items = filtered.slice(offset, offset + pageSize);
+        const page = filtered.slice(offset, offset + pageSize);
+        const items =
+            mode === "stress"
+                ? page.map((alert) => ({
+                      ...alert,
+                      agent_name: stressHost,
+                      rule_description: stressRule,
+                  }))
+                : page;
         return HttpResponse.json({
             items,
             next_cursor: filtered.length > offset + pageSize ? "next" : null,
@@ -603,7 +638,19 @@ export const workspaceHandlers = [
                 (!rule || group.rule_id === rule) &&
                 (group.score === null ? min === 0 : group.score >= min),
         );
-        return HttpResponse.json({ items, next_cursor: null, limit: 50 });
+        const rows =
+            mode === "stress"
+                ? items.map((row) => ({
+                      ...row,
+                      group: {
+                          ...row.group,
+                          title: stressRule,
+                          alert_count: stressCount,
+                          primary_entity: { ...row.group.primary_entity, value: stressHost },
+                      },
+                  }))
+                : items;
+        return HttpResponse.json({ items: rows, next_cursor: null, limit: 50 });
     }),
     http.get("/v1/workspace/groups/:groupId/assessment", ({ params, request }) => {
         const mode = state(new URL(request.url));
@@ -792,6 +839,15 @@ export const workspaceHandlers = [
         const url = new URL(request.url);
         return HttpResponse.json({
             ...opsMetrics,
+            ...(mode === "stress"
+                ? {
+                      volume: opsMetrics.volume.map((bucket) => ({
+                          ...bucket,
+                          count: stressCount,
+                      })),
+                      backlog: { ...opsMetrics.backlog, current: stressCount },
+                  }
+                : {}),
             window: {
                 ...opsMetrics.window,
                 from: url.searchParams.get("from") ?? opsMetrics.window.from,
@@ -810,7 +866,13 @@ export const workspaceHandlers = [
         if (mode === "denied") return error(403, "WORKSPACE_DENIED", "Asset access is denied.");
         if (mode === "error") return error(503, "UNAVAILABLE", "Asset tags are unavailable.");
         const q = new URL(request.url).searchParams.get("q")?.toLowerCase();
-        const items = assetTags.filter(
+        const source =
+            mode === "stress"
+                ? assetTags.map((asset, index) =>
+                      index === 0 ? { ...asset, entity_value: stressHost, tags: stressTags } : asset,
+                  )
+                : assetTags;
+        const items = source.filter(
             (asset) =>
                 !q ||
                 asset.entity_value.toLowerCase().includes(q) ||

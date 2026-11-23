@@ -24,6 +24,7 @@ export default defineConfig({
         "overview-cards.check.ts",
         "disposition-note.check.ts",
         "citation-label.check.ts",
+        "stress-layout.check.ts",
         "copy-names.check.ts",
         "heatmap-scroll.check.ts",
         "dashboard-empty.check.ts",
